@@ -1,0 +1,591 @@
+#ifdef GEN_INSTANCES
+
+GEN_INSTANCES(fwdLibElementInst,Add,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset); 
+GEN_INSTANCES(fwdLibElementInst,Sub,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset);
+GEN_INSTANCES(fwdLibElementInst,Div,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset);
+GEN_INSTANCES(fwdLibElementInst,Mul,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset);
+GEN_INSTANCES(fwdLibElementInst,Max,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset);
+GEN_INSTANCES(fwdLibElementInst,Min,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset);
+GEN_INSTANCES(fwdLibElementInstThreaded,Add,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale,
+                                 int32_t  * offset, uint64_t flags);
+GEN_INSTANCES(fwdLibElementInstThreaded,Sub,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset, uint64_t flags);
+GEN_INSTANCES(fwdLibElementInstThreaded,Div,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset, uint64_t flags);
+GEN_INSTANCES(fwdLibElementInstThreaded,Mul,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale,
+                                 int32_t  * offset, uint64_t flags); 
+GEN_INSTANCES(fwdLibElementInstThreaded,Max,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset, uint64_t flags);
+GEN_INSTANCES(fwdLibElementInstThreaded,Min,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset, uint64_t flags);
+GEN_3TYPE(fwdLibElementInstVectorized,Add,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset, uint64_t flags);
+GEN_3TYPE(fwdLibElementInstVectorized,Sub,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale,
+                                 int32_t  * offset, uint64_t flags); 
+GEN_3TYPE(fwdLibElementInstVectorized,Div,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale,
+                                 int32_t  * offset, uint64_t flags); 
+GEN_3TYPE(fwdLibElementInstVectorized,Mul,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale, 
+                                 int32_t  * offset, uint64_t flags);
+GEN_3TYPE(fwdLibElementInstVectorized,Max,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale,
+                                 int32_t  * offset, uint64_t flags); 
+GEN_3TYPE(fwdLibElementInstVectorized,Min,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale,
+                                 int32_t  * offset, uint64_t flags); 
+GEN_INSTANCES(fwdLibElementBoolInst,CmpEQ,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,
+                                 float * scale , int32_t  * offset);
+GEN_INSTANCES(fwdLibElementBoolInst,CmpLTE,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,
+                                 float * scale , int32_t  * offset);
+GEN_INSTANCES(fwdLibElementBoolInstThreaded,CmpEQ,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,
+                                 float * scale , int32_t  * offset, uint64_t flags);
+GEN_INSTANCES(fwdLibElementBoolInstThreaded,CmpLTE,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,
+                                 float * scale , int32_t  * offset, uint64_t flags);
+GEN_2TYPE(fwdLibElementBoolInstVectorized,CmpEQ,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,
+                                 float * scale , int32_t  * offset, uint64_t flags);
+GEN_2TYPE(fwdLibElementBoolInstVectorized,CmpLTE,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,
+                                 float * scale , int32_t  * offset, uint64_t flags);
+GEN_OP(fwdLibElementIsNaNInst,void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float * scale, 
+                                 int32_t * offset);
+GEN_OP(fwdLibElementIsNaNInstThreaded,void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float * scale, 
+                                 int32_t * offset, uint64_t flags);
+GEN_OP(fwdLibElementSelectInst,void *dstT, void *dstDims,
+                                 void *dstPitches, void *condT,
+                                 void *condDims, void *condPitches, 
+                                 void *srcT1, void *srcDims, 
+                                 void *src1Pitches,unsigned int srcDimNum, 
+                                 void *srcT2, void *src2Pitches, float * scale, 
+                                 int32_t  * offset);
+GEN_OP(fwdLibElementSelectInstThreaded,void *dstT, void *dstDims,
+                                        void *dstPitches, void *condT,
+                                        void *condDims, void *condPitches, 
+                                        void *srcT1, void *srcDims, 
+                                        void *src1Pitches,unsigned int srcDimNum, 
+                                        void *srcT2, void *src2Pitches, float * scale, 
+                                        int32_t  * offset, uint64_t flags);
+GEN_OP(fwdLibTanhInst, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
+                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                       float *scale, int32_t *offset);
+GEN_OP(fwdLibTanhInstThreaded, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
+                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                       float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibElementExpInst,void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float * scale, 
+                                 int32_t * offset);
+GEN_INSTANCES(fwdLibElementInst,Pow,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches,float * scale,
+                                 int32_t  * offset);
+GEN_INSTANCES(fwdLibElementInstThreaded,Pow,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches, float * scale ,
+                                 int32_t  * offset, uint64_t flags);
+GEN_3TYPE(fwdLibElementInstVectorized,Pow,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *srcT2,
+                                 void *src2Pitches, float * scale,
+                                 int32_t  * offset, uint64_t flags); 
+GEN_INSTANCES(fwdLibElementSingleInst,ElementLog,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, 
+                                 float * scale , int32_t  * offset);
+GEN_INSTANCES(fwdLibElementSingleInstThreaded,ElementLog,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, 
+                                 float * scale , int32_t  * offset, uint64_t flags);
+GEN_2TYPE(fwdLibElementSingleInstVectorized,ElementLog,void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, 
+                                 float * scale , int32_t  * offset, uint64_t flags);
+GEN_OP(fwdLibMaxPoolInst, bool XY, void *dstMatrix,void *dstMatrixDims, 
+                         void *dstMatrixPitches, void *dst2Matrix,
+                         void *dst2MatrixDims, void *dst2MatrixPitches, 
+                         void *activations, void *activationsDims, 
+                         void *activationsPitches, void *pkernels,
+                         void *pstrides, void *ppads, float *scale,
+                         int32_t *offset);
+GEN_2TYPE_OP(fwdLibMaxPoolInstThreaded, bool XY, void *dstMatrix,void *dstMatrixDims, 
+                         void *dstMatrixPitches, void *dst2Matrix,
+                         void *dst2MatrixDims, void *dst2MatrixPitches, 
+                         void *activations, void *activationsDims, 
+                         void *activationsPitches, void *pkernels,
+                         void *pstrides, void *ppads, float *scale,
+                         int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibAvgPoolInst,void *dstMatrix, void *dstMatrixDims, 
+                         void *dstMatrixPitches, void *activations, 
+                         void *activationsDims, void *activationsPitches, 
+                         void *pkernels, void *pstrides, void *ppads,
+                         float *scale, int32_t *offset);
+GEN_2TYPE_OP(fwdLibAvgPoolInstThreaded,void *dstMatrix, void *dstMatrixDims, 
+                         void *dstMatrixPitches, void *activations, 
+                         void *activationsDims, void *activationsPitches, 
+                         void *pkernels, void *pstrides, void *ppads,
+                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibInsertTensorInst, void *dst, void *dstDims, 
+                               void *dstPitches, unsigned int dstDimNum, 
+                               void *src2, void *src2Dims, void *src2Pitches, 
+                               void * poffsets, unsigned int count, 
+                               unsigned int axis, float *scale, int32_t *offset);
+GEN_OP(fwdLibInsertTensorInstThreaded, void *dst, void *dstDims, 
+                                void *dstPitches, unsigned int dstDimNum, 
+                                void *src2, void *src2Dims, void *src2Pitches, 
+                                void * poffsets, unsigned int count, 
+                                unsigned int axis, float *scale, int32_t *offset, uint64_t flags);                              
+GEN_OP(fwdLibExtractTensorInst, void *dst, void *dstDims, 
+                                void *dstPitches, unsigned int dstDimNum, 
+                                void *src2, void *src2Dims, void *src2Pitches, 
+                                void * poffsets, float *scale, int32_t *offset);
+GEN_OP(fwdLibExtractTensorInstThreaded, void *dst, void *dstDims, 
+                                void *dstPitches, unsigned int dstDimNum, 
+                                void *src, void *srcDims, void *srcPitches, 
+                                void * poffsets, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibBatchOneHotInst, void *pdst, void *pdstDims, void *pdstPitches, 
+                              void *pdata, void *pdataDims, void *pdataPitches, 
+                              void *pvalues, void *pvaluesDims, void *pvaluesPitches, 
+                              void *plengths, float *scale, int32_t *offset);  
+GEN_OP(fwdLibBatchOneHotInstThreaded, void *pdst, void *pdstDims, void *pdstPitches, 
+                                      void *pdata, void *pdataDims, void *pdataPitches, 
+                                      void *pvalues, void *pvaluesDims, void *pvaluesPitches, 
+                                      void *plengths, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibChecksum, void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset,
+                                  uint64_t flags);
+GEN_OP(fwdLibCopyInst, void *dst, void *src, unsigned int numElems,
+                       float *scale, int32_t *offset);
+GEN_OP(fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset,
+                                  uint64_t flags);
+GEN_OP(fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibCopyInstTensorized, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibTensorViewInst, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, void *src, void *srcDims,
+                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
+                             float *scale, int32_t *offset); 
+GEN_OP(fwdLibTensorViewInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, void *src, void *srcDims,
+                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
+                             float *scale, int32_t *offset, uint64_t flags );
+GEN_OP(fwdLibTensorViewInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, void *src, void *srcDims,
+                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
+                             float *scale, int32_t *offset, uint64_t flags );  
+GEN_OP(fwdLibConvolutionInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                              void *activations, void *activationsDims, void *activationsPitches,
+                              void *weights, void *weightsDims, void *weightPitches, void *bias,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                              float *scale, int32_t *offset); 
+GEN_OP(fwdLibConvolutionInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                              void *activations, void *activationsDims, void *activationsPitches,
+                              void *weights, void *weightsDims, void *weightPitches, void *bias,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                              void *activations, void *activationsDims, void *activationsPitches,
+                              void *weights, void *weightsDims, void *weightPitches, void *bias,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibConvolution3DInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                void *activations, void *activationsDims, void *activationsPitches,
+                                void *weights, void *weightsDims, void *weightPitches, void *bias,
+                                void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                                float *scale, int32_t *offset); 
+GEN_OP(fwdLibConvolution3DInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                void *activations, void *activationsDims, void *activationsPitches,
+                                void *weights, void *weightsDims, void *weightPitches, void *bias,
+                                void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                                float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSparseToDenseMaskInst, void *pdst, void *pdstDims, void *pdstPitches,
+                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
+                                    void *pdataPitches, void *pdefault, int pdefaultSize,
+                                    void *pindices, void *plengths, unsigned int pLengthsSize,
+                                    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset);
+GEN_OP(fwdLibSparseToDenseMaskInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
+                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
+                                    void *pdataPitches, unsigned int pdataDimNum, void *pdefault, int pdefaultSize,
+                                    void *pindices, void *plengths, unsigned int pLengthsSize,
+                                    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibMatMulInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset);
+GEN_OP(fwdLibMatMulInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibMatMulInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset, uint64_t flags,
+                         const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+GEN_OP(fwdLibMatMulInstTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset);
+GEN_OP(fwdLibMatMulInstThreadedTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibMatMulInstVectorizedTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInst, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset);
+GEN_OP(fwdLibSoftMaxInst2, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset);
+GEN_OP(fwdLibSoftMaxInstThreaded, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstVectorized, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstThreaded1, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstThreaded2, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstVectorized1, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSparseToDenseInst, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches,
+                                unsigned int srcDimNum, void* indicesT, void *indDims,
+                                void *indPitches, float *scale, int32_t *offset);
+GEN_OP(fwdLibSparseToDenseInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches,
+                                unsigned int srcDimNum, void* indicesT, void *indDims,
+                                void *indPitches, float *scale, int32_t *offset, uint64_t flags);
+
+GEN_OP(fwdLibSparseToDenseInstVectorized, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches,
+                                unsigned int srcDimNum, void* indicesT, void *indDims,
+                                void *indPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibBatchedReduceAddInst, void *pdst, void *pdstDims, void *pdstPitches,
+                                   void *pbatch, void *pbatchDims, void *pbatchPitches,
+                                   unsigned int pbatchDimNum, unsigned int axis,
+                                   float *scale, int32_t *offset);                    
+GEN_OP(fwdLibBatchedReduceAddInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
+                                   void *pbatch, void *pbatchDims, void *pbatchPitches,
+                                   unsigned int pbatchDimNum, unsigned int axis,
+                                   float *scale, int32_t *offset, uint64_t flags);                    
+GEN_OP(fwdLibTransposeInst, void *dst, void *dstDims, void *dstPitches,
+                            void *src, void *srcDims, void *srcPitches,
+                            unsigned int srcDimNum, void *pshuffle,
+                            float *scale, int32_t *offset);
+GEN_OP(fwdLibTransposeInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                            void *src, void *srcDims, void *srcPitches,
+                            unsigned int srcDimNum, void *pshuffle,
+                            float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibTransposeInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                            void *src, void *srcDims, void *srcPitches,
+                            unsigned int srcDimNum, void *pshuffle,
+                            float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibLengthsToRangesInst, void *dstT, void *dstDims, void *dstPitches,
+                                  void *plengths, unsigned int lenDim,
+                                  float *scale, int32_t *offset);
+GEN_OP(fwdLibLengthsToRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                  void *plengths, unsigned int lenDim,
+                                  float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibBatchedAddInst, void *pdst, void *pdstDims, void *pdstPitches,
+                             void *pbatch, void *pbatchDims, void *pbatchPitches,
+                             unsigned int pbatchDimNum, void *pslice,
+                             float *scale, int32_t *offset);
+GEN_OP(fwdLibBatchedAddInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
+                             void *pbatch, void *pbatchDims, void *pbatchPitches,
+                             unsigned int pbatchDimNum, void *pslice,
+                             float *scale, int32_t *offset, uint64_t flags);   
+GEN_OP(fwdLibLengthsSumInst, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
+                             void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
+                             void *plengths, unsigned int pLengthsSize, float *scale, int32_t *offset);                                  
+GEN_OP(fwdLibLengthsSumInstThreaded, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
+                                     void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
+                                     void *plengths, unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags);    
+GEN_OP(fwdLibTopKInst, void *dstT, void *dstDims, void *dstPitches, void *dstT2, 
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches, 
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset);
+GEN_OP(fwdLibTopKInstThreaded_all, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibTopKInstThreaded_k4, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibTopKInstThreaded_k8, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSplatInst, void *addr, int numElems, float splatVal,
+                        float *scale, int32_t *offset);
+GEN_OP(fwdLibSplatInst, void *addr, int numElems, int64_t splatVal,
+                        float *scale, int32_t *offset);
+GEN_OP(fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, float splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, int64_t splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, float splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, int64_t splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSigmoidInst, void *dstT, void *dstDims, void *dstPitches,
+                           void *srcT1, void *srcDims, void *srcPitches,
+                           unsigned int srcDimNum, float * scale, int32_t * offset);
+GEN_OP(fwdLibSigmoidInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                           void *srcT1, void *srcDims, void *srcPitches,
+                           unsigned int srcDimNum, float * scale, int32_t * offset, uint64_t flags);   
+GEN_OP(fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches,
+                                unsigned int srcDimNum, float splatVal,
+                                float *scale, int32_t *offset);
+GEN_OP(fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches,
+                                unsigned int srcDimNum, int64_t splatVal,
+                                float *scale, int32_t *offset);                                           
+GEN_OP(fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, float splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, int64_t splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibETSOCMaxSplatInstVectorized,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, float splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibETSOCFullyConnectedInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                      void *activations, void *activationsDims, void *activationsPitches,
+                                      void *weights, void *weightsDims, void *weightPitches,
+                                      void *bias, float *scale, int32_t *offset );   
+GEN_OP(fwdLibETSOCFullyConnectedInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                      void *activations, void *activationsDims, void *activationsPitches,
+                                      void *weights, void *weightsDims, void *weightPitches,
+                                      void *bias, float *scale, int32_t *offset, uint64_t flags );
+GEN_3TYPE_OP(fwdLibETSOCFullyConnectedInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                      void *activations, void *activationsDims, void *activationsPitches,
+                                      void *weights, void *weightsDims, void *weightPitches,
+                                      void *bias, float *scale, int32_t *offset, uint64_t flags );
+GEN_OP(fwdLibLocalResponseNormalizationInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
+                                             void *activations, void *activationsDims, void *activationsPitches,
+                                             unsigned int halfWindowSize, float alpha, float beta, float k,
+                                             float *scale, int32_t *offset);
+GEN_OP(fwdLibLocalResponseNormalizationInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
+                                             void *activations, void *activationsDims, void *activationsPitches,
+                                             unsigned int halfWindowSize, float alpha, float beta, float k,
+                                             float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibLocalResponseNormalizationInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
+                                             void *activations, void *activationsDims, void *activationsPitches,
+                                             unsigned int halfWindowSize, float alpha, float beta, float k,
+                                             float *scale, int32_t *offset, uint64_t flags);
+GEN_QUANT(fwdLibQuantizeInst, void *dstT, void *dstDims, void *dstPitches,
+                              void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                              float scale,  int32_t offset);
+GEN_QUANT(fwdLibQuantizeInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                              void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                              float scale,  int32_t offset, uint64_t flags);  
+GEN_QUANT(fwdLibDequantizeInst, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                                float scale,  int32_t offset);
+GEN_QUANT(fwdLibDequantizeInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                              void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                              float scale,  int32_t offset, uint64_t flags);         
+GEN_QUANT(fwdLibRescaleQuantizedInst, void *dstT, void *dstDims, void *dstPitches,
+                                      void *srcT, void *srcDims, void *srcPitches,
+                                      unsigned int srcDimNum, float srcScale,
+                                      int32_t srcOffset, float dstScale, int32_t dstOffset);
+GEN_QUANT(fwdLibRescaleQuantizedInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                      void *srcT, void *srcDims, void *srcPitches,
+                                      unsigned int srcDimNum, float srcScale, int32_t srcOffset, 
+                                      float dstScale, int32_t dstOffset, uint64_t flags);                                                                                                                                                                                  
+GEN_OP(fwdLibScatterAssignInst, void *dstT, void *dstDims, 
+                                void *dstPitches, void *indexT, void *indicesDims, void *pindicesPitches, 
+                                void *slicesT, void *slicesDims, void *slicesPitches , 
+                                float *scale, int32_t *offset); 
+GEN_OP(fwdLibScatterAssignInstThreaded, void *dstT, void *dstDims,  
+                                void *dstPitches, unsigned int dstDimNum, void *indexT, void *indicesDims, void *pindicesPitches, 
+                                void *slicesT, void *slicesDims, void *slicesPitches , 
+                                float *scale, int32_t *offset, uint64_t flags);  
+GEN_OP(fwdLibCrossEntropyLossInst, void *dstT, void *srcT, void *srcDims,
+                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
+                                   float *scale, int32_t *offset);
+GEN_OP(fwdLibCrossEntropyLossInstThreaded, void *dstT, void *srcT, void *srcDims,
+                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
+                                   float *scale, int32_t *offset, uint64_t flags);
+GEN_OP_INDEX(fwdLibGatherInst, void *dstT, void *dstDims, void *dstPitches, 
+                               void *srcT, void *srcDims, void *srcPitches, 
+                               unsigned int srcDimsNum, void *indexT, void *indicesDims, 
+                               void *pindicesPitches, unsigned int batchedDims, 
+                               float *scale, int32_t *offset);
+GEN_OP_INDEX(fwdLibGatherInstThreaded, void *dstT, void *dstDims, void *dstPitches, 
+                               void *srcT, void *srcDims, void *srcPitches, 
+                               unsigned int srcDimsNum, void *indexT, void *indicesDims,
+                               void *pindicesPitches, unsigned int indicesDimsNum, 
+                               unsigned int batchedDims, float *scale, int32_t *offset, uint64_t flags);
+GEN_OP_INDEX(fwdLibGatherRangesInst, void *dstT, void *dstDims, void *dstPitches,
+                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
+                                     void *srcT, void *srcDims, void *srcPitches,
+                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
+                                     void *prangesPitches, float *scale, int32_t *offset);
+GEN_OP_INDEX(fwdLibGatherRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
+                                     void *srcT, void *srcDims, void *srcPitches,
+                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
+                                     void *prangesPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_CONVERT(fwdLibConvertToInst, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float *scale, int32_t *offset);
+GEN_CONVERT(fwdLibConvertToInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float *scale, int32_t *offset, uint64_t flags);
+GEN_CONVERT(fwdLibConvertToInstVectorized, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float *scale, int32_t *offset, uint64_t flags);
+GEN_INTONLY_OP(fwdLibModuloInst, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, long long divisor, bool signFollowDivisor,
+                                 float * scale, int32_t * offset);
+GEN_INTONLY_OP(fwdLibModuloInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, long long divisor, bool signFollowDivisor,
+                                 float * scale, int32_t * offset, uint64_t flags);
+GEN_OP(fwdLibSparseLengthsWeightedSumInst,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum, 
+                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights, 
+                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths, 
+                                          unsigned int pLengthsSize, float *scale, int32_t *offset);
+GEN_OP(fwdLibSparseLengthsWeightedSumInstThreaded,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
+                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
+                                          unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags);
+#endif
+
+#undef GEN_INSTANCES
+#undef GEN_OP
+#undef GEN_INTONLY_OP
+#undef GEN_QUANT
+#undef GEN_OP_INDEX
+#undef GEN_CONVERT
