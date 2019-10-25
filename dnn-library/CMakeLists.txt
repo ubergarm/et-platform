@@ -28,6 +28,6 @@ add_custom_target(dnn_lib ALL
                      all
   VERBATIM)
 
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/*
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
   DESTINATION ${CMAKE_INSTALL_PREFIX}/dnn_lib
   COMPONENT dnn_lib)
