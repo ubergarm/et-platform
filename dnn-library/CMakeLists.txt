@@ -13,9 +13,9 @@ cmake_minimum_required(VERSION 3.5)
 project(dnn_lib VERSION 0.1.0 LANGUAGES CXX C ASM)
 
 if (CLANG_BUILD)
-	set (CLANG_BUILD_DEF 1)
+  set(CLANG_BUILD_DEF 1)
 else()
-	set (CLANG_BUILD_DEF "")
+  set(CLANG_BUILD_DEF "")
 endif(CLANG_BUILD)
 
 message("Clang Build is set to ${CLANG_BUILD_DEF}")
@@ -28,6 +28,6 @@ add_custom_target(dnn_lib ALL
                      all
   VERBATIM)
 
-install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dnn_lib/
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/dnn_lib/obj
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/*
+  DESTINATION ${CMAKE_INSTALL_PREFIX}/dnn_lib
   COMPONENT dnn_lib)
