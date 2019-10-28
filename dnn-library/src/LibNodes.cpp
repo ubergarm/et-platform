@@ -9,19 +9,16 @@
  *-------------------------------------------------------------------------
  */
 
-#include "LibNodes.h"
-#include "Float16.h"
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <math.h>
 #include <string.h>
 
+#include "LibNodes.h"
+#include "Float16.h"
 #include "LibCommon.h"
-#include "cacheops.h"
-#include "fw_ecalls.h"
-#include "minion.h"
-#include "tensors.h"
+#include "device_common.h"
 
 #define print(s) \
       ecall(FW_SCODE_ECALL_LOG_WRITE, (uint64_t)s, sizeof(s),0)

@@ -3,8 +3,8 @@ SRC_DIRS  ?= src
 INC_DIRS  := include
 LIBNAME   := $(BUILD_DIR)/libLibNodes.a
 
-# TODO: Remove this hardcoded path
-INC_DIRS  += ../fake-fw/include
+# TODO: Remove hardcoded paths
+INC_DIRS  += ../LibDeviceCommon/include ../fake-fw/include
 
 SRCC := $(shell find $(SRC_DIRS) -name \*.cpp)
 OBJC := $(addprefix $(BUILD_DIR)/, $(notdir $(SRCC:.cpp=.o)))
