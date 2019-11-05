@@ -397,6 +397,10 @@ GEN_OP(fwdLibTransposeInstVectorized, void *dst, void *dstDims, void *dstPitches
                             void *src, void *srcDims, void *srcPitches,
                             unsigned int srcDimNum, void *pshuffle,
                             float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibTransposeInstAligned32Bytes, void *dst, void *dstDims, void *dstPitches,
+                            void *src, void *srcDims, void *srcPitches,
+                            unsigned int srcDimNum, void *pshuffle,
+                            float *scale, int32_t *offset, uint64_t flags);
 GEN_OP(fwdLibLengthsToRangesInst, void *dstT, void *dstDims, void *dstPitches,
                                   void *plengths, unsigned int lenDim,
                                   float *scale, int32_t *offset);
@@ -472,6 +476,10 @@ GEN_OP(fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitche
                                          unsigned int srcDimNum, int64_t splatVal,
                                          float *scale, int32_t *offset, uint64_t flags);
 GEN_OP(fwdLibETSOCMaxSplatInstVectorized,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, float splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibETSOCMaxSplatInstAligned32Bytes,void *dst, void *dstDims, void *dstPitches,
                                          void *src, void *srcDims, void *srcPitches,
                                          unsigned int srcDimNum, float splatVal,
                                          float *scale, int32_t *offset, uint64_t flags);
