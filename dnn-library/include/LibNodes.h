@@ -430,11 +430,6 @@ void fwdLibFlushL3(uint32_t numShires);
 /**********************
  * THREADED FUNCTIONS *
  **********************/
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags);
 void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
@@ -474,6 +469,13 @@ template<typename DstType>
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdst2, void *pdst2Pitches, 
+    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
+    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
+    unsigned int pLengthsSize, uint64_t flags,
+    const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+template<typename DstType>
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized(
+    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize, uint64_t flags,
