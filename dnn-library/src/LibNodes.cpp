@@ -9883,8 +9883,8 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "fmvs.x.ps t0, f31, 0x4\n"
     "fmv.w.x   f30, t0\n"
     "fadd.s    f31, f30, f31\n"
-    "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
     "mov.m.x m0, zero, 0x1\n"
+    "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
     "fsch.ps f31, f28(%[dstAddr])\n"
     
     :
@@ -9928,7 +9928,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 #define FP32_TO_INT8(_reg)                      \
     "frcp.ps f27, f27 \n"                       \
     "fcvt.ps.pw f26, f26 \n"                    \
-    "fmadd.ps " #_reg ", " #_reg ", f27, f26 \n" \
+    "fmadd.ps " #_reg ", " #_reg ", f27, f26 \n"\
     "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
     "fsat8.pi " #_reg ", " #_reg "\n"
 
@@ -10010,7 +10010,6 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -10154,9 +10153,10 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     "fmvs.x.ps t0, f31, 0x4\n"        // Finally, %[sum] = f31.e0 + f31.e4.
     "fmv.w.x   f30, t0\n"
     "fadd.s    f31, f30, f31\n"
-    "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
     "mov.m.x m0, zero, 0x1\n"
-    "fsc32h.ps f31, zero(%[dstAddr])\n"
+    "fcvt.f16.ps f31, f31\n"
+    "fxor.pi f30, f30, f30\n"    
+    "fsch.ps f31, f30(%[dstAddr])\n"
     
     :
     : [gthValues] "r" (gatherValues),
@@ -10230,7 +10230,8 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     "fbc.ps f28, 0x8(%[offset]) \n"
     "fbc.ps f29, 0x8(%[scale]) \n"
     FP32_TO_INT8(f31)
-    "fsc32b.ps f31, zero(%[dstAddr])\n"
+    "fxor.pi f30, f30, f30\n"
+    "fscb.ps f31, f30(%[dstAddr])\n"
     
     :
     : [gthValues] "r" (gatherValues),
@@ -10268,7 +10269,6 @@ void dnn_lib::fwdLibMatMulInstVectorizedTransposed(void *dstMatrix, void *dstMat
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -10322,7 +10322,615 @@ void dnn_lib::fwdLibMatMulInstVectorizedTransposed(void *dstMatrix, void *dstMat
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / 64;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  if (clperminion > 0)
+    evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, 64);
+}
+
+///////////////////////////////////////////////
+///////////   ALIGNED TO 32 BYTES  ////////////
+///////////////////////////////////////////////
+
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
+void matmulOpAligned32Bytes (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesWgt[], unsigned int wgtRegStep, float *scale, int32_t *offset){
+
+#define MATMUL_ITERATION               \
+    "flw.ps   f0, 0x0(%[actAddr])\n"   \
+    "fgw.ps   f1, f29(%[wgtAddr])\n"   \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+  __asm__ __volatile__(
+    "mov.m.x m0, zero, 0xff\n"
+    "xor t0, t0, t0\n"
+    "flw.ps f29, 0x0(%[gthValuesWgt])\n"
+    "fbc.ps f30, 0x0(%[wgtRegStep])\n"
+    "fxor.pi f31, f31, f31\n"
+
+    "1:\n"
+    "addi     t0, t0, 8\n"
+    "ble      %[elemsRow], t0, 2f\n"
+    MATMUL_ITERATION
+    "addi %[actAddr], %[actAddr], 0x20\n"
+    "fadd.pi f29, f29, f30\n"
+    "beq      zero, zero, 1b\n"
+                                         
+    "2:\n"
+    "fxor.pi  f0, f0, f0\n"
+    "addi     t0, t0, -8\n"
+    "sub      t0, %[elemsRow], t0\n"
+    "addi     t1, zero, 1\n"
+    "sll      t1, t1, t0\n"
+    "addi     t1, t1, -1\n"
+    "mov.m.x  m0, t1, 0\n"
+    MATMUL_ITERATION
+    "fmvs.x.ps t0, f31, 0x4\n"
+    "fmv.w.x   f30, t0\n"
+    "fadd.s    f31, f30, f31\n"
+    "mov.m.x m0, zero, 0x1\n"
+    "fsw.ps f31, 0x0(%[dstAddr])\n"
+    
+    :
+    : [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr)
+    : "t0", "t1", "f0", "f1", "f29", "f30", "f31", "memory");
+
+#undef MATMUL_ITERATION
+}
+
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
+void matmulOpAligned32Bytes (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesWgt[], unsigned int wgtRegStep, float *scale, int32_t *offset){
+
+#define MATMUL_ITERATION               \
+    "fg32h.ps f0,  t2(%[actAddr])\n"   \
+    "fgh.ps   f1, f29(%[wgtAddr])\n"   \
+    "fcvt.ps.f16 f0, f0 \n"            \
+    "fcvt.ps.f16 f1, f1 \n"            \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+  __asm__ __volatile__(
+    "mov.m.x m0, zero, 0xff\n"
+    SET_FG32H_VAL(t2)
+    "xor t0, t0, t0\n"
+    "flw.ps f29, 0x0(%[gthValuesWgt])\n"
+    "fbc.ps f30, 0x0(%[wgtRegStep])\n"
+    "fxor.pi f31, f31, f31\n"
+
+    "1:\n"
+    "addi     t0, t0, 8\n"
+    "ble      %[elemsRow], t0, 2f\n"
+    MATMUL_ITERATION
+    "addi %[actAddr], %[actAddr], 0x10\n" 
+    "fadd.pi f29, f29, f30\n"
+    "beq      zero, zero, 1b\n"
+                                         
+    "2:\n"
+    "fxor.pi  f0, f0, f0\n"
+    "addi     t0, t0, -8\n"
+    "sub      t0, %[elemsRow], t0\n"
+    "addi     t1, zero, 1\n"
+    "sll      t1, t1, t0\n"
+    "addi     t1, t1, -1\n"
+    "mov.m.x  m0, t1, 0\n"
+    MATMUL_ITERATION
+    "fmvs.x.ps t0, f31, 0x4\n"
+    "fmv.w.x   f30, t0\n"
+    "fadd.s    f31, f30, f31\n"
+    "mov.m.x m0, zero, 0x1\n"
+    "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
+    "fsc32h.ps f31, zero(%[dstAddr])\n"
+    
+    :
+    : [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr)
+    : "t0", "t1", "t2", "f0", "f1", "f29", "f30", "f31", "memory");
+
+#undef MATMUL_ITERATION
+
+}
+
+template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
+void matmulOpAligned32Bytes (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesWgt[], unsigned int wgtRegStep, float *scale, int32_t *offset){
+
+#define INT8_TO_FP32(_reg)                  \
+    "fsub.pi " #_reg ", " #_reg ", f26 \n"  \
+    "fcvt.ps.pw " #_reg ", " #_reg " \n"    \
+    "fmul.ps " #_reg ", " #_reg ", f27 \n"
+
+#define MATMUL_ITERATION               \
+    "fg32b.ps f0,  t2(%[actAddr])\n"   \
+    "fgb.ps   f1, f29(%[wgtAddr])\n"   \
+    "fbc.ps   f26, 0x0(%[offset]) \n"  \
+    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    INT8_TO_FP32(f0)                   \
+    "fbc.ps   f26, 0x4(%[offset]) \n"  \
+    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    INT8_TO_FP32(f1)                   \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+#define FP32_TO_INT8(_reg)                      \
+    "frcp.ps f27, f27 \n"                       \
+    "fcvt.ps.pw f26, f26 \n"                    \
+    "fmadd.ps " #_reg ", " #_reg ", f27, f26 \n"\
+    "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
+    "fsat8.pi " #_reg ", " #_reg "\n"
+
+  __asm__ __volatile__(
+    "mov.m.x m0, zero, 0xff\n"
+    SET_FG32B_VAL(t2)
+    "xor t0, t0, t0\n"
+    "flw.ps f29, 0x0(%[gthValuesWgt])\n"
+    "fbc.ps f30, 0x0(%[wgtRegStep])\n"
+    "fxor.pi f31, f31, f31\n"
+
+    "1:\n"
+    "addi     t0, t0, 8\n"
+    "ble      %[elemsRow], t0, 2f\n"
+    MATMUL_ITERATION
+    "addi %[actAddr], %[actAddr], 0x8\n"
+    "fadd.pi f29, f29, f30\n"
+    "beq      zero, zero, 1b\n"
+                                         
+    "2:\n"
+    "fxor.pi  f0, f0, f0\n"
+    "addi     t0, t0, -8\n"
+    "sub      t0, %[elemsRow], t0\n"
+    "addi     t1, zero, 1\n"
+    "sll      t1, t1, t0\n"
+    "addi     t1, t1, -1\n"
+    "mov.m.x  m0, t1, 0\n"
+    MATMUL_ITERATION
+    "fmvs.x.ps t0, f31, 0x4\n"
+    "fmv.w.x   f30, t0\n"
+    "fadd.s    f31, f30, f31\n"
+    "mov.m.x m0, zero, 0x1\n"
+    "fbc.ps f26, 0x8(%[offset]) \n"
+    "fbc.ps f27, 0x8(%[scale]) \n"
+    FP32_TO_INT8(f31)
+    "fsc32b.ps f31, zero(%[dstAddr])\n"
+    
+    :
+    : [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "t2", "f0", "f1", "f26", "f27", "f29", "f30", "f31", "memory");
+
+#undef INT8_TO_FP32
+#undef MATMUL_ITERATION
+#undef FP32_TO_INT8
+
+}
+
+template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+void matmulOpAligned32Bytes (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesWgt[], unsigned int wgtRegStep, float *scale, int32_t *offset){}
+
+// Default version of MatMul in case the input weights have not been previously transposed.
+template <typename srcType>
+void dnn_lib::fwdLibMatMulInstAligned32Bytes(void *dstMatrix, void *dstMatrixDims,
+                                             void *dstMatrixPitches,
+                                             void *activations, void *activationsDims,
+                                             void *activationsPitches, void *weights,
+                                             void *weightsDims, void *weightPitches,
+                                             float *scale, int32_t *offset,
+                                             uint64_t flags) {
+
+  unsigned int minionId = get_minion_id();
+  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  if (minionId >= activeMinions)
+    return;
+
+  Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+
+  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  unsigned int *actIndex = (unsigned int *)activationsDims;
+
+  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  unsigned int *weightPitch = (unsigned int *)weightPitches;
+
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int initialAddr, maxRead;
+  size_t typeSize = getsize<srcType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  if (maxRead == 0)
+    return;
+
+  unsigned int dstDimNum = 2;
+  unsigned int coordOut[dstDimNum];
+  unsigned int last_non_zero_coord = 0;
+  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
+
+  unsigned int offsetOut = 0;
+  for (int i = 0; i < last_non_zero_coord; i++) {
+    offsetOut += coordOut[i] * dstPitch[i];
+  }
+  unsigned int offsetAIn = coordOut[0]*actPitch[0];
+
+  int32_t gatherValuesWgt[8];
+  unsigned int step = weightPitch[0]*typeSize;
+  for (unsigned int i = 1; i < 8; ++i)
+    gatherValuesWgt[i] = gatherValuesWgt[i - 1] + step;
+  unsigned int wgtRegStep = 8*step;
+
+  unsigned int posMax = initialAddr + maxRead;
+  bool done = false;
+
+  while (!done && (offsetOut < posMax)) {
+    uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
+    uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
+    uintptr_t wgtAddr = (uintptr_t)weights + typeSize*coordOut[1];
+    matmulOpAligned32Bytes <srcType>(dstAddr, actAddr, wgtAddr, actIndex[1],
+                                     gatherValuesWgt, wgtRegStep, scale, offset);
+    done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
+    if (coordOut[1] == 0) {
+      offsetAIn += actPitch[0];
+    }
+  }
+  if (!DO_EVICTS)
+    return;
+  unsigned int clperminion = maxRead * typeSize / 64;
+  if (clperminion > 0)
+     evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);    
+    //evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, 64);
+}
+
+
+template <typename srcType>
+void dnn_lib::fwdLibMatMulInstAligned32Bytes(void *dstMatrix, void *dstMatrixDims,
+                                             void *dstMatrixPitches,
+                                             void *activations, void *activationsDims,
+                                             void *activationsPitches, void *weights,
+                                             void *weightsDims, void *weightPitches,
+                                             float *scale, int32_t *offset,
+                                             uint64_t flags,
+                                             const uint32_t minionOffset,
+                                             const uint32_t assignedMinions) {
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
+
+  Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+
+  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  unsigned int *actIndex = (unsigned int *)activationsDims;
+
+  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  unsigned int *weightPitch = (unsigned int *)weightPitches;
+
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int initialAddr, maxRead;
+  size_t typeSize = getsize<srcType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  if (maxRead == 0)
+    return;
+
+  unsigned int dstDimNum = 2;
+  unsigned int coordOut[dstDimNum];
+  unsigned int last_non_zero_coord = 0;
+  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
+
+  unsigned int offsetOut = 0;
+  for (int i = 0; i < last_non_zero_coord; i++) {
+    offsetOut += coordOut[i] * dstPitch[i];
+  }
+  unsigned int offsetAIn = coordOut[0]*actPitch[0];
+
+  int32_t gatherValuesWgt[8];
+  unsigned int step = weightPitch[0]*typeSize;
+  for (unsigned int i = 1; i < 8; ++i)
+    gatherValuesWgt[i] = gatherValuesWgt[i - 1] + step;
+  unsigned int wgtRegStep = 8*step;
+
+  unsigned int posMax = initialAddr + maxRead;
+  bool done = false;
+
+  while (!done && (offsetOut < posMax)) {
+    uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
+    uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
+    uintptr_t wgtAddr = (uintptr_t)weights + typeSize*coordOut[1];
+    matmulOpAligned32Bytes <srcType>(dstAddr, actAddr, wgtAddr, actIndex[1],
+                                     gatherValuesWgt, wgtRegStep, scale, offset);
+    done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
+    if (coordOut[1] == 0) {
+      offsetAIn += actPitch[0];
+    }
+  }
+  if (!DO_EVICTS)
+    return;
+  unsigned int clperminion = maxRead * typeSize / 64;
+  if (clperminion > 0)
+     evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);    
+}
+
+
+// Version assuming the weights tensor is transposed. Used for CONSTANT tensors
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
+void matmulOpAligned32BytesTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, float *scale, int32_t *offset){
+
+#define MATMUL_ITERATION               \
+    "flw.ps   f0, 0x0(%[actAddr])\n"   \
+    "flw.ps   f1, 0x0(%[wgtAddr])\n"   \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+  __asm__ __volatile__(
+    "mov.m.x m0, zero, 0xff\n"        // Mask m0 is set so all lanes are active.
+    "xor t0, t0, t0\n"                // The int register t0 is set to 0x0: it will count iterations.
+    "fxor.pi f31, f31, f31\n"         // Vectorial register f31 set to 0x0. Only useful lanes: e0, e4.
+
+    "1:\n"                            // New loop (tag 1): vectorised scalar product.
+    "addi     t0, t0, 8\n"              // t0 += 8.
+    "ble      %[elemsRow], t0, 2f\n"    // if (elemsRow <= t0), forward to tag 2.
+    MATMUL_ITERATION                    // The scalar product of the act and weights is added to f31.
+    "addi %[actAddr], %[actAddr], 0x20\n"     
+    "addi %[wgtAddr], %[wgtAddr], 0x20\n"
+    "beq      zero, zero, 1b\n"       // Go back to tag 1.
+                                         
+    "2:\n"                            // Tag 2: a new mask is set to finish the row's product.
+    "fxor.pi  f0, f0, f0\n"           // f0 is set to 0's to get a correct final matmul iteration.
+    "addi     t0, t0, -8\n"           // In these two instructions,
+    "sub      t0, %[elemsRow], t0\n"  // we update t0 = elemsRow - (t0 - 8).
+    "addi     t1, zero, 1\n"          // t1 is set to 1.
+    "sll      t1, t1, t0\n"           // Shift Left Logical t0 positions: t1 = 2^(t0).
+    "addi     t1, t1, -1\n"           // Finally, t1 = 2^(t0) - 1.
+    "mov.m.x  m0, t1, 0\n"            // The mask is set to t1, so the first t0 lanes are active.
+    MATMUL_ITERATION
+    "fmvs.x.ps t0, f31, 0x4\n"        // Finally, %[sum] = f31.e0 + f31.e4.
+    "fmv.w.x   f30, t0\n"
+    "fadd.s    f31, f30, f31\n"
+    "mov.m.x m0, zero, 0x1\n"
+    "fsw.ps f31, 0x0(%[dstAddr])\n"
+    
+    :
+    : [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr)
+    : "t0", "t1", "f0", "f1", "f30", "f31", "memory");
+
+#undef MATMUL_ITERATION
+}
+
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
+void matmulOpAligned32BytesTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, float *scale, int32_t *offset){
+
+#define MATMUL_ITERATION               \
+    "fg32h.ps f0, t2(%[actAddr])\n"    \
+    "fg32h.ps f1, t2(%[wgtAddr])\n"    \
+    "fcvt.ps.f16 f0, f0 \n"            \
+    "fcvt.ps.f16 f1, f1 \n"            \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+  __asm__ __volatile__(
+    "mov.m.x m0, zero, 0xff\n"
+    SET_FG32H_VAL(t2)
+    "xor t0, t0, t0\n"
+    "fxor.pi f31, f31, f31\n"
+
+    "1:\n"
+    "addi     t0, t0, 8\n"
+    "ble      %[elemsRow], t0, 2f\n"
+    MATMUL_ITERATION
+    "addi %[actAddr], %[actAddr], 0x10\n" 
+    "addi %[wgtAddr], %[wgtAddr], 0x10\n" 
+    "beq      zero, zero, 1b\n"
+                                         
+    "2:\n"
+    "fxor.pi  f0, f0, f0\n"
+    "addi     t0, t0, -8\n"
+    "sub      t0, %[elemsRow], t0\n"
+    "addi     t1, zero, 1\n"
+    "sll      t1, t1, t0\n"
+    "addi     t1, t1, -1\n"
+    "mov.m.x  m0, t1, 0\n"
+    MATMUL_ITERATION
+    "fmvs.x.ps t0, f31, 0x4\n"
+    "fmv.w.x   f30, t0\n"
+    "fadd.s    f31, f30, f31\n"
+    "mov.m.x m0, zero, 0x1\n"
+    "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
+    "fsc32h.ps f31, zero(%[dstAddr])\n"
+    
+    :
+    : [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr)
+    : "t0", "t1", "f0", "f1", "f30", "f31", "memory");
+
+#undef MATMUL_ITERATION
+}
+
+template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
+void matmulOpAligned32BytesTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, float *scale, int32_t *offset){
+
+#define INT8_TO_FP32(_reg)                  \
+    "fsub.pi " #_reg ", " #_reg ", f28 \n"  \
+    "fcvt.ps.pw " #_reg ", " #_reg " \n"    \
+    "fmul.ps " #_reg ", " #_reg ", f29 \n"
+
+#define MATMUL_ITERATION             \
+    "fg32b.ps  f0, t2(%[actAddr])\n" \
+    "fg32b.ps  f1, t2(%[wgtAddr])\n" \
+    "fbc.ps f28, 0x0(%[offset]) \n"  \
+    "fbc.ps f29, 0x0(%[scale]) \n"   \
+    INT8_TO_FP32(f0)                 \
+    "fbc.ps f28, 0x4(%[offset]) \n"  \
+    "fbc.ps f29, 0x4(%[scale]) \n"   \
+    INT8_TO_FP32(f1)                 \
+    "fmul.ps    f0, f0, f1\n"        \
+    "fswizz.ps  f1, f0, 0xe\n"       \
+    "fadd.ps    f0, f0, f1\n"        \
+    "fswizz.ps  f1, f0, 0x1\n"       \
+    "fadd.ps    f0, f0, f1\n"        \
+    "fadd.ps    f31, f0, f31\n"
+
+#define FP32_TO_INT8(_reg)                      \
+    "frcp.ps f29, f29 \n"                       \
+    "fcvt.ps.pw f28, f28 \n"                    \
+    "fmadd.ps " #_reg ", " #_reg ", f29, f28 \n" \
+    "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
+    "fsat8.pi " #_reg ", " #_reg "\n"
+
+  __asm__ __volatile__(
+    "mov.m.x m0, zero, 0xff\n"
+    SET_FG32B_VAL(t2)
+    "xor t0, t0, t0\n"
+    "fxor.pi f31, f31, f31\n"
+
+    "1:\n"
+    "addi     t0, t0, 8\n"
+    "ble      %[elemsRow], t0, 2f\n"
+    MATMUL_ITERATION
+    "addi %[actAddr], %[actAddr], 0x8\n"
+    "addi %[wgtAddr], %[wgtAddr], 0x8\n"
+    "beq      zero, zero, 1b\n"
+                                         
+    "2:\n"
+    "fxor.pi  f0, f0, f0\n"
+    "addi     t0, t0, -8\n"
+    "sub      t0, %[elemsRow], t0\n"
+    "addi     t1, zero, 1\n"
+    "sll      t1, t1, t0\n"
+    "addi     t1, t1, -1\n"
+    "mov.m.x  m0, t1, 0\n"
+    MATMUL_ITERATION
+
+    "fmvs.x.ps t0, f31, 0x4\n"
+    "fmv.w.x   f30, t0\n"
+    "fadd.s    f31, f30, f31\n"
+    "mov.m.x m0, zero, 0x1\n"
+    "fbc.ps f28, 0x8(%[offset]) \n"
+    "fbc.ps f29, 0x8(%[scale]) \n"
+    FP32_TO_INT8(f31)
+    "fsc32b.ps f31, zero(%[dstAddr])\n"
+    
+    :
+    : [elemsRow] "r" (elemsRow),
+      [offset] "r" (offset),
+      [scale] "r" (scale),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr)
+    : "t0", "t1", "t2", "f0", "f1", "f28", "f29", "f30", "f31", "memory");
+
+#undef INT8_TO_FP32
+#undef MATMUL_ITERATION
+#undef FP32_TO_INT8
+
+}
+
+template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+void matmulOpAligned32BytesTrans (uintptr_t dstAddr, intptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, float *scale, int32_t *offset){}
+
+// Version assuming the weights tensor is transposed. Used for CONSTANT tensors
+template <typename srcType>
+void dnn_lib::fwdLibMatMulInstAligned32BytesTransposed(void *dstMatrix, void *dstMatrixDims,
+                                       void *dstMatrixPitches,
+                                       void *activations, void *activationsDims,
+                                       void *activationsPitches, void *weights,
+                                       void *weightsDims, void *weightPitches,
+                                       float *scale, int32_t *offset,
+                                       uint64_t flags) {
+
+  unsigned int minionId = get_minion_id();
+  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  if (minionId >= activeMinions)
+    return;
+
+  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  unsigned int *actIndex = (unsigned int *)activationsDims;
+
+  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  unsigned int *weightPitch = (unsigned int *)weightPitches;
+
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int initialAddr, maxRead;
+  size_t typeSize = getsize<srcType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  if (maxRead == 0)
+    return;
+
+  unsigned int dstDimNum = 2;
+  unsigned int coordOut[dstDimNum];
+  unsigned int last_non_zero_coord;
+  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
+
+  uint64_t offsetOut = 0;
+  for (unsigned int i = 0; i < last_non_zero_coord; i++) {
+    offsetOut += dstPitch[i]*coordOut[i];
+  }
+  
+  uint64_t offsetAIn = coordOut[0]*actPitch[0];
+  uint64_t offsetWIn = coordOut[1]*weightPitch[0];
+
+  unsigned int posMax = initialAddr + maxRead;
+  bool done = false;
+
+  while (!done && (offsetOut < posMax)) {
+    uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
+    uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
+    uintptr_t wgtAddr = (uintptr_t)weights + typeSize*offsetWIn;
+    matmulOpAligned32BytesTrans <srcType>(dstAddr, actAddr, wgtAddr, actIndex[1], scale, offset);
+    done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
+    if (coordOut[1] != 0) {
+      offsetWIn += weightPitch[0];
+    }
+    else {
+      offsetWIn = 0;
+      offsetAIn += actPitch[0];
+    }
+  }
+  
+  if (!DO_EVICTS)
+    return;
+  unsigned int clperminion = maxRead * typeSize / 64;
+  if (clperminion > 0)
+    evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+    //    evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, 64);
 }
 
 //===----------------------------------------------------------------------===//
