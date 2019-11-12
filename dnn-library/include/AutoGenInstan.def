@@ -338,6 +338,15 @@ GEN_OP(fwdLibMatMulInstVectorized, void *dstMatrix, void *dstMatrixDims, void *d
                          void *weights, void *weightsDims, void *weightPitches,
                          float *scale, int32_t *offset, uint64_t flags,
                          const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+GEN_OP(fwdLibMatMulInstAligned32Bytes, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset, uint64_t flags,
+                         const uint32_t minionOffset = 0, const uint32_t numShires = 0);                         
+GEN_OP(fwdLibMatMulInstAligned32BytesTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                         void *activations, void *activationsDims, void *activationsPitches,
+                         void *weights, void *weightsDims, void *weightPitches,
+                         float *scale, int32_t *offset, uint64_t flags);
 GEN_OP(fwdLibMatMulInstTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
