@@ -15399,7 +15399,7 @@ void dnn_lib::fwdLibETSOCFullyConnectedInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, float>::value, std::size_t>::type = 0>
 void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -15457,7 +15457,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 #undef MATMUL_ITERATION
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, float16>::value, std::size_t>::type = 0>
 void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -15520,7 +15520,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 #undef MATMUL_ITERATION
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
 void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
 
 #define INT8_TO_FP32(_reg)                  \
@@ -15605,12 +15605,322 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 #undef FP32_TO_INT8
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+#define INT8_TO_FP32(_reg)                  \
+    "fcvt.ps.pw " #_reg ", " #_reg " \n"    \
+    "fmul.ps " #_reg ", " #_reg ", f27 \n"
+
+#define UINT8_TO_FP32(_reg)                   \
+    "fandi.pi " #_reg ", " #_reg ", 0xff \n"  \
+    "fcvt.ps.pw " #_reg ", " #_reg " \n"      \
+    "fmul.ps " #_reg ", " #_reg ", f27 \n"
+
+
+#define MATMUL_ITERATION_U8_U8         \
+    "fgb.ps   f0, f28(%[actAddr])\n"   \
+    "fgb.ps   f1, f29(%[wgtAddr])\n"   \
+    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    UINT8_TO_FP32(f0)                   \
+    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    UINT8_TO_FP32(f1)                   \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+#define MATMUL_ITERATION_I8_U8         \
+    "fgb.ps   f0, f28(%[actAddr])\n"   \
+    "fgb.ps   f1, f29(%[wgtAddr])\n"   \
+    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    INT8_TO_FP32(f0)                   \
+    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    UINT8_TO_FP32(f1)                   \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+#define MATMUL_ITERATION_U8_I8         \
+    "fgb.ps   f0, f28(%[actAddr])\n"   \
+    "fgb.ps   f1, f29(%[wgtAddr])\n"   \
+    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    UINT8_TO_FP32(f0)                   \
+    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    INT8_TO_FP32(f1)                   \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+#define MATMUL_ITERATION_I8_I8         \
+    "fgb.ps   f0, f28(%[actAddr])\n"   \
+    "fgb.ps   f1, f29(%[wgtAddr])\n"   \
+    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    INT8_TO_FP32(f0)                   \
+    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    INT8_TO_FP32(f1)                   \
+    "fmul.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0xe\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fswizz.ps  f1, f0, 0x1\n"         \
+    "fadd.ps    f0, f0, f1\n"          \
+    "fadd.ps    f31, f0, f31\n"
+
+
+#define FP32_TO_INT8(_reg)                      \
+    "frcp.ps f27, f27 \n"                       \
+    "fmadd.ps " #_reg ", " #_reg ", f27, f26 \n" \
+    "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
+    "fsat8.pi " #_reg ", " #_reg "\n"
+
+
+#define FP32_TO_UINT8(_reg)                     \
+    "frcp.ps f27, f27 \n"                       \
+    "fmul.ps " #_reg ", " #_reg ", f27 \n"      \
+    "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
+    "fsrli.pi f2," #_reg ", 0x8 \n"             \
+    "fxor.pi f27, f27, f27 \n"                  \
+    "fcmov.ps " #_reg" , f12, f27, " #_reg " \n"  
+
+
+#define STEP1                                            \
+    "mov.m.x m0, zero, 0xff\n"                           \
+    "xor t0, t0, t0\n"                                   \
+    "flw.ps f28, 0x0(%[gthValuesAct])\n"                 \
+    "flw.ps f29, 0x0(%[gthValuesWgt])\n"                 \
+    "fbc.ps f30, 0x0(%[wgtRegStep])\n"                   \
+    "fxor.pi f31, f31, f31\n"                            \
+                                                         \
+    "1:\n"                                               \
+    "addi     t0, t0, 8\n"                               \
+    "ble      %[elemsRow], t0, 2f\n"
+
+#define STEP2                                            \
+    "addi %[actAddr], %[actAddr], 0x8\n"                 \
+    "fadd.pi f29, f29, f30\n"                            \
+    "beq      zero, zero, 1b\n"                          \
+    "2:\n"                                               \
+    "fxor.pi  f0, f0, f0\n"                              \
+    "addi     t0, t0, -8\n"                              \
+    "sub      t0, %[elemsRow], t0\n"                     \
+    "addi     t1, zero, 1\n"                             \
+    "sll      t1, t1, t0\n"                              \
+    "addi     t1, t1, -1\n"                              \
+    "mov.m.x  m0, t1, 0\n"                               \
+
+#define STEP3                                            \
+    "fmvs.x.ps t0, f31, 0x4\n"                           \
+    "fmv.w.x   f30, t0\n"                                \
+    "fadd.s    f31, f30, f31\n"                          \
+    "mov.m.x m0, zero, 0x1\n"                            \
+    "fbc.ps f30, 0x0(%[biasAddr])\n"                     \
+    "fadd.s f31, f30, f31\n"                             \
+    "fbc.ps f26, 0x8(%[offset]) \n"                      \
+    "fbc.ps f27, 0x8(%[scale]) \n"                       \
+
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
+void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
+
+  __asm__ __volatile__(
+    STEP1
+    MATMUL_ITERATION_U8_I8
+    STEP2
+    MATMUL_ITERATION_U8_I8
+    STEP3
+    FP32_TO_INT8(f31)
+    "fscb.ps f31, f28(%[dstAddr])\n"
+    
+    :
+    : [gthValuesAct] "r" (gatherValuesAct),
+      [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [biasAddr] "r" (biasAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+
+}
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
+void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
+  __asm__ __volatile__(
+    STEP1
+    MATMUL_ITERATION_I8_U8
+    STEP2
+    MATMUL_ITERATION_I8_U8
+    STEP3
+    FP32_TO_INT8(f31)
+    "fscb.ps f31, f28(%[dstAddr])\n"
+    
+    :
+    : [gthValuesAct] "r" (gatherValuesAct),
+      [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [biasAddr] "r" (biasAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+
+}
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
+void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
+
+  __asm__ __volatile__(
+    STEP1
+    MATMUL_ITERATION_I8_I8
+    STEP2
+    MATMUL_ITERATION_I8_I8
+    STEP3
+    FP32_TO_UINT8(f31)
+    "fscb.ps f31, f28(%[dstAddr])\n"
+    
+    :
+    : [gthValuesAct] "r" (gatherValuesAct),
+      [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [biasAddr] "r" (biasAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+
+}
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
+void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
+
+  __asm__ __volatile__(
+    STEP1
+    MATMUL_ITERATION_I8_U8
+    STEP2
+    MATMUL_ITERATION_I8_U8
+    STEP3
+    FP32_TO_UINT8(f31)
+    "fscb.ps f31, f28(%[dstAddr])\n"
+    
+    :
+    : [gthValuesAct] "r" (gatherValuesAct),
+      [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [biasAddr] "r" (biasAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+
+}
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
+void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
+
+  __asm__ __volatile__(
+    STEP1
+    MATMUL_ITERATION_U8_I8
+    STEP2
+    MATMUL_ITERATION_U8_I8
+    STEP3
+    FP32_TO_UINT8(f31)
+    "fscb.ps f31, f28(%[dstAddr])\n"
+    
+    :
+    : [gthValuesAct] "r" (gatherValuesAct),
+      [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [biasAddr] "r" (biasAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+
+
+}
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
+void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset) {
+
+  __asm__ __volatile__(
+    STEP1
+    MATMUL_ITERATION_U8_U8
+    STEP2
+    MATMUL_ITERATION_U8_U8
+    STEP3
+    FP32_TO_INT8(f31)
+    "fscb.ps f31, f28(%[dstAddr])\n"
+    
+    :
+    : [gthValuesAct] "r" (gatherValuesAct),
+      [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [biasAddr] "r" (biasAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+
+}
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
+void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
+
+  __asm__ __volatile__(
+    STEP1
+    MATMUL_ITERATION_U8_U8
+    STEP2
+    MATMUL_ITERATION_U8_U8
+    STEP3
+    FP32_TO_UINT8(f31)
+    "fscb.ps f31, f28(%[dstAddr])\n"
+    
+    :
+    : [gthValuesAct] "r" (gatherValuesAct),
+      [gthValuesWgt] "r" (gatherValuesWgt),
+      [wgtRegStep] "r" (&wgtRegStep),
+      [elemsRow] "r" (elemsRow),
+      [actAddr] "r" (actAddr),
+      [wgtAddr] "r" (wgtAddr),
+      [dstAddr] "r" (dstAddr),
+      [biasAddr] "r" (biasAddr),
+      [scale] "r" (scale),
+      [offset] "r" (offset)
+    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+
+}
+
+
+
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<!std::is_same<src1Type, int8_t>::value && !std::is_same<src1Type, float16>::value && !std::is_same<src1Type, float>::value && !std::is_same<src1Type, uint8_t>::value, std::size_t>::type = 0>
 void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){}
 
 template <typename src1Type, typename src2Type, typename dstType>
 void dnn_lib::fwdLibETSOCFullyConnectedInstVectorized(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches1,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
     float *scale, int32_t *offset, uint64_t flags) {
@@ -15623,7 +15933,7 @@ void dnn_lib::fwdLibETSOCFullyConnectedInstVectorized(
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches1;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
   unsigned int *weightPitch = (unsigned int *)weightPitches;
 
@@ -15661,7 +15971,7 @@ void dnn_lib::fwdLibETSOCFullyConnectedInstVectorized(
     uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)weights + typeSize*coord[1];
     uintptr_t biasAddr = (uintptr_t)bias + 4*coord[1]; // bias is a float vector.
-    fullyConnectedOp <src1Type>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValuesAct,
+    fullyConnectedOp <src1Type, src2Type, dstType>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValuesAct,
                        gatherValuesWgt, wgtRegStep, biasAddr, scale, offset);
     done = getOffsets(2, coord, offsetOut, dstIndex, dstPitch);
     if (coord[1] == 0) {
