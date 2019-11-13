@@ -15,10 +15,12 @@
 #include <math.h>
 #include <string.h>
 
+#include <device_common.h>
+#include <fw_ecalls.h>
+
 #include "LibNodes.h"
 #include "Float16.h"
 #include "LibCommon.h"
-#include "device_common.h"
 
 #define print(s) \
       ecall(FW_SCODE_ECALL_LOG_WRITE, (uint64_t)s, sizeof(s),0)

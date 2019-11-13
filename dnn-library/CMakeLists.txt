@@ -12,6 +12,14 @@ cmake_minimum_required(VERSION 3.5)
 
 project(dnn_lib VERSION 0.1.0 LANGUAGES CXX)
 
+find_package(LibDeviceCommon REQUIRED)
+find_package(fake-fw REQUIRED)
+
+set(INCLUDE_INSTALL_DIR include/ CACHE STRING "Include install dir")
+set(LIB_INSTALL_DIR     lib/     CACHE STRING "Library install dir")
+
+file(GLOB INSTALL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h")
+
 option(CLANG_BUILD "Build using clang")
 
 if(CLANG_BUILD)
@@ -27,18 +35,30 @@ endif()
 
 message("${PROJECT_NAME}: Clang Build is set to ${CLANG_BUILD}")
 
-add_library(${PROJECT_NAME} STATIC
-            src/LibNodes.cpp
-            src/LibSpecializedNodes.cpp)
+add_library(dnn_lib STATIC
+  src/LibNodes.cpp
+  src/LibSpecializedNodes.cpp
+)
 
 include_directories(include)
 
-# TODO: Remove this hack
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../LibDeviceCommon/include")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/../fake-fw/include")
-
 target_link_libraries(${PROJECT_NAME} device_common fake-fw)
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
-  DESTINATION ${CMAKE_INSTALL_PREFIX}/dnn_lib
-  COMPONENT dnn_lib)
+target_include_directories(dnn_lib INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/dnn_lib>
+)
+
+install(FILES ${INSTALL_HEADERS}
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/include/dnn_lib"
+)
+
+install(TARGETS dnn_lib
+  DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
+  EXPORT dnn_libConfig
+)
+
+# This makes the project importable from the install directory
+install(EXPORT dnn_libConfig
+  DESTINATION "${LIB_INSTALL_DIR}/cmake/dnn_lib"
+)
