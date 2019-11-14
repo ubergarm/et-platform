@@ -12282,7 +12282,7 @@ void dnn_lib::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     return;
 
   float *tOutput = (float *)pdst;
-  int8_t *tAInput = (int8_t *)pdata;
+  uint8_t *tAInput = (uint8_t *)pdata;
   float *tScale = (float *)pscale;
   float *tOffset = (float *)poffset;
   float *tWInput = (float *)pweights;
@@ -12418,7 +12418,7 @@ void dnn_lib::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
     return;
 
   float *tOutput = (float *)pdst;
-  int8_t *tAInput = (int8_t *)pdata;
+  uint8_t *tAInput = (uint8_t *)pdata;
   float *tScale = (float *)pscale;
   float *tOffset = (float *)poffset;
   float *tWInput = (float *)pweights;
