@@ -11628,6 +11628,12 @@ void dnn_lib::
   unsigned int row_end = row_begin + rowsperminion;
 
   // Output tensor should be zero at the begin
+  for (size_t i = row_begin; i < row_end; i++) {
+    for (size_t j = 0, e = lengths[i]; j < e; j++) {
+      float * dst_ptr = tOutput + i * dstPitch[0];
+      *dst_ptr = 0;
+    }
+  }
   size_t curIdx = ranges[row_begin];
   for (size_t i = row_begin; i < row_end; i++) {
     for (size_t j = 0, e = lengths[i]; j < e; j++) {
