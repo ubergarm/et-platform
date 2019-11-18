@@ -1758,11 +1758,11 @@ public:
   }
 
   template <
-      typename U = opType, typename S = src1Type,
+      typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
       typename std::enable_if<std::is_same<U, Div>::value &&
-                                  !std::is_same<S, Addresser<int64_t>>::value,
+                                  !std::is_same<S1, Addresser<int64_t>>::value,
                               std::size_t>::type = 0>
-  void doOp(S &dst, const S &src1, const S &src2, uint64_t &d, uint64_t &s1,
+  void doOp(D &dst, const S1 &src1, const S2 &src2, uint64_t &d, uint64_t &s1,
             uint64_t &s2) {
     float inverted_op;
     getReciprocal(src2[s2], inverted_op);
@@ -8562,7 +8562,7 @@ void dnn_lib::fwdLibElementInst(void *dstT, void *dstDims, void *dstPitches,
 
 
 
-template <typename srcType, typename opType>
+template <typename src1Type, typename src2Type, typename dstType, typename opType>
 void dnn_lib::fwdLibElementInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
     void *src1Pitches, unsigned int srcDimNum, void *srcT2, void *src2Pitches, float *scale,
@@ -8573,9 +8573,9 @@ void dnn_lib::fwdLibElementInstThreaded(
   if (minionId >= activeMinions)
     return;
 
-  const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT2(srcT2, scale[1], offset[1]);
-  Addresser<srcType> aDstT(dstT, scale[2], offset[2]);
+  const Addresser<src1Type> aSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<src2Type> aSrcT2(srcT2, scale[1], offset[1]);
+  Addresser<dstType> aDstT(dstT, scale[2], offset[2]);
 
   unsigned int *actIndex = (unsigned int *)srcDims;
 
@@ -8583,12 +8583,12 @@ void dnn_lib::fwdLibElementInstThreaded(
   unsigned int *act1Pitch = (unsigned int *)src1Pitches;
   unsigned int *act2Pitch = (unsigned int *)src2Pitches;
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
+  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<dstType>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<src2Type>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
