@@ -16,7 +16,7 @@
 #include <string.h>
 
 #include <device_common.h>
-#include <fw_ecalls.h>
+#include <syscall.h>
 
 #include "LibNodes.h"
 #include "Float16.h"
@@ -53,8 +53,8 @@ using namespace std;
   template void functionName<uint8_t, int8_t, uint8_t, op>(__VA_ARGS__);       \
   template void functionName<int8_t, uint8_t, uint8_t, op>(__VA_ARGS__);       \
   template void functionName<uint8_t, uint8_t, uint8_t, op>(__VA_ARGS__);      \
-  template void functionName<int64_t, int64_t, int64_t, op>(__VA_ARGS__);      
-                                                                               
+  template void functionName<int64_t, int64_t, int64_t, op>(__VA_ARGS__);
+
 #define GEN_2TYPE(functionName, op, ...)                                       \
   template void functionName<float, float, op>(__VA_ARGS__);                   \
   template void functionName<float16, float16, op>(__VA_ARGS__);               \
@@ -62,7 +62,7 @@ using namespace std;
   template void functionName<uint8_t, int8_t, op>(__VA_ARGS__);                \
   template void functionName<int8_t, uint8_t, op>(__VA_ARGS__);                \
   template void functionName<uint8_t, uint8_t, op>(__VA_ARGS__);               \
-  template void functionName<int64_t, int64_t, op>(__VA_ARGS__);               
+  template void functionName<int64_t, int64_t, op>(__VA_ARGS__);
 
 #define GEN_3TYPE_OP(functionName, ...)                                        \
   template void functionName<float, float, float>(__VA_ARGS__);                \
@@ -75,8 +75,8 @@ using namespace std;
   template void functionName<uint8_t, int8_t, uint8_t>(__VA_ARGS__);           \
   template void functionName<int8_t, uint8_t, uint8_t>(__VA_ARGS__);           \
   template void functionName<uint8_t, uint8_t, uint8_t>(__VA_ARGS__);          \
-  template void functionName<int64_t, int64_t, int64_t>(__VA_ARGS__);          
-                                                                               
+  template void functionName<int64_t, int64_t, int64_t>(__VA_ARGS__);
+
 #define GEN_2TYPE_OP(functionName, ...)                                        \
   template void functionName<float, float>(__VA_ARGS__);                       \
   template void functionName<float16, float16>(__VA_ARGS__);                   \
@@ -84,7 +84,7 @@ using namespace std;
   template void functionName<uint8_t, int8_t>(__VA_ARGS__);                    \
   template void functionName<int8_t, uint8_t>(__VA_ARGS__);                    \
   template void functionName<uint8_t, uint8_t>(__VA_ARGS__);                   \
-  template void functionName<int64_t, int64_t>(__VA_ARGS__);                   
+  template void functionName<int64_t, int64_t>(__VA_ARGS__);
 
 #define GEN_INTONLY_OP(functionName, ...)                                      \
   template void functionName<int64_t>(__VA_ARGS__);                            \
@@ -122,7 +122,7 @@ namespace dnn_lib {
 
 template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<float>(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdst2, void *pdst2Pitches, 
+    void *pdst2, void *pdst2Pitches,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize, uint64_t flags,
@@ -130,7 +130,7 @@ template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVect
 
 template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<float16>(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdst2, void *pdst2Pitches, 
+    void *pdst2, void *pdst2Pitches,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize, uint64_t flags,
@@ -299,7 +299,7 @@ inline __attribute__((always_inline)) unsigned int gcd(unsigned int a,
 template<class T>
 constexpr std::size_t getsize() {
   return sizeof(T);
-}  
+}
 template<>
 constexpr std::size_t getsize<float16>() {
   return 2;
@@ -430,8 +430,8 @@ getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr1,
   return true;
 }
 
-template <typename mytype> 
-                           
+template <typename mytype>
+
 inline __attribute__((always_inline)) bool
 getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr1,
            mytype &offsetAddr2, mytype &offsetAddr3, unsigned int *Index, unsigned int *pitch1,
@@ -455,8 +455,8 @@ getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr1,
 }
 
 
-template <typename mytype> 
-                           
+template <typename mytype>
+
 inline __attribute__((always_inline)) bool
 getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr1,
            mytype &offsetAddr2, mytype &offsetAddr3, mytype &offsetAddr4,
@@ -789,14 +789,14 @@ public:
     volatile int32_t gatherValues1[] = {0, 0, 4, 4, 8, 8, 12, 12};
     __asm__ __volatile__("fxor.pi    f0, f0, f0 \n"
                          "flw.ps     f31, 0x0(%[scatterValues])\n"
-                         "mov.m.x    m1, zero, 0x55 \n" 
+                         "mov.m.x    m1, zero, 0x55 \n"
                          "maskand m1, m0, m1 \n"
                          "maskxor m0, m0, m1 \n"
                          "maskxor m1, m0, m1 \n"
                          "maskxor m0, m0, m1 \n"
                          "fgw.ps     f0, f31(%[srcAddr]) \n"
-                         "maskand    m0, m1, m1 \n" 
-                         "fcvt.pw.ps f0, f0, rtz \n"  
+                         "maskand    m0, m1, m1 \n"
+                         "fcvt.pw.ps f0, f0, rtz \n"
                          "fsrai.pi   f2, f0, 0x1f \n"
                          "fswizz.ps  f2, f2, 0xb1 \n"
                          "for.pi     f0, f0, f2 \n"
@@ -822,9 +822,9 @@ public:
                                         std::is_same<D, float16>::value,
                                     std::size_t>::type = 0>
   void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, volatile int32_t *gatherValues, volatile int32_t *scatterValues) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[scatterValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[scatterValues])\n"
                          "flw.ps f0, 0x0(%[srcAddr]) \n"
-                         "fcvt.f16.ps f0, f0 \n"  
+                         "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps f0, f31(%[dstAddr]) \n"
                          :
                          : [ srcAddr ] "r"(srcAddr), [ dstAddr ] "r"(dstAddr),
@@ -869,7 +869,7 @@ public:
   void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, volatile int32_t *gatherValues, volatile int32_t *scatterValues) {
     __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
                          "fgh.ps f0, f31(%[srcAddr]) \n"
-                         "fcvt.ps.f16 f0, f0 \n"  
+                         "fcvt.ps.f16 f0, f0 \n"
                          "fsw.ps f0, 0x0(%[dstAddr]) \n"
                          :
                          : [ srcAddr ] "r"(srcAddr), [ dstAddr ] "r"(dstAddr), [ gatherValues ] "r"(gatherValues)
@@ -890,8 +890,8 @@ public:
                                         std::is_same<D, float16>::value,
                                     std::size_t>::type = 0>
   void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, volatile int32_t *gatherValues, volatile int32_t *scatterValues) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[srcAddr]) \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[srcAddr]) \n"
                          "fsch.ps  f0, f31(%[dstAddr]) \n"
                          :
                          : [ srcAddr ] "r"(srcAddr), [ dstAddr ] "r"(dstAddr),
@@ -915,7 +915,7 @@ public:
                                         std::is_same<D, float>::value,
                                     std::size_t>::type = 0>
   void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, volatile int32_t *gatherValues, volatile int32_t *scatterValues) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fgw.ps f0, f31(%[srcAddr]) \n"
                          "fcvt.ps.pw f0, f0 \n"
                          "fsw.ps f0, 0x0(%[dstAddr]) \n"
@@ -941,10 +941,10 @@ public:
   void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, volatile int32_t *gatherValues, volatile int32_t *scatterValues) {
     volatile int32_t gatherValues1[] = {0, 8, 16, 24, 32, 40, 48, 56};
     volatile int32_t gatherValues2 []= {4, 12, 20, 28, 36, 44, 52, 60};
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues1])\n" 
-                         "flw.ps f30, 0x0(%[gatherValues2])\n" 
-                         "fgw.ps  f0, f30(%[srcAddr]) \n"  
-                         "fgw.ps  f1, f31(%[srcAddr]) \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues1])\n"
+                         "flw.ps f30, 0x0(%[gatherValues2])\n"
+                         "fgw.ps  f0, f30(%[srcAddr]) \n"
+                         "fgw.ps  f1, f31(%[srcAddr]) \n"
                          "fscw.ps  f0, f30(%[dstAddr]) \n"
                          "fscw.ps  f1, f31(%[dstAddr]) \n"
                          :
@@ -957,24 +957,24 @@ public:
 #define OPERATION_STEP1   \
            "flw.ps f31, 0x0(%[gatherValues])\n"          \
            "fgb.ps  f0, f31(%[src1]) \n"                 \
-           "fgb.ps  f1, f31(%[src2]) \n"                 
+           "fgb.ps  f1, f31(%[src2]) \n"
 
 #define OPERATION_STEP2   \
            "fcvt.ps.pw f1, f1 \n"                        \
            "fbc.ps f29, 0x4(%[scale]) \n"                \
            "fmul.ps f1, f1, f29 \n"                      \
            "fcvt.ps.pw f0, f0 \n"                        \
-           "fbc.ps f29, 0x0(%[scale]) \n"                
+           "fbc.ps f29, 0x0(%[scale]) \n"
 
 #define OPERATION_STEP3   \
            "fbc.ps f29, 0x8(%[scale]) \n"                \
            "frcp.ps f29, f29 \n"                         \
            "fmul.ps f0, f0, f29 \n"                      \
-           "fcvt.pw.ps f0, f0 \n"                        
+           "fcvt.pw.ps f0, f0 \n"
 
 template <typename src1Type, typename src2Type, typename dstType, typename opType> class Operator {
 public:
-  template <typename U = opType, typename S = src1Type, 
+  template <typename U = opType, typename S = src1Type,
             typename enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value && !std::is_same<S, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
@@ -1010,11 +1010,11 @@ public:
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
                          "fadd.ps f0, f0, f1 \n"
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
@@ -1026,13 +1026,13 @@ public:
                          : "f0", "f1", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n" 
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
                          "fadd.ps f0, f0, f1 \n"
                          "fsw.ps  f0, 0x0(%[dst]) \n"
                          :
@@ -1047,21 +1047,21 @@ public:
                                     std::size_t>::type = 0>
 
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
                          "fbc.ps f29, 0x4(%[scale]) \n"
-                         "fgb.ps  f1, f31(%[src2]) \n" 
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
-                         "fbc.ps f29, 0x0(%[scale]) \n" 
+                         "fbc.ps f29, 0x0(%[scale]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmadd.ps f0, f0, f29, f1 \n" 
+                         "fmadd.ps f0, f0, f29, f1 \n"
                          "fbc.ps f30, 0x8(%[offset]) \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmadd.ps f0, f0, f29, f30 \n"
@@ -1085,11 +1085,11 @@ public:
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          OPERATION_STEP2
-                         "fmadd.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmadd.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
-                         "fcmov.ps f0, f1, f29, f0 \n"                        
+                         "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
                          : [ gatherValues ] "r"(gatherValues),
@@ -1105,10 +1105,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmadd.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmadd.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
@@ -1125,10 +1125,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
-                         "fmadd.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmadd.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
@@ -1145,10 +1145,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmadd.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmadd.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
                          "fcmov.ps f0, f1, f29, f0 \n"
@@ -1167,10 +1167,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
-                         "fmadd.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmadd.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
                          "fcmov.ps f0, f1, f29, f0 \n"
@@ -1189,11 +1189,11 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmadd.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmadd.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
@@ -1210,11 +1210,11 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmadd.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmadd.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
                          "fcmov.ps f0, f1, f29, f0 \n"
@@ -1232,11 +1232,11 @@ public:
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
                          "fsub.ps f0, f0, f1 \n"
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
@@ -1248,13 +1248,13 @@ public:
                          : "f0", "f1", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"  
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
                          "fsub.ps f0, f0, f1 \n"
                          "fsw.ps  f0, 0x0(%[dst]) \n"
                          :
@@ -1269,21 +1269,21 @@ public:
                                     std::size_t>::type = 0>
 
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
                          "fbc.ps f29, 0x4(%[scale]) \n"
-                         "fgb.ps  f1, f31(%[src2]) \n" 
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
-                         "fbc.ps f29, 0x0(%[scale]) \n" 
+                         "fbc.ps f29, 0x0(%[scale]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmsub.ps f0, f0, f29, f1 \n" 
+                         "fmsub.ps f0, f0, f29, f1 \n"
                          "fbc.ps f30, 0x8(%[offset]) \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmadd.ps f0, f0, f29, f30 \n"
@@ -1307,11 +1307,11 @@ public:
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          OPERATION_STEP2
-                         "fmsub.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmsub.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
-                         "fcmov.ps f0, f1, f29, f0 \n"                        
+                         "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
                          : [ gatherValues ] "r"(gatherValues),
@@ -1327,10 +1327,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmsub.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmsub.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
@@ -1347,10 +1347,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
-                         "fmsub.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmsub.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
@@ -1367,10 +1367,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmsub.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmsub.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
                          "fcmov.ps f0, f1, f29, f0 \n"
@@ -1389,10 +1389,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
-                         "fmsub.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmsub.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
                          "fcmov.ps f0, f1, f29, f0 \n"
@@ -1411,11 +1411,11 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmsub.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmsub.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
@@ -1432,11 +1432,11 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
-                         "fandi.pi f0, f0, 0xff \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
+                         "fandi.pi f0, f0, 0xff \n"
+                         "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
-                         "fmsub.ps f0, f0, f29, f1 \n" 
-                         OPERATION_STEP3 
+                         "fmsub.ps f0, f0, f29, f1 \n"
+                         OPERATION_STEP3
                          "fsrli.pi f1, f0, 0x8 \n"
                          "fxor.pi f29, f29, f29 \n"
                          "fcmov.ps f0, f1, f29, f0 \n"
@@ -1462,11 +1462,11 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
                          "fmul.ps f0, f0, f1 \n"
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
@@ -1478,13 +1478,13 @@ public:
                          : "f0", "f1", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"  
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
                          "fmul.ps f0, f0, f1 \n"
                          "fsw.ps  f0, 0x0(%[dst]) \n"
                          :
@@ -1498,19 +1498,19 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
+                         "fandi.pi f0, f0, 0xff \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fandi.pi f1, f1, 0xff \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fmul.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fmul.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -1530,17 +1530,17 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fmul.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fmul.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -1560,22 +1560,22 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
 
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
-                         "fmul.ps f0, f0, f1 \n" 
+                         "fmul.ps f0, f0, f1 \n"
                          "fbc.ps f30, 0x8(%[offset]) \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmadd.ps f0, f0, f29, f30 \n"
@@ -1604,12 +1604,12 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n" 
-                         "frcp.ps f1, f1 \n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
+                         "frcp.ps f1, f1 \n"
                          "fmul.ps f0, f0, f1 \n"
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
@@ -1621,15 +1621,15 @@ public:
                          : "f0", "f1", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"  
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
-                         "frcp.ps f1, f1 \n" 
-                         "fmul.ps f0, f0, f1 \n"                        
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
+                         "frcp.ps f1, f1 \n"
+                         "fmul.ps f0, f0, f1 \n"
                          "fsw.ps  f0, 0x0(%[dst]) \n"
                          :
                          : [ src1 ] "r"(srcAddr1),
@@ -1642,20 +1642,20 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
+                         "fandi.pi f0, f0, 0xff \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fandi.pi f1, f1, 0xff \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "frcp.ps f1, f1 \n" 
-                         "fmul.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "frcp.ps f1, f1 \n"
+                         "fmul.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -1675,18 +1675,18 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "frcp.ps f1, f1 \n" 
-                         "fmul.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "frcp.ps f1, f1 \n"
+                         "fmul.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -1706,21 +1706,21 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"
-                         "flw.ps f31, 0x0(%[gatherValues])\n" 
+                         "flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
+                         "fmul.ps f0, f0, f29 \n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
                          "fbc.ps f29, 0x4(%[scale]) \n"
-                         "fgb.ps  f1, f31(%[src2]) \n" 
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
-                         "frcp.ps f1, f1 \n" 
-                         "fmul.ps f0, f0, f1 \n"    
+                         "frcp.ps f1, f1 \n"
+                         "fmul.ps f0, f0, f1 \n"
                          "fbc.ps f30, 0x8(%[offset]) \n"
                          "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
@@ -1773,11 +1773,11 @@ public:
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
                          "fmax.ps f0, f0, f1 \n"
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
@@ -1789,13 +1789,13 @@ public:
                          : "f0", "f1", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"  
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
                          "fmax.ps f0, f0, f1 \n"
                          "fsw.ps  f0, 0x0(%[dst]) \n"
                          :
@@ -1809,19 +1809,19 @@ public:
             typename std::enable_if<std::is_same<U, Max>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
+                         "fandi.pi f0, f0, 0xff \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fandi.pi f1, f1, 0xff \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fmax.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fmax.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -1841,17 +1841,17 @@ public:
             typename std::enable_if<std::is_same<U, Max>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fmax.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fmax.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -1870,22 +1870,22 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
                          "fbc.ps f29, 0x4(%[scale]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
-                         "fmax.ps f0, f0, f1 \n" 
+                         "fmax.ps f0, f0, f1 \n"
                          "fbc.ps f30, 0x8(%[offset]) \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmadd.ps f0, f0, f29, f30 \n"
@@ -1915,11 +1915,11 @@ public:
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
                          "fmin.ps f0, f0, f1 \n"
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
@@ -1931,13 +1931,13 @@ public:
                          : "f0", "f1", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"  
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
                          "fmin.ps f0, f0, f1 \n"
                          "fsw.ps  f0, 0x0(%[dst]) \n"
                          :
@@ -1951,19 +1951,19 @@ public:
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
-                         "fandi.pi f0, f0, 0xff \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
+                         "fandi.pi f0, f0, 0xff \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmin.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fandi.pi f1, f1, 0xff \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmin.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fandi.pi f1, f1, 0xff \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fmul.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fmul.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -1983,17 +1983,17 @@ public:
             typename std::enable_if<std::is_same<U, Min>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n" 
-                         "fmin.ps f0, f1, f0 \n" 
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fmul.ps f1, f1, f29 \n"
+                         "fmin.ps f0, f1, f0 \n"
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmul.ps f0, f0, f29 \n"
@@ -2012,22 +2012,22 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n" 
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n" 
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
-                         "fmin.ps f0, f0, f1 \n" 
+                         "fmin.ps f0, f0, f1 \n"
                          "fbc.ps f30, 0x8(%[offset]) \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n" 
+                         "fbc.ps f29, 0x8(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmadd.ps f0, f0, f29, f30 \n"
@@ -2056,11 +2056,11 @@ public:
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
                          "feq.ps f0, f0, f1 \n"
                          "fandi.pi f0, f0, 0x1 \n"
                          "fslli.pi f0, f0, 24 \n"
@@ -2087,13 +2087,13 @@ public:
                          : "f0", "f1", "f2", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"  
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
                          "feq.ps f0, f0, f1 \n"
                          "fandi.pi f0, f0, 0x1 \n"
                          "fslli.pi f0, f0, 24 \n"
@@ -2124,16 +2124,16 @@ public:
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n"  
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n"  
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
@@ -2178,11 +2178,11 @@ public:
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f31(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f31(%[src2]) \n"  
-                         "fcvt.ps.f16 f1, f1 \n"  
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "fcvt.ps.f16 f1, f1 \n"
                          "fle.ps f0, f0, f1 \n"
                          "fandi.pi f0, f0, 0x1 \n"
                          "fslli.pi f0, f0, 24 \n"
@@ -2209,13 +2209,13 @@ public:
                            [ dst ] "r" (dstAddr)
                          : "f0", "f1", "f2", "f31", "memory");
   }
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"  
-                         "flw.ps  f1, 0x0(%[src2]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
                          "fle.ps f0, f0, f1 \n"
                          "fandi.pi f0, f0, 0x1 \n"
                          "fslli.pi f0, f0, 24 \n"
@@ -2246,16 +2246,16 @@ public:
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n"  
+                         "fgb.ps  f0, f31(%[src1]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
-                         "fgb.ps  f1, f31(%[src2]) \n"  
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
@@ -2303,16 +2303,16 @@ public:
     float half = 0.5;
     float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n" 
-                         "fgh.ps  f0, f28(%[src1]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
-                         "fgh.ps  f1, f28(%[src2]) \n"  
+                         "flw.ps f28, 0x0(%[gatherValues])\n"
+                         "fgh.ps  f0, f28(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f28(%[src2]) \n"
                          "fcvt.ps.f16 f1, f1 \n"
-                    
+
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
                          "fxor.pi f29, f29, f29 \n"
-                         "feqm.ps m0, f29, f0 \n" 
+                         "feqm.ps m0, f29, f0 \n"
                          "feq.pi f2, f1, f29 \n"
                          "fandi.pi f2, f2, 0x1 \n"
                          "fcvt.ps.pw f2, f2 \n"
@@ -2329,17 +2329,17 @@ public:
                          "fround.ps f5, f1 \n" //f5 has rounded b
                          "maskxor m3, m3, m3\n"
                          "feqm.ps m3, f5, f1 \n" //m3 has 1 if b is integer 0 if not
-                         "masknot m4, m3 \n" 
+                         "masknot m4, m3 \n"
                          "maskand m0, m0, m4 \n"
                          "fnot.pi f2, f29 \n"
                          "maskand m0, m3, m2 \n"
-                         
-                         "fcvt.pw.ps f5, f5\n" 
+
+                         "fcvt.pw.ps f5, f5\n"
                          "fandi.pi f5, f5, 0x1\n"
                          "fcvt.pw.ps f30, f30\n"
                          "fmul.pi f5, f5, f30\n"
                          "faddi.pi f5, f5, 0x1\n"
-                         "fcvt.ps.pw f5, f5 \n" 
+                         "fcvt.ps.pw f5, f5 \n"
                          "fmul.ps f2, f2, f5 \n"
                          "maskand m0, m1, m1 \n"
 
@@ -2355,20 +2355,20 @@ public:
                          : "f0", "f1", "f2", "f3", "f4", "f5", "f28", "f29", "f30", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Pow>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     float half = 0.5;
-    float minus2 = -2; 
+    float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
                          "flw.ps  f0, 0x0(%[src1]) \n"  //f0 has a
                          "flw.ps  f1, 0x0(%[src2]) \n"  //f1 has b
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
                          "fxor.pi f29, f29, f29 \n"
-                         "feqm.ps m0, f29, f0 \n" 
+                         "feqm.ps m0, f29, f0 \n"
                          "feq.pi f2, f1, f29 \n"
                          "fandi.pi f2, f2, 0x1 \n"
                          "fcvt.ps.pw f2, f2 \n"
@@ -2385,17 +2385,17 @@ public:
                          "fround.ps f5, f1 \n" //f5 has rounded b
                          "maskxor m3, m3, m3\n"
                          "feqm.ps m3, f5, f1 \n" //m3 has 1 if b is integer 0 if not
-                         "masknot m4, m3 \n" 
+                         "masknot m4, m3 \n"
                          "maskand m0, m0, m4 \n"
                          "fnot.pi f2, f29 \n"
                          "maskand m0, m3, m2 \n"
-                         
-                         "fcvt.pw.ps f5, f5\n" 
+
+                         "fcvt.pw.ps f5, f5\n"
                          "fandi.pi f5, f5, 0x1\n"
                          "fcvt.pw.ps f30, f30\n"
                          "fmul.pi f5, f5, f30\n"
                          "faddi.pi f5, f5, 0x1\n"
-                         "fcvt.ps.pw f5, f5 \n" 
+                         "fcvt.ps.pw f5, f5 \n"
                          "fmul.ps f2, f2, f5 \n"
                          "maskand m0, m1, m1 \n"
                          "fsw.ps  f2, 0x0(%[dst]) \n"
@@ -2416,22 +2416,22 @@ public:
     __asm__ __volatile__("maskand m1, m0, m0 \n"
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n" 
+                         "flw.ps f28, 0x0(%[gatherValues])\n"
                          "fbc.ps f26, 0x0(%[offset]) \n"
                          "fbc.ps f27, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f28(%[src1]) \n"  
+                         "fgb.ps  f0, f28(%[src1]) \n"
                          "fsub.pi f0, f0, f26 \n"
-                         "fcvt.ps.pw f0, f0 \n"  
-                         "fmul.ps f0, f0, f27 \n" 
-                         "fgb.ps  f1, f28(%[src2]) \n"  
+                         "fcvt.ps.pw f0, f0 \n"
+                         "fmul.ps f0, f0, f27 \n"
+                         "fgb.ps  f1, f28(%[src2]) \n"
                          "fbc.ps f26, 0x4(%[offset]) \n"
-                         "fbc.ps f27, 0x4(%[scale]) \n" 
+                         "fbc.ps f27, 0x4(%[scale]) \n"
                          "fsub.pi f1, f1, f26 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
 
                          "fxor.pi f29, f29, f29 \n"
-                         "feqm.ps m0, f29, f0 \n" 
+                         "feqm.ps m0, f29, f0 \n"
                          "feq.pi f2, f1, f29 \n"
                          "fandi.pi f2, f2, 0x1 \n"
                          "fcvt.ps.pw f2, f2 \n"
@@ -2448,22 +2448,22 @@ public:
                          "fround.ps f5, f1 \n" //f5 has rounded b
                          "maskxor m3, m3, m3\n"
                          "feqm.ps m3, f5, f1 \n" //m3 has 1 if b is integer 0 if not
-                         "masknot m4, m3 \n" 
+                         "masknot m4, m3 \n"
                          "maskand m0, m0, m4 \n"
                          "fnot.pi f2, f29 \n"
                          "maskand m0, m3, m2 \n"
-                         
-                         "fcvt.pw.ps f5, f5\n" 
+
+                         "fcvt.pw.ps f5, f5\n"
                          "fandi.pi f5, f5, 0x1\n"
                          "fcvt.pw.ps f30, f30\n"
                          "fmul.pi f5, f5, f30\n"
                          "faddi.pi f5, f5, 0x1\n"
-                         "fcvt.ps.pw f5, f5 \n" 
+                         "fcvt.ps.pw f5, f5 \n"
                          "fmul.ps f2, f2, f5 \n"
                          "maskand m0, m1, m1 \n"
 
                          "fbc.ps f26, 0x8(%[offset]) \n"
-                         "fbc.ps f27, 0x8(%[scale]) \n" 
+                         "fbc.ps f27, 0x8(%[scale]) \n"
                          "frcp.ps f29, f27 \n"
                          "fcvt.ps.pw f30, f26 \n"
                          "fmadd.ps f2, f2, f29, f30 \n"
@@ -2491,18 +2491,18 @@ public:
     __asm__ __volatile__("maskand m1, m0, m0 \n"
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n" 
+                         "flw.ps f28, 0x0(%[gatherValues])\n"
                          "fbc.ps f27, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f28(%[src1]) \n"  
-                         "fcvt.ps.pw f0, f0 \n"  
-                         "fmul.ps f0, f0, f27 \n" 
-                         "fgb.ps  f1, f28(%[src2]) \n"  
-                         "fbc.ps f27, 0x4(%[scale]) \n" 
+                         "fgb.ps  f0, f28(%[src1]) \n"
+                         "fcvt.ps.pw f0, f0 \n"
+                         "fmul.ps f0, f0, f27 \n"
+                         "fgb.ps  f1, f28(%[src2]) \n"
+                         "fbc.ps f27, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
 
                          "fxor.pi f29, f29, f29 \n"
-                         "feqm.ps m0, f29, f0 \n" 
+                         "feqm.ps m0, f29, f0 \n"
                          "feq.pi f2, f1, f29 \n"
                          "fandi.pi f2, f2, 0x1 \n"
                          "fcvt.ps.pw f2, f2 \n"
@@ -2519,21 +2519,21 @@ public:
                          "fround.ps f5, f1 \n" //f5 has rounded b
                          "maskxor m3, m3, m3\n"
                          "feqm.ps m3, f5, f1 \n" //m3 has 1 if b is integer 0 if not
-                         "masknot m4, m3 \n" 
+                         "masknot m4, m3 \n"
                          "maskand m0, m0, m4 \n"
                          "fnot.pi f2, f29 \n"
                          "maskand m0, m3, m2 \n"
-                         
-                         "fcvt.pw.ps f5, f5\n" 
+
+                         "fcvt.pw.ps f5, f5\n"
                          "fandi.pi f5, f5, 0x1\n"
                          "fcvt.pw.ps f30, f30\n"
                          "fmul.pi f5, f5, f30\n"
                          "faddi.pi f5, f5, 0x1\n"
-                         "fcvt.ps.pw f5, f5 \n" 
+                         "fcvt.ps.pw f5, f5 \n"
                          "fmul.ps f2, f2, f5 \n"
                          "maskand m0, m1, m1 \n"
 
-                         "fbc.ps f27, 0x8(%[scale]) \n" 
+                         "fbc.ps f27, 0x8(%[scale]) \n"
                          "frcp.ps f29, f27 \n"
                          "fmul.ps f2, f2, f29 \n"
                          "fcvt.pw.ps f2, f2 \n"
@@ -2559,20 +2559,20 @@ public:
     __asm__ __volatile__("maskand m1, m0, m0 \n"
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n" 
+                         "flw.ps f28, 0x0(%[gatherValues])\n"
                          "fbc.ps f27, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f28(%[src1]) \n"  
-                         "fandi.pi f0, f0, 0xff \n" 
-                         "fcvt.ps.pw f0, f0 \n"  
-                         "fmul.ps f0, f0, f27 \n" 
-                         "fgb.ps  f1, f28(%[src2]) \n"  
-                         "fandi.pi f1, f1, 0xff \n" 
-                         "fbc.ps f27, 0x4(%[scale]) \n" 
+                         "fgb.ps  f0, f28(%[src1]) \n"
+                         "fandi.pi f0, f0, 0xff \n"
+                         "fcvt.ps.pw f0, f0 \n"
+                         "fmul.ps f0, f0, f27 \n"
+                         "fgb.ps  f1, f28(%[src2]) \n"
+                         "fandi.pi f1, f1, 0xff \n"
+                         "fbc.ps f27, 0x4(%[scale]) \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
 
                          "fxor.pi f29, f29, f29 \n"
-                         "feqm.ps m0, f29, f0 \n" 
+                         "feqm.ps m0, f29, f0 \n"
                          "feq.pi f2, f1, f29 \n"
                          "fandi.pi f2, f2, 0x1 \n"
                          "fcvt.ps.pw f2, f2 \n"
@@ -2589,21 +2589,21 @@ public:
                          "fround.ps f5, f1 \n" //f5 has rounded b
                          "maskxor m3, m3, m3\n"
                          "feqm.ps m3, f5, f1 \n" //m3 has 1 if b is integer 0 if not
-                         "masknot m4, m3 \n" 
+                         "masknot m4, m3 \n"
                          "maskand m0, m0, m4 \n"
                          "fnot.pi f2, f29 \n"
                          "maskand m0, m3, m2 \n"
-                         
-                         "fcvt.pw.ps f5, f5\n" 
+
+                         "fcvt.pw.ps f5, f5\n"
                          "fandi.pi f5, f5, 0x1\n"
                          "fcvt.pw.ps f30, f30\n"
                          "fmul.pi f5, f5, f30\n"
                          "faddi.pi f5, f5, 0x1\n"
-                         "fcvt.ps.pw f5, f5 \n" 
+                         "fcvt.ps.pw f5, f5 \n"
                          "fmul.ps f2, f2, f5 \n"
                          "maskand m0, m1, m1 \n"
 
-                         "fbc.ps f27, 0x8(%[scale]) \n" 
+                         "fbc.ps f27, 0x8(%[scale]) \n"
                          "frcp.ps f29, f27 \n"
                          "fmul.ps f2, f2, f29 \n"
                          "fcvt.pw.ps f2, f2 \n"
@@ -2633,10 +2633,10 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
     float log2e = M_1_LOG2E;
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f30, 0x0(%[log2e]) \n"
-                         "fgh.ps  f0, f31(%[src]) \n"  
-                         "fcvt.ps.f16 f0, f0 \n"  
+                         "fgh.ps  f0, f31(%[src]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
                          "flog.ps f0, f0 \n"
                          "fmul.ps f0, f0, f30 \n"
                          "fcvt.f16.ps f0, f0 \n"
@@ -2649,13 +2649,13 @@ public:
                          : "f0", "f30", "f31", "memory");
   }
 
-  
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, ElementLog>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
     float log2e = M_1_LOG2E;
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src]) \n"  
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src]) \n"
                          "fbc.ps f30, 0x0(%[log2e]) \n"
                          "flog.ps f0, f0 \n"
                          "fmul.ps f0, f0, f30 \n"
@@ -2673,18 +2673,18 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(volatile int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
     float log2e = M_1_LOG2E;
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                          "fbc.ps f28, 0x0(%[log2e]) \n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src]) \n" 
+                         "fgb.ps  f0, f31(%[src]) \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n" 
+                         "fmul.ps f0, f0, f29 \n"
                          "flog.ps f0, f0 \n"
                          "fmul.ps f0, f0, f28 \n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n" 
+                         "fbc.ps f29, 0x4(%[scale]) \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmadd.ps f0, f0, f29, f30 \n"
@@ -2911,7 +2911,7 @@ void dnn_lib::fwdLibConvolutionInstThreaded(
 
   unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
                                1};
-    
+
   unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
                                outCperG};
 
@@ -3073,7 +3073,7 @@ void dnn_lib::fwdLibConvolutionInstThreaded(
 //          auto op2 = tAInput[coord[0] * actPitch[0] + x * actPitch[1] +
 //                             y * actPitch[2] + coord[3] * inCperG + z];
 //          sum += op1 * op2;
-//        } 
+//        }
 //        results[k] = sum;
 //      }
 //    }
@@ -3096,21 +3096,21 @@ void dnn_lib::fwdLibConvolutionInstThreaded(
 
 template <typename srcType, typename std::enable_if<std::is_same<
                             srcType, float>::value, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord, 
-                    unsigned int *actPitch, unsigned int *weightPitch, 
+void convolutionOp (void *activations, void *weights, unsigned int *coord,
+                    unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
-  unsigned int *actAddr = (unsigned int *) activations; 
+  unsigned int *actAddr = (unsigned int *) activations;
   unsigned int *weightAddr = (unsigned int *) weights;
   actAddr += coord[0] * actPitch[0] + x * actPitch[1] + y * actPitch[2] +
             coord[3] * inCperG;
   weightAddr += d * weightPitch[0];
   __asm__ __volatile__(
-    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros      
+    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
     "mov.m.x  m0, zero, 0xff\n"                     // m0 to ones
     "mov.m.x  m1, %[mask], 0\n"                     // m1 the auxiliar mask
     "1:\n"                                          // for (size_t fx = 0; fx < kernels[0]; fx++) {
@@ -3119,21 +3119,21 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "sub      %[actAddr], %[actAddr], %[fy]\n"
     "mul      %[fy], %[kernels1], %[weightPitch2]\n"
     "sub      %[weightAddr], %[weightAddr], %[fy]\n"
-    "addi     %[fy], zero, 0\n"                     
+    "addi     %[fy], zero, 0\n"
     "2:\n"                                            // for (size_t fy = 0; fy < kernels[1]; fy++) {
     "addi     %[dist], %[inCperG], 0\n"                // dist = inCperG
 
     "add      %[oy], %[y], %[fy]\n"                     // oy = y + fy
     "add      %[ox], %[x], %[fx]\n"                     // ox = x + fx
-    
+
     "blt      %[ox], zero, 5f\n"                        // if (ox < 0) continue
     "blt      %[oy], zero, 5f\n"                        // if (oy < 0) continue
     "ble      %[actIndex1], %[ox], 5f\n"                // if (actIndex[1] <= ox) continue
     "ble      %[actIndex2], %[oy], 5f\n"                // if (actIndex[2] <= oy) continue
-    
+
     "addi     t0, zero, 8\n"                            // t0 = 8
     "ble      %[dist], t0, 4f\n"                        // if dist <= 8 go to 4
-  
+
     "mov.m.x  m0, zero, 0xff\n"
     "3:\n"                                              // while (8 < dist) {
     "flw.ps   f1, 0x0(%[actAddr])\n"                      // actAddr -> f1
@@ -3143,7 +3143,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "addi     %[weightAddr], %[weightAddr], 32\n"         // weightAddr += 32
     "addi     %[dist], %[dist], -8\n"                     // dist -= 8
     "blt      t0, %[dist], 3b\n"                        // }
-    
+
     "4:\n"
     "maskand  m0, m0, m1\n"                             // put mask on
     "flw.ps   f1, 0x0(%[actAddr])\n"                    // actAddr -> f1
@@ -3161,44 +3161,44 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "blt      %[fy], %[kernels1], 2b\n"               // Closing fy for }
 
     "addi     %[fx], %[fx], 1\n"                      // fx++
-    
+
     "add     %[actAddr], %[actPitch1], %[actAddr]\n" // actAddr = actAddr + actPitch[1]
     "add     %[weightAddr], %[weightPitch1], %[weightAddr]\n"
     "blt      %[fx], %[kernels0], 1b\n"             // Closing fx for{}
-    
-    "mov.m.x   m0, zero, 0xff\n" 
+
+    "mov.m.x   m0, zero, 0xff\n"
     "fswizz.ps f1, f0, 0xe\n"
     "fadd.ps   f0, f0, f1\n"
     "fswizz.ps f1, f0, 0x1\n"
     "fadd.ps   f0, f0, f1\n"
     "fmvs.x.ps t0, f0, 0x4\n"
     "fmv.w.x   f31, t0\n"
-    "fadd.s    f31, f31, f0\n"   
+    "fadd.s    f31, f31, f0\n"
 
     "fmv.w.x   f0, %[sum]\n"
-    "fadd.s    f31, f31, f0\n" 
+    "fadd.s    f31, f31, f0\n"
     "fmv.x.w   %[sum], f31\n"
-    
-    : [ weightAddr ] "+r" (weightAddr), 
-      [ actAddr ] "+r" (actAddr),       
-      [ dist ] "+r" (dist),             
-      [ sum ] "+r" (sum),               
-      [ ox ] "+r" (ox),                 
-      [ oy ] "+r" (oy),                 
-      [ fy ] "+r" (fy),   
-      [ fx ] "+r" (fx)  
-    : [ weightPitch1 ] "r" (weightPitch[1] * 4),  
-      [ weightPitch2 ] "r" (weightPitch[2] * 4),  
-      [ actIndex1 ] "r" (actIndex[1]),           
-      [ actIndex2 ] "r" (actIndex[2]),           
-      [ actPitch1 ] "r" (actPitch[1] * 4),       
-      [ actPitch2 ] "r" (actPitch[2] * 4),       
-      [ kernels0 ] "r" (kernels[0]),             
-      [ kernels1 ] "r" (kernels[1]),             
-      [ inCperG ] "r" (inCperG),                 
-      [ mask ] "r" (mask),                        
-      [ x ] "r" (x),                              
-      [ y ] "r" (y)                               
+
+    : [ weightAddr ] "+r" (weightAddr),
+      [ actAddr ] "+r" (actAddr),
+      [ dist ] "+r" (dist),
+      [ sum ] "+r" (sum),
+      [ ox ] "+r" (ox),
+      [ oy ] "+r" (oy),
+      [ fy ] "+r" (fy),
+      [ fx ] "+r" (fx)
+    : [ weightPitch1 ] "r" (weightPitch[1] * 4),
+      [ weightPitch2 ] "r" (weightPitch[2] * 4),
+      [ actIndex1 ] "r" (actIndex[1]),
+      [ actIndex2 ] "r" (actIndex[2]),
+      [ actPitch1 ] "r" (actPitch[1] * 4),
+      [ actPitch2 ] "r" (actPitch[2] * 4),
+      [ kernels0 ] "r" (kernels[0]),
+      [ kernels1 ] "r" (kernels[1]),
+      [ inCperG ] "r" (inCperG),
+      [ mask ] "r" (mask),
+      [ x ] "r" (x),
+      [ y ] "r" (y)
     : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
@@ -3207,8 +3207,8 @@ template <typename srcType, typename std::enable_if<(!std::is_same<
                             srcType, float>::value) /*&& (!std::is_same<
                             srcType, float16>::value) && (!std::is_same<
                             srcType, int8_t>::value)*/, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord, 
-                    unsigned int *actPitch, unsigned int *weightPitch, 
+void convolutionOp (void *activations, void *weights, unsigned int *coord,
+                    unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
@@ -3233,21 +3233,21 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
           sum += op1 * op2;
         }
       }
-    }  
+    }
   return; //TODO return error.
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<
                             srcType, float16>::value, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord, 
-                    unsigned int *actPitch, unsigned int *weightPitch, 
+void convolutionOp (void *activations, void *weights, unsigned int *coord,
+                    unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
-  uint16_t *actAddr = (uint16_t *) activations; 
+  uint16_t *actAddr = (uint16_t *) activations;
   uint16_t *weightAddr = (uint16_t *) weights;
   actAddr += coord[0] * actPitch[0] + x * actPitch[1] + y * actPitch[2] +
             coord[3] * inCperG;
@@ -3255,7 +3255,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
   unsigned int gatherValues[8] = { 0, 2, 4, 6, 8, 10, 12, 14 };
   __asm__ __volatile__(
     "flw.ps f16, 0x0(%[gatherValues])\n"
-    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros      
+    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
     "mov.m.x  m0, zero, 0xff\n"                     // m0 to ones
     "mov.m.x  m1, %[mask], 0\n"                     // m1 the auxiliar mask
     "1:\n"                                          // for (size_t fx = 0; fx < kernels[0]; fx++) {
@@ -3264,21 +3264,21 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "sub      %[actAddr], %[actAddr], %[fy]\n"
     "mul      %[fy], %[kernels1], %[weightPitch2]\n"
     "sub      %[weightAddr], %[weightAddr], %[fy]\n"
-    "addi     %[fy], zero, 0\n"                     
+    "addi     %[fy], zero, 0\n"
     "2:\n"                                            // for (size_t fy = 0; fy < kernels[1]; fy++) {
     "addi     %[dist], %[inCperG], 0\n"                // dist = inCperG
 
     "add      %[oy], %[y], %[fy]\n"                     // oy = y + fy
     "add      %[ox], %[x], %[fx]\n"                     // ox = x + fx
-    
+
     "blt      %[ox], zero, 5f\n"                        // if (ox < 0) continue
     "blt      %[oy], zero, 5f\n"                        // if (oy < 0) continue
     "ble      %[actIndex1], %[ox], 5f\n"                // if (actIndex[1] <= ox) continue
     "ble      %[actIndex2], %[oy], 5f\n"                // if (actIndex[2] <= oy) continue
-    
+
     "addi     t0, zero, 8\n"                            // t0 = 8
     "ble      %[dist], t0, 4f\n"                        // if dist <= 8 go to 4
-  
+
     "mov.m.x  m0, zero, 0xff\n"
     "3:\n"                                              // while (8 < dist) {
     "fgh.ps   f1, f16(%[actAddr])\n"                      // actAddr -> f1
@@ -3290,7 +3290,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "addi     %[weightAddr], %[weightAddr], 16\n"         // weightAddr += 16
     "addi     %[dist], %[dist], -8\n"                     // dist -= 8
     "blt      t0, %[dist], 3b\n"                        // }
-    
+
     "4:\n"
     "maskand  m0, m0, m1\n"                             // put mask on
     "fgh.ps   f1, f16(%[actAddr])\n"                    // actAddr -> f1
@@ -3310,59 +3310,59 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "blt      %[fy], %[kernels1], 2b\n"               // Closing fy for{}
 
     "addi     %[fx], %[fx], 1\n"                      // fx++
-    
+
     "add      %[actAddr], %[actPitch1], %[actAddr]\n" // actAddr = actAddr + actPitch[1]
     "add      %[weightAddr], %[weightPitch1], %[weightAddr]\n"
     "blt      %[fx], %[kernels0], 1b\n"             // Closing fx for{}
-    
-    "mov.m.x   m0, zero, 0xff\n" 
+
+    "mov.m.x   m0, zero, 0xff\n"
     "fswizz.ps f1, f0, 0xe\n"
     "fadd.ps   f0, f0, f1\n"
     "fswizz.ps f1, f0, 0x1\n"
     "fadd.ps   f0, f0, f1\n"
     "fmvs.x.ps t0, f0, 0x4\n"
     "fmv.w.x   f31, t0\n"
-    "fadd.s    f31, f31, f0\n"   
+    "fadd.s    f31, f31, f0\n"
     "fmv.w.x   f0, %[sum]\n"
-    "fadd.s    f31, f31, f0\n" 
+    "fadd.s    f31, f31, f0\n"
     "fmv.x.w   %[sum], f31\n"
-    
-    : [ weightAddr ] "+r" (weightAddr), 
-      [ actAddr ] "+r" (actAddr),       
-      [ dist ] "+r" (dist),             
-      [ sum ] "+r" (sum),               
-      [ ox ] "+r" (ox),                 
-      [ oy ] "+r" (oy),                 
-      [ fy ] "+r" (fy),   
-      [ fx ] "+r" (fx)  
-    : [ weightPitch1 ] "r" (weightPitch[1] * 2),  
-      [ weightPitch2 ] "r" (weightPitch[2] * 2),  
-      [ gatherValues ] "r" (gatherValues),        
-      [ actPitch1 ] "r" (actPitch[1] * 2),       
-      [ actPitch2 ] "r" (actPitch[2] * 2),       
-      [ actIndex1 ] "r" (actIndex[1]),           
-      [ actIndex2 ] "r" (actIndex[2]),  
-      [ kernels0 ] "r" (kernels[0]),             
-      [ kernels1 ] "r" (kernels[1]),             
-      [ inCperG ] "r" (inCperG),                 
-      [ mask ] "r" (mask),                        
-      [ x ] "r" (x),                              
-      [ y ] "r" (y)                               
+
+    : [ weightAddr ] "+r" (weightAddr),
+      [ actAddr ] "+r" (actAddr),
+      [ dist ] "+r" (dist),
+      [ sum ] "+r" (sum),
+      [ ox ] "+r" (ox),
+      [ oy ] "+r" (oy),
+      [ fy ] "+r" (fy),
+      [ fx ] "+r" (fx)
+    : [ weightPitch1 ] "r" (weightPitch[1] * 2),
+      [ weightPitch2 ] "r" (weightPitch[2] * 2),
+      [ gatherValues ] "r" (gatherValues),
+      [ actPitch1 ] "r" (actPitch[1] * 2),
+      [ actPitch2 ] "r" (actPitch[2] * 2),
+      [ actIndex1 ] "r" (actIndex[1]),
+      [ actIndex2 ] "r" (actIndex[2]),
+      [ kernels0 ] "r" (kernels[0]),
+      [ kernels1 ] "r" (kernels[1]),
+      [ inCperG ] "r" (inCperG),
+      [ mask ] "r" (mask),
+      [ x ] "r" (x),
+      [ y ] "r" (y)
     : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
 
 //template <typename srcType, typename std::enable_if<std::is_same<
 //                            srcType, int8_t>::value, std::size_t>::type = 0>
-//void convolutionOp (void *activations, void *weights, unsigned int *coord, 
-//                    unsigned int *actPitch, unsigned int *weightPitch, 
+//void convolutionOp (void *activations, void *weights, unsigned int *coord,
+//                    unsigned int *actPitch, unsigned int *weightPitch,
 //                    unsigned int *actIndex, unsigned int *kernels,
 //                    unsigned int inCperG, srcType &sum, int32_t mask, ssize_t x,
 //                    ssize_t y, ssize_t d, float *scale, int32_t *offset) {
 //
 //  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
 //  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-//  
+//
 //  for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
 //      for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
 //        ssize_t ox = x + fx;
@@ -3383,15 +3383,15 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
 //        }
 //      }
 //    }
-//  return; //TODO a version of int8_t is needed.  
+//  return; //TODO a version of int8_t is needed.
 //}
 
 template <typename srcType, typename std::enable_if</*(!std::is_same<
                             srcType, float>::value) && */(!std::is_same<
                             srcType, float16>::value) /*&& (!std::is_same<
                             srcType, int8_t>::value)*/, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord, 
-                    unsigned int *actPitch, unsigned int *weightPitch, 
+void convolutionOp (void *activations, void *weights, unsigned int *coord,
+                    unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
@@ -3416,13 +3416,13 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
           sum += op1 * op2;
         }
       }
-    }  
+    }
   return; //TODO return error.
 }
 
 template <typename srcType>
-void convolutionOp (void *activations, void *weights, unsigned int *coord, 
-                    unsigned int *actPitch, unsigned int *weightPitch, 
+void convolutionOp (void *activations, void *weights, unsigned int *coord,
+                    unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
@@ -3447,7 +3447,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
           sum += op1 * op2;
         }
       }
-    }  
+    }
   return; //TODO return error.
 }
 
@@ -3499,7 +3499,7 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
 
   unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
                                1};
-    
+
   unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
                                outCperG};
 
@@ -3524,7 +3524,7 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
 
     auto sum = tBias[d];
     volatile int dist;
-    volatile unsigned int *actAddr = (unsigned int *) activations; 
+    volatile unsigned int *actAddr = (unsigned int *) activations;
     volatile unsigned int *weightAddr = (unsigned int *) weights;
     convolutionOp <srcType> (activations, weights, coord, actPitch, weightPitch,
                              actIndex, kernels, inCperG, sum, mask, x, y, d,
@@ -3644,7 +3644,7 @@ void dnn_lib::fwdLibConvolution3DInstThreaded(
     void *weights, void *weightsDims, void *weightPitches, void *bias,
     void *pkernels, void *pstrides, void *ppads, unsigned int group,
     float *scale, int32_t *offset, uint64_t flags) {
- 
+
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -4519,12 +4519,12 @@ template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInstThreaded(void *dstT, void *srcT, void *srcTDims,
                                         void *srcTPitches, float *scale,
                                         int32_t *offset, uint64_t flags) {
-  
+
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
   size_t typeSize = getsize<srcType>();
   unsigned int cll = 64/typeSize;
-  if (srcPitch[0]%cll == 0)  
+  if (srcPitch[0]%cll == 0)
     fwdLibSoftMaxInstThreaded1<srcType>(dstT, srcT, srcTDims,
                                         srcTPitches, scale,
                                         offset, flags);
@@ -4539,14 +4539,14 @@ void dnn_lib::fwdLibSoftMaxInstThreaded(void *dstT, void *srcT, void *srcTDims,
 
 template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInstVectorized(void *dstT, void *srcT, void *srcTDims,
-                                          void *srcTPitches, float *scale, 
+                                          void *srcTPitches, float *scale,
                                           int32_t *offset, uint64_t flags) {
-  
+
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
   size_t typeSize = getsize<srcType>();
   unsigned int cll = 64/typeSize;
-  if (srcPitch[0]%cll == 0)  
+  if (srcPitch[0]%cll == 0)
     fwdLibSoftMaxInstVectorized1<srcType>(dstT, srcT, srcTDims,
                                         srcTPitches, scale,
                                         offset, flags);
@@ -4742,16 +4742,16 @@ void dnn_lib::fwdLibSoftMaxInstThreaded2 (void *dstT, void *srcT, void *srcTDims
   unsigned int rowspercl = (cll - 1)/srcPitch[0] + 1;
   unsigned int rowstodo = rowspercl;
   while(activeMinions*rowstodo < srcIndex[0]) rowstodo += rowspercl;
-  
+
   unsigned int firstrow = minionId*rowstodo;
-  if (firstrow >= srcIndex[0]) 
+  if (firstrow >= srcIndex[0])
     return;
-  unsigned int lastrow = firstrow + rowstodo;  
+  unsigned int lastrow = firstrow + rowstodo;
   if (lastrow > srcIndex[0])
     lastrow = srcIndex[0];
 
   float e, sum, inverseSum;
-  
+
   for (unsigned int n = firstrow; n < lastrow; n++) {
     unsigned int start = n * srcPitch[0];
     unsigned int end = start + srcIndex[1];
@@ -4859,7 +4859,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
       "mov.m.x m0, zero, 0xff \n"
       "fxor.pi f28, f28, f28 \n"
       SET_MINUS_INFTY(f29)
-      
+
 ///// PART 1: COMPUTATION OF THE MAX VALUE IN ROW.
       "addi t1, zero, 0x0 \n"
       "add t2, zero, %[srcAddr] \n"
@@ -4960,7 +4960,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
         [numRegs] "r" (numRegs),
         [extraLanes] "r" (extraLanes)
       : "t0", "t1", "t2", "t3", "f0", "f27", "f28", "f29", "memory");
-  
+
     srcAddr += step;
     dstAddr += step;
   }
@@ -5043,7 +5043,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
       "addi t4, t4, -1 \n"                        \
       "j 1b \n"                                   \
       "2: \n"
-    
+
     __asm__ __volatile__(
       "mov.m.x m0, zero, 0xff \n"
       "fxor.pi f28, f28, f28 \n"
@@ -5183,7 +5183,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
   }
 #undef GATHER_FLOAT
 #undef SCATTER_FLOAT
-#undef EXP 
+#undef EXP
 #undef DO_REG
 #undef REDUCE
 #undef BROADCAST
@@ -5474,7 +5474,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
-  
+
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
   const Addresser<srcType> tAInput(src, scale[0], offset[0]);
 
@@ -5529,7 +5529,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
-  bool lastRow = false; 
+  bool lastRow = false;
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
 
@@ -5540,7 +5540,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
       } else if (coord[lastDim - 1] == maxRow) {
         lastRow = true;
         elementsInRow = posMax - offsetOut;
-      } 
+      }
       else {
       elementsInRow = dstIndex[lastDim];
       }
@@ -5562,7 +5562,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    src8 += offsetIn * typeSize; 
+    src8 += offsetIn * typeSize;
     dst8 += offsetOut * typeSize;
 
     unsigned int cnt = 0;
@@ -5592,7 +5592,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
       tOutput[offsetOutAux + i] = tAInput[offsetInAux + i];
     }
 
-    if (lastRow) 
+    if (lastRow)
       return;
     src8 = src8Init;
     dst8 = dst8Init;
@@ -5612,15 +5612,15 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 //                                        int32_t *offset, uint64_t flags) {
 //   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
 //   const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-// 
+//
 //   unsigned int *dstIndex = (unsigned int *)dstDims;
 //   unsigned int *actIndex = (unsigned int *)srcDims;
 //   int8_t *dst8 = (int8_t *)dst;
 //   int8_t *src8 = (int8_t *)src;
-// 
+//
 //   unsigned int *dstPitch = (unsigned int *)dstPitches;
 //   unsigned int *actPitch = (unsigned int *)srcPitches;
-// 
+//
 //   unsigned int minionId = get_minion_id();
 //   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
 //   if (minionId >= activeMinions) {
@@ -5629,7 +5629,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 //   unsigned int typeSize = getsize<srcType>();
 //   unsigned int numElemsDst =
 //       dstPitch[0] * actIndex[0]; // Total number of elements in the tensor
-// 
+//
 //   // We give to each minion an initial address the number of positions that it
 //   // must work on (maxRead).
 //   unsigned int initialAddr, maxRead;
@@ -5642,7 +5642,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 //   unsigned int coord[srcDimNum]; // Vector of coordinates
 //   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
 //                            k);
-// 
+//
 //   // We get the actual initialAddr, in the input and output.
 //   unsigned int offsetIn = 0;
 //   unsigned int offsetOut = 0;
@@ -5650,7 +5650,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 //     offsetIn += actPitch[j] * coord[j];
 //     offsetOut += dstPitch[j] * coord[j];
 //   }
-// 
+//
 //   unsigned int posMax = maxRead + initialAddr;
 //   bool done = false;
 //   unsigned int lastDim = srcDimNum - 1;
@@ -5736,30 +5736,30 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 //     }
 //   }
 // }
-     
+
  // This implementation takes advantage of small cases with the same input and
  // output shape. It does not try to avoid padding, as the calculations needed
  // would decrease velocity. Therefore, we just give each minion its initial
  // address and make it copy everything until maxRead. In the end, there should
  // be a graph decision between this version and the general vectorisation.
- 
+
  template <typename srcType>
  void dnn_lib::fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
                                         void *src, void *srcDims, void *srcPitches,
                                         unsigned int srcDimNum, float *scale,
                                         int32_t *offset, uint64_t flags) {
-  
+
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
- 
+
   unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
- 
+
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *actPitch = (unsigned int *)srcPitches;
- 
+
   size_t typeSize = getsize<srcType>();
   uint64_t numElemsDst = dstPitch[0] * actIndex[0] *
                              typeSize; // Total number of elements in the tensor
@@ -5767,8 +5767,8 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   uint64_t minionCacheLines = (numCacheLines - 1) / activeMinions + 1;
   uint64_t initialCacheLine = minionCacheLines * minionId;
   uint64_t lastCacheLine = initialCacheLine + minionCacheLines;
-  minionCacheLines = 
-          (lastCacheLine <= numCacheLines) ? minionCacheLines 
+  minionCacheLines =
+          (lastCacheLine <= numCacheLines) ? minionCacheLines
         : (initialCacheLine < numCacheLines) ? numCacheLines - initialCacheLine : 0;
   uint64_t srcAddr = (uint64_t)src + initialCacheLine*64;
   uint64_t dstAddr = (uint64_t)dst + initialCacheLine*64;
@@ -5786,7 +5786,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   tensor_load(0, 0, 0, 0, 0, srcAddr, 0, minionCacheLines-1, 0x40, 0);
   tensor_store_scp(0, 0, minionCacheLines-1, dstAddr, 0x40);
 }
- 
+
 
 template <typename srcType>
 void dnn_lib::fwdLibTransposeInst(void *dst, void *dstDims, void *dstPitches,
@@ -5892,7 +5892,7 @@ void dnn_lib::fwdLibTransposeInstThreaded(void *dst, void *dstDims,
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
                            k);
 
-  
+
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
   for (unsigned int j = 0; j < k; j++) {
@@ -5904,7 +5904,7 @@ void dnn_lib::fwdLibTransposeInstThreaded(void *dst, void *dstDims,
   bool done = false;
   while (not done && offsetOut < posMax) {
     tOutput[offsetOut] = tAInput[offsetIn];
-    done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, dstIndex, dstPitch, newPitch);       
+    done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, dstIndex, dstPitch, newPitch);
   }
   if (!DO_EVICTS)
     return;
@@ -5915,11 +5915,11 @@ void dnn_lib::fwdLibTransposeInstThreaded(void *dst, void *dstDims,
 
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
 void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"    
-                       "fgw.ps  f0, f31(%[src]) \n"             
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+                       "fgw.ps  f0, f31(%[src]) \n"
                        "flw.ps f31, 0x0(%[scatterValues]) \n"
                        "fscw.ps  f0, f31(%[dst]) \n"
                        :
@@ -5930,11 +5930,11 @@ void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues,
                        : "f0", "f31", "memory");
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
 void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"    
-                       "fgh.ps  f0, f31(%[src]) \n"             
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+                       "fgh.ps  f0, f31(%[src]) \n"
                        "flw.ps f31, 0x0(%[scatterValues]) \n"
                        "fsch.ps  f0, f31(%[dst]) \n"
                        :
@@ -5943,14 +5943,14 @@ void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues,
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "f0", "f31", "memory");
-  
+
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
 void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"    
-                       "fgb.ps  f0, f31(%[src]) \n"             
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+                       "fgb.ps  f0, f31(%[src]) \n"
                        "flw.ps f31, 0x0(%[scatterValues]) \n"
                        "fscb.ps  f0, f31(%[dst]) \n"
                        :
@@ -5959,11 +5959,11 @@ void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues,
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "f0", "f31", "memory");
-  
+
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value 
-&& !std::is_same<srcType, float16>::value 
+template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
+&& !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
 void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){}
 
@@ -6003,7 +6003,7 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
   unsigned int newPitch[srcDimNum];
   for (unsigned int i = 0; i < srcDimNum; i++)
     newPitch[i] = actPitch[shuffle[i]];
-  
+
   unsigned int coord[srcDimNum];
   unsigned int k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
@@ -6020,16 +6020,16 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
   unsigned int lastDim = srcDimNum - 1;
   unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
 
-  
+
   unsigned int elementsInRow, registersInRow, res;
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
-  bool lastRow = false; 
+  bool lastRow = false;
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
 
- 
+
   unsigned int newPitchSize = newPitch[lastDim] * typeSize;
   volatile int32_t gatherValues[8];
   for (unsigned int i = 0; i < 8; i++) gatherValues[i] = i*newPitchSize;
@@ -6054,7 +6054,7 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr += offsetIn * typeSize; 
+    srcAddr += offsetIn * typeSize;
     dstAddr += offsetOut * typeSize;
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
@@ -6070,9 +6070,9 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
       transposeOp <srcType>(dstAddr, srcAddr, scatterValues, gatherValues);
     }
 
-    if (lastRow) 
+    if (lastRow)
       return;
-    
+
     dstAddr = (uintptr_t)dst;
     srcAddr = (uintptr_t)src;
     offsetIn -= coord[lastDim] * newPitch[lastDim];
@@ -6088,11 +6088,11 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
 void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"    
-                       "fgw.ps  f0, f31(%[src]) \n"             
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+                       "fgw.ps  f0, f31(%[src]) \n"
                        "fsw.ps  f0, 0x0(%[dst]) \n"
                        :
                        : [ gatherValues ] "r"(gatherValues),
@@ -6101,11 +6101,11 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *
                        : "f0", "f31", "memory");
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
 void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"    
-                       "fgh.ps  f0, f31(%[src]) \n" 
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+                       "fgh.ps  f0, f31(%[src]) \n"
                        SET_FG32H_VAL(t0)
                        "fsc32h.ps f0, t0(%[dst]) \n"
                        :
@@ -6113,33 +6113,33 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "t0", "f0", "f31", "memory");
-	
+
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
 void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"    
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
                        "fgb.ps  f0, f31(%[src]) \n"
-                       SET_FG32B_VAL(t0)             
+                       SET_FG32B_VAL(t0)
                        "fsc32b.ps  f0, t0(%[dst]) \n"
                        :
                        : [ gatherValues ] "r"(gatherValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "t0", "f0", "f31", "memory");
-	
+
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value 
-&& !std::is_same<srcType, float16>::value 
+template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
+&& !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
 void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){}
 
 
 
 template <typename srcType>
-void dnn_lib::fwdLibTransposeInstAligned32Bytes(void *dst, 
+void dnn_lib::fwdLibTransposeInstAligned32Bytes(void *dst,
                                           void *dstDims,
                                           void *dstPitches, void *src,
                                           void *srcDims, void *srcPitches,
@@ -6173,7 +6173,7 @@ void dnn_lib::fwdLibTransposeInstAligned32Bytes(void *dst,
   unsigned int newPitch[srcDimNum];
   for (unsigned int i = 0; i < srcDimNum; i++)
     newPitch[i] = actPitch[shuffle[i]];
-  
+
   unsigned int coord[srcDimNum];
   unsigned int k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
@@ -6193,33 +6193,33 @@ void dnn_lib::fwdLibTransposeInstAligned32Bytes(void *dst,
   volatile int32_t gatherValues[8];
   for (unsigned int i = 0; i < 8; i++) gatherValues[i] = i*newPitchSize;
 
-  //We modify the pitches and coord so that the function getOffsets 
+  //We modify the pitches and coord so that the function getOffsets
   //jumps eight positions in lastDim, the smallest dimension.
-  //Number 8 is the amount of lanes that a register has. 
+  //Number 8 is the amount of lanes that a register has.
   unsigned int res = ((dstIndex[lastDim] - 1)%8) + 1;
   newPitch[lastDim] *= 8;
   dstPitch[lastDim] *= 8;
   dstIndex[lastDim] = (dstIndex[lastDim] - 1)/8 + 1;
   unsigned int mask = ((1 << res) - 1);
-  
+
   while (!done && (offsetOut < posMax)) {
     dstAddr = (uintptr_t)dst + offsetOut*typeSize;
     srcAddr = (uintptr_t)src + offsetIn*typeSize;
 
-    //When the minion reaches the end of the lastDim, we use a mask 
+    //When the minion reaches the end of the lastDim, we use a mask
     //that is always the same because the dst Tensor is aligned to 32 Bytes.
-    if (coord[lastDim] != dstIndex[lastDim] - 1) 
+    if (coord[lastDim] != dstIndex[lastDim] - 1)
          __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
     else __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
-    transposeOpAligned32Bytes <srcType>(dstAddr, srcAddr, gatherValues); 
+    transposeOpAligned32Bytes <srcType>(dstAddr, srcAddr, gatherValues);
     done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, dstIndex, dstPitch, newPitch);
   }
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0)
-    evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, 64); 
+    evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, 64);
 }
 
 
@@ -6379,8 +6379,8 @@ void dnn_lib::fwdLibTensorViewInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddrOut, clperminion);
 }
 
-inline __attribute__((always_inline)) 
-  unsigned int minTview(uint8_t &type, unsigned int a, unsigned int b, 
+inline __attribute__((always_inline))
+  unsigned int minTview(uint8_t &type, unsigned int a, unsigned int b,
                         unsigned int c) {
   type = 0;
   if(b < a) {
@@ -6395,30 +6395,30 @@ inline __attribute__((always_inline))
 }
 
 template <typename srcType>
-inline __attribute__((always_inline)) void 
-gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask, 
+inline __attribute__((always_inline)) void
+gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
                    int32_t *gatherValues) {
   if (getsize<srcType>() == 2) {
     __asm__ __volatile__(
         "mov.m.x m0, %[mask], 0\n"
-        "flw.ps f1, 0x0(%[gatherValues]) \n"    
-        "fgh.ps f0, f1(%[src]) \n"              
-        "fsch.ps f0, f1(%[dst]) \n"             
-        :                                       
-        : [ src ] "r"(src8), [ dst ] "r"(dst8), 
+        "flw.ps f1, 0x0(%[gatherValues]) \n"
+        "fgh.ps f0, f1(%[src]) \n"
+        "fsch.ps f0, f1(%[dst]) \n"
+        :
+        : [ src ] "r"(src8), [ dst ] "r"(dst8),
           [ gatherValues ] "r"(gatherValues),
-          [ mask ] "r" (mask)    
-        : "f0", "f1", "memory"); 
+          [ mask ] "r" (mask)
+        : "f0", "f1", "memory");
   } else if (getsize<srcType>() == 1) {
     __asm__ __volatile__(
         "mov.m.x m0, %[mask], 0\n"
-        "flw.ps f1, 0x0(%[gatherValues]) \n"    
-        "fgb.ps f0, f1(%[src]) \n"              
-        "fscb.ps f0, f1(%[dst]) \n"             
-        :                                       
-        : [ src ] "r"(src8), [ dst ] "r"(dst8), 
+        "flw.ps f1, 0x0(%[gatherValues]) \n"
+        "fgb.ps f0, f1(%[src]) \n"
+        "fscb.ps f0, f1(%[dst]) \n"
+        :
+        : [ src ] "r"(src8), [ dst ] "r"(dst8),
           [ gatherValues ] "r"(gatherValues),
-          [ mask ] "r" (mask)    
+          [ mask ] "r" (mask)
         : "f0", "f1", "memory");
   }
   return;
@@ -6490,15 +6490,15 @@ void dnn_lib::fwdLibTensorViewInstVectorized(
   addrIn = addrOut = elements_moved = 0;
 
    for (unsigned int j = 0; j < kOut; j++) { // Compute the output address
-    addrOut += dstPitch[j] * coordOut[j]; 
+    addrOut += dstPitch[j] * coordOut[j];
     elements_moved += auxdstPitch[j] * coordOut[j];
   }
   for (unsigned int i = 0; i < srcDimNum; i++) { // Compute the input coord vec
-    coordIn[i] = elements_moved / auxActPitch[i]; 
+    coordIn[i] = elements_moved / auxActPitch[i];
     elements_moved = elements_moved - coordIn[i] * auxActPitch[i];
   }
   for (int i = srcLastDim; i >= 0; i--) { // Add to in coord vect the offset
-    coordIn[i] += (int)coord[i]; 
+    coordIn[i] += (int)coord[i];
     if (coordIn[i] >= actIndex[i]) {
       coordIn[i] = coordIn[i] % actIndex[i];
       coordIn[i - 1] += 1;
@@ -6509,15 +6509,15 @@ void dnn_lib::fwdLibTensorViewInstVectorized(
   uint8_t *src8 = (uint8_t *) src + addrIn*typeSize;
   unsigned int posMax = std::min(maxRead + initialAddrOut, numElemsDst); // Last position to "copy"
   maxRead = posMax - addrOut;
-  
-  int32_t gatherValues[8] = { 0, typeSize, 2 * typeSize, 3 * typeSize, 
+
+  int32_t gatherValues[8] = { 0, typeSize, 2 * typeSize, 3 * typeSize,
                                4 * typeSize, 5 * typeSize, 6 * typeSize,
                                7 * typeSize}; //Computed at compilation time
 
   bool done = false;
   while ((addrOut < posMax) & !done) {
     uint8_t type;
-    unsigned int d = minTview(type, maxRead, 
+    unsigned int d = minTview(type, maxRead,
                                actIndex[srcLastDim] - coordIn[srcLastDim],
                                dstIndex[dstLastDim] - coordOut[dstLastDim]);
     if(type == 1) {
@@ -6547,24 +6547,24 @@ void dnn_lib::fwdLibTensorViewInstVectorized(
       src8 += 32;
       dst8 += 32;
     }
-    if (lanes != 0) {                        
-      uint32_t mask = ((1 << lanes) - 1); 
+    if (lanes != 0) {
+      uint32_t mask = ((1 << lanes) - 1);
       __asm__ __volatile__(
         "mov.m.x m0, %[mask], 0\n"
-        "flw.ps f0, 0x0(%[src])\n"              
-        "fsw.ps f0, 0x0(%[dst])\n"              
-        :                                       
+        "flw.ps f0, 0x0(%[src])\n"
+        "fsw.ps f0, 0x0(%[dst])\n"
+        :
         : [ src ] "r"(src8), [ dst ] "r"(dst8),
-          [ mask ] "r" (mask)  
+          [ mask ] "r" (mask)
         : "f0", "memory");
       src8 += 4*lanes;
       dst8 += 4*lanes;
     }
-    if (res != 0) {                        
+    if (res != 0) {
       uint8_t mask = ((1 << res) - 1);
-      gatherScatterTView <srcType>(src8, dst8, mask, gatherValues); 
+      gatherScatterTView <srcType>(src8, dst8, mask, gatherValues);
     }
-    if (type == 0) 
+    if (type == 0)
       break;
     if (type == 1) {
       done = getOffsets(srcLastDim, coordIn, addrIn, actIndex, actPitch);
@@ -6747,7 +6747,7 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
   size_t numVals = 8/typeSize;
   for (unsigned int j = 0; j < numVals; j++)
     tOutput[startElem + j] = splatVal;
-    
+
   __asm__ __volatile__("mov.m.x m0, zero, 0x55\n"
                        "fbc.ps f0, 0x0(%[dstPtr])\n"
                        "mov.m.x m0, zero, 0xaa\n"
@@ -6761,7 +6761,7 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
                        "addi %[regs], %[regs], -1\n"
                        "bne %[regs], zero, 2b\n"
                        "1:\n"
-           
+
                        : [dstPtr] "+r"(dstPtr),
                          [regs] "+r"(regsperMinion)
                        :
@@ -6803,7 +6803,7 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
   size_t numVals = 8/typeSize;
   for (unsigned int j = 0; j < numVals; j++)
     tOutput[startElem + j] = splatVal;
-    
+
   __asm__ __volatile__("mov.m.x m0, zero, 0x55\n"
                        "fbc.ps f0, 0x0(%[dstPtr])\n"
                        "mov.m.x m0, zero, 0xaa\n"
@@ -6817,7 +6817,7 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
                                    "addi %[regs], %[regs], -1\n"
                        "bne %[regs], zero, 2b\n"
                        "1:\n"
-                       
+
                        : [dstPtr] "+r"(dstPtr),
                          [regs] "+r"(regsperMinion)
                        :
@@ -6906,7 +6906,7 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 //  unsigned int *actPitch = (unsigned int *)src2Pitches;
 //  unsigned int *dstPitch = (unsigned int *)dstPitches;
 //  unsigned int *coord = (unsigned int *)poffsets;
-//  
+//
 //  unsigned int minionId = get_minion_id();
 //  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
 //  if (minionId >= activeMinions)
@@ -6919,17 +6919,17 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 //  actIndex[axis] *= count;
 //  unsigned int lastPos, addrOffset;
 //  if(axis == dstDimNum - 1) {
-//    //TODO these two for should be merged in one. 
+//    //TODO these two for should be merged in one.
 //    //FIXME It should depend on axis == n-1, where the lastPos should be in the
-//    //next last element and in the axis != n-1, where the last element is as 
+//    //next last element and in the axis != n-1, where the last element is as
 //    //here
 //    addrOffset = lastPos =  0;
 //    for (unsigned int i = 0; i < dstDimNum; i++) {
 //      addrOffset += coord[i] * dstPitch[i];
 //    }
 //    // Is it really necessary the last dimension term?
-//    for (unsigned int i = dstDimNum - 2; i < dstDimNum - 1; i++) { 
-//      lastPos += (coord[i] + actIndex[i]) * 
+//    for (unsigned int i = dstDimNum - 2; i < dstDimNum - 1; i++) {
+//      lastPos += (coord[i] + actIndex[i]) *
 //               dstPitch[i];
 //    }
 //    for (unsigned int i = 0; i < dstDimNum - 1; i++) {
@@ -6944,18 +6944,18 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 //      addrOffset += coord[i] * dstPitch[i];
 //    }
 //  }
-//  
+//
 //  unsigned int moved = addrOffset % cll;
 //  unsigned int ncl = (moved + lastPos - addrOffset - 1) / cll + 1;
 //  unsigned int mcl = (ncl - 1) / activeMinions + 1;
 //  unsigned int div = ncl / mcl;
 //  unsigned int maxRead;
-//  if (minionId < div) 
+//  if (minionId < div)
 //    maxRead = mcl * cll;
-//  else if (minionId == div) 
+//  else if (minionId == div)
 //    maxRead = (ncl - div * mcl) * cll;
 //  else
-//    return; 
+//    return;
 //  unsigned int addrOut = addrOffset + maxRead * minionId;
 //  unsigned int posMax = std::min(addrOut + maxRead - moved, lastPos);
 //  if (minionId != 0){
@@ -6994,11 +6994,11 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 //      } else if (j != 0) {
 //        if (j != axis)
 //          addrIn -= (actIndex[j] - 1) * actPitch[j];
-//        else 
-//          addrIn -= (helper - 1) * actPitch[axis]; 
+//        else
+//          addrIn -= (helper - 1) * actPitch[axis];
 //        addrOut -= (actIndex[j] - 1) * dstPitch[j];
 //        coordIn[j] = 0;
-//      } else 
+//      } else
 //        done = true;
 //    }
 //  }
@@ -7006,7 +7006,7 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 
 template <typename srcType>
 inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
-                      const unsigned int& addrIn, const int32_t& typeSize, 
+                      const unsigned int& addrIn, const int32_t& typeSize,
                       int lanes, int res, int32_t *gatherValues) {
   uint8_t *dst8 = (uint8_t *) dst + addrOut * typeSize;
   uint8_t *src8 = (uint8_t *) src + addrIn * typeSize;
@@ -7023,10 +7023,10 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
   }
   __asm__ __volatile__(
   "maskand m0, m1, m1\n"
-  "flw.ps f0, 0x0(%[src])\n"              
-  "fsw.ps f0, 0x0(%[dst])\n"              
-  :                                       
-  : [ src ] "r"(src8), [ dst ] "r"(dst8)  
+  "flw.ps f0, 0x0(%[src])\n"
+  "fsw.ps f0, 0x0(%[dst])\n"
+  :
+  : [ src ] "r"(src8), [ dst ] "r"(dst8)
   : "f0", "memory");
   src8 += 4*lanes;
   dst8 += 4*lanes;
@@ -7034,25 +7034,25 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
     if (getsize<srcType>() == 2) {
       __asm__ __volatile__(
           "maskand m0, m2, m2\n"
-          "flw.ps f1, 0x0(%[gatherValues]) \n"    
-          "fgh.ps f0, f1(%[src]) \n"              
-          "fsch.ps f0, f1(%[dst]) \n"             
-          :                                       
-          : [ src ] "r"(src8), [ dst ] "r"(dst8), 
+          "flw.ps f1, 0x0(%[gatherValues]) \n"
+          "fgh.ps f0, f1(%[src]) \n"
+          "fsch.ps f0, f1(%[dst]) \n"
+          :
+          : [ src ] "r"(src8), [ dst ] "r"(dst8),
             [ gatherValues ] "r"(gatherValues)
-          : "f0", "f1", "memory"); 
+          : "f0", "f1", "memory");
     } else if (getsize<srcType>() == 1) {
       __asm__ __volatile__(
           "maskand m0, m2, m2\n"
-          "flw.ps f1, 0x0(%[gatherValues]) \n"    
-          "fgb.ps f0, f1(%[src]) \n"              
-          "fscb.ps f0, f1(%[dst]) \n"             
-          :                                       
-          : [ src ] "r"(src8), [ dst ] "r"(dst8), 
+          "flw.ps f1, 0x0(%[gatherValues]) \n"
+          "fgb.ps f0, f1(%[src]) \n"
+          "fscb.ps f0, f1(%[dst]) \n"
+          :
+          : [ src ] "r"(src8), [ dst ] "r"(dst8),
             [ gatherValues ] "r"(gatherValues)
           : "f0", "f1", "memory");
     }
-  }                       
+  }
 }
 
 template <typename srcType>
@@ -7067,19 +7067,19 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
-  
+
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   int32_t typeSize = (int32_t) getsize<srcType>();
   unsigned int cll = 64/typeSize;
 
-  if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {    
+  if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
     fwdLibInsertTensorInst<srcType>(dst, dstDims, dstPitches,
                                      dstDimNum, src2,
                                      src2Dims, src2Pitches,
                                      poffsets, count,
                                      axis, scale,
                                      offset);
-    return;   
+    return;
   }
 
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
@@ -7095,20 +7095,20 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
   unsigned int offsetNum = coord[0] * dstPitch[0];
   for (unsigned int i = 1; i < dstDimNum; i++)
     offsetNum += coord[i] * dstPitch[i]; // Offset Address
-  unsigned int jump = dstPitch[axis] * actIndex[axis]; 
+  unsigned int jump = dstPitch[axis] * actIndex[axis];
 
   unsigned int dimRow = 0;
-  if (dstDimNum > 1) 
+  if (dstDimNum > 1)
     dimRow = dstDimNum - 2;
   unsigned int lastDim = dstDimNum - 1;
 
-  int32_t gatherValues[8] = { 0, typeSize, 2 * typeSize, 3 * typeSize, 
+  int32_t gatherValues[8] = { 0, typeSize, 2 * typeSize, 3 * typeSize,
                               4 * typeSize, 5 * typeSize, 6 * typeSize,
                               7 * typeSize};
 
   int lanes, res;
   getLanesResTView<srcType>(lanes, res, actIndex[lastDim]);
-    
+
   uint32_t mask = (1 << (((lanes - 1) % 8) + 1)) - 1;
   __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                         :
@@ -7122,7 +7122,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
     unsigned int auxNRows = count * actIndex[0];
     for (int i = 1; i < lastDim; i++)
       auxNRows *= actIndex[i];
-    unsigned int mRows = auxNRows / activeMinions; 
+    unsigned int mRows = auxNRows / activeMinions;
     unsigned int mod = auxNRows - activeMinions * mRows;
     if (minionId < mod) {
       ++mRows;
@@ -7148,7 +7148,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
     }
     bool done = false;
     while (mRows > 0) {
-      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut, 
+      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
                 initialAddrIn, typeSize, lanes, res, gatherValues);
       for (int j = dimRow; j >= 0; j--) {
         if (likely(offsetIn[j] != (actIndex[j] - 1))) {
@@ -7174,7 +7174,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       auxNRows *= actIndex[i];
 
     if (auxNRows > activeMinions) {
-      unsigned int mRows = auxNRows / activeMinions; 
+      unsigned int mRows = auxNRows / activeMinions;
       unsigned int mod = auxNRows - activeMinions * mRows;
       unsigned int initialAddrIn;
       // We add to the initial address the new address in the tensor
@@ -7195,7 +7195,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       }
       for (int i = 0; i < mRows; i++) {
         for (int j = 0; j < count; j++) {
-          insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut, 
+          insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
                     initialAddrIn, typeSize, lanes, res, gatherValues);
           addrOut += actIndex[axis] * dstPitch[axis];
         }
@@ -7214,10 +7214,10 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         }
       }
     } else {
-      unsigned int mperRow = activeMinions / auxNRows; 
+      unsigned int mperRow = activeMinions / auxNRows;
       if (minionId >= mperRow * auxNRows)
-        return;                                   
-      unsigned int rowtomin = minionId / mperRow; 
+        return;
+      unsigned int rowtomin = minionId / mperRow;
 
       unsigned int offsetOut[dstDimNum];
       for (unsigned int i = 0; i < dstDimNum; i++) {
@@ -7229,14 +7229,14 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         falsepitch[dimRow] = 1;
         for (int i = dimRow; i > 0; i--)
           falsepitch[i - 1] = falsepitch[i] * actIndex[i];
-        
+
         for (int i = 0; i < axis; i++) {
           unsigned int aux = rowtomin / falsepitch[i];
           offsetOut[i] += aux;
           rowtomin -= aux * falsepitch[i];
         }
       }
-      unsigned int addrOut = 0; 
+      unsigned int addrOut = 0;
       for (int i = axis; i >= 0; i--) {
         addrOut += dstPitch[i] * offsetOut[i];
       }
@@ -7246,7 +7246,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       unsigned int modulo = addrOut % cll;
       //unsigned int maximalPos = jump * count;
       unsigned int clperRow = (modulo + (jump * count) - 1) / cll + 1;
-      unsigned int mcl = clperRow / mperRow; 
+      unsigned int mcl = clperRow / mperRow;
       unsigned int mod = clperRow - mperRow * mcl;
       unsigned int maxRead;
       unsigned int minmodule = minionId % mperRow;
@@ -7266,7 +7266,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         maxRead = mcl * cll - modulo;
       }
       if (mcl == 0) {
-        return; 
+        return;
       }
       //maximalPos += save - 1;
       unsigned int k;
@@ -7286,7 +7286,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       for (unsigned int i = 0; i < dstDimNum; i++) {
         initialAddrIn += offsetIn[i] * actPitch[i];
       }
-      maxRead = std::min(maxRead, lastRowElem - addrOut); 
+      maxRead = std::min(maxRead, lastRowElem - addrOut);
       unsigned int length = std::min(maxRead, actIndex[axis] - offsetIn[axis]);
       int auxlanes, auxres;
       getLanesResTView<srcType>(auxlanes, auxres, length);
@@ -7300,11 +7300,11 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                             :
                             : [ mask ] "r" (mask));
 
-      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut, 
+      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
                 initialAddrIn, typeSize, auxlanes, auxres, gatherValues);
       addrOut += length * dstPitch[axis];
       initialAddrIn -= offsetIn[axis] * actPitch[axis];
-      
+
       mask = (1 << (((lanes - 1) % 8) + 1)) - 1;
       __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                             :
@@ -7314,7 +7314,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                             :
                             : [ mask ] "r" (mask));
       while (maxRead > actIndex[axis]) {
-        insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut, 
+        insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
                   initialAddrIn, typeSize, lanes, res, gatherValues);
         maxRead -= actIndex[axis];
         addrOut += actIndex[axis] * dstPitch[axis];
@@ -7328,7 +7328,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       __asm__ __volatile__ ("mov.m.x m2, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
-      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut, 
+      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
                 initialAddrIn, typeSize, auxlanes, auxres, gatherValues);
     }
   }
@@ -7728,26 +7728,26 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
   unsigned int *lenPitch = (unsigned int *)dst2Pitches;
 
   unsigned int last_minion = activeMinions - 1;
-  
+
   if (minionId < last_minion) {
 
-    unsigned int numElemsDst = dstPitch[0]*dstIndex[0];  
+    unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
     unsigned int initialAddr, maxRead;
     size_t typeSize = getsize<srcType>();
-    getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions - 1); 
+    getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions - 1);
     if (maxRead == 0)
       return;
- 
+
     // Assumption: srcDimsNum = dstDimsNum.
     unsigned int coordOut[srcDimsNum];
     unsigned int last_non_zero_coord;
     getNonPaddingCoordinates(coordOut, initialAddr, srcDimsNum, dstPitch, dstIndex, last_non_zero_coord);
-    
+
     uint64_t offsetOut = 0;
     for (unsigned int i = 0; i < last_non_zero_coord; i++) {
       offsetOut += dstPitch[i]*coordOut[i];
     }
-    
+
     uint64_t offsetRanges = rangesPitch[2];
     indexType length = tRanges[offsetRanges];
     unsigned int range = 0;
@@ -7777,11 +7777,11 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
     offsetIn += positionInBatch;
     unsigned int coordIn[srcDimsNum];
     getNonPaddingCoordinates(coordIn, offsetIn, srcDimsNum, srcPitch, srcIndex, last_non_zero_coord); // useless last parameter.
-    
+
     unsigned int batchElems = 1;
     for (int i = 1; i < srcDimsNum; ++i) batchElems *= srcIndex[i]; // avoiding padding elements.
 
-    unsigned int posMax = maxRead + initialAddr;  
+    unsigned int posMax = maxRead + initialAddr;
     bool done = false;
     bool doneIn = false; // useful for skipping padding positions in the source tensor.
     while (!done && (offsetOut < posMax)) {
@@ -7873,7 +7873,7 @@ void dnn_lib::fwdLibScatterAssignInst(void *dstT, void *dstDims,
   // For each slice (small fragment) that we copy from the source memory:
   uint64_t n = slicesPitch[0];
   auto val = tSlices[0];
-  /*for (int i = 0; i < indicesIndex[0]; i++){ 
+  /*for (int i = 0; i < indicesIndex[0]; i++){
    val =  (int)tIndices[i];
 
    tOutput[i] = val;
@@ -7908,7 +7908,7 @@ void dnn_lib::fwdLibScatterAssignInstThreaded(void *dstT, void *dstDims,
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
-   
+
   const Addresser<srcType> tSlices(slicesT, scale[0], offset[0]);
   Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
 
@@ -7963,7 +7963,7 @@ void dnn_lib::fwdLibScatterAssignInstThreaded(void *dstT, void *dstDims,
       change = false;
     }
     if (offset0 >= 0) tOutput[offsetOut] = tSlices[offsetIn + offset0*slicesPitch_0];
-    
+
 
     for (int j = dstDimNum - 1; j >= 0; j--) {
       if (coord[j] != (dstIndex[j] - 1)) {
@@ -8095,7 +8095,7 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
     offsetOut += dstPitch[j] * coord[j];
   }
   unsigned int batchId = offsetOut/dstPitch[0];
-  unsigned int i = offsetOut - batchId * dstPitch[0]; 
+  unsigned int i = offsetOut - batchId * dstPitch[0];
   unsigned int l = i;
   unsigned int featureId = 0;
   while (l >= lengths[featureId]) {
@@ -8109,7 +8109,7 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
     }
   }
 
-  
+
   unsigned int posMax = maxRead + offsetOut;
 
 
@@ -8132,12 +8132,12 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
           if (offsetOut > posMax) {
             minionEnd = true;
             break;
-          } 
+          }
           i++;
         }
         offset += curLength;
         featureId++;
-        if (minionEnd == true) 
+        if (minionEnd == true)
           break;
       }
       i = 0;
@@ -8147,11 +8147,11 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
       if (offsetOut > posMax) {
        minionEnd = true;
       }
-      if (minionEnd == true) 
+      if (minionEnd == true)
         break;
     }
     if (batchId == batchSize)
-      done = true; 
+      done = true;
   }
 
   if (!DO_EVICTS)
@@ -8407,14 +8407,14 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
     unsigned int mod = (end - start + 1) - 8*registers;
     constexpr uint32_t offs = 32;
     srcAddr += (offsetIn + (start - c)*actPitch[3]) * typeSize;
-     
-    mask = ((1 << mod) - 1);     
-    __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n" 
+
+    mask = ((1 << mod) - 1);
+    __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n"
                          "mov.m.x m0, zero, 0xff \n"
                          "fxor.pi f0, f0, f0\n"
                          "add t0, zero, zero\n"
-                     
-                         
+
+
                          "ble %[registers], t0, 2f\n"
                          "1:\n"
                          "flw.ps f1, 0x0(%[src])\n"
@@ -8446,9 +8446,9 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
                            [ offs ] "I"(offs),
                            [ src ] "r"(srcAddr),
                            [ registers ] "r"(registers)
-                      
+
                          : "t0", "t1", "f0", "f1", "f30", "f31", "memory");
-    
+
     auto scale = k + normedAlpha * squareSum;
 
     tScale[offsetOut] = scale;
@@ -8457,7 +8457,7 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
     auto op = tAInput[offsetIn];
     op *= normFactor;
     tOutput[offsetOut] = op;
-    
+
 
 
     srcAddr = (uintptr_t)activations;
@@ -8506,10 +8506,10 @@ calcAddrOffset(unsigned int *pitches, unsigned int *coordinates) {
 template <typename srcType, typename opType>
 void dnn_lib::fwdLibElementInst(void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT1, void *srcDims, void *src1Pitches,
-                                unsigned int srcDimNum, void *srcT2, 
-                                void *src2Pitches, float *scale, 
+                                unsigned int srcDimNum, void *srcT2,
+                                void *src2Pitches, float *scale,
                                 int32_t *offset) {
- 
+
  unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -8702,15 +8702,15 @@ void dnn_lib::fwdLibElementInstVectorized(
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr1 += offsetIn * typeSize; 
-    srcAddr2 += offsetIn * typeSize; 
+    srcAddr1 += offsetIn * typeSize;
+    srcAddr2 += offsetIn * typeSize;
     dstAddr += offsetOut * typeSize;
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
     unsigned int cnt = 0;
-    
+
     while(cnt < registersInRow) {
-      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset); 
+      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
       cnt++;
       srcAddr1 += 8 * typeSize;
       srcAddr2 += 8 * typeSize;
@@ -8718,12 +8718,12 @@ void dnn_lib::fwdLibElementInstVectorized(
     }
     if (res > 0) {
       __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset); 
-    } 
+      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
+    }
 
-    if (lastRow) 
+    if (lastRow)
       return;
-    
+
     dstAddr = (uintptr_t)dstT;
     srcAddr1 = (uintptr_t)srcT1;
     srcAddr2 = (uintptr_t)srcT2;
@@ -8915,7 +8915,7 @@ void dnn_lib::fwdLibElementBoolInstVectorized(
   bool lastRow = false;
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
- 
+
   while (!done && (offsetOut < posMax)) {
     if (firstRow && coord[lastDim - 1] != maxRow) {
       elementsInRow = actIndex[lastDim] - coord[lastDim];
@@ -8932,14 +8932,14 @@ void dnn_lib::fwdLibElementBoolInstVectorized(
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr1 += offsetIn * typeSize; 
-    srcAddr2 += offsetIn * typeSize; 
+    srcAddr1 += offsetIn * typeSize;
+    srcAddr2 += offsetIn * typeSize;
     dstAddr += offsetOut;
 
     unsigned int cnt = 0;
     while(cnt < registersInRow) {
       __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset); 
+      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
       cnt++;
       srcAddr1 += 8 * typeSize;
       srcAddr2 += 8 * typeSize;
@@ -8947,11 +8947,11 @@ void dnn_lib::fwdLibElementBoolInstVectorized(
     }
     if (res > 0) {
       __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset); 
+      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
     }
-    if (lastRow) 
+    if (lastRow)
       return;
-    
+
     dstAddr = (bool *)dstT;
     srcAddr1 = (uintptr_t)srcT1;
     srcAddr2 = (uintptr_t)srcT2;
@@ -9133,10 +9133,10 @@ void dnn_lib::fwdLibElementSingleInstVectorized(
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
-  bool lastRow = false; 
+  bool lastRow = false;
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
- 
+
   while (!done && (offsetOut < posMax)) {
     if (firstRow && coord[lastDim - 1] != maxRow) {
       elementsInRow = actIndex[lastDim] - coord[lastDim];
@@ -9153,24 +9153,24 @@ void dnn_lib::fwdLibElementSingleInstVectorized(
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr += offsetIn * typeSize; 
+    srcAddr += offsetIn * typeSize;
     dstAddr += offsetOut * typeSize;
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
     unsigned int cnt = 0;
     while(cnt < registersInRow) {
-      op.doOpVect(gatherValues, srcAddr, dstAddr, scale, offset); 
+      op.doOpVect(gatherValues, srcAddr, dstAddr, scale, offset);
       cnt++;
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
     if (res > 0) {
       __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      op.doOpVect(gatherValues, srcAddr, dstAddr, scale, offset); 
+      op.doOpVect(gatherValues, srcAddr, dstAddr, scale, offset);
     }
-    if (lastRow) 
+    if (lastRow)
       return;
-    
+
     dstAddr = (uintptr_t)dstT;
     srcAddr = (uintptr_t)srcT1;
     offsetIn -= coord[lastDim] * actPitch[lastDim];
@@ -9292,7 +9292,7 @@ template <typename srcType>
 void dnn_lib::fwdLibElementSelectInst(
     void *dstT, void *dstDims, void *dstPitches, void *condT, void *condDims,
     void *condPitches, void *srcT1, void *srcDims, void *src1Pitches,
-    unsigned int srcDimNum, void *srcT2, void *src2Pitches, 
+    unsigned int srcDimNum, void *srcT2, void *src2Pitches,
     float *scale, int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
@@ -9412,7 +9412,7 @@ void dnn_lib::fwdLibElementSelectInstThreaded(
   while (!done && (offsetOut < posMax)) {
     ptrDstT[offsetOut] =
         (ptrCondT[offsetCond]) ? ptrSrcT1[offsetIn1] : ptrSrcT2[offsetIn2];
-    done = getOffsets(srcDimNum, coord, offsetIn1, offsetIn2, offsetOut, 
+    done = getOffsets(srcDimNum, coord, offsetIn1, offsetIn2, offsetOut,
        offsetCond, actIndex, act1Pitch, act2Pitch, dstPitch, condPitch);
   }
   if (!DO_EVICTS)
@@ -9828,7 +9828,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "addi %[actAddr], %[actAddr], 0x20\n"
     "fadd.pi f29, f29, f30\n"
     "beq      zero, zero, 1b\n"
-                                         
+
     "2:\n"
     "fxor.pi  f0, f0, f0\n"
     "addi     t0, t0, -8\n"
@@ -9843,7 +9843,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "fadd.s    f31, f30, f31\n"
     "mov.m.x m0, zero, 0x1\n"
     "fsw.ps f31, 0x0(%[dstAddr])\n"
-    
+
     :
     : [gthValuesWgt] "r" (gatherValuesWgt),
       [wgtRegStep] "r" (&wgtRegStep),
@@ -9883,10 +9883,10 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "addi     t0, t0, 8\n"
     "ble      %[elemsRow], t0, 2f\n"
     MATMUL_ITERATION
-    "addi %[actAddr], %[actAddr], 0x10\n" 
+    "addi %[actAddr], %[actAddr], 0x10\n"
     "fadd.pi f29, f29, f30\n"
     "beq      zero, zero, 1b\n"
-                                         
+
     "2:\n"
     "fxor.pi  f0, f0, f0\n"
     "addi     t0, t0, -8\n"
@@ -9902,7 +9902,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
     "mov.m.x m0, zero, 0x1\n"
     "fsch.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -9963,7 +9963,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "addi %[actAddr], %[actAddr], 0x8\n"
     "fadd.pi f29, f29, f30\n"
     "beq      zero, zero, 1b\n"
-                                         
+
     "2:\n"
     "fxor.pi  f0, f0, f0\n"
     "addi     t0, t0, -8\n"
@@ -9981,7 +9981,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "fbc.ps f27, 0x8(%[scale]) \n"
     FP32_TO_INT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -10101,10 +10101,10 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     "addi     t0, t0, 8\n"              // t0 += 8.
     "ble      %[elemsRow], t0, 2f\n"    // if (elemsRow <= t0), forward to tag 2.
     MATMUL_ITERATION                    // The scalar product of the act and weights is added to f31.
-    "addi %[actAddr], %[actAddr], 0x20\n"     
+    "addi %[actAddr], %[actAddr], 0x20\n"
     "addi %[wgtAddr], %[wgtAddr], 0x20\n"
     "beq      zero, zero, 1b\n"       // Go back to tag 1.
-                                         
+
     "2:\n"                            // Tag 2: a new mask is set to finish the row's product.
     "fxor.pi  f0, f0, f0\n"           // f0 is set to 0's to get a correct final matmul iteration.
     "addi     t0, t0, -8\n"           // In these two instructions,
@@ -10119,7 +10119,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     "fadd.s    f31, f30, f31\n"
     "mov.m.x m0, zero, 0x1\n"
     "fsw.ps f31, 0x0(%[dstAddr])\n"
-    
+
     :
     : [elemsRow] "r" (elemsRow),
       [actAddr] "r" (actAddr),
@@ -10157,7 +10157,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     MATMUL_ITERATION                    // The scalar product of the act and weights is added to f31.
     "faddi.pi f30, f30, 0x10\n"         // The gather offset values are updated adding 8 positions.
     "beq      zero, zero, 1b\n"       // Go back to tag 1.
-                                         
+
     "2:\n"                            // Tag 2: a new mask is set to finish the row's product.
     "fxor.pi  f0, f0, f0\n"           // f0 is set to 0's to get a correct final matmul iteration.
     "addi     t0, t0, -8\n"           // In these two instructions,
@@ -10173,7 +10173,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
     "mov.m.x m0, zero, 0x1\n"
     "fsc32h.ps f31, zero(%[dstAddr])\n"
-    
+
     :
     : [gthValues] "r" (gatherValues),
       [elemsRow] "r" (elemsRow),
@@ -10228,7 +10228,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     MATMUL_ITERATION                    // The scalar product of the act and weights is added to f31.
     "faddi.pi f30, f30, 0x8\n"          // The gather offset values are updated adding 8 positions.
     "beq      zero, zero, 1b\n"       // Go back to tag 1.
-                                         
+
     "2:\n"                            // Tag 2: a new mask is set to finish the row's product.
     "fxor.pi  f0, f0, f0\n"           // f0 is set to 0's to get a correct final matmul iteration.
     "addi     t0, t0, -8\n"           // In these two instructions,
@@ -10247,7 +10247,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
     "fbc.ps f29, 0x8(%[scale]) \n"
     FP32_TO_INT8(f31)
     "fsc32b.ps f31, zero(%[dstAddr])\n"
-    
+
     :
     : [gthValues] "r" (gatherValues),
       [elemsRow] "r" (elemsRow),
@@ -10423,10 +10423,10 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
   float invDstScale;
   fpReciprocalSingleElement(dstscale, invDstScale);
 
-  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];  
+  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions); 
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
 
@@ -10450,7 +10450,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
 
     float matMulScale = tScale[coordOut[1]] * srcscale;
     float invMatMulScale;
-    fpReciprocalSingleElement(matMulScale, invMatMulScale);   
+    fpReciprocalSingleElement(matMulScale, invMatMulScale);
     int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
     int32_t woffset = tOffset[coordOut[1]];
     for (size_t k = 0; k < dataIndex[1]; k++) {
@@ -10507,10 +10507,10 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
   float invDstScale;
   fpReciprocalSingleElement(dstscale, invDstScale);
 
-  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];  
+  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions); 
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
 
@@ -10534,10 +10534,10 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 
     float matMulScale = tScale[coordOut[1]] * srcscale;
     float invMatMulScale;
-    fpReciprocalSingleElement(matMulScale, invMatMulScale);   
+    fpReciprocalSingleElement(matMulScale, invMatMulScale);
     int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
     int32_t woffset = tOffset[coordOut[1]];
-   
+
     uintptr_t actAddr = (uintptr_t)tAInput + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)tWInput + typeSize*offsetWIn;
 
@@ -10555,56 +10555,56 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 
     volatile int32_t gatherValues[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     __asm__ __volatile__(
-      "mov.m.x m0, zero, 0xff\n"        // Mask m0 is set so all lanes are 
+      "mov.m.x m0, zero, 0xff\n"        // Mask m0 is set so all lanes are
                                         //active.
-      "addi t0, %[sum], 0x0\n"          // The value of sum is stored in 
+      "addi t0, %[sum], 0x0\n"          // The value of sum is stored in
                                         //the integer register t0.
-      "xor t1, t1, t1\n"                // The int register t1 is set to 
+      "xor t1, t1, t1\n"                // The int register t1 is set to
                                         //0x0: it will count iterations.
-      "flw.ps f28, 0x0(%[gthValues])\n" // The gatherValues vector is loaded 
+      "flw.ps f28, 0x0(%[gthValues])\n" // The gatherValues vector is loaded
                                         //to f28, one int32 per lane.
-      "fbc.ps f29, 0x0(%[srcoffset])\n" // The int32 srcoffset is broadcast 
+      "fbc.ps f29, 0x0(%[srcoffset])\n" // The int32 srcoffset is broadcast
                                         //to the 8 lanes of f29.
-      "fbc.ps f30, 0x0(%[woffset])\n"   // The int32 woffset is broadcast to 
+      "fbc.ps f30, 0x0(%[woffset])\n"   // The int32 woffset is broadcast to
                                         //the 8 lanes of f30.
-      "fxor.pi f31, f31, f31\n"         // Vectorial register f31 set to 0x0. 
+      "fxor.pi f31, f31, f31\n"         // Vectorial register f31 set to 0x0.
                                         //Only useful lanes: e0, e4.
 
       "1:\n"                            // New loop (tag 1): vectorised scalar
                                         //product.
       "addi     t1, t1, 8\n"            // t1 += 8.
-      "ble      %[elemsRow], t1, 2f\n"  // if (elemsRow <= t1), forward to 
+      "ble      %[elemsRow], t1, 2f\n"  // if (elemsRow <= t1), forward to
                                         //tag 2.
       MATMUL_ITERATION                  // The scalar product of the data and
                                         //weights is added to f31.
       "faddi.pi f28, f28, 0x8\n"        // The gather offset values are updated
                                         //adding 8 positions.
       "beq      zero, zero, 1b\n"       // Go back to tag 1.
-                                           
-      "2:\n"                            // Tag 2: a new mask is set to finish 
+
+      "2:\n"                            // Tag 2: a new mask is set to finish
                                         //the row's product.
-      "fxor.pi  f0, f0, f0\n"           // f0 is set to 0's to get a correct 
+      "fxor.pi  f0, f0, f0\n"           // f0 is set to 0's to get a correct
                                         //final matmul iteration.
       "addi     t1, t1, -8\n"           // In these two instructions,
       "sub      t1, %[elemsRow], t1\n"  // we update t1 = elemsRow - (t1 - 8).
       "addi     t2, zero, 1\n"          // t2 is set to 1.
-      "sll      t2, t2, t1\n"           // Shift Left Logical t1 positions: 
+      "sll      t2, t2, t1\n"           // Shift Left Logical t1 positions:
                                         //t2 = 2^(t1).
       "addi     t2, t2, -1\n"           // Finally, t2 = 2^(t1) - 1.
-      "mov.m.x  m0, t2, 0\n"            // The mask is set to t2, so the first 
+      "mov.m.x  m0, t2, 0\n"            // The mask is set to t2, so the first
                                         //t1 lanes are active.
       MATMUL_ITERATION
-      "fmvs.x.ps t1, f31, 0x0\n"        // The sum stored in f31.e0 is stored 
+      "fmvs.x.ps t1, f31, 0x0\n"        // The sum stored in f31.e0 is stored
                                         //in the int register t1.
-      "add       t0, t0, t1\n"          // This way, it can be summed to its 
+      "add       t0, t0, t1\n"          // This way, it can be summed to its
                                         //initial value in t0.
-      "fmvs.x.ps t1, f31, 0x4\n"        // The same is done for the sum stored 
+      "fmvs.x.ps t1, f31, 0x4\n"        // The same is done for the sum stored
                                         //in f31.e4,
       "add       t0, t0,  t1\n"         // so t0 has now the total value of the
                                         //scalar product.
-      "addi      %[sum], t0, 0x0\n"     // The value in t0 is then stored in 
+      "addi      %[sum], t0, 0x0\n"     // The value in t0 is then stored in
                                         //the variable "sum".
-      
+
       : [sum] "+r" (sum)
       : [gthValues] "r" (gatherValues),
         [srcoffset] "r" (&srcoffset),
@@ -10665,10 +10665,10 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
   float invDstScale;
   fpReciprocalSingleElement(dstscale, invDstScale);
 
-  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];  
+  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions); 
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
 
@@ -10692,10 +10692,10 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
 
     float matMulScale = tScale[coordOut[1]] * srcscale;
     float invMatMulScale;
-    fpReciprocalSingleElement(matMulScale, invMatMulScale);   
+    fpReciprocalSingleElement(matMulScale, invMatMulScale);
     int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
     int32_t woffset = tOffset[coordOut[1]];
-   
+
     uintptr_t actAddr = (uintptr_t)tAInput + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)tWInput + typeSize*offsetWIn;
 
@@ -10717,30 +10717,30 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
       "xor t1, t1, t1\n"
       "fbc.ps f29, 0x0(%[srcoffset])\n"
       "fbc.ps f30, 0x0(%[woffset])\n"
-      "fxor.pi f31, f31, f31\n"         
-      "1:\n"                            
-      "addi     t1, t1, 8\n"            
-      "ble      %[elemsRow], t1, 2f\n"  
-      MATMUL_ITERATION                  
-      "addi     %[actAddr], %[actAddr], 0x8\n"     
-      "addi     %[wgtAddr], %[wgtAddr], 0x8\n"     
-      "j 1b\n"       
-      "2:\n"                            
-      "fxor.pi  f0, f0, f0\n"           
-      "addi     t1, t1, -8\n"           
-      "sub      t1, %[elemsRow], t1\n"  
-      "addi     t2, zero, 1\n"          
-      "sll      t2, t2, t1\n"           
-      "addi     t2, t2, -1\n"           
-      "mov.m.x  m0, t2, 0\n"             
+      "fxor.pi f31, f31, f31\n"
+      "1:\n"
+      "addi     t1, t1, 8\n"
+      "ble      %[elemsRow], t1, 2f\n"
+      MATMUL_ITERATION
+      "addi     %[actAddr], %[actAddr], 0x8\n"
+      "addi     %[wgtAddr], %[wgtAddr], 0x8\n"
+      "j 1b\n"
+      "2:\n"
+      "fxor.pi  f0, f0, f0\n"
+      "addi     t1, t1, -8\n"
+      "sub      t1, %[elemsRow], t1\n"
+      "addi     t2, zero, 1\n"
+      "sll      t2, t2, t1\n"
+      "addi     t2, t2, -1\n"
+      "mov.m.x  m0, t2, 0\n"
       MATMUL_ITERATION
       "fmvs.x.ps t1, f31, 0x0\n"
-      "addi      t0, zero, 0x0\n"        
-      "add       t0, t0, t1\n"          
-      "fmvs.x.ps t1, f31, 0x4\n"         
-      "add       t0, t0,  t1\n"         
-      "add       %[sum], t0, %[sum]\n"     
-      
+      "addi      t0, zero, 0x0\n"
+      "add       t0, t0, t1\n"
+      "fmvs.x.ps t1, f31, 0x4\n"
+      "add       t0, t0,  t1\n"
+      "add       %[sum], t0, %[sum]\n"
+
       : [sum] "+r" (sum)
       : [actAddr] "r" (actAddr),
         [wgtAddr] "r" (wgtAddr),
@@ -10856,7 +10856,7 @@ void dnn_lib::fwdLibBatchedAddInstThreaded(
   unsigned int *batchPitch = (unsigned int *)pbatchPitches;
 
   unsigned int numElemsDst =
-      dstPitch[0] * dstIndex[0]; 
+      dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -10865,12 +10865,12 @@ void dnn_lib::fwdLibBatchedAddInstThreaded(
   if (maxRead == 0)
     return;
 
-  unsigned int coord[pbatchDimNum]; 
-  unsigned int k = 0;                 
+  unsigned int coord[pbatchDimNum];
+  unsigned int k = 0;
   getNonPaddingCoordinates(coord, initialAddr, pbatchDimNum, dstPitch,
                            dstIndex, k);
 
-    
+
   uint64_t offsetIn = 0;
   uint64_t offsetOut = 0;
   for (unsigned int j = 0; j < k; j++) {
@@ -10886,7 +10886,7 @@ void dnn_lib::fwdLibBatchedAddInstThreaded(
   while (!done && (offsetOut < posMax)) {
     uint64_t offsetIn2 = offsetIn - coord[0]*batchPitch[0];
     op.doOp(tOutput, tBatch, tSlice, offsetOut, offsetIn, offsetIn2);
-    done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, dstIndex, dstPitch, batchPitch); 
+    done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, dstIndex, dstPitch, batchPitch);
   }
   if (!DO_EVICTS)
     return;
@@ -11007,7 +11007,7 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
   getReciprocal(invLargeScale, largeScale);
 
   unsigned int numElemsDst =
-      dstPitch[0] * dstIndex[0]; 
+      dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
   getUniformCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
@@ -11015,8 +11015,8 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
   if (maxRead == 0)
     return;
 
-  unsigned int coord[pbatchDimNum]; 
-  unsigned int k = 0;                 
+  unsigned int coord[pbatchDimNum];
+  unsigned int k = 0;
   getNonPaddingCoordinates(coord, initialAddr, pbatchDimNum, dstPitch,
                            dstIndex, k);
 
@@ -11027,11 +11027,11 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
   unsigned int eSlicePitch[pbatchDimNum];
   eSlicePitch[0] = 0;
   for(int i = 1; i < pbatchDimNum; i++) eSlicePitch[i] = slicePitch[i - 1];
-  
+
   for (unsigned int j = 0; j < k; j++) {
     offsetIn2 += eSlicePitch[j] * coord[j];
     offsetIn += batchPitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j]; 
+    offsetOut += dstPitch[j] * coord[j];
   }
 
   unsigned int posMax = maxRead + initialAddr;
@@ -11050,7 +11050,7 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
     tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
     float(R) * (largeScale * invDstScale) + offset[2]));
 
-    done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, offsetIn2, dstIndex, dstPitch, batchPitch, eSlicePitch); 
+    done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, offsetIn2, dstIndex, dstPitch, batchPitch, eSlicePitch);
   }
   if (!DO_EVICTS)
     return;
@@ -11140,7 +11140,7 @@ void dnn_lib::fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
   unsigned int *batchPitch = (unsigned int *)pbatchPitches;
 
   unsigned int numElemsDst;
-  
+
   numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
@@ -11153,13 +11153,13 @@ void dnn_lib::fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
 
   unsigned int offsets[pbatchDimNum - 1];
 
-  unsigned int k; 
+  unsigned int k;
 
   unsigned int redBatchPitch[pbatchDimNum - 1];
   for (size_t i = 0; i < pbatchDimNum; i++) {
     if (i < axis) {
       redBatchPitch[i] = batchPitch[i];
-      
+
     } else if (i > axis) {
       redBatchPitch[i - 1] = batchPitch[i];
     }
@@ -11188,7 +11188,7 @@ void dnn_lib::fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
       offsetIn += batchPitch[axis];
     }
     offsetIn -= batchIndex[axis] * batchPitch[axis];
-     
+
     done = getOffsets(pbatchDimNum - 1, offsets, offsetIn, offsetOut, dstIndex,
                       redBatchPitch, dstPitch);
   }
@@ -11291,7 +11291,7 @@ void dnn_lib::fwdLibBatchedReduceAddInstInt8Threaded(
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
-    return;  
+    return;
 
   int8_t *tOutput = (int8_t *)pdst;
   int8_t *tBatch = (int8_t *)pbatch;
@@ -11305,7 +11305,7 @@ void dnn_lib::fwdLibBatchedReduceAddInstInt8Threaded(
   unsigned int *batchPitch = (unsigned int *)pbatchPitches;
 
   unsigned int numElemsDst;
-  
+
   numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
@@ -11317,13 +11317,13 @@ void dnn_lib::fwdLibBatchedReduceAddInstInt8Threaded(
 
   unsigned int offsets[pbatchDimNum - 1];
 
-  unsigned int k; 
+  unsigned int k;
 
   unsigned int redBatchPitch[pbatchDimNum - 1];
   for (size_t i = 0; i < pbatchDimNum; i++) {
     if (i < axis) {
       redBatchPitch[i] = batchPitch[i];
-      
+
     } else if (i > axis) {
       redBatchPitch[i - 1] = batchPitch[i];
     }
@@ -11348,9 +11348,9 @@ void dnn_lib::fwdLibBatchedReduceAddInstInt8Threaded(
       offsetIn += batchPitch[axis];
     }
     offsetIn -= batchIndex[axis] * batchPitch[axis];
-    int32_t res = nearbyintf(sum * scale[0] * invScale) + offset[1];   
-    tOutput[offsetOut] = clip<int32_t, int8_t>(res); 
- 
+    int32_t res = nearbyintf(sum * scale[0] * invScale) + offset[1];
+    tOutput[offsetOut] = clip<int32_t, int8_t>(res);
+
     done = getOffsets(pbatchDimNum - 1, offsets, offsetIn, offsetOut, dstIndex,
                       redBatchPitch, dstPitch);
   }
@@ -11573,7 +11573,7 @@ template<typename DstType>
 void dnn_lib::
     fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdst2, void *pdst2Pitches, 
+        void *pdst2, void *pdst2Pitches,
         void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
         void *pweightsDims, void *pweightsPitches, void *pindices,
         void *plengths, unsigned int pLengthsSize, uint64_t flags,
@@ -11687,17 +11687,17 @@ void dnn_lib::
               LOAD_WEIGHT_SUM_AND_STORE
 
             : [data_ptr]   "+&r"   (data_ptr),
-              [dst_ptr]    "+&r"   (dst_ptr) 
+              [dst_ptr]    "+&r"   (dst_ptr)
             : [gather_offsets] "r" (gather_offsets),
               [offset_ptr] "r"     (offset_ptr),
               [scale_ptr]  "r"     (scale_ptr),
               [weight_ptr] "r"     (weight_ptr),
               [numRegs]    "r"     (numRegs),
               [lastMask]   "r"     (lastMask)
-            : "f0", "t0", "f27", "f28", "f29", "f30", "f31" 
+            : "f0", "t0", "f27", "f28", "f29", "f30", "f31"
           );
       }
-   
+
       if (std::is_same<DstType, float16>::value)
       {
 #undef LOAD_WEIGHT_SUM_AND_STORE
@@ -11742,14 +11742,14 @@ void dnn_lib::
 
             : [data_ptr]   "+&r"   (data_ptr),
               [dst_ptr]    "+&r"   (dst_ptr),
-              [dst2_ptr]   "+&r"   (dst2_ptr) 
+              [dst2_ptr]   "+&r"   (dst2_ptr)
             : [gather_offsets] "r" (gather_offsets),
               [offset_ptr] "r"     (offset_ptr),
               [scale_ptr]  "r"     (scale_ptr),
               [weight_ptr] "r"     (weight_ptr),
               [numRegs]    "r"     (numRegs),
               [lastMask]   "r"     (lastMask)
-            : "f0", "t0", "f26", "f27", "f28", "f29", "f30", "f31" 
+            : "f0", "t0", "f26", "f27", "f28", "f29", "f30", "f31"
           );
       }
 
@@ -11832,7 +11832,7 @@ void dnn_lib::
   //
   // - Each Minion gets assigned at least one group of output cache lines
   //
-  
+
   uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
 
   //  Distribute the tail of groups.
@@ -11861,14 +11861,14 @@ void dnn_lib::
   for (uintptr_t i = 0; i < minionFirstSegment; i++)
     minionFirstIndex += lengths[i];
 
-  // Initialize indices. 
+  // Initialize indices.
   uintptr_t minionCurrIndex = minionFirstIndex;
   uintptr_t minionCurrSegment = minionFirstSegment;
   uintptr_t minionCurrRowGroup = minionFirstRowGroup;
   uintptr_t currSegmentLength = lengths[minionCurrSegment];
-  
+
   // Initilize output pointer.
-  uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize; 
+  uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
 
   // For all minion assigned work units
   for (uintptr_t i = 0; i < minionWorkUnits; i++) {
@@ -11898,7 +11898,7 @@ void dnn_lib::
         "li      t0, 0xff\n"
         "fbcx.ps f30, t0\n"
         "flw.ps  f31, 0x0(%[gather_offsets])\n"
-        : 
+        :
         : [gather_offsets] "r" (gather_offsets)
         : "t0", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f30", "f31"
       );
@@ -12009,13 +12009,13 @@ void dnn_lib::
         "li      t0, 0xff\n"
         "fbcx.ps f30, t0\n"
         "flw.ps  f31, 0x0(%[gather_offsets])\n"
-        : 
+        :
         : [gather_offsets] "r" (gather_offsets)
         : "t0", "f0", "f30", "f31"
       );
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-    
+
         // For all sparse input rows.
         for (uintptr_t j = 0, currIndex = minionCurrIndex;
              j < currSegmentLength; j++, currIndex++) {
@@ -12385,7 +12385,7 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
                                            unsigned int pdataDimNum, void *plengths,
                                            unsigned int pLengthsSize, float *scale,
                                            int32_t *offset, uint64_t flags) {
-  
+
   unsigned int minion_id = get_minion_id();
   unsigned int activeMinions = 32*ACTIVE_SHIRES;
   if (minion_id >= activeMinions) return;
@@ -12402,7 +12402,7 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
 
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0]; // Total number of elements in the tensor
-  
+
   // We give to each minion an initial address and the number of positions that it must work on (maxRead).
   unsigned int initialAddr, maxRead;
   getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minion_id, activeMinions);
@@ -12418,7 +12418,7 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   for (unsigned int i = 1; i < pdataDimNum; i++) {
     coordIn[i] = coordOut [i];
   }
-  for (unsigned int l = 0; l < coordOut[0]; l++) coordIn[0] += lengths[l]; 
+  for (unsigned int l = 0; l < coordOut[0]; l++) coordIn[0] += lengths[l];
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
@@ -12430,7 +12430,7 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   unsigned int offsetOut0 = offsetOut;
   unsigned int offsetOutmax;
 
-  unsigned int coordIn0[pdataDimNum]; 
+  unsigned int coordIn0[pdataDimNum];
   unsigned int coordOut0[pdataDimNum];
 
   for (unsigned int i = 0; i < pdataDimNum; i++) {
@@ -12482,7 +12482,7 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
       for (unsigned int i = 0; i < pdataDimNum; i++) {
         coordIn[i] = coordIn0[i];
         coordOut[i] = coordOut0[i];
-      }     
+      }
       coordIn[0] += (posIn + 1);
       endmatrix = false;
     }
@@ -12497,13 +12497,13 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
     for (unsigned int i = 1; i < pdataDimNum; i++) {
       coordIn[i] = coordIn0[i] = 0;
       coordOut[i] = coordOut0[i] = 0;
-    }     
+    }
     for (int j = 0; j <= coordOut0[0]; j++) {
       offsetIn += dataPitch[0] * lengths[j];
       offsetIn0 += dataPitch[0] * lengths[j];
       offsetOut += dstPitch[0];
       offsetOut0 += dstPitch[0];
-    }   
+    }
     coordIn[0] += lengths[coordOut0[0]];
     coordIn0[0] += lengths[coordOut0[0]];
     coordOut[0]++;
@@ -12590,7 +12590,7 @@ void dnn_lib::fwdLibSparseToDenseInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
     void *indPitches, float *scale, int32_t *offset, uint64_t flags) {
-  
+
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -12637,7 +12637,7 @@ void dnn_lib::fwdLibSparseToDenseInstThreaded(
   }
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
- 
+
   while (!done && (offsetOut < posMax)) {
     srcType sum;
     sum = 0;
@@ -12654,11 +12654,11 @@ void dnn_lib::fwdLibSparseToDenseInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch, 
+void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
-  
+
   volatile int32_t gatherValues[] = {0, 4, 8, 12, 16, 20, 24, 28};
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
@@ -12666,7 +12666,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                        "addi    t3, %[tIndex], 0x0\n"
                        "flw.ps f31, 0x0(%[gatherValues])\n"
                        "1:\n"
-                            
+
                        "ld t1, 0x0(t3)\n"
                        "bne t1, %[batch], 2f\n"
 
@@ -12691,25 +12691,25 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                          [ tIndex ] "r"(tIndex),
                          [ batchPitch ] "r"(batchPitch),
                          [ typeSize ] "r"(typeSize),
-                         [ dst ] "r"(dst)                               
-                       : "t0", "t1", "t2", "t3", "f0", "f1", "f31", "memory"); 
+                         [ dst ] "r"(dst)
+                       : "t0", "t1", "t2", "t3", "f0", "f1", "f31", "memory");
 
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch, 
+void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
   volatile int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
 
-  
+
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
                        "fcvt.ps.f16 f0, f0\n"
                        "addi    t3, %[tIndex], 0x0\n"
-                       "flw.ps f31, 0x0(%[gatherValues])\n" 
+                       "flw.ps f31, 0x0(%[gatherValues])\n"
                        "1:\n"
-                            
+
                        "ld t1, 0x0(t3)\n"
                        "bne t1, %[batch], 2f\n"
 
@@ -12736,8 +12736,8 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                          [ tIndex ] "r"(tIndex),
                          [ batchPitch ] "r"(batchPitch),
                          [ typeSize ] "r"(typeSize),
-                         [ dst ] "r"(dst)                               
-                       : "t0", "t1", "t2", "t3", "f0", "f1", "f31", "memory"); 
+                         [ dst ] "r"(dst)
+                       : "t0", "t1", "t2", "t3", "f0", "f1", "f31", "memory");
 
 }
 
@@ -12745,7 +12745,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch, 
+void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
   volatile int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
   __asm__ __volatile__("add t0, zero, zero\n"
@@ -12753,26 +12753,26 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                        "flw.ps f31, 0x0(%[gatherValues])\n"
                        "fbc.ps f30, 0x0(%[offset]) \n"
                        "fbc.ps f29, 0x0(%[scale]) \n"
-           
+
                        "fsub.pi f0, f0, f30 \n"
                        "fcvt.ps.pw f0, f0 \n"
-                       "fmul.ps f0, f0, f29 \n"  
-      
+                       "fmul.ps f0, f0, f29 \n"
+
 
                        "addi    t3, %[tIndex], 0x0\n"
                        "1:\n"
-                            
+
                        "ld t1, 0x0(t3)\n"
                        "bne t1, %[batch], 2f\n"
 
                        "mul t2, t0, %[typeSize]\n"
                        "mul t2, t2, %[batchPitch]\n"
                        "add t2, t2, %[src]\n"
-                      
+
                        "fgb.ps  f1, f31(t2) \n"
                        "fsub.pi f1, f1, f30 \n"
                        "fcvt.ps.pw f1, f1 \n"
-                       
+
                        "fmadd.ps f0, f1, f29, f0 \n"
 
                        "2:\n"
@@ -12788,7 +12788,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                        "fsat8.pi f0, f0 \n"
                        "fscb.ps  f0, f31(%[dst]) \n"
 
-           
+
 
                        :
                        : [ gatherValues ] "r"(gatherValues),
@@ -12798,22 +12798,22 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                          [ tIndex ] "r"(tIndex),
                          [ batchPitch ] "r"(batchPitch),
                          [ typeSize ] "r"(typeSize),
-                         [ dst ] "r"(dst),    
+                         [ dst ] "r"(dst),
                          [ offset ] "r"(offset),
                          [ scale ] "r"(scale)
-                           
-                       : "t0", "t1", "t2", "t3", "f0", "f1", "f29", "f30", "f31", "memory"); 
+
+                       : "t0", "t1", "t2", "t3", "f0", "f1", "f29", "f30", "f31", "memory");
 
 }
 
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value 
-&& !std::is_same<srcType, float16>::value 
+template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
+&& !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch, 
+void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
 }
-                       
+
 
 template <typename srcType>
 void dnn_lib::fwdLibSparseToDenseInstVectorized(
@@ -12856,7 +12856,7 @@ void dnn_lib::fwdLibSparseToDenseInstVectorized(
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
                            k);
 
-  unsigned int offsetIn = 0;                              
+  unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
 
   unsigned int batchPitch = srcPitch[0];
@@ -12866,7 +12866,7 @@ void dnn_lib::fwdLibSparseToDenseInstVectorized(
     offsetOut += dstPitch[j] * coord[j];
     offsetIn += srcPitch[j] * coord[j];
   }
-  
+
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   unsigned int lastDim = srcDimNum - 1;
@@ -12879,7 +12879,7 @@ void dnn_lib::fwdLibSparseToDenseInstVectorized(
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
 
-  while (!done && (offsetOut < posMax)) { 
+  while (!done && (offsetOut < posMax)) {
     if (firstRow && coord[lastDim - 1] != maxRow) {
       elementsInRow = dstIndex[lastDim] - coord[lastDim];
     } else if (coord[lastDim - 1] == maxRow) {
@@ -12896,14 +12896,14 @@ void dnn_lib::fwdLibSparseToDenseInstVectorized(
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr += offsetIn * typeSize; 
+    srcAddr += offsetIn * typeSize;
     dstAddr += offsetOut * typeSize;
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      sparseToDenseOp <srcType>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);                  
+      sparseToDenseOp <srcType>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
@@ -12911,9 +12911,9 @@ void dnn_lib::fwdLibSparseToDenseInstVectorized(
       __asm__ __volatile__("maskand m0, m1, m0 \n");
       sparseToDenseOp <srcType>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
     }
-    if (lastRow) 
+    if (lastRow)
       return;
-    
+
     dstAddr = (uintptr_t)dstT;
     srcAddr = (uintptr_t)srcT;
     offsetIn -= coord[lastDim] * srcPitch[lastDim];
@@ -13034,10 +13034,10 @@ void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
 
-  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];  
+  unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions); 
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
 
@@ -13049,7 +13049,7 @@ void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
   for (unsigned int i = 0; i < last_non_zero_coord; i++) {
     offsetOut += dstPitch[i]*coordOut[i];
   }
-  
+
   unsigned int batchCount = offsetOut/dstPitch[0];
   unsigned int mod = offsetOut - batchCount*dstPitch[0];
   unsigned int semiBatchCount = mod/dstPitch[1];
@@ -13164,16 +13164,16 @@ void dnn_lib::fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
   if (minionId >= activeMinions) return;
   int level = -1;
   for (int j = 1; j < activeMinions; j*=2)
-    level++;    
-  
+    level++;
+
   unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *dstPitch = (unsigned int *)dstPitches;
-  
+
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getReversedCachelinePartition(typeSize, lenDim, initialAddr, maxRead,
                                activeMinions);
- 
+
   unsigned int posMax = maxRead + initialAddr;
 
   float toffset = lengths[0];
@@ -13189,8 +13189,8 @@ void dnn_lib::fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
         ((1ULL  & 0xFF)       << 16) |                \
         ((_lvl  & 0x1FFF)     << 3)  |                \
         ((0ULL  & 0x1)        << 2)  |                \
-        ((0x3   & 0x3)) 
-                               
+        ((0x3   & 0x3))
+
 #define tensor_broadcast_params(_lvl)                 \
         ((0ULL  & 0x2)        << 62) |                \
         ((0ULL  & 0x1F)       << 57) |                \
@@ -13199,22 +13199,22 @@ void dnn_lib::fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
         ((1ULL  & 0xFF)       << 16) |                \
         ((_lvl  & 0x1FFF)     << 3)  |                \
         ((0ULL  & 0x1)        << 2)  |                \
-        ((0x2   & 0x3))                              
+        ((0x2   & 0x3))
 
 #define REDUCE_AND_COPY(_J, _FD)                      \
         "csrw 0x800, %[csr_red" #_J "]\n"             \
-        "fand.pi f" #_FD ", f0, f0\n"          
+        "fand.pi f" #_FD ", f0, f0\n"
 
 #define ADD_AND_BROADCAST(_J, _FD)                    \
         "fsub.ps f0, f0, f" #_FD "\n"                 \
         "csrw tensor_reduce, %[csr_bdc" #_J "]\n"     \
-        "fadd.ps f0, f0, f" #_FD "\n"                 
+        "fadd.ps f0, f0, f" #_FD "\n"
 
   __asm__ __volatile__(
        "mov.m.x m0, zero, 0x1\n"
        "fmv.s.x f0, %[toffset]\n"
        "fand.pi f31, f0, f0\n"
-      
+
        REDUCE_AND_COPY(0, 1)
        REDUCE_AND_COPY(1, 2)
        REDUCE_AND_COPY(2, 3)
@@ -13226,7 +13226,7 @@ void dnn_lib::fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
        ADD_AND_BROADCAST(1, 2)
        ADD_AND_BROADCAST(0, 1)
 
-       "fsub.ps f0, f0, f31\n" 
+       "fsub.ps f0, f0, f31\n"
        "fmv.x.s %[toffset], f0\n"
 
      : [toffset] "+r" (toffset)
@@ -13853,7 +13853,7 @@ void dnn_lib::fwdLibTopKInstThreaded_k8(
 
   unsigned int batchDim = (srcDimNum > 1) ? (srcDimNum - 2) : 0;
   indT += batch_offset * indPitch[batchDim];
-  
+
   float minusInf = -std::numeric_limits<float>::infinity();
   float tmpValues[9] = {minusInf, minusInf, minusInf, minusInf, minusInf,
                         minusInf, minusInf, minusInf, minusInf};
@@ -14299,7 +14299,7 @@ void dnn_lib::fwdLibRescaleQuantizedInst(void *dstT, void *dstDims,
     }
   }
 }
- 
+
 template <typename srcType>
 void dnn_lib::fwdLibRescaleQuantizedInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
@@ -14691,13 +14691,13 @@ void dnn_lib::fwdLibConvertToInstVectorized(void *dst, void *dstDims,
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr += offsetIn * typeSizeSrc; 
+    srcAddr += offsetIn * typeSizeSrc;
     dstAddr += offsetOut * typeSizeDst;
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
     unsigned int cnt = 0;
     while(cnt < registersInRow) {
-      converter.convertVect(srcAddr, dstAddr, gatherValues, scatterValues); 
+      converter.convertVect(srcAddr, dstAddr, gatherValues, scatterValues);
       cnt++;
       srcAddr += typeSizeSrc * elementsInRegister;
       dstAddr += typeSizeDst * elementsInRegister;
@@ -14707,17 +14707,17 @@ void dnn_lib::fwdLibConvertToInstVectorized(void *dst, void *dstDims,
         __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
       } else {
         __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n"
-                             "mov.m.x    m1, zero, 0x55 \n" 
+                             "mov.m.x    m1, zero, 0x55 \n"
                              "maskand m0, m0, m1 \n"
                              : : [ mask ] "r"(mask) :);
       }
-      converter.convertVect(srcAddr, dstAddr, gatherValues, scatterValues); 
+      converter.convertVect(srcAddr, dstAddr, gatherValues, scatterValues);
     }
 
 
-    if (lastRow) 
+    if (lastRow)
       return;
-    
+
     srcAddr = (uintptr_t)src;
     dstAddr = (uintptr_t)dst;
     offsetIn -= coord[lastDim] * actPitch[lastDim];
@@ -14968,61 +14968,61 @@ void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
 void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
-  volatile int32_t gatherValues[] = {0, 4, 8, 12, 16, 20, 24, 28}; 
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+  volatile int32_t gatherValues[] = {0, 4, 8, 12, 16, 20, 24, 28};
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                        "fgw.ps f0, f31(%[src])\n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n" 
+                       "fbc.ps f1, 0x0(%[splatVal])\n"
                        "fmax.ps f0, f0, f1\n"
                        "fscw.ps  f0, f31(%[dst]) \n"
 
-                       : 
+                       :
                        : [ gatherValues ] "r"(gatherValues),
-                         [ splatVal ] "r"(&splatVal),                        
+                         [ splatVal ] "r"(&splatVal),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
-                       : "f0", "f1", "f31", "memory"); 
+                       : "f0", "f1", "f31", "memory");
 
 
 
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
 void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
-  volatile int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14}; 
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+  volatile int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                        "fgh.ps f0, f31(%[src])\n"
                        "fcvt.ps.f16 f0, f0\n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n" 
+                       "fbc.ps f1, 0x0(%[splatVal])\n"
                        "fmax.ps f0, f0, f1\n"
-                       "fcvt.f16.ps f0, f0\n"  
+                       "fcvt.f16.ps f0, f0\n"
                        "fsch.ps  f0, f31(%[dst]) \n"
 
-                       : 
+                       :
                        : [ gatherValues ] "r"(gatherValues),
-                         [ splatVal ] "r"(&splatVal),                        
+                         [ splatVal ] "r"(&splatVal),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
-                       : "f0", "f1", "f31", "memory"); 
+                       : "f0", "f1", "f31", "memory");
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
 void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){
-  
-  volatile int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7}; 
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n" 
+
+  volatile int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
+  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
                        "fgb.ps f0, f31(%[src])\n"
                        "fbc.ps f30, 0x0(%[offset]) \n"
                        "fbc.ps f29, 0x0(%[scale]) \n"
                        "fsub.pi f0, f0, f30 \n"
                        "fcvt.ps.pw f0, f0 \n"
-                       "fmul.ps f0, f0, f29 \n"  
-                       "fbc.ps f1, 0x0(%[splatVal])\n" 
+                       "fmul.ps f0, f0, f29 \n"
+                       "fbc.ps f1, 0x0(%[splatVal])\n"
                        "fmax.ps f0, f0, f1\n"
                        "frcp.ps f29, f29 \n"
                        "fcvt.ps.pw f30, f30 \n"
@@ -15030,19 +15030,19 @@ void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int
                        "fcvt.pw.ps f0, f0 \n"
                        "fsat8.pi f0, f0 \n"
                        "fscb.ps  f0, f31(%[dst]) \n"
-                       : 
+                       :
                        : [ gatherValues ] "r"(gatherValues),
-                         [ splatVal ] "r"(&splatVal),                        
+                         [ splatVal ] "r"(&splatVal),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src),
                          [ offset ] "r"(offset),
                          [ scale ] "r"(scale)
 
-                       : "f0", "f1", "f29", "f30", "f31", "memory"); 
+                       : "f0", "f1", "f29", "f30", "f31", "memory");
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value 
-&& !std::is_same<srcType, float16>::value 
+template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
+&& !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
 void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){}
 
@@ -15060,7 +15060,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
 
   uintptr_t dstAddr = (uintptr_t)dst;
   uintptr_t srcAddr = (uintptr_t)src;
-  
+
   unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
@@ -15075,8 +15075,8 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum]; 
-  unsigned int k = 0;              
+  unsigned int coord[srcDimNum];
+  unsigned int k = 0;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
@@ -15095,7 +15095,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
-  bool lastRow = false; 
+  bool lastRow = false;
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
 
@@ -15116,7 +15116,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr += offsetIn * typeSize; 
+    srcAddr += offsetIn * typeSize;
     dstAddr += offsetOut * typeSize;
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
@@ -15132,16 +15132,16 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
       maxSplatOp <srcType>(dstAddr, srcAddr, splatVal, scale, offset);
     }
 
-    if (lastRow) 
+    if (lastRow)
       return;
-    
+
     dstAddr = (uintptr_t)dst;
     srcAddr = (uintptr_t)src;
     offsetIn -= coord[lastDim] * actPitch[lastDim];
     offsetOut -= coord[lastDim] * dstPitch[lastDim];
     coord[lastDim] = 0;
- 
-  
+
+
   done = getOffsets(lastDim, coord, offsetIn, offsetOut, actIndex,
                       actPitch, dstPitch);
   }
@@ -15152,54 +15152,54 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
 void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
-  __asm__ __volatile__("flw.ps f0, 0x0(%[src])\n" 
-                       "fbc.ps f1, 0x0(%[splatVal])\n" 
+  __asm__ __volatile__("flw.ps f0, 0x0(%[src])\n"
+                       "fbc.ps f1, 0x0(%[splatVal])\n"
                        "fmax.ps f0, f0, f1\n"
                        "fsw.ps  f0, 0x0(%[dst]) \n"
-                       : 
-                       : [ splatVal ] "r"(&splatVal),                        
+                       :
+                       : [ splatVal ] "r"(&splatVal),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
-                       : "f0", "f1", "f31", "memory"); 
+                       : "f0", "f1", "f31", "memory");
 
 
 
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
 void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
   __asm__ __volatile__( SET_FG32H_VAL(t0)
                        "fg32h.ps f0, t0(%[src])\n"
                        "fcvt.ps.f16 f0, f0\n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n" 
+                       "fbc.ps f1, 0x0(%[splatVal])\n"
                        "fmax.ps f0, f0, f1\n"
-                       "fcvt.f16.ps f0, f0\n"  
+                       "fcvt.f16.ps f0, f0\n"
                        "fsc32h.ps f0, t0(%[dst]) \n"
 
-                       : 
-                       : [ splatVal ] "r"(&splatVal),                        
+                       :
+                       : [ splatVal ] "r"(&splatVal),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
-                       : "t0", "f0", "f1", "f31", "memory"); 
+                       : "t0", "f0", "f1", "f31", "memory");
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, 
+template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
 void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){
-  
+
   __asm__ __volatile__(SET_FG32B_VAL(t0)
                        "fg32b.ps f0, t0(%[src])\n"
                        "fbc.ps f30, 0x0(%[offset]) \n"
                        "fbc.ps f29, 0x0(%[scale]) \n"
                        "fsub.pi f0, f0, f30 \n"
                        "fcvt.ps.pw f0, f0 \n"
-                       "fmul.ps f0, f0, f29 \n"  
-                       "fbc.ps f1, 0x0(%[splatVal])\n" 
+                       "fmul.ps f0, f0, f29 \n"
+                       "fbc.ps f1, 0x0(%[splatVal])\n"
                        "fmax.ps f0, f0, f1\n"
                        "frcp.ps f29, f29 \n"
                        "fcvt.ps.pw f30, f30 \n"
@@ -15207,18 +15207,18 @@ void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, flo
                        "fcvt.pw.ps f0, f0 \n"
                        "fsat8.pi f0, f0 \n"
                        "fsc32b.ps f0, t0(%[dst]) \n"
-                       : 
-                       : [ splatVal ] "r"(&splatVal),                        
+                       :
+                       : [ splatVal ] "r"(&splatVal),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src),
                          [ offset ] "r"(offset),
                          [ scale ] "r"(scale)
 
-                       : "t0", "f0", "f1", "f29", "f30", "f31", "memory"); 
+                       : "t0", "f0", "f1", "f29", "f30", "f31", "memory");
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value 
-&& !std::is_same<srcType, float16>::value 
+template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
+&& !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
 void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){}
 
@@ -15241,7 +15241,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
 
   uintptr_t dstAddr;
   uintptr_t srcAddr;
-  
+
   unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
@@ -15256,8 +15256,8 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum]; 
-  unsigned int k = 0;              
+  unsigned int coord[srcDimNum];
+  unsigned int k = 0;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
@@ -15278,12 +15278,12 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
   dstPitch[lastDim] *= 8;
   dstIndex[lastDim] = (dstIndex[lastDim] - 1)/8 + 1;
   unsigned int mask = ((1 << res) - 1);
-  
+
   while (!done && (offsetOut < posMax)) {
     dstAddr = (uintptr_t)dst + offsetOut*typeSize;
     srcAddr = (uintptr_t)src + offsetIn*typeSize;
 
-    if (coord[lastDim] != dstIndex[lastDim] - 1) 
+    if (coord[lastDim] != dstIndex[lastDim] - 1)
          __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
     else __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
@@ -15434,7 +15434,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "addi %[actAddr], %[actAddr], 0x20\n"
     "fadd.pi f29, f29, f30\n"
     "beq      zero, zero, 1b\n"
-                                         
+
     "2:\n"
     "fxor.pi  f0, f0, f0\n"
     "addi     t0, t0, -8\n"
@@ -15451,7 +15451,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "fbc.ps f30, 0x0(%[biasAddr])\n"
     "fadd.s f31, f30, f31\n"
     "fsw.ps f31, 0x0(%[dstAddr])\n"
-    
+
     :
     : [gthValuesWgt] "r" (gatherValuesWgt),
       [wgtRegStep] "r" (&wgtRegStep),
@@ -15492,10 +15492,10 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "addi     t0, t0, 8\n"
     "ble      %[elemsRow], t0, 2f\n"
     MATMUL_ITERATION
-    "addi %[actAddr], %[actAddr], 0x10\n" 
+    "addi %[actAddr], %[actAddr], 0x10\n"
     "fadd.pi f29, f29, f30\n"
     "beq      zero, zero, 1b\n"
-                                         
+
     "2:\n"
     "fxor.pi  f0, f0, f0\n"
     "addi     t0, t0, -8\n"
@@ -15513,7 +15513,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "fadd.s f31, f30, f31\n"
     "fcvt.f16.ps f31, f31\n"           // Conversion fp32 >> fp16.
     "fsch.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15574,7 +15574,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "addi %[actAddr], %[actAddr], 0x8\n"
     "fadd.pi f29, f29, f30\n"
     "beq      zero, zero, 1b\n"
-                                         
+
     "2:\n"
     "fxor.pi  f0, f0, f0\n"
     "addi     t0, t0, -8\n"
@@ -15594,7 +15594,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "fbc.ps f27, 0x8(%[scale]) \n"
     FP32_TO_INT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15693,7 +15693,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
     "fsrli.pi f2," #_reg ", 0x8 \n"             \
     "fxor.pi f27, f27, f27 \n"                  \
-    "fcmov.ps " #_reg" , f12, f27, " #_reg " \n"  
+    "fcmov.ps " #_reg" , f12, f27, " #_reg " \n"
 
 
 #define STEP1                                            \
@@ -15743,7 +15743,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     STEP3
     FP32_TO_INT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15769,7 +15769,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     STEP3
     FP32_TO_INT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15796,7 +15796,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     STEP3
     FP32_TO_UINT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15823,7 +15823,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     STEP3
     FP32_TO_UINT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15850,7 +15850,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     STEP3
     FP32_TO_UINT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15878,7 +15878,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     STEP3
     FP32_TO_INT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15905,7 +15905,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     STEP3
     FP32_TO_UINT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
-    
+
     :
     : [gthValuesAct] "r" (gatherValuesAct),
       [gthValuesWgt] "r" (gatherValuesWgt),
@@ -15984,7 +15984,7 @@ void dnn_lib::fwdLibETSOCFullyConnectedInstVectorized(
     done = getOffsets(2, coord, offsetOut, dstIndex, dstPitch);
     if (coord[1] == 0) {
       offsetAIn += actPitch[0];
-    } 
+    }
   }
   if (!DO_EVICTS)
     return;
