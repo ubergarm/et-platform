@@ -11892,8 +11892,19 @@ void dnn_lib::
         "flw.ps  f31, 0x0(%[gather_offsets])\n"
         : 
         : [gather_offsets] "r" (gather_offsets)
-        : "t0", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f30", "f31"
+        : "t0", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+          "f30", "f31"
       );
+
+      if (std::is_same<DstType, float16>::value) {
+        // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
+        __asm__ __volatile__ (
+          "fadd.pi f29, f31, f31\n"
+          : 
+          :
+          : "f29"
+        );
+      }
 
       // For all sparse input rows.
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
@@ -11904,13 +11915,11 @@ void dnn_lib::
         float            * weight_ptr = (float *) &tWInput[currIndex];
 
         __asm__ __volatile__ (
-          "fbc.ps  f27, 0x0(%[weight_ptr])\n"
-          "fbc.ps  f28, 0x0(%[offset_ptr])\n"
-          "fbc.ps  f29, 0x0(%[scale_ptr])\n"
+          "fbc.ps  f26, 0x0(%[weight_ptr])\n"
+          "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+          "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
           // Load a full input cache line (64 elements, 8 vregs)
-          "fgb.ps     f26, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
           "fgb.ps     f25, f31, %[data_ptr]\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
           "fgb.ps     f24, f31, %[data_ptr]\n"
@@ -11925,7 +11934,8 @@ void dnn_lib::
           "addi       %[data_ptr], %[data_ptr], 8\n"
           "fgb.ps     f19, f31, %[data_ptr]\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fand.pi    f26, f26, f30\n"
+          "fgb.ps     f18, f31, %[data_ptr]\n"
+          "addi       %[data_ptr], %[data_ptr], 8\n"
           "fand.pi    f25, f25, f30\n"
           "fand.pi    f24, f24, f30\n"
           "fand.pi    f23, f23, f30\n"
@@ -11933,7 +11943,7 @@ void dnn_lib::
           "fand.pi    f21, f21, f30\n"
           "fand.pi    f20, f20, f30\n"
           "fand.pi    f19, f19, f30\n"
-          "fcvt.ps.pw f26, f26\n"
+          "fand.pi    f18, f18, f30\n"
           "fcvt.ps.pw f25, f25\n"
           "fcvt.ps.pw f24, f24\n"
           "fcvt.ps.pw f23, f23\n"
@@ -11941,52 +11951,87 @@ void dnn_lib::
           "fcvt.ps.pw f21, f21\n"
           "fcvt.ps.pw f20, f20\n"
           "fcvt.ps.pw f19, f19\n"
-          "fmadd.ps   f26, f26, f29, f28\n"
-          "fmadd.ps   f25, f25, f29, f28\n"
-          "fmadd.ps   f24, f24, f29, f28\n"
-          "fmadd.ps   f23, f23, f29, f28\n"
-          "fmadd.ps   f22, f22, f29, f28\n"
-          "fmadd.ps   f21, f21, f29, f28\n"
-          "fmadd.ps   f20, f20, f29, f28\n"
-          "fmadd.ps   f19, f19, f29, f28\n"
-          "fmadd.ps   f0, f27, f26, f0\n"
-          "fmadd.ps   f1, f27, f25, f1\n"
-          "fmadd.ps   f2, f27, f24, f2\n"
-          "fmadd.ps   f3, f27, f23, f3\n"
-          "fmadd.ps   f4, f27, f22, f4\n"
-          "fmadd.ps   f5, f27, f21, f5\n"
-          "fmadd.ps   f6, f27, f20, f6\n"
-          "fmadd.ps   f7, f27, f19, f7\n"
+          "fcvt.ps.pw f18, f18\n"
+          "fmadd.ps   f25, f25, f28, f27\n"
+          "fmadd.ps   f24, f24, f28, f27\n"
+          "fmadd.ps   f23, f23, f28, f27\n"
+          "fmadd.ps   f22, f22, f28, f27\n"
+          "fmadd.ps   f21, f21, f28, f27\n"
+          "fmadd.ps   f20, f20, f28, f27\n"
+          "fmadd.ps   f19, f19, f28, f27\n"
+          "fmadd.ps   f18, f18, f28, f27\n"
+          "fmadd.ps   f0, f26, f25, f0\n"
+          "fmadd.ps   f1, f26, f24, f1\n"
+          "fmadd.ps   f2, f26, f23, f2\n"
+          "fmadd.ps   f3, f26, f22, f3\n"
+          "fmadd.ps   f4, f26, f21, f4\n"
+          "fmadd.ps   f5, f26, f20, f5\n"
+          "fmadd.ps   f6, f26, f19, f6\n"
+          "fmadd.ps   f7, f26, f18, f7\n"
          : [data_ptr]   "+&r" (data_ptr)
          : [offset_ptr] "r"   (offset_ptr),
            [scale_ptr]  "r"   (scale_ptr),
            [weight_ptr] "r"   (weight_ptr)
          : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
-           "f19", "f20", "f21", "f22", "f23", "f24", "f25",
-           "f26", "f27", "f28", "f29"
+           "f18" , "f19", "f20", "f21", "f22", "f23", "f24",
+           "f25", "f26", "f27", "f28"
         );
       }
 
-      // Store accumulated results.
-      __asm__ __volatile__ (
-        "fsw.ps f0,    (%[dst_ptr])\n"
-        "fsw.ps f1,  32(%[dst_ptr])\n"
-        "fsw.ps f2,  64(%[dst_ptr])\n"
-        "fsw.ps f3,  96(%[dst_ptr])\n"
-        "fsw.ps f4, 128(%[dst_ptr])\n"
-        "fsw.ps f5, 160(%[dst_ptr])\n"
-        "fsw.ps f6, 192(%[dst_ptr])\n"
-        "fsw.ps f7, 224(%[dst_ptr])\n"
-        :
-        : [dst_ptr] "r" (dst_ptr)
-        :
-      );
+      if (std::is_same<DstType, float>::value) {
+        // Store accumulated results.
+        __asm__ __volatile__ (
+          "fsw.ps f0,    (%[dst_ptr])\n"
+          "fsw.ps f1,  32(%[dst_ptr])\n"
+          "fsw.ps f2,  64(%[dst_ptr])\n"
+          "fsw.ps f3,  96(%[dst_ptr])\n"
+          "fsw.ps f4, 128(%[dst_ptr])\n"
+          "fsw.ps f5, 160(%[dst_ptr])\n"
+          "fsw.ps f6, 192(%[dst_ptr])\n"
+          "fsw.ps f7, 224(%[dst_ptr])\n"
+          :
+          : [dst_ptr] "r" (dst_ptr)
+          :
+        );
+
+        dst_ptr += 64 * dstElemSize;
+      }
+      else if (std::is_same<DstType, float16>::value) {
+        // Convert and store accumulated results.
+        __asm__ __volatile__ (
+          "fcvt.f16.ps f0, f0\n"
+          "fcvt.f16.ps f1, f1\n"
+          "fcvt.f16.ps f2, f2\n"
+          "fcvt.f16.ps f3, f3\n"
+          "fcvt.f16.ps f4, f4\n"
+          "fcvt.f16.ps f5, f5\n"
+          "fcvt.f16.ps f6, f6\n"
+          "fcvt.f16.ps f7, f7\n"
+          "fsch.ps f0, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f1, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f2, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f3, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f4, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f5, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f6, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f7, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          : [dst_ptr]   "+&r" (dst_ptr)
+          :
+          :
+        );
+      }
 
       minionCurrRowGroup++;
 
       minionCurrIndex += currSegmentLength;
-
-      dst_ptr += 64 * dstElemSize;
     }
     else {
       volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
@@ -12006,6 +12051,16 @@ void dnn_lib::
         : "t0", "f0", "f30", "f31"
       );
 
+      if (std::is_same<DstType, float16>::value) {
+        // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
+        __asm__ __volatile__ (
+          "fadd.pi f29, f31, f31\n"
+          : 
+          :
+          : "f29"
+        );
+      }
+
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
     
         // For all sparse input rows.
@@ -12017,32 +12072,43 @@ void dnn_lib::
           float            * weight_ptr = (float *) &tWInput[currIndex];
 
           __asm__ __volatile__ (
-            "fbc.ps  f27, 0x0(%[weight_ptr])\n"
-            "fbc.ps  f28, 0x0(%[offset_ptr])\n"
-            "fbc.ps  f29, 0x0(%[scale_ptr])\n"
+            "fbc.ps  f26, 0x0(%[weight_ptr])\n"
+            "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+            "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
             // Load a full input cache line (64 elements, 8 vregs)
-            "fgb.ps     f26, f31, %[data_ptr]\n"
+            "fgb.ps     f25, f31, %[data_ptr]\n"
             "addi       %[data_ptr], %[data_ptr], 8\n"
-            "fand.pi    f26, f26, f30\n"
-            "fcvt.ps.pw f26, f26\n"
-            "fmadd.ps   f26, f26, f29, f28\n"
-            "fmadd.ps   f0, f27, f26, f0\n"
+            "fand.pi    f25, f25, f30\n"
+            "fcvt.ps.pw f25, f25\n"
+            "fmadd.ps   f25, f25, f28, f27\n"
+            "fmadd.ps   f0, f26, f25, f0\n"
            : [data_ptr]   "+&r" (data_ptr)
            : [offset_ptr] "r"   (offset_ptr),
              [scale_ptr]  "r"   (scale_ptr),
              [weight_ptr] "r"   (weight_ptr)
-           : "f0", "f26", "f27", "f28", "f29"
+           : "f0", "f25", "f26", "f27", "f28"
           );
         }
 
-        // Store accumulated results.
-        __asm__ __volatile__ (
-          "fsw.ps f0, (%[dst_ptr])\n"
-          :
-          : [dst_ptr] "r" (dst_ptr)
-          :
-        );
+        if (std::is_same<DstType, float>::value) {
+          // Store accumulated results.
+          __asm__ __volatile__ (
+            "fsw.ps f0, (%[dst_ptr])\n"
+            :
+            : [dst_ptr] "r" (dst_ptr)
+            :
+          );
+        } 
+        else if (std::is_same<DstType, float16>::value) {
+          __asm__ __volatile__ (
+            "fcvt.f16.ps f0, f0\n"
+            "fsch.ps f0, f29(%[dst_ptr])\n"
+            :
+            : [dst_ptr] "r" (dst_ptr)
+            :
+          );
+        }
       }
 
       // Set mask for last VReg in group.
@@ -12061,33 +12127,44 @@ void dnn_lib::
         float            * weight_ptr = (float *) &tWInput[currIndex];
 
         __asm__ __volatile__ (
-          "fbc.ps  f27, 0x0(%[weight_ptr])\n"
-          "fbc.ps  f28, 0x0(%[offset_ptr])\n"
-          "fbc.ps  f29, 0x0(%[scale_ptr])\n"
+          "fbc.ps  f26, 0x0(%[weight_ptr])\n"
+          "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+          "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
           // Load a full input cache line (64 elements, 8 vregs)
-          "fgb.ps     f26, f31, %[data_ptr]\n"
+          "fgb.ps     f25, f31, %[data_ptr]\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fand.pi    f26, f26, f30\n"
-          "fcvt.ps.pw f26, f26\n"
-          "fmadd.ps   f26, f26, f29, f28\n"
-          "fmadd.ps   f0, f27, f26, f0\n"
+          "fand.pi    f25, f25, f30\n"
+          "fcvt.ps.pw f25, f25\n"
+          "fmadd.ps   f25, f25, f28, f27\n"
+          "fmadd.ps   f0, f26, f25, f0\n"
          : [data_ptr]   "+&r" (data_ptr)
          : [offset_ptr] "r"   (offset_ptr),
            [scale_ptr]  "r"   (scale_ptr),
            [weight_ptr] "r"   (weight_ptr)
-         : "f0", "f26", "f27", "f28", "f29"
+         : "f0", "f25", "f26", "f27", "f28"
         );
       }
 
-      // Store accumulated results.
-      __asm__ __volatile__ (
-        "fsw.ps f0, (%[dst_ptr])\n"
-        "mov.m.x m0, zero, 0xff\n"
-        :
-        : [dst_ptr] "r" (dst_ptr)
-        :
-      );
+      if (std::is_same<DstType, float>::value) {
+        // Store accumulated results.
+        __asm__ __volatile__ (
+          "fsw.ps f0, (%[dst_ptr])\n"
+          "mov.m.x m0, zero, 0xff\n"
+          :
+          : [dst_ptr] "r" (dst_ptr)
+          :
+        );
+      }
+      else if (std::is_same<DstType, float16>::value) {
+        __asm__ __volatile__ (
+          "fcvt.f16.ps f0, f0\n"
+          "fsch.ps f0, f29(%[dst_ptr])\n"
+          :
+          : [dst_ptr] "r" (dst_ptr)
+          :
+        );
+      }
 
       minionCurrIndex += currSegmentLength;
 
