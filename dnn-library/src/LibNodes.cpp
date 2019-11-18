@@ -23,7 +23,7 @@
 #include "LibCommon.h"
 
 #define print(s) \
-      ecall(FW_SCODE_ECALL_LOG_WRITE, (uint64_t)s, sizeof(s),0)
+      syscall(SYSCALL_LOG_WRITE, (uint64_t)s, sizeof(s),0)
 
 using namespace dnn_lib;
 using namespace std;
@@ -5346,7 +5346,7 @@ void dnn_lib::fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
   if (minionId == 0) {
     char chs_str[] = "CheckSum: 0xXXXXXXXX\n";
     uint32_to_ascii_hex(&chs_str[12], checksum);
-    ecall(FW_SCODE_ECALL_LOG_WRITE, (uint64_t)chs_str, sizeof(chs_str), 0);
+    syscall(SYSCALL_LOG_WRITE, (uint64_t)chs_str, sizeof(chs_str), 0);
   }
 }
 
@@ -5355,7 +5355,7 @@ void dnn_lib::fwdLibFlushL3(uint32_t numShires) {
   uint32_t minion = get_minion_id() & 0x1F;
   // The T0 of minion N of shire 0 flushes the L3 of shire N
   if ((get_shire_id() == 0) && (get_thread_id() == 0) && (minion < numShires)) {
-      ecall(FW_COMPUTE_SCODE_ECALL_L3_FLUSH_ALL, minion, 0, 0);
+      syscall(SYSCALL_FLUSH_L3_ALT, minion, 0, 0);
   }
 }
 
