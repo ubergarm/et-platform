@@ -473,12 +473,18 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize, uint64_t flags,
     const uint32_t minionOffset = 0, const uint32_t numShires = 0);
-template<typename DstType>
+template<typename DstType, bool Weighted = true>
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize, uint64_t flags,
+    const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+template<typename DstType>
+void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized(
+    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+    void *pdata, void *pdataDims, void *pdataPitches,
+    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
     const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 
 } // namespace dnn_lib

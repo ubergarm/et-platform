@@ -136,19 +136,45 @@ template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVect
     unsigned int pLengthsSize, uint64_t flags,
     const uint32_t minionOffse, const uint32_t numShires);
 
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float>(
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float, false>(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize, uint64_t flags,
     const uint32_t minionOffset, const uint32_t numShires);
 
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float16>(
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float, true>(
+    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
+    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
+    unsigned int pLengthsSize, uint64_t flags,
+    const uint32_t minionOffset, const uint32_t numShires);
+
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float16, false>(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize, uint64_t flags,
     const uint32_t minionOffse, const uint32_t numShires);
+
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float16, true>(
+    void *pdst, void *pdstdims, void *pdstpitches, unsigned int pdstdimnum,
+    void *pdata, void *pdatadims, void *pdatapitches, void *pweights,
+    void *pweightsdims, void *pweightspitches, void *pindices, void *plengths,
+    unsigned int plengthssize, uint64_t flags,
+    const uint32_t minionoffse, const uint32_t numshires);
+
+template void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized<float>(
+    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+    void *pdata, void *pdataDims, void *pdataPitches,
+    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
+    const uint32_t minionOffset, const uint32_t numShires);
+
+template void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized<float16>(
+    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+    void *pdata, void *pdataDims, void *pdataPitches,
+    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
+    const uint32_t minionOffset, const uint32_t numShires);
 
 }
 
@@ -11758,7 +11784,7 @@ void dnn_lib::
   }
 }
 
-template<typename DstType>
+template<typename DstType, bool Weighted>
 void dnn_lib::
     fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
@@ -11914,16 +11940,35 @@ void dnn_lib::
         );
       }
 
+      if (!Weighted) {
+        __asm__ __volatile__ (
+          "li      t0, 0x3f800000\n"
+          "fbcx.ps f26, t0\n"
+          : 
+          :
+          : "f26"
+        );
+      }
+
       // For all sparse input rows.
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
         volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
         float            * scale_ptr  = (float *) &data_ptr[dataRowSize - 8];
         float            * offset_ptr = (float *) &data_ptr[dataRowSize - 4];
-        float            * weight_ptr = (float *) &tWInput[currIndex];
+ 
+        if (Weighted){
+          float          * weight_ptr = (float *) &tWInput[currIndex];
+
+          __asm__ __volatile__ (
+            "fbc.ps  f26, 0x0(%[weight_ptr])\n"
+            :
+            : [weight_ptr] "r" (weight_ptr)
+            : "f26"
+          );
+        }
 
         __asm__ __volatile__ (
-          "fbc.ps  f26, 0x0(%[weight_ptr])\n"
           "fbc.ps  f27, 0x0(%[offset_ptr])\n"
           "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
@@ -11978,11 +12023,10 @@ void dnn_lib::
           "fmadd.ps   f7, f26, f18, f7\n"
          : [data_ptr]   "+&r" (data_ptr)
          : [offset_ptr] "r"   (offset_ptr),
-           [scale_ptr]  "r"   (scale_ptr),
-           [weight_ptr] "r"   (weight_ptr)
+           [scale_ptr]  "r"   (scale_ptr)
          : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
            "f18" , "f19", "f20", "f21", "f22", "f23", "f24",
-           "f25", "f26", "f27", "f28"
+           "f25", "f27", "f28"
         );
       }
 
@@ -12069,6 +12113,16 @@ void dnn_lib::
         );
       }
 
+      if (!Weighted) {
+        __asm__ __volatile__ (
+          "li      t0, 0x3f800000\n"
+          "fbcx.ps f26, t0\n"
+          : 
+          :
+          : "f26"
+        );
+      }
+
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
 
         // For all sparse input rows.
@@ -12077,10 +12131,19 @@ void dnn_lib::
           volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
           float            * scale_ptr  = (float *) &data_ptr[dataRowSize - 8];
           float            * offset_ptr = (float *) &data_ptr[dataRowSize - 4];
-          float            * weight_ptr = (float *) &tWInput[currIndex];
+
+          if (Weighted){
+            float          * weight_ptr = (float *) &tWInput[currIndex];
+
+            __asm__ __volatile__ (
+              "fbc.ps  f26, 0x0(%[weight_ptr])\n"
+              :
+              : [weight_ptr] "r" (weight_ptr)
+              : "f26"
+            );
+          }
 
           __asm__ __volatile__ (
-            "fbc.ps  f26, 0x0(%[weight_ptr])\n"
             "fbc.ps  f27, 0x0(%[offset_ptr])\n"
             "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
@@ -12093,9 +12156,8 @@ void dnn_lib::
             "fmadd.ps   f0, f26, f25, f0\n"
            : [data_ptr]   "+&r" (data_ptr)
            : [offset_ptr] "r"   (offset_ptr),
-             [scale_ptr]  "r"   (scale_ptr),
-             [weight_ptr] "r"   (weight_ptr)
-           : "f0", "f25", "f26", "f27", "f28"
+             [scale_ptr]  "r"   (scale_ptr)
+           : "f0", "f25", "f27", "f28"
           );
         }
 
@@ -12132,10 +12194,19 @@ void dnn_lib::
         volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
         float            * scale_ptr  = (float *) &data_ptr[dataRowSize - 8];
         float            * offset_ptr = (float *) &data_ptr[dataRowSize - 4];
-        float            * weight_ptr = (float *) &tWInput[currIndex];
+
+        if (Weighted){
+          float          * weight_ptr = (float *) &tWInput[currIndex];
+
+          __asm__ __volatile__ (
+            "fbc.ps  f26, 0x0(%[weight_ptr])\n"
+            :
+            : [weight_ptr] "r" (weight_ptr)
+            : "f26"
+          );
+        }
 
         __asm__ __volatile__ (
-          "fbc.ps  f26, 0x0(%[weight_ptr])\n"
           "fbc.ps  f27, 0x0(%[offset_ptr])\n"
           "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
@@ -12148,9 +12219,8 @@ void dnn_lib::
           "fmadd.ps   f0, f26, f25, f0\n"
          : [data_ptr]   "+&r" (data_ptr)
          : [offset_ptr] "r"   (offset_ptr),
-           [scale_ptr]  "r"   (scale_ptr),
-           [weight_ptr] "r"   (weight_ptr)
-         : "f0", "f25", "f26", "f27", "f28"
+           [scale_ptr]  "r"   (scale_ptr)
+         : "f0", "f25", "f27", "f28"
         );
       }
 
@@ -12185,6 +12255,21 @@ void dnn_lib::
     }
 
   }
+}
+
+template<typename DstType>
+void dnn_lib::
+    fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized(
+        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+        void *pdata, void *pdataDims, void *pdataPitches, void *pindices,
+        void *plengths, unsigned int pLengthsSize, uint64_t flags,
+        const uint32_t minionOffset, const uint32_t assignedMinions) {
+  fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<DstType, false>(
+    pdst, pdstDims, pdstPitches, pdstDimNum,
+    pdata, pdataDims, pdataPitches,
+    nullptr, nullptr, nullptr,
+    pindices, plengths, pLengthsSize, flags,
+    minionOffset, assignedMinions);
 }
 
 void dnn_lib::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
