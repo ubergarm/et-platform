@@ -18,7 +18,12 @@ find_package(fake-fw REQUIRED)
 set(INCLUDE_INSTALL_DIR include/ CACHE STRING "Include install dir")
 set(LIB_INSTALL_DIR     lib/     CACHE STRING "Library install dir")
 
-file(GLOB INSTALL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h")
+file(GLOB INSTALL_HEADERS
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/AutoGenInstan.def"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/Float16.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibCommon.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h"
+)
 
 option(CLANG_BUILD "Build using clang")
 

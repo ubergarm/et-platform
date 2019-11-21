@@ -374,15 +374,6 @@ enum PrecisionMode {
 
 #include "AutoGenInstan.def"
 
-template <class SrcTy, class DestTy> DestTy clip(SrcTy in);
-template <class DestTy = int8_t>
-inline DestTy quantize(float input, float scale, int32_t offset);
-template <class eTy>
-inline float dequantizeWithFloatOffset(eTy input, float scale, float offset);
-template <class eTy = int8_t>
-float dequantize(eTy input, float scale, int32_t offset);
-int8_t quantizeValInt8(float val, float scale, int32_t offset);
-
 void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims, void *pdstPitches,
                                void *pbatch, void *pbatchDims,
                                void *pbatchPitches, unsigned int pbatchDimNum,
