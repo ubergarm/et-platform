@@ -353,4 +353,23 @@ float getPow(float base, float exp) {
   }
 }
 
+template <typename srcType>
+inline __attribute__((always_inline))
+void getLanesResTView (int &lanes, int &res, const unsigned int &d) {
+  if (getsize<srcType>() == 1) {
+    lanes = d / 4;
+    res = d - 4 * lanes;
+  } else if (getsize<srcType>() == 2) {
+    lanes = d / 2;
+    res = d - 2 * lanes;
+  } else if (getsize<srcType>() == 4) {
+    lanes = d;
+    res = 0;
+  } else if (getsize<srcType>() == 8) {
+    lanes = d * 2;
+    res = 0;
+  }
+  return;
+}
+
 #endif /* UTILS_H */

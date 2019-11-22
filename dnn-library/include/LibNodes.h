@@ -349,13 +349,13 @@ enum PrecisionMode {
   template <typename dstType> void functionName(__VA_ARGS__);
 
 #define GEN_3TYPE(functionName, op, ...)                                   \
-  template <typename src1Type, typename src2Type, typename dstType, typename opType> void functionName(__VA_ARGS__); 
+  template <typename src1Type, typename src2Type, typename dstType, typename opType> void functionName(__VA_ARGS__);
 
 #define GEN_2TYPE(functionName, op, ...)                                   \
   template <typename src1Type, typename dstType, typename opType> void functionName(__VA_ARGS__);
 
 #define GEN_3TYPE_OP(functionName, ...)                                              \
-  template <typename src1Type, typename src2Type, typename dstType> void functionName(__VA_ARGS__);                  
+  template <typename src1Type, typename src2Type, typename dstType> void functionName(__VA_ARGS__);
 
 #define GEN_2TYPE_OP(functionName, ...)                                              \
   template <typename src1Type, typename dstType> void functionName(__VA_ARGS__);

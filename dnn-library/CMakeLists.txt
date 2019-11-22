@@ -42,7 +42,6 @@ message("${PROJECT_NAME}: Clang Build is set to ${CLANG_BUILD}")
 
 add_library(dnn_lib STATIC
   src/LibNodes.cpp
-  src/LibSpecializedNodes.cpp
 )
 
 include_directories(include)
