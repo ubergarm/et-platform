@@ -8547,7 +8547,9 @@ void dnn_lib::fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
   //int sum = 0;
   Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> op;
   while (!done && (offsetOut < posMax)) {
-    for (size_t i = 0; i < batchIndex[axis]; i++) {
+    tOutput[offsetOut] = tBatch[offsetIn];
+    offsetIn += batchPitch[axis];
+    for (size_t i = 1; i < batchIndex[axis]; i++) {
       print(__PRETTY_FUNCTION__);
       Addresser<srcType> tSum = tOutput;
       op.doOp(tOutput, tSum, tBatch, offsetOut, offsetOut, offsetIn);
@@ -9967,6 +9969,10 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   }
 
   unsigned int posMax = maxRead + initialAddr;
+  // initialize output tensor
+  for (size_t elem = initialAddr; elem < posMax*sizeof(srcType); elem++)
+    tOutput[elem] = 0;
+
   // In each iteration we copy a position and switch to the next one, until completion.
   bool endmatrix = false;
   bool done = false;
