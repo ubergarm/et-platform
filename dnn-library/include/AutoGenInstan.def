@@ -589,6 +589,28 @@ GEN_OP(fwdLibSparseLengthsWeightedSumInstThreaded,void *pdst, void *pdstDims, vo
                                           void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
                                           void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
                                           unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags);
+GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
+            void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+            void *pdata, void *pdataDims, void *pdataPitches,
+            void *pweights, void *pweightsDims, void *pweightsPitches,
+            void *pindices, void *plengths, unsigned int pLengthsSize,
+            uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized,
+            void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+            void *pdata, void *pdataDims, void *pdataPitches,
+            void *pindices, void *plengths, unsigned int pLengthsSize,
+            uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+GEN_FRQSLWS_V(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
+              void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+              void *pdst2, void *pdst2Pitches,
+              void *pdata, void *pdataDims, void *pdataPitches,
+              void *pweights, void *pweightsDims, void *pweightsPitches,
+              void *pindices, void *plengths, unsigned int pLengthsSize,
+              uint64_t flags,
+              const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+
 #endif
 
 #undef GEN_INSTANCES
@@ -597,3 +619,11 @@ GEN_OP(fwdLibSparseLengthsWeightedSumInstThreaded,void *pdst, void *pdstDims, vo
 #undef GEN_QUANT
 #undef GEN_OP_INDEX
 #undef GEN_CONVERT
+#undef GEN_1TYPEFP
+#undef GEN_3TYPE
+#undef GEN_2TYPE_OP
+#undef GEN_3TYPE_OP
+#undef GEN_FRQSLWS_V
+
+#undef GEN_2TYPE
+

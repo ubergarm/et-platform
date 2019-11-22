@@ -43,7 +43,11 @@ using namespace std;
   template void functionName<int32_t>(__VA_ARGS__);                            \
   template void functionName<int16_t>(__VA_ARGS__);
 
-#define GEN_3TYPE(functionName, op, ...)                                   \
+#define GEN_1TYPEFP(functionName, ...)                                         \
+  template void functionName<float>(__VA_ARGS__);                              \
+  template void functionName<float16>(__VA_ARGS__);
+
+#define GEN_3TYPE(functionName, op, ...)                                       \
   template void functionName<float, float, float, op>(__VA_ARGS__);            \
   template void functionName<float16, float16, float16, op>(__VA_ARGS__);      \
   template void functionName<int8_t, int8_t, int8_t, op>(__VA_ARGS__);         \
@@ -117,65 +121,16 @@ using namespace std;
   template void functionName<int64_t, float>(__VA_ARGS__);                     \
   template void functionName<int64_t, int64_t>(__VA_ARGS__);
 
+#define GEN_FRQSLWS_V(functionName, ...)                                       \
+  template void functionName<true,  true,  true>(__VA_ARGS__);                  \
+  template void functionName<true,  true,  false>(__VA_ARGS__);                 \
+  template void functionName<true,  false, true>(__VA_ARGS__);                  \
+  template void functionName<false, true,  false>(__VA_ARGS__);                 \
+  template void functionName<false, false, true>(__VA_ARGS__);
+
 namespace dnn_lib {
 
 #include "AutoGenInstan.def"
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<float>(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdst2, void *pdst2Pitches,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset, const uint32_t numShires);
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<float16>(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdst2, void *pdst2Pitches,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffse, const uint32_t numShires);
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float, false>(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset, const uint32_t numShires);
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float, true>(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset, const uint32_t numShires);
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float16, false>(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffse, const uint32_t numShires);
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<float16, true>(
-    void *pdst, void *pdstdims, void *pdstpitches, unsigned int pdstdimnum,
-    void *pdata, void *pdatadims, void *pdatapitches, void *pweights,
-    void *pweightsdims, void *pweightspitches, void *pindices, void *plengths,
-    unsigned int plengthssize, uint64_t flags,
-    const uint32_t minionoffse, const uint32_t numshires);
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized<float>(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset, const uint32_t numShires);
-
-template void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized<float16>(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset, const uint32_t numShires);
 
 }
 
@@ -8980,23 +8935,19 @@ void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   }
 }
 
-template<typename DstType>
 void dnn_lib::
-    fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+    fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdst2, void *pdst2Pitches,
         void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
         void *pweightsDims, void *pweightsPitches, void *pindices,
-        void *plengths, unsigned int pLengthsSize, uint64_t flags,
-        const uint32_t minionOffset, const uint32_t assignedMinions) {
+        void *plengths, unsigned int pLengthsSize, uint64_t flags) {
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  unsigned int minionId = get_minion_id();
+  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
   float *tOutput = (float *)pdst;
-  uint16_t *tCvtOutput = (uint16_t *)pdst2;
   uint8_t *tAInput = (uint8_t *)pdata;
   float *tWInput = (float *)pweights;
   long long *indices = (long long *)pindices;
@@ -9007,7 +8958,6 @@ void dnn_lib::
   unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dst2Pitch = (unsigned int *)pdst2Pitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
   unsigned int *weightPitch = (unsigned int *)pweightsPitches;
 
@@ -9025,157 +8975,95 @@ void dnn_lib::
     inLineSize *= dataIndex[i];
     outLineSize *= dstIndex[i];
   }
-  inLineSize -= 8;
-  unsigned int numRegs = outLineSize/8;
-  unsigned int lastMask = (1 << (((outLineSize-1) & 0x7) + 1)) - 1;
 
-  unsigned int numElemsDst = dstPitch[0] * segments;
-  unsigned int cll = 64 / sizeof(float);
-  unsigned int rowsperminion = cll / dstPitch[0];
-  unsigned int total_rows = rowsperminion * activeMinions;
-  for (unsigned int i = total_rows; i < segments; i += activeMinions)
-    rowsperminion++;
-  unsigned int row_begin = minionId * rowsperminion;
-  if (row_begin >= segments)
-    return;
-  unsigned int row_end = row_begin + rowsperminion;
-
-  // Output tensor should be zero at the begin
-  for (size_t i = row_begin; i < row_end; i++) {
-    for (size_t j = 0, e = lengths[i]; j < e; j++) {
-      float * dst_ptr = tOutput + i * dstPitch[0];
-      *dst_ptr = 0;
-    }
-  }
-  size_t curIdx = ranges[row_begin];
-  for (size_t i = row_begin; i < row_end; i++) {
-    for (size_t j = 0, e = lengths[i]; j < e; j++) {
-      volatile uint8_t * data_ptr   = tAInput + indices[curIdx] * dataPitch[0];
-      float            * scale_ptr  = (float *) &data_ptr[inLineSize];
-      float            * offset_ptr = (float *) &data_ptr[inLineSize + 4];
-      float            * weight_ptr = (float *) &tWInput[curIdx];
-      float            * dst_ptr    = tOutput + i * dstPitch[0];
-      uint16_t         * dst2_ptr   = tCvtOutput + i * dst2Pitch[0];
-
-      volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-
-      if (std::is_same<DstType, float>::value)
-      {
-#undef LOAD_WEIGHT_SUM_AND_STORE
-#define LOAD_WEIGHT_SUM_AND_STORE            \
-            "fgb.ps f1, f31, %[data_ptr]\n"  \
-            "flw.ps f2, 0x0(%[dst_ptr])\n"   \
-            "fand.pi f1,  f1, f30\n"         \
-            "fcvt.ps.pw f1,  f1\n"           \
-            "fmadd.ps f1,  f1,  f29, f28\n"  \
-            "fmadd.ps f0, f27, f1,  f2\n"    \
-            "fsw.ps f0, 0x0(%[dst_ptr])\n"
-
-        __asm__ __volatile__ (
-              "mov.m.x m0, zero, 0xff\n"
-              "fxor.pi f0, f0, f0\n"
-              "li      t0, 0xff\n"
-              "fbcx.ps f30, t0\n"
-              "flw.ps  f31, 0x0(%[gather_offsets])\n"
-              "fbc.ps  f27, 0x0(%[weight_ptr])\n"
-              "fbc.ps  f28, 0x0(%[offset_ptr])\n"
-              "fbc.ps  f29, 0x0(%[scale_ptr])\n"
-
-              "add    t0, zero, zero\n"
-              "ble    %[numRegs], t0, 2f\n"
-              "1:\n"
-
-              LOAD_WEIGHT_SUM_AND_STORE
-
-              "addi   %[data_ptr], %[data_ptr], 8\n"
-              "addi   %[dst_ptr], %[dst_ptr], 0x20\n"
-              "addi    t0, t0, 0x1\n"
-              "ble     t0, %[numRegs], 1b\n"
-              "2:\n"
-
-              "mov.m.x m0, %[lastMask], 0x0\n"
-
-              LOAD_WEIGHT_SUM_AND_STORE
-
-            : [data_ptr]   "+&r"   (data_ptr),
-              [dst_ptr]    "+&r"   (dst_ptr)
-            : [gather_offsets] "r" (gather_offsets),
-              [offset_ptr] "r"     (offset_ptr),
-              [scale_ptr]  "r"     (scale_ptr),
-              [weight_ptr] "r"     (weight_ptr),
-              [numRegs]    "r"     (numRegs),
-              [lastMask]   "r"     (lastMask)
-            : "f0", "t0", "f27", "f28", "f29", "f30", "f31"
-          );
+  if (activeMinions > segments) {
+    unsigned int minionsperrow = activeMinions / segments;
+    unsigned int row_id = minionId / minionsperrow;
+    unsigned int positioninrow = minionId - row_id * minionsperrow;
+  
+    unsigned int total = (outLineSize - 1) / minionsperrow + 1;
+    unsigned int start = positioninrow * total;
+    unsigned int end = start + total;
+    if (end > outLineSize)
+      end = outLineSize;
+    unsigned int offsetOut = row_id * dstPitch[0];
+    start += offsetOut;
+    end += offsetOut;
+  
+    // Output tensor should be zero at the begin
+    size_t idx_start = ranges[row_id];
+    size_t idx_end = idx_start + lengths[row_id];
+    for (size_t j = idx_start; j < idx_end; j++) {
+      const float weight = tWInput[j * weightPitch[0]];
+      size_t offsetIn = indices[j] * dataPitch[0];
+  
+      // Get the scale and offset from the row; go to the current row and offset
+      // into it up until the last 8 bytes. Use memcpy to get the values out to
+      // avoid alignment issues of accessing 4-byte values.
+      const unsigned char *currRowScaleOffsetPtr =
+          &tAInput[0] + offsetIn + inLineSize * sizeof(uint8_t) - 8;
+      float scale;
+      float offset;
+      memcpy(&scale, currRowScaleOffsetPtr, sizeof(float));
+      memcpy(&offset, currRowScaleOffsetPtr + sizeof(float), sizeof(float));
+      offsetIn += positioninrow * total;
+      for (size_t k = start; k < end; k++) {
+        float d = dequantizeWithFloatOffset(tAInput[offsetIn], scale, offset);
+        tOutput[k] += d * weight;
+        offsetIn++;
       }
+    } 
+  } else { 
+    unsigned int numElemsDst = dstPitch[0] * segments;
+    unsigned int cll = 64 / sizeof(float);
+    unsigned int rowsperminion = cll / dstPitch[0];
+    unsigned int total_rows = rowsperminion * activeMinions;
+    for (unsigned int i = total_rows; i < segments; i += activeMinions)
+      rowsperminion++;
+    unsigned int row_begin = minionId * rowsperminion;
+    if (row_begin >= segments)
+      return;
+    unsigned int row_end = row_begin + rowsperminion;
 
-      if (std::is_same<DstType, float16>::value)
-      {
-#undef LOAD_WEIGHT_SUM_AND_STORE
-#define LOAD_WEIGHT_SUM_AND_STORE                \
-            "fgb.ps      f1, f31, %[data_ptr]\n" \
-            "flw.ps      f2, 0x0(%[dst_ptr])\n"  \
-            "fand.pi     f1, f1,  f30\n"         \
-            "fcvt.ps.pw  f1, f1\n"               \
-            "fmadd.ps    f1, f1,  f29, f28\n"    \
-            "fmadd.ps    f0, f27, f1,  f2\n"     \
-            "fsw.ps      f0, 0x0(%[dst_ptr])\n"  \
-            "fcvt.f16.ps f0, f0\n"               \
-            "fsch.ps     f0, f26(%[dst2_ptr])\n"
+    // Output tensor should be zero at the begin
+    size_t curIdx = ranges[row_begin];
+    for (size_t i = row_begin; i < row_end; i++) {
+      for (size_t j = 0, e = lengths[i]; j < e; j++) {
+        const float weight = tWInput[curIdx * weightPitch[0]];
+        size_t offsetIn = indices[curIdx] * dataPitch[0];
+        size_t offsetOut = i * dstPitch[0];
+        curIdx++;
+        // Get the scale and offset from the row; go to the current row and offset
+        // into it up until the last 8 bytes. Use memcpy to get the values out to
+        // avoid alignment issues of accessing 4-byte values.
+        const unsigned char *currRowScaleOffsetPtr =
+            &tAInput[0] + offsetIn + inLineSize * sizeof(uint8_t) - 8;
+        float scale;
+        float offset;
+        memcpy(&scale, currRowScaleOffsetPtr, sizeof(float));
+        memcpy(&offset, currRowScaleOffsetPtr + sizeof(float), sizeof(float));
+        for (size_t k = 0; k < outLineSize; k++) {
 
-        __asm__ __volatile__ (
-              "mov.m.x m0, zero, 0xff\n"
-              "fxor.pi f0, f0, f0\n"
-              "li      t0, 0xff\n"
-              "fbcx.ps f30, t0\n"
-              "flw.ps  f31, 0x0(%[gather_offsets])\n"
-              "fadd.pi f26, f31, f31\n"
-              "fbc.ps  f27, 0x0(%[weight_ptr])\n"
-              "fbc.ps  f28, 0x0(%[offset_ptr])\n"
-              "fbc.ps  f29, 0x0(%[scale_ptr])\n"
-
-              "add    t0, zero, zero\n"
-              "ble    %[numRegs], t0, 2f\n"
-              "1:\n"
-
-              LOAD_WEIGHT_SUM_AND_STORE
-
-              "addi   %[data_ptr], %[data_ptr], 8\n"
-              "addi   %[dst_ptr],  %[dst_ptr],  0x20\n"
-              "addi   %[dst2_ptr], %[dst2_ptr], 0x10\n"
-              "addi    t0, t0, 0x1\n"
-              "ble     t0, %[numRegs], 1b\n"
-              "2:\n"
-
-              "mov.m.x m0, %[lastMask], 0x0\n"
-
-              LOAD_WEIGHT_SUM_AND_STORE
-
-            : [data_ptr]   "+&r"   (data_ptr),
-              [dst_ptr]    "+&r"   (dst_ptr),
-              [dst2_ptr]   "+&r"   (dst2_ptr)
-            : [gather_offsets] "r" (gather_offsets),
-              [offset_ptr] "r"     (offset_ptr),
-              [scale_ptr]  "r"     (scale_ptr),
-              [weight_ptr] "r"     (weight_ptr),
-              [numRegs]    "r"     (numRegs),
-              [lastMask]   "r"     (lastMask)
-            : "f0", "t0", "f26", "f27", "f28", "f29", "f30", "f31"
-          );
+          float d = dequantizeWithFloatOffset(tAInput[offsetIn], scale, offset);
+          tOutput[offsetOut] += d * weight;
+          offsetOut++;
+          offsetIn++;
+        }
       }
-
-      curIdx++;
     }
   }
 }
 
-template<typename DstType, bool Weighted>
+
+template<bool Weighted, bool Float32Dst, bool Float16Dst>
 void dnn_lib::
-    fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized(
+    fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-        void *pweightsDims, void *pweightsPitches, void *pindices,
-        void *plengths, unsigned int pLengthsSize, uint64_t flags,
+        void *pdst2, void *pdst2Pitches, 
+        void *pdata, void *pdataDims, void *pdataPitches,
+        void *pweights, void *pweightsDims, void *pweightsPitches,
+        void *pindices, void *plengths, unsigned int pLengthsSize,
+        uint64_t flags,
         const uint32_t minionOffset, const uint32_t assignedMinions) {
 
   // Get offset of the Minion inside the group of Minions assigned to this Node.
@@ -9222,7 +9110,11 @@ void dnn_lib::
   for (uintptr_t i = 1; i < pdstDimNum; i++) dstRowSize *= dstDims[i];
 
   // Get size of the output element.
-  uintptr_t dstElemSize = (std::is_same<DstType, float16>::value) ? 2 : 4;
+  uintptr_t dstElemSize;
+  if (Float32Dst)  // For dual output use float32 blocking for the tail
+    dstElemSize = 4;
+  else if (Float16Dst)
+    dstElemSize = 2;
 
   // Compute the number of 8-element vectors per output cache line.
   uintptr_t dstCacheLineVRegs = 64 / (dstElemSize * 8);
@@ -9281,6 +9173,11 @@ void dnn_lib::
   // Initilize output pointer.
   uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
 
+  // Second output pointer when both float32 and float16 are active.
+  uint8_t *dst2_ptr;
+  if (Float32Dst and Float16Dst)
+    dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
+
   // For all minion assigned work units
   for (uintptr_t i = 0; i < minionWorkUnits; i++) {
 
@@ -9315,7 +9212,7 @@ void dnn_lib::
           "f30", "f31"
       );
 
-      if (std::is_same<DstType, float16>::value) {
+      if (Float16Dst) {
         // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
         __asm__ __volatile__ (
           "fadd.pi f29, f31, f31\n"
@@ -9415,7 +9312,7 @@ void dnn_lib::
         );
       }
 
-      if (std::is_same<DstType, float>::value) {
+      if (Float32Dst) {
         // Store accumulated results.
         __asm__ __volatile__ (
           "fsw.ps f0,    (%[dst_ptr])\n"
@@ -9433,7 +9330,8 @@ void dnn_lib::
 
         dst_ptr += 64 * dstElemSize;
       }
-      else if (std::is_same<DstType, float16>::value) {
+      
+      if ((not Float32Dst) and (Float16Dst)) {
         // Convert and store accumulated results.
         __asm__ __volatile__ (
           "fcvt.f16.ps f0, f0\n"
@@ -9466,6 +9364,39 @@ void dnn_lib::
         );
       }
 
+      if (Float32Dst and (Float16Dst)) {
+        // Convert and store accumulated results.
+        __asm__ __volatile__ (
+          "fcvt.f16.ps f0, f0\n"
+          "fcvt.f16.ps f1, f1\n"
+          "fcvt.f16.ps f2, f2\n"
+          "fcvt.f16.ps f3, f3\n"
+          "fcvt.f16.ps f4, f4\n"
+          "fcvt.f16.ps f5, f5\n"
+          "fcvt.f16.ps f6, f6\n"
+          "fcvt.f16.ps f7, f7\n"
+          "fsch.ps f0, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f1, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f2, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f3, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f4, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f5, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f6, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f7, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          : [dst_ptr]   "+&r" (dst2_ptr)
+          :
+          :
+        );
+      }
+
       minionCurrRowGroup++;
 
       minionCurrIndex += currSegmentLength;
@@ -9488,7 +9419,7 @@ void dnn_lib::
         : "t0", "f0", "f30", "f31"
       );
 
-      if (std::is_same<DstType, float16>::value) {
+      if (Float16Dst) {
         // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
         __asm__ __volatile__ (
           "fadd.pi f29, f31, f31\n"
@@ -9546,7 +9477,7 @@ void dnn_lib::
           );
         }
 
-        if (std::is_same<DstType, float>::value) {
+        if (Float32Dst) {
           // Store accumulated results.
           __asm__ __volatile__ (
             "fsw.ps f0, (%[dst_ptr])\n"
@@ -9555,12 +9486,23 @@ void dnn_lib::
             :
           );
         } 
-        else if (std::is_same<DstType, float16>::value) {
+
+        if ((not Float32Dst) and Float16Dst) {
           __asm__ __volatile__ (
             "fcvt.f16.ps f0, f0\n"
             "fsch.ps f0, f29(%[dst_ptr])\n"
             :
             : [dst_ptr] "r" (dst_ptr)
+            :
+          );
+        }
+
+        if (Float32Dst and Float16Dst) {
+          __asm__ __volatile__ (
+            "fcvt.f16.ps f0, f0\n"
+            "fsch.ps f0, f29(%[dst_ptr])\n"
+            :
+            : [dst_ptr] "r" (dst2_ptr)
             :
           );
         }
@@ -9609,22 +9551,32 @@ void dnn_lib::
         );
       }
 
-      if (std::is_same<DstType, float>::value) {
+      if (Float32Dst) {
         // Store accumulated results.
         __asm__ __volatile__ (
           "fsw.ps f0, (%[dst_ptr])\n"
-          "mov.m.x m0, zero, 0xff\n"
           :
           : [dst_ptr] "r" (dst_ptr)
           :
         );
-      }
-      else if (std::is_same<DstType, float16>::value) {
+      } 
+
+      if ((not Float32Dst) and Float16Dst) {
         __asm__ __volatile__ (
           "fcvt.f16.ps f0, f0\n"
           "fsch.ps f0, f29(%[dst_ptr])\n"
           :
           : [dst_ptr] "r" (dst_ptr)
+          :
+        );
+      }
+
+      if (Float32Dst and Float16Dst) {
+        __asm__ __volatile__ (
+          "fcvt.f16.ps f0, f0\n"
+          "fsch.ps f0, f29(%[dst_ptr])\n"
+          :
+          : [dst_ptr] "r" (dst2_ptr)
           :
         );
       }
@@ -9637,20 +9589,49 @@ void dnn_lib::
       currSegmentLength = lengths[minionCurrSegment];
 
       dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
+      if (Float32Dst and Float16Dst)
+        dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
     }
-
   }
 }
 
 template<typename DstType>
 void dnn_lib::
-    fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized(
+    fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdata, void *pdataDims, void *pdataPitches, void *pindices,
-        void *plengths, unsigned int pLengthsSize, uint64_t flags,
+        void *pdata, void *pdataDims, void *pdataPitches,
+        void *pweights, void *pweightsDims, void *pweightsPitches,
+        void *pindices, void *plengths, unsigned int pLengthsSize,
+        uint64_t flags,
         const uint32_t minionOffset, const uint32_t assignedMinions) {
-  fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized<DstType, false>(
+
+  const bool float32Dst = (std::is_same<DstType, float>::value);
+  const bool float16Dst = (std::is_same<DstType, float16>::value);
+
+  fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<true, float32Dst, float16Dst>(
     pdst, pdstDims, pdstPitches, pdstDimNum,
+    nullptr, nullptr,
+    pdata, pdataDims, pdataPitches,
+    pweights, pweightsDims, pweightsPitches,
+    pindices, plengths, pLengthsSize, flags,
+    minionOffset, assignedMinions);
+}
+
+template<typename DstType>
+void dnn_lib::
+    fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
+        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+        void *pdata, void *pdataDims, void *pdataPitches,
+        void *pindices, void *plengths, unsigned int pLengthsSize,
+        uint64_t flags,
+        const uint32_t minionOffset, const uint32_t assignedMinions) {
+
+  const bool float32Dst = (std::is_same<DstType, float>::value);
+  const bool float16Dst = (std::is_same<DstType, float16>::value);
+
+  fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<false, float32Dst, float16Dst>(
+    pdst, pdstDims, pdstPitches, pdstDimNum,
+    nullptr, nullptr,
     pdata, pdataDims, pdataPitches,
     nullptr, nullptr, nullptr,
     pindices, plengths, pLengthsSize, flags,

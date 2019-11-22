@@ -345,6 +345,9 @@ enum PrecisionMode {
 #define GEN_OP(functionName, ...)                                              \
   template <typename srcType> void functionName(__VA_ARGS__);
 
+#define GEN_1TYPEFP(functionName, ...)                                   \
+  template <typename dstType> void functionName(__VA_ARGS__);
+
 #define GEN_3TYPE(functionName, op, ...)                                   \
   template <typename src1Type, typename src2Type, typename dstType, typename opType> void functionName(__VA_ARGS__); 
 
@@ -371,6 +374,10 @@ enum PrecisionMode {
   template <typename srcType, typename dstType> void functionName(__VA_ARGS__);
 
 #define GEN_INT8_FUN(functionName, ...) void functionNameInt8(__VA_ARGS__);
+
+#define GEN_FRQSLWS_V(functionName, ...) \
+  template <bool Weighted = true, bool Float32Dst = true, bool FLoat16Dst = false> void functionName(__VA_ARGS__);
+
 
 #include "AutoGenInstan.def"
 
@@ -421,6 +428,11 @@ void fwdLibFlushL3(uint32_t numShires);
 /**********************
  * THREADED FUNCTIONS *
  **********************/
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
+    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
+    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
+    unsigned int pLengthsSize, uint64_t flags);
 void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
@@ -456,27 +468,6 @@ void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
     void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
     int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
     int32_t biasoffset, uint64_t flags);
-template<typename DstType>
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdst2, void *pdst2Pitches, 
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset = 0, const uint32_t numShires = 0);
-template<typename DstType, bool Weighted = true>
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyOptimized(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset = 0, const uint32_t numShires = 0);
-template<typename DstType>
-void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyOptimized(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-    const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 
 } // namespace dnn_lib
 
