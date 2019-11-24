@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
   // Hypothesis 1 (SHAPE): both source and destination tensors have the same
   // padding pattern (and the same pitches, since they have the same
   // dimensions). Hypothesis 2 (COHERENCE): each row of the source tensor
@@ -579,3 +596,8 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
 #undef REDUCE
 #undef BROADCAST
 }
+
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded1, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInstVectorized1, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);

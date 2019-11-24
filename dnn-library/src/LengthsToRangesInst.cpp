@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibLengthsToRangesInst(void *dstT, void *dstDims,
                                         void *dstPitches, void *plengths,
@@ -138,3 +155,10 @@ void dnn_lib::fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
 #undef COPY_AND_REDUCE
 #undef ADD_AND_BROADCAST
 }
+
+GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInst, void *dstT, void *dstDims, void *dstPitches,
+                                  void *plengths, unsigned int lenDim,
+                                  float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                  void *plengths, unsigned int lenDim,
+                                  float *scale, int32_t *offset, uint64_t flags);

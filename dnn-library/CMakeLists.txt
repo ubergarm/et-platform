@@ -21,6 +21,7 @@ set(LIB_INSTALL_DIR     lib/     CACHE STRING "Library install dir")
 file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/AutoGenInstan.def"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/Float16.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/GenInstances.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibCommon.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h"
 )
@@ -38,10 +39,62 @@ else()
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mcmodel=medany -march=rv64imf -mabi=lp64f")
 endif()
 
+set(CMAKE_CXX_STANDARD 11)
+
 message("${PROJECT_NAME}: Clang Build is set to ${CLANG_BUILD}")
 
 add_library(dnn_lib STATIC
-  src/LibNodes.cpp
+  src/AvgPoolInst.cpp
+  src/BatchedAddInst.cpp
+  src/BatchedReduceAddInst.cpp
+  src/BatchOneHotInst.cpp
+  src/Checksum.cpp
+  src/ConvertToInst.cpp
+  src/Convolution3DInst.cpp
+  src/ConvolutionInst.cpp
+  src/CopyInst.cpp
+  src/CopyInstTensorized.cpp
+  src/CrossEntropyLossInst.cpp
+  src/DequantizeInst.cpp
+  src/ElementBoolInst.cpp
+  src/ElementExpInst.cpp
+  src/ElementInst.cpp
+  src/ElementIsNaNInst.cpp
+  src/ElementSelectInst.cpp
+  src/ElementSingleInst.cpp
+  src/ETSOCFullyConnectedInst.cpp
+  src/ETSOCMaxSplatInst.cpp
+  src/ExtractTensorInst.cpp
+  src/FusedRowwiseQuantizedSparseLengthsSum.cpp
+  src/FusedRowwiseQuantizedSparseLengthsWeightedSum.cpp
+  src/GatherInst.cpp
+  src/GatherRangesInst.cpp
+  src/InsertTensorInst.cpp
+  src/IntLookupTable.cpp
+  src/LengthsSumInst.cpp
+  src/LengthsToRangesInst.cpp
+  src/LocalResponseNormalizationInst.cpp
+  src/MatMulInst.cpp
+  src/MatMulInstTransposed.cpp
+  src/MaxPoolInst.cpp
+  src/ModuloInst.cpp
+  src/QuantizeInst.cpp
+  src/RescaleQuantizedInst.cpp
+  src/RowwiseQuantizedFullyConnected.cpp
+  src/RowwiseQuantizedSparseLengthsWeightedSum.cpp
+  src/ScatterAssignInst.cpp
+  src/SigmoidInst.cpp
+  src/SoftMaxInst1.cpp
+  src/SoftMaxInst2.cpp
+  src/SoftMaxInst.cpp
+  src/SparseLengthsWeightedSumInst.cpp
+  src/SparseToDenseInst.cpp
+  src/SparseToDenseMaskInst.cpp
+  src/SplatInst.cpp
+  src/TanhInst.cpp
+  src/TensorViewInst.cpp
+  src/TopKInst.cpp
+  src/TransposeInst.cpp
 )
 
 include_directories(include)

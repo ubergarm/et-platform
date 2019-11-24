@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 // This function copies a matrix replacing all the elements which are < splatVal
 // and replaces them with splatVal
 template <typename srcType>
@@ -568,3 +585,27 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
     evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, 64);
 }
 
+GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches,
+                                unsigned int srcDimNum, float splatVal,
+                                float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
+                                void *srcT, void *srcDims, void *srcPitches,
+                                unsigned int srcDimNum, int64_t splatVal,
+                                float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, float splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, int64_t splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstVectorized,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, float splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstAligned32Bytes,void *dst, void *dstDims, void *dstPitches,
+                                         void *src, void *srcDims, void *srcPitches,
+                                         unsigned int srcDimNum, float splatVal,
+                                         float *scale, int32_t *offset, uint64_t flags);

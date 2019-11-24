@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
@@ -759,3 +776,20 @@ void dnn_lib::
     pindices, plengths, pLengthsSize, flags,
     minionOffset, assignedMinions);
 }
+
+GEN_INSTANCES_1TYPEFP(template, fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
+            void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+            void *pdata, void *pdataDims, void *pdataPitches,
+            void *pweights, void *pweightsDims, void *pweightsPitches,
+            void *pindices, void *plengths, unsigned int pLengthsSize,
+            uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+
+GEN_INSTANCES_FRQSLWS_V(template, fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
+              void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+              void *pdst2, void *pdst2Pitches,
+              void *pdata, void *pdataDims, void *pdataPitches,
+              void *pweights, void *pweightsDims, void *pweightsPitches,
+              void *pindices, void *plengths, unsigned int pLengthsSize,
+              uint64_t flags,
+              const uint32_t minionOffset = 0, const uint32_t numShires = 0);

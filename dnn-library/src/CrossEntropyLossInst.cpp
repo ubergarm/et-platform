@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
                                          void *srcPitches,
@@ -92,3 +109,10 @@ void dnn_lib::fwdLibCrossEntropyLossInstThreaded(
   if (minionId == 0)
     tOutput[0] = sum * M_1_LOG2E;
 }
+
+GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInst, void *dstT, void *srcT, void *srcDims,
+                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
+                                   float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInstThreaded, void *dstT, void *srcT, void *srcDims,
+                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
+                                   float *scale, int32_t *offset, uint64_t flags);

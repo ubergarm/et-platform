@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibSplatInst(void *addr, int numElems, float splatVal,
                               float *scale, int32_t *offset) {
@@ -244,3 +261,20 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
                        :
                        : "f0");
 }
+
+GEN_INSTANCES_OP(template, fwdLibSplatInst, void *addr, int numElems, float splatVal,
+                        float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSplatInst, void *addr, int numElems, int64_t splatVal,
+                        float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, float splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, int64_t splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, float splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, int64_t splatVal,
+                             float *scale, int32_t *offset, uint64_t flags);

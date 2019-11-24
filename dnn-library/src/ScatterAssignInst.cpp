@@ -9,6 +9,22 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
 
 template <typename srcType>
 void dnn_lib::fwdLibScatterAssignInst(void *dstT, void *dstDims,
@@ -153,3 +169,11 @@ void dnn_lib::fwdLibScatterAssignInstThreaded(void *dstT, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
+GEN_INSTANCES_OP(template, fwdLibScatterAssignInst, void *dstT, void *dstDims,
+                                void *dstPitches, void *indexT, void *indicesDims, void *pindicesPitches,
+                                void *slicesT, void *slicesDims, void *slicesPitches ,
+                                float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibScatterAssignInstThreaded, void *dstT, void *dstDims,
+                                void *dstPitches, unsigned int dstDimNum, void *indexT, void *indicesDims, void *pindicesPitches,
+                                void *slicesT, void *slicesDims, void *slicesPitches ,
+                                float *scale, int32_t *offset, uint64_t flags);

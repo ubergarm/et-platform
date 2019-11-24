@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibLocalResponseNormalizationInst(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
@@ -315,3 +332,18 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
+GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
+                                             void *activations, void *activationsDims, void *activationsPitches,
+                                             unsigned int halfWindowSize, float alpha, float beta, float k,
+                                             float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
+                                             void *activations, void *activationsDims, void *activationsPitches,
+                                             unsigned int halfWindowSize, float alpha, float beta, float k,
+                                             float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
+                                             void *activations, void *activationsDims, void *activationsPitches,
+                                             unsigned int halfWindowSize, float alpha, float beta, float k,
+                                             float *scale, int32_t *offset, uint64_t flags);

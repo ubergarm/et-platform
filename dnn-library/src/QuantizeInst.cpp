@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 /// Quantize floating point tensor. Scale and Offset are based on return type
 /// of the instruction \p I.
 template <typename dstType>
@@ -135,3 +152,10 @@ void dnn_lib::fwdLibQuantizeInstThreaded(void *dstT, void *dstDims,
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_QUANT(template, fwdLibQuantizeInst, void *dstT, void *dstDims, void *dstPitches,
+                              void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                              float scale,  int32_t offset);
+GEN_INSTANCES_QUANT(template, fwdLibQuantizeInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                              void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                              float scale,  int32_t offset, uint64_t flags);

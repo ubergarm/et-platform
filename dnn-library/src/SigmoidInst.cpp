@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibSigmoidInstThreaded(void *dstT, void *dstDims,
                                         void *dstPitches, void *srcT1,
@@ -119,3 +136,10 @@ void dnn_lib::fwdLibSigmoidInst(void *dstT, void *dstDims, void *dstPitches,
     }
   }
 }
+
+GEN_INSTANCES_OP(template, fwdLibSigmoidInst, void *dstT, void *dstDims, void *dstPitches,
+                           void *srcT1, void *srcDims, void *srcPitches,
+                           unsigned int srcDimNum, float * scale, int32_t * offset);
+GEN_INSTANCES_OP(template, fwdLibSigmoidInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                           void *srcT1, void *srcDims, void *srcPitches,
+                           unsigned int srcDimNum, float * scale, int32_t * offset, uint64_t flags);

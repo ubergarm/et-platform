@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
  // This implementation takes advantage of small cases with the same input and
  // output shape. It does not try to avoid padding, as the calculations needed
  // would decrease velocity. Therefore, we just give each minion its initial
@@ -58,3 +75,8 @@
   tensor_load(0, 0, 0, 0, 0, srcAddr, 0, minionCacheLines-1, 0x40, 0);
   tensor_store_scp(0, 0, minionCacheLines-1, dstAddr, 0x40);
 }
+
+GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset, uint64_t flags);

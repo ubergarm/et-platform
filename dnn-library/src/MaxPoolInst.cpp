@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
                                 void *dstMatrixPitches, void *dst2Matrix,
@@ -190,3 +207,18 @@ void dnn_lib::fwdLibMaxPoolInstThreaded(
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_OP(template, fwdLibMaxPoolInst, bool XY, void *dstMatrix,void *dstMatrixDims,
+                         void *dstMatrixPitches, void *dst2Matrix,
+                         void *dst2MatrixDims, void *dst2MatrixPitches,
+                         void *activations, void *activationsDims,
+                         void *activationsPitches, void *pkernels,
+                         void *pstrides, void *ppads, float *scale,
+                         int32_t *offset);
+GEN_INSTANCES_2TYPE_OP(template, fwdLibMaxPoolInstThreaded, bool XY, void *dstMatrix,void *dstMatrixDims,
+                         void *dstMatrixPitches, void *dst2Matrix,
+                         void *dst2MatrixDims, void *dst2MatrixPitches,
+                         void *activations, void *activationsDims,
+                         void *activationsPitches, void *pkernels,
+                         void *pstrides, void *ppads, float *scale,
+                         int32_t *offset, uint64_t flags);

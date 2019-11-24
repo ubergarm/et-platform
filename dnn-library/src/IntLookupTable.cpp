@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 void dnn_lib::fwdLibIntLookupTableInstInt8QTy(
     void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
     void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,

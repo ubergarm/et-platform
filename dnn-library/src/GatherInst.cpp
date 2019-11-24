@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType, typename indexType>
 void dnn_lib::fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
                                void *srcT, void *srcDims, void *srcPitches,
@@ -174,3 +191,14 @@ void dnn_lib::fwdLibGatherInstThreaded(
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInst, void *dstT, void *dstDims, void *dstPitches,
+                               void *srcT, void *srcDims, void *srcPitches,
+                               unsigned int srcDimsNum, void *indexT, void *indicesDims,
+                               void *pindicesPitches, unsigned int batchedDims,
+                               float *scale, int32_t *offset);
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                               void *srcT, void *srcDims, void *srcPitches,
+                               unsigned int srcDimsNum, void *indexT, void *indicesDims,
+                               void *pindicesPitches, unsigned int indicesDimsNum,
+                               unsigned int batchedDims, float *scale, int32_t *offset, uint64_t flags);

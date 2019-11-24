@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibLengthsSumInst(void *pdst, void *pdstDims,
                                    void *pdstPitches, void *pdata,
@@ -211,4 +228,9 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + sizeof(srcType)*initialAddr, clperminion);
 }
 
-
+GEN_INSTANCES_OP(template, fwdLibLengthsSumInst, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
+                             void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
+                             void *plengths, unsigned int pLengthsSize, float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibLengthsSumInstThreaded, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
+                                     void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
+                                     void *plengths, unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags);

@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 // TODO Check corner cases
 template <typename srcType>
 void dnn_lib::fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
@@ -125,3 +142,10 @@ void dnn_lib::fwdLibTanhInstThreaded(void *dstT, void *dstDims,
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_OP(template, fwdLibTanhInst, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
+                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                       float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibTanhInstThreaded, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
+                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                       float *scale, int32_t *offset, uint64_t flags);

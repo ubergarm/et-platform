@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType, typename dstType>
 void dnn_lib::fwdLibConvertToInst(void *dstT, void *dstDims, void *dstPitches,
                                   void *srcT1, void *srcDims, void *srcPitches,
@@ -273,3 +290,13 @@ void dnn_lib::fwdLibConvertToInstVectorized(void *dst, void *dstDims,
   unsigned int clperminion = maxRead * typeSizeDst / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSizeDst*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_CONVERT(template, fwdLibConvertToInst, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float *scale, int32_t *offset);
+GEN_INSTANCES_CONVERT(template, fwdLibConvertToInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_CONVERT(template, fwdLibConvertToInstVectorized, void *dstT, void *dstDims, void *dstPitches,
+                                 void *srcT1, void *srcDims, void *srcPitches,
+                                 unsigned int srcDimNum, float *scale, int32_t *offset, uint64_t flags);

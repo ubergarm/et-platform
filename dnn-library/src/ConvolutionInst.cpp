@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
                                     void *dstMatrixPitches, void *activations,
@@ -776,3 +793,19 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_OP(template, fwdLibConvolutionInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                              void *activations, void *activationsDims, void *activationsPitches,
+                              void *weights, void *weightsDims, void *weightPitches, void *bias,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                              float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibConvolutionInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                              void *activations, void *activationsDims, void *activationsPitches,
+                              void *weights, void *weightsDims, void *weightPitches, void *bias,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+                              void *activations, void *activationsDims, void *activationsPitches,
+                              void *weights, void *weightsDims, void *weightPitches, void *bias,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                              float *scale, int32_t *offset, uint64_t flags);

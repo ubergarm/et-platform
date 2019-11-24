@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 void swap(void *vals, void *inds, int i, int j) {
   float *fVals = (float *)vals;
   long long *lInds = (long long *)inds;
@@ -751,3 +768,20 @@ void dnn_lib::fwdLibTopKInstThreaded_k8(
       valuesT[batch_offset * valuesPitch[batchDim] + i] = tmpT[i];
   }
 }
+
+GEN_INSTANCES_OP(template, fwdLibTopKInst, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_all, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k4, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k8, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
+                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
+                              unsigned int srcDimNum, unsigned int k,
+                              float *scale, int32_t *offset, uint64_t flags);

@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                                      unsigned int dstDimNum, void *src2,
@@ -518,3 +535,14 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
     }
   }
 }
+
+GEN_INSTANCES_OP(template, fwdLibInsertTensorInst, void *dst, void *dstDims,
+                               void *dstPitches, unsigned int dstDimNum,
+                               void *src2, void *src2Dims, void *src2Pitches,
+                               void * poffsets, unsigned int count,
+                               unsigned int axis, float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibInsertTensorInstThreaded, void *dst, void *dstDims,
+                                void *dstPitches, unsigned int dstDimNum,
+                                void *src2, void *src2Dims, void *src2Pitches,
+                                void * poffsets, unsigned int count,
+                                unsigned int axis, float *scale, int32_t *offset, uint64_t flags);

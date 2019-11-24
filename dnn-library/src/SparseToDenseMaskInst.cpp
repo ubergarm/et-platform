@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibSparseToDenseMaskInst(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
@@ -200,3 +217,14 @@ void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
     }
   }
 }
+
+GEN_INSTANCES_OP(template, fwdLibSparseToDenseMaskInst, void *pdst, void *pdstDims, void *pdstPitches,
+                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
+                                    void *pdataPitches, void *pdefault, int pdefaultSize,
+                                    void *pindices, void *plengths, unsigned int pLengthsSize,
+                                    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSparseToDenseMaskInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
+                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
+                                    void *pdataPitches, unsigned int pdataDimNum, void *pdefault, int pdefaultSize,
+                                    void *pindices, void *plengths, unsigned int pLengthsSize,
+                                    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset, uint64_t flags);

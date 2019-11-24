@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 
 template <typename srcType>
 void dnn_lib::fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
@@ -179,3 +196,12 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*dstAddr, clperminion);
 }
+
+GEN_INSTANCES_OP(template, fwdLibBatchOneHotInst, void *pdst, void *pdstDims, void *pdstPitches,
+                              void *pdata, void *pdataDims, void *pdataPitches,
+                              void *pvalues, void *pvaluesDims, void *pvaluesPitches,
+                              void *plengths, float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibBatchOneHotInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
+                                      void *pdata, void *pdataDims, void *pdataPitches,
+                                      void *pvalues, void *pvaluesDims, void *pvaluesPitches,
+                                      void *plengths, float *scale, int32_t *offset, uint64_t flags);

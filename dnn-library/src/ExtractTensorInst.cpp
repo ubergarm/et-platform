@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibExtractTensorInst(void *dst, void *dstDims,
                                       void *dstPitches, unsigned int dstDimNum,
@@ -121,3 +138,12 @@ void dnn_lib::fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialaddrOut, clperminion);
 }
+
+GEN_INSTANCES_OP(template, fwdLibExtractTensorInst, void *dst, void *dstDims,
+                                void *dstPitches, unsigned int dstDimNum,
+                                void *src2, void *src2Dims, void *src2Pitches,
+                                void * poffsets, float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibExtractTensorInstThreaded, void *dst, void *dstDims,
+                                void *dstPitches, unsigned int dstDimNum,
+                                void *src, void *srcDims, void *srcPitches,
+                                void * poffsets, float *scale, int32_t *offset, uint64_t flags);

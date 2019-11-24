@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType, typename indexType>
 void dnn_lib::fwdLibGatherRangesInst(
     void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
@@ -237,3 +254,13 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
   }
 }
 
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, void *dstT, void *dstDims, void *dstPitches,
+                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
+                                     void *srcT, void *srcDims, void *srcPitches,
+                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
+                                     void *prangesPitches, float *scale, int32_t *offset);
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
+                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
+                                     void *srcT, void *srcDims, void *srcPitches,
+                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
+                                     void *prangesPitches, float *scale, int32_t *offset, uint64_t flags);

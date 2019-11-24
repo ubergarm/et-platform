@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 static inline void uint32_to_ascii_hex(char *s, uint32_t value) {
   for (uint32_t i = 0; i < 8; i++) {
     uint32_t bits = (value >> (28 - i * 4)) & 0xF;
@@ -91,3 +108,7 @@ void dnn_lib::fwdLibFlushL3(uint32_t numShires) {
   }
 }
 
+GEN_INSTANCES_OP(template, fwdLibChecksum, void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset,
+                                  uint64_t flags);

@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibCopyInst(void *dst, void *src, unsigned int numElems,
                              float *scale, int32_t *offset) {
@@ -380,3 +397,15 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 //     }
 //   }
 // }
+
+GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *src, unsigned int numElems,
+                       float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset,
+                                  uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset, uint64_t flags);

@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInst(void *dstT, void *srcT, void *srcTDims,
                                 void *srcTPitches, float *scale,
@@ -97,4 +114,9 @@ void dnn_lib::fwdLibSoftMaxInstVectorized(void *dstT, void *srcT, void *srcTDims
                                         offset);
 }
 
-
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInst, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInstVectorized, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);

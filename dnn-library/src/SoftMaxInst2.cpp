@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 // Single-thread version with small optimisations. Useful when the padding
 // hypothesis are not met.
 template <typename srcType>
@@ -111,3 +128,8 @@ void dnn_lib::fwdLibSoftMaxInstThreaded2 (void *dstT, void *srcT, void *srcTDims
   }
 }
 
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInst2, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset);
+
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded2, void *dstT, void *srcT, void *srcTDims,
+                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);

@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 // This version does NOT support Tensors of more than 2 dimensions with padding
 template <typename srcType>
 void dnn_lib::fwdLibSparseLengthsWeightedSumInst(
@@ -149,3 +166,12 @@ void dnn_lib::fwdLibSparseLengthsWeightedSumInstThreaded(
   unsigned int clperminion = maxRead * typeSize / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInst,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
+                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
+                                          unsigned int pLengthsSize, float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInstThreaded,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
+                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
+                                          unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags);

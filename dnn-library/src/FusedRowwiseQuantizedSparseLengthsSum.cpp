@@ -9,9 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template<typename DstType>
-void dnn_lib::
-    fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
+void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
         void *pdata, void *pdataDims, void *pdataPitches,
         void *pindices, void *plengths, unsigned int pLengthsSize,
@@ -29,3 +45,10 @@ void dnn_lib::
     pindices, plengths, pLengthsSize, flags,
     minionOffset, assignedMinions);
 }
+
+GEN_INSTANCES_1TYPEFP(template, fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized,
+            void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+            void *pdata, void *pdataDims, void *pdataPitches,
+            void *pindices, void *plengths, unsigned int pLengthsSize,
+            uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t numShires = 0);

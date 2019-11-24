@@ -9,6 +9,23 @@
  *-------------------------------------------------------------------------
  */
 
+#include <assert.h>
+#include <fenv.h>
+#include <limits>
+#include <cmath>
+#include <cstring>
+
+#include "LibNodes.h"
+#include "GenInstances.h"
+#include "Float16.h"
+#include "Writer.h"
+#include "Addresser.h"
+#include "Converter.h"
+#include "Operator.h"
+#include "utils.h"
+
+using namespace std;
+
 template <typename srcType>
 void dnn_lib::fwdLibBatchedAddInst(void *pdst, void *pdstDims,
                                    void *pdstPitches, void *pbatch,
@@ -293,3 +310,12 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
   unsigned int clperminion = maxRead * sizeof(int8_t) / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + sizeof(int8_t)*initialAddr, clperminion);
 }
+
+GEN_INSTANCES_OP(template, fwdLibBatchedAddInst, void *pdst, void *pdstDims, void *pdstPitches,
+                             void *pbatch, void *pbatchDims, void *pbatchPitches,
+                             unsigned int pbatchDimNum, void *pslice,
+                             float *scale, int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibBatchedAddInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
+                             void *pbatch, void *pbatchDims, void *pbatchPitches,
+                             unsigned int pbatchDimNum, void *pslice,
+                             float *scale, int32_t *offset, uint64_t flags);
