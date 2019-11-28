@@ -103,4 +103,10 @@
   template void functionName<false, true,  false>(__VA_ARGS__);                \
   template void functionName<false, false, true>(__VA_ARGS__);
 
+#define GEN_INSTANCES_RQSLWS_V(template, functionName, ...)                   \
+  template void functionName<true,  true>(__VA_ARGS__);                       \
+  template void functionName<true,  false>(__VA_ARGS__);                      \
+  template void functionName<false, true>(__VA_ARGS__);                       \
+  template void functionName<false, false>(__VA_ARGS__);
+
 #endif

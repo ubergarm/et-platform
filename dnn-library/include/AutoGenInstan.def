@@ -610,6 +610,12 @@ GEN_FRQSLWS_V(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVect
               void *pindices, void *plengths, unsigned int pLengthsSize,
               uint64_t flags,
               const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+GEN_RQSLWS_V(fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
+             void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
+             void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
+             void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
+             void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
+             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 #endif
 

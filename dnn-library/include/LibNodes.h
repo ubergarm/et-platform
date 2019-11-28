@@ -405,6 +405,11 @@ enum PrecisionMode {
   void functionName(__VA_ARGS__);                                                     \
   GEN_INSTANCES_FRQSLWS_V(extern template, functionName, __VA_ARGS__)
 
+#define GEN_RQSLWS_V(functionName, ...)                                               \
+  template <bool Int8Src = false, bool FLoat16Dst = false>                            \
+  void functionName(__VA_ARGS__);                                                     \
+  GEN_INSTANCES_RQSLWS_V(extern template, functionName, __VA_ARGS__)
+
 #include "AutoGenInstan.def"
 
 void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims, void *pdstPitches,
