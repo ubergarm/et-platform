@@ -240,7 +240,7 @@ void dnn_lib::
   // For dst we used uint8_t because it can be accessed with different types.
   uint8_t *tOutput = (uint8_t *) pdst;
   uint8_t *tAInput = (uint8_t *) pdata;
-  float   *tWInput = (float   *) pweights;
+  uint8_t *tWInput = (uint8_t *) pweights;
   int64_t *indices = (int64_t *) pindices;
   int32_t *lengths = (int32_t *) plengths;
 
@@ -262,8 +262,10 @@ void dnn_lib::
   //
 
   // Compute the number of elements per data row (first tensor dimension).
-  uintptr_t dataRowSize = 1;
-  for (uintptr_t i = 1; i < pdstDimNum; i++) dataRowSize *= dataDims[i];
+  //uintptr_t dataRowSize = 1;
+  //for (uintptr_t i = 1; i < pdstDimNum; i++) dataRowSize *= dataDims[i];
+  // The data tensor must have only two dimensions.
+  uintptr_t dataRowSize = dataDims[1];
 
   // Compute the number of elements per output row (first tensor dimension).
   uintptr_t dstRowSize = 1;
@@ -382,25 +384,15 @@ void dnn_lib::
         );
       }
 
-      if (!Weighted) {
-        __asm__ __volatile__ (
-          "li      t0, 0x3f800000\n"
-          "fbcx.ps f26, t0\n"
-          :
-          :
-          : "f26"
-        );
-      }
-
       // For all sparse input rows.
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
         volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
-        float            * scale_ptr  = (float *) &data_ptr[dataRowSize - 8];
-        float            * offset_ptr = (float *) &data_ptr[dataRowSize - 4];
+        void             * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
+        void             * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
 
         if (Weighted){
-          float          * weight_ptr = (float *) &tWInput[currIndex];
+          uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
 
           __asm__ __volatile__ (
             "fbc.ps  f26, 0x0(%[weight_ptr])\n"
@@ -408,12 +400,37 @@ void dnn_lib::
             : [weight_ptr] "r" (weight_ptr)
             : "f26"
           );
+
+          if (Float16Dst) {
+            __asm__ __volatile__ (
+              "fcvt.ps.f16 f26, f26\n"
+              :
+              :
+              : "f26"
+            );
+          }
         }
 
         __asm__ __volatile__ (
           "fbc.ps  f27, 0x0(%[offset_ptr])\n"
           "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+          :
+          : [offset_ptr] "r"   (offset_ptr),
+             [scale_ptr]  "r"   (scale_ptr)
+          : "f27", "f28"
+        );
 
+        if (Float16Dst) {
+          __asm__ __volatile__ (
+            "fcvt.ps.f16 f27, f27\n"
+            "fcvt.ps.f16 f28, f28\n"
+            :
+            :
+            : "f27", "f28"
+          );
+        }
+
+        __asm__ __volatile__ (
           // Load a full input cache line (64 elements, 8 vregs)
           "fgb.ps     f25, f31, %[data_ptr]\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
@@ -455,21 +472,37 @@ void dnn_lib::
           "fmadd.ps   f20, f20, f28, f27\n"
           "fmadd.ps   f19, f19, f28, f27\n"
           "fmadd.ps   f18, f18, f28, f27\n"
-          "fmadd.ps   f0, f26, f25, f0\n"
-          "fmadd.ps   f1, f26, f24, f1\n"
-          "fmadd.ps   f2, f26, f23, f2\n"
-          "fmadd.ps   f3, f26, f22, f3\n"
-          "fmadd.ps   f4, f26, f21, f4\n"
-          "fmadd.ps   f5, f26, f20, f5\n"
-          "fmadd.ps   f6, f26, f19, f6\n"
-          "fmadd.ps   f7, f26, f18, f7\n"
          : [data_ptr]   "+&r" (data_ptr)
          : [offset_ptr] "r"   (offset_ptr),
            [scale_ptr]  "r"   (scale_ptr)
-         : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
-           "f18" , "f19", "f20", "f21", "f22", "f23", "f24",
+         : "f18" , "f19", "f20", "f21", "f22", "f23", "f24",
            "f25", "f27", "f28"
         );
+
+        if (Weighted) {
+          __asm__ __volatile__ (
+            "fmadd.ps f0, f26, f25, f0\n"
+            "fmadd.ps f1, f26, f24, f1\n"
+            "fmadd.ps f2, f26, f23, f2\n"
+            "fmadd.ps f3, f26, f22, f3\n"
+            "fmadd.ps f4, f26, f21, f4\n"
+            "fmadd.ps f5, f26, f20, f5\n"
+            "fmadd.ps f6, f26, f19, f6\n"
+            "fmadd.ps f7, f26, f18, f7\n"
+          );
+        }
+        else {
+          __asm__ __volatile__ (
+            "fadd.ps f0, f25, f0\n"
+            "fadd.ps f1, f24, f1\n"
+            "fadd.ps f2, f23, f2\n"
+            "fadd.ps f3, f22, f3\n"
+            "fadd.ps f4, f21, f4\n"
+            "fadd.ps f5, f20, f5\n"
+            "fadd.ps f6, f19, f6\n"
+            "fadd.ps f7, f18, f7\n"
+          );
+        }
       }
 
       if (Float32Dst) {
@@ -589,27 +622,17 @@ void dnn_lib::
         );
       }
 
-      if (!Weighted) {
-        __asm__ __volatile__ (
-          "li      t0, 0x3f800000\n"
-          "fbcx.ps f26, t0\n"
-          :
-          :
-          : "f26"
-        );
-      }
-
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
 
         // For all sparse input rows.
         for (uintptr_t j = 0, currIndex = minionCurrIndex;
              j < currSegmentLength; j++, currIndex++) {
           volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
-          float            * scale_ptr  = (float *) &data_ptr[dataRowSize - 8];
-          float            * offset_ptr = (float *) &data_ptr[dataRowSize - 4];
+          void             * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
+          void             * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
 
           if (Weighted){
-            float          * weight_ptr = (float *) &tWInput[currIndex];
+            uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
 
             __asm__ __volatile__ (
               "fbc.ps  f26, 0x0(%[weight_ptr])\n"
@@ -617,24 +640,58 @@ void dnn_lib::
               : [weight_ptr] "r" (weight_ptr)
               : "f26"
             );
+
+            if (Float16Dst) {
+              __asm__ __volatile__ (
+                "fcvt.ps.f16 f26, f26\n"
+                :
+                :
+                : "f26"
+              );
+            }
           }
 
-          __asm__ __volatile__ (
-            "fbc.ps  f27, 0x0(%[offset_ptr])\n"
-            "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+         __asm__ __volatile__ (
+           "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+           "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+           :
+           : [offset_ptr] "r"   (offset_ptr),
+             [scale_ptr]  "r"   (scale_ptr)
+           : "f27", "f28"
+         );
 
+         if (Float16Dst) {
+           __asm__ __volatile__ (
+             "fcvt.ps.f16 f27, f27\n"
+             "fcvt.ps.f16 f28, f28\n"
+             :
+             :
+             : "f27", "f28"
+           );
+         }
+
+         __asm__ __volatile__ (
             // Load a full input cache line (64 elements, 8 vregs)
             "fgb.ps     f25, f31, %[data_ptr]\n"
             "addi       %[data_ptr], %[data_ptr], 8\n"
             "fand.pi    f25, f25, f30\n"
             "fcvt.ps.pw f25, f25\n"
             "fmadd.ps   f25, f25, f28, f27\n"
-            "fmadd.ps   f0, f26, f25, f0\n"
            : [data_ptr]   "+&r" (data_ptr)
            : [offset_ptr] "r"   (offset_ptr),
              [scale_ptr]  "r"   (scale_ptr)
-           : "f0", "f25", "f27", "f28"
+           : "f25", "f27", "f28"
           );
+          if (Weighted) {
+            __asm__ __volatile__ (
+              "fmadd.ps f0, f26, f25, f0\n"
+            );
+          }
+          else {
+            __asm__ __volatile__ (
+              "fadd.ps f0, f25, f0\n"
+            );
+          }
         }
 
         if (Float32Dst) {
@@ -679,11 +736,11 @@ void dnn_lib::
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
         volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
-        float            * scale_ptr  = (float *) &data_ptr[dataRowSize - 8];
-        float            * offset_ptr = (float *) &data_ptr[dataRowSize - 4];
+        void             * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
+        void             * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
 
         if (Weighted){
-          float          * weight_ptr = (float *) &tWInput[currIndex];
+          uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
 
           __asm__ __volatile__ (
             "fbc.ps  f26, 0x0(%[weight_ptr])\n"
@@ -691,24 +748,59 @@ void dnn_lib::
             : [weight_ptr] "r" (weight_ptr)
             : "f26"
           );
+
+          if (Float16Dst) {
+            __asm__ __volatile__ (
+              "fcvt.ps.f16 f26, f26\n"
+              :
+              :
+              : "f26"
+            );
+          }
         }
 
         __asm__ __volatile__ (
           "fbc.ps  f27, 0x0(%[offset_ptr])\n"
           "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+          :
+          : [offset_ptr] "r"   (offset_ptr),
+             [scale_ptr]  "r"   (scale_ptr)
+          : "f27", "f28"
+        );
 
+        if (Float16Dst) {
+          __asm__ __volatile__ (
+            "fcvt.ps.f16 f27, f27\n"
+            "fcvt.ps.f16 f28, f28\n"
+            :
+            :
+            : "f27", "f28"
+          );
+        }
+
+        __asm__ __volatile__ (
           // Load a full input cache line (64 elements, 8 vregs)
           "fgb.ps     f25, f31, %[data_ptr]\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
           "fand.pi    f25, f25, f30\n"
           "fcvt.ps.pw f25, f25\n"
           "fmadd.ps   f25, f25, f28, f27\n"
-          "fmadd.ps   f0, f26, f25, f0\n"
          : [data_ptr]   "+&r" (data_ptr)
          : [offset_ptr] "r"   (offset_ptr),
            [scale_ptr]  "r"   (scale_ptr)
-         : "f0", "f25", "f27", "f28"
+         : "f25", "f27", "f28"
         );
+        
+        if (Weighted) {
+          __asm__ __volatile__ (
+            "fmadd.ps f0, f26, f25, f0\n"
+          );
+        } 
+        else {
+          __asm__ __volatile__ (
+            "fadd.ps f0, f25, f0\n"
+          );
+        }
       }
 
       if (Float32Dst) {
@@ -755,7 +847,7 @@ void dnn_lib::
   }
 }
 
-template<typename DstType>
+template<typename Type>
 void dnn_lib::
     fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
@@ -765,8 +857,8 @@ void dnn_lib::
         uint64_t flags,
         const uint32_t minionOffset, const uint32_t assignedMinions) {
 
-  const bool float32Dst = (std::is_same<DstType, float>::value);
-  const bool float16Dst = (std::is_same<DstType, float16>::value);
+  const bool float32Dst = (std::is_same<Type, float>::value);
+  const bool float16Dst = (std::is_same<Type, float16>::value);
 
   fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<true, float32Dst, float16Dst>(
     pdst, pdstDims, pdstPitches, pdstDimNum,
