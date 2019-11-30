@@ -124,6 +124,7 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   unsigned int coordOut[pdataDimNum]; // Vector of coordinates
 
   getNonPaddingCoordinates(coordOut, initialAddr, pdataDimNum, dstPitch, dstIndex, k);
+  coordIn[0] = 0;
   for (unsigned int i = 1; i < pdataDimNum; i++) {
     coordIn[i] = coordOut [i];
   }
