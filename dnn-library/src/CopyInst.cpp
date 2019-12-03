@@ -263,6 +263,10 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 
     done = getOffsets(srcDimNum - 1, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
   }
+  if (!DO_EVICTS)
+    return;
+  unsigned int clperminion = maxRead * typeSize / 64;
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
 // template <typename srcType>
