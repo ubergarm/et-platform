@@ -372,4 +372,35 @@ void getLanesResTView (int &lanes, int &res, const unsigned int &d) {
   return;
 }
 
+inline __attribute__((always_inline))
+bool getNextStep(unsigned int dimNum,
+                 unsigned int *coord, unsigned int *dims) {
+  if (coord[0] < dims[0]-1) {
+    coord[0] = coord[0]+1;
+  } else {
+    coord[0] = 0;
+    for (int i = 1; i < dimNum; i++) {
+      if (coord[i] < dims[i]-1) {
+        coord[i] = coord[i]+1;
+        break;
+      } else {
+        coord[i] = 0;
+        if (i == dimNum-1)
+          return true;
+      }
+    }
+  }
+  return false;
+}
+
+inline __attribute__((always_inline))
+unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
+                       unsigned int *pitch) {
+  unsigned int offset = 0;
+  for (int i = 0; i < dimNum; i++) {
+    offset += coord[i] * pitch[i];
+  }
+  return offset;
+}
+
 #endif /* UTILS_H */

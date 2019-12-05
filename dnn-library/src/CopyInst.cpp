@@ -27,8 +27,9 @@
 using namespace std;
 
 template <typename srcType>
-void dnn_lib::fwdLibCopyInst(void *dst, void *src, unsigned int numElems,
-                             float *scale, int32_t *offset) {
+void dnn_lib::fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
+                             void *src, void *srcDims, void *srcPitches,
+                             unsigned int srcDimNum, float *scale, int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -37,8 +38,22 @@ void dnn_lib::fwdLibCopyInst(void *dst, void *src, unsigned int numElems,
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
   const Addresser<srcType> tInput(src, scale[0], offset[0]);
 
-  for (int i = 0; i < numElems; i += 1) {
-    tOutput[i] = tInput[i];
+  unsigned int *actIndex = (unsigned int *)srcDims;
+
+  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  unsigned int *actPitch = (unsigned int *)srcPitches;
+  
+  unsigned int coord[srcDimNum] = {0};
+  unsigned int offsetIn  = 0;
+  unsigned int offsetOut = 0;
+
+  bool done = false;
+
+  while (!done) {
+    tOutput[offsetOut] = tInput[offsetIn];
+    done = getNextStep(srcDimNum, coord, actIndex);
+    offsetIn  = getOffset(coord, srcDimNum, actPitch);
+    offsetOut = getOffset(coord, srcDimNum, dstPitch);
   }
 }
 
@@ -402,11 +417,11 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 //   }
 // }
 
-GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *src, unsigned int numElems,
+GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *dstDims, void *dstPitches,
+                      void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
                        float *scale, int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum,
+                                  void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
                                   float *scale, int32_t *offset,
                                   uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,

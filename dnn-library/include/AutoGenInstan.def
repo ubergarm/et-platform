@@ -263,8 +263,10 @@ GEN_OP(fwdLibChecksum, void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
                                   float *scale, int32_t *offset,
                                   uint64_t flags);
-GEN_OP(fwdLibCopyInst, void *dst, void *src, unsigned int numElems,
-                       float *scale, int32_t *offset);
+GEN_OP(fwdLibCopyInst, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches,
+                                  unsigned int srcDimNum,
+                                  float *scale, int32_t *offset);
 GEN_OP(fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
