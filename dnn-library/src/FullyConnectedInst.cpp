@@ -27,7 +27,7 @@
 using namespace std;
 
 template <typename srcType>
-void dnn_lib::fwdLibETSOCFullyConnectedInst(
+void dnn_lib::fwdLibFullyConnectedInst(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -69,7 +69,7 @@ void dnn_lib::fwdLibETSOCFullyConnectedInst(
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibETSOCFullyConnectedInstThreaded(
+void dnn_lib::fwdLibFullyConnectedInstThreaded(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -650,7 +650,7 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
 void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){}
 
 template <typename src1Type, typename src2Type, typename dstType>
-void dnn_lib::fwdLibETSOCFullyConnectedInstVectorized(
+void dnn_lib::fwdLibFullyConnectedInstVectorized(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches1,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -715,15 +715,15 @@ void dnn_lib::fwdLibETSOCFullyConnectedInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibETSOCFullyConnectedInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_INSTANCES_OP(template, fwdLibFullyConnectedInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                       void *activations, void *activationsDims, void *activationsPitches,
                                       void *weights, void *weightsDims, void *weightPitches,
                                       void *bias, float *scale, int32_t *offset );
-GEN_INSTANCES_OP(template, fwdLibETSOCFullyConnectedInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_INSTANCES_OP(template, fwdLibFullyConnectedInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                       void *activations, void *activationsDims, void *activationsPitches,
                                       void *weights, void *weightsDims, void *weightPitches,
                                       void *bias, float *scale, int32_t *offset, uint64_t flags );
-GEN_INSTANCES_3TYPE_OP(template, fwdLibETSOCFullyConnectedInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_INSTANCES_3TYPE_OP(template, fwdLibFullyConnectedInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                       void *activations, void *activationsDims, void *activationsPitches,
                                       void *weights, void *weightsDims, void *weightPitches,
                                       void *bias, float *scale, int32_t *offset, uint64_t flags );

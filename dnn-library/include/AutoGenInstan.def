@@ -485,15 +485,15 @@ GEN_OP(fwdLibETSOCMaxSplatInstAligned32Bytes,void *dst, void *dstDims, void *dst
                                          void *src, void *srcDims, void *srcPitches,
                                          unsigned int srcDimNum, float splatVal,
                                          float *scale, int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibETSOCFullyConnectedInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_OP(fwdLibFullyConnectedInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                       void *activations, void *activationsDims, void *activationsPitches,
                                       void *weights, void *weightsDims, void *weightPitches,
                                       void *bias, float *scale, int32_t *offset );   
-GEN_OP(fwdLibETSOCFullyConnectedInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_OP(fwdLibFullyConnectedInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                       void *activations, void *activationsDims, void *activationsPitches,
                                       void *weights, void *weightsDims, void *weightPitches,
                                       void *bias, float *scale, int32_t *offset, uint64_t flags );
-GEN_3TYPE_OP(fwdLibETSOCFullyConnectedInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_3TYPE_OP(fwdLibFullyConnectedInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                       void *activations, void *activationsDims, void *activationsPitches,
                                       void *weights, void *weightsDims, void *weightPitches,
                                       void *bias, float *scale, int32_t *offset, uint64_t flags );
