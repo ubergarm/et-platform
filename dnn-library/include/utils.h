@@ -19,6 +19,7 @@
 #include <device_common.h>
 
 #include "LibCommon.h"
+#include "Float16.h"
 
 using namespace dnn_lib;
 

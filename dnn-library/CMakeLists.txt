@@ -30,13 +30,13 @@ option(CLANG_BUILD "Build using clang")
 
 if(CLANG_BUILD)
   set(CMAKE_CXX_COMPILER "$ENV{LLVM_RVET}/bin/clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -mcmodel=medium -target riscv64 -march=rv64-et -mabi=lp64f")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O3 -mcmodel=medium -target riscv64 -march=rv64-et -mabi=lp64f")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --sysroot=$(RISCV)/riscv64-unknown-elf")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$(RISCV)/riscv64-unknown-elf/include/c++/8.2.0/")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I$(RISCV)/riscv64-unknown-elf/include/c++/8.2.0/riscv64-unknown-elf")
 else()
   set(CMAKE_CXX_COMPILER "riscv64-unknown-elf-g++")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -mcmodel=medany -march=rv64imf -mabi=lp64f")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O2 -mcmodel=medany -march=rv64imf -mabi=lp64f")
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
@@ -95,6 +95,7 @@ add_library(dnn_lib STATIC
   src/TensorViewInst.cpp
   src/TopKInst.cpp
   src/TransposeInst.cpp
+  src/tinyprintf.cpp
 )
 
 include_directories(include)
