@@ -275,11 +275,13 @@ GEN_OP(fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
 GEN_OP(fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
-                                  float *scale, int32_t *offset, uint64_t flags);
+                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 GEN_OP(fwdLibCopyInstTensorized, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
-                                  float *scale, int32_t *offset, uint64_t flags);
+                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 GEN_OP(fwdLibTensorViewInst, void *dst, void *dstDims, void *dstPitches,
                              unsigned int dstDimNum, void *src, void *srcDims,
                              void *srcPitches, unsigned int srcDimNum, void *poffsets,

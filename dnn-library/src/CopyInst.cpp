@@ -145,10 +145,12 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
                                        void *dstPitches, void *src,
                                        void *srcDims, void *srcPitches,
                                        unsigned int srcDimNum, float *scale,
-                                       int32_t *offset, uint64_t flags) {
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
+                                       int32_t *offset, uint64_t flags,
+                                       const uint32_t minionOffset,
+                                       const uint32_t assignedMinions) {
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  if ((minionId >= activeMinions) || (minionId >= activeMinions))
     return;
 
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
@@ -427,4 +429,5 @@ GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, void *dst, void *dstDims, voi
 GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
-                                  float *scale, int32_t *offset, uint64_t flags);
+                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const uint32_t minionOffset, const uint32_t assignedMinions);
