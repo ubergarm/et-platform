@@ -26,12 +26,33 @@
 
 using namespace std;
 
- // This implementation takes advantage of small cases with the same input and
- // output shape. It does not try to avoid padding, as the calculations needed
- // would decrease velocity. Therefore, we just give each minion its initial
- // address and make it copy everything until maxRead. In the end, there should
- // be a graph decision between this version and the general vectorisation.
-
+/**
+ * @brief Copies the src matrix to the dst matrix.
+ *
+ * It makes a copy of the tensor src into the dst tensor, which may not
+ * have the same pitches or dimensions, so it allows a reshaping. This is
+ * the threaded and vectorized version for this operator.
+ * 
+ * @warning It is assumed that the destination tensor starts at the beginning
+ *  of a cacheline.
+ * 
+ * @warning It is assumed that the input and output tensors have the same shape
+ *  (same dimensions and pitches).
+ *
+ * @tparam srcType The type of the elements in the tensor.
+ * @param[out] dst Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] src Pointer to the input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] srcPitches Vector of pitches of the input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] scale, offset Parameters for the quantization.
+ * @param[in] flags Gives the information of the Active Shires and the
+ *  type of evict required.
+ * @param[in] minionOffset The first minion that is assigned to this node.
+ * @param[in] assignedMinions Amount of minions avaliable.
+ */
  template <typename srcType>
  void dnn_lib::fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
                                         void *src, void *srcDims, void *srcPitches,

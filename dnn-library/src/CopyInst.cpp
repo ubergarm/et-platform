@@ -26,6 +26,23 @@
 
 using namespace std;
 
+/**
+ * @brief Copies the src matrix to the dst matrix.
+ *
+ * It makes a copy of the tensor src into the dst tensor, which may not
+ * have the same pitches or dimensions, so it allows a reshaping. In this
+ * version all the work is done by the same minion.
+ * 
+ * @tparam srcType The type of the elements in the tensor.
+ * @param[out] dst Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] src Pointer to the input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] srcPitches Vector of pitches of the input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] scale, offset Parameters for the quantization.
+ */
 template <typename srcType>
 void dnn_lib::fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
                              void *src, void *srcDims, void *srcPitches,
@@ -57,19 +74,25 @@ void dnn_lib::fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
   }
 }
 
-
-/* This is currently the fastest version of the copy, geting up to 800x velocity
- * compared to the single thread version of CopyInst. It splits the total
- * cachelines in packs and distributes them between all the minions possible.
+/**
+ * @brief Copies the src matrix to the dst matrix.
  *
- * It is specially more desirable than other threading implementations
- * due to the fact that it updates the position being read and written via
- * the sum of the pitch, instead of computing it on each iteration of the loop.
- *
- * Moreover, this version gets over the limited convention of only considering
- * arrays of 6 dimensions, as extended vectors are not needed, and therefore
- * this implementation is a generalization of the previous ones. */
-
+ * It makes a copy of the tensor src into the dst tensor, which may not
+ * have the same pitches or dimensions, so it allows a reshaping. This is
+ * the threaded version for this operator, so several minions are used.
+ * 
+ * @tparam srcType The type of the elements in the tensor.
+ * @param[out] dst Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] src Pointer to the input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] srcPitches Vector of pitches of the input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] scale, offset Parameters for the quantization.
+ * @param[in] flags Gives the information of the Active Shires and the
+ *  type of evict required.
+ */
 template <typename srcType>
 void dnn_lib::fwdLibCopyInstThreaded(void *dst, void *dstDims,
                                      void *dstPitches, void *src,
@@ -137,9 +160,30 @@ void dnn_lib::fwdLibCopyInstThreaded(void *dst, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-
-// Vectorized and threaded general version of CopyInst. Work in progress.
-
+/**
+ * @brief Copies the src matrix to the dst matrix.
+ *
+ * It makes a copy of the tensor src into the dst tensor, which may not
+ * have the same pitches or dimensions, so it allows a reshaping. This is
+ * the threaded and vectorized version for this operator.
+ *
+ * @Warning It is assumed that the destination tensor starts at the beginning
+ *  of a cacheline.
+ * 
+ * @tparam srcType The type of the elements in the tensor.
+ * @param[out] dst Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] src Pointer to the input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] srcPitches Vector of pitches of the input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] scale, offset Parameters for the quantization.
+ * @param[in] flags Gives the information of the Active Shires and the
+ *  type of evict required.
+ * @param[in] minionOffset The first minion that is assigned to this node.
+ * @param[in] assignedMinions Amount of minions avaliable.
+ */
 template <typename srcType>
 void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
                                        void *dstPitches, void *src,
@@ -148,6 +192,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
                                        int32_t *offset, uint64_t flags,
                                        const uint32_t minionOffset,
                                        const uint32_t assignedMinions) {
+
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
   if ((minionId >= activeMinions) || (minionId >= activeMinions))
@@ -286,138 +331,6 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-// template <typename srcType>
-// void dnn_lib::fwdLibCopyInstVectorizedGeneral(void *dst, void *dstDims,
-//                                        void *dstPitches, void *src,
-//                                        void *srcDims, void *srcPitches,
-//                                        unsigned int srcDimNum, float *scale,
-//                                        int32_t *offset, uint64_t flags) {
-//   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-//   const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-//
-//   unsigned int *dstIndex = (unsigned int *)dstDims;
-//   unsigned int *actIndex = (unsigned int *)srcDims;
-//   int8_t *dst8 = (int8_t *)dst;
-//   int8_t *src8 = (int8_t *)src;
-//
-//   unsigned int *dstPitch = (unsigned int *)dstPitches;
-//   unsigned int *actPitch = (unsigned int *)srcPitches;
-//
-//   unsigned int minionId = get_minion_id();
-//   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
-//   if (minionId >= activeMinions) {
-//     return;
-//   }
-//   unsigned int typeSize = getsize<srcType>();
-//   unsigned int numElemsDst =
-//       dstPitch[0] * actIndex[0]; // Total number of elements in the tensor
-//
-//   // We give to each minion an initial address the number of positions that it
-//   // must work on (maxRead).
-//   unsigned int initialAddr, maxRead;
-//   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-//                         activeMinions);
-//   if (maxRead == 0)
-//     return;
-//   // We move the initialAddr to the next non-padding position
-//   unsigned int k;                  // Amount of non-zero coordinates
-//   unsigned int coord[srcDimNum]; // Vector of coordinates
-//   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-//                            k);
-//
-//   // We get the actual initialAddr, in the input and output.
-//   unsigned int offsetIn = 0;
-//   unsigned int offsetOut = 0;
-//   for (unsigned int j = 0; j < k; j++) {
-//     offsetIn += actPitch[j] * coord[j];
-//     offsetOut += dstPitch[j] * coord[j];
-//   }
-//
-//   unsigned int posMax = maxRead + initialAddr;
-//   bool done = false;
-//   unsigned int lastDim = srcDimNum - 1;
-//   if (actIndex[lastDim] < 4) {
-//     while ((offsetOut < posMax) && (not done)) {
-//       tOutput[offsetOut] = tAInput[offsetIn];
-//       done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
-//                         actPitch, dstPitch);
-//     }
-//   } else {
-//     while ((coord[lastDim] != 0) && (offsetOut < posMax) && (not done)) {
-//       tOutput[offsetOut] = tAInput[offsetIn];
-//       done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
-//                         actPitch, dstPitch);
-//     }
-//     unsigned int registerElems = 32 / typeSize;
-//     unsigned int res = dstIndex[lastDim] % registerElems;
-//     unsigned int maxAux = posMax - res;
-//     unsigned int limit = dstIndex[lastDim] - res;
-//     src8 += offsetIn * typeSize;
-//     dst8 += offsetOut * typeSize;
-//     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-//     __asm__ __volatile__("mov.m.x m1, zero, 0xff \n");
-//     uint8_t mask = (uint8_t)((1 << res) - 1);
-//     __asm__ __volatile__("mov.m.x m2, %[mask], 0 \n" : : [ mask ] "r"(&mask) :);
-//     while ((offsetOut < maxAux) && (not done)) {
-//       if (coord[lastDim] < limit) {
-//         __asm__ __volatile__("flw.ps f0, 0x0(%[src]) \n"
-//                              "fsw.ps f0, 0x0(%[dst]) \n"
-//                              :
-//                              : [ src ] "r"(src8), [ dst ] "r"(dst8)
-//                              : "f0");
-//         src8 += 32;
-//         dst8 += 32;
-//         coord[lastDim]++; // += registerElems
-//       } else {
-//         __asm__ __volatile__("maskand m0, m0, m2 \n"
-//                              "flw.ps f0, 0x0(%[src]) \n"
-//                              "fsw.ps f0, 0x0(%[dst]) \n"
-//                              "maskor m0, m0, m1 \n"
-//                              :
-//                              : [ src ] "r"(src8), [ dst ] "r"(dst8)
-//                              : "f0");
-//         unsigned int i = srcDimNum - 2;
-//         src8 -= coord[lastDim] * typeSize;
-//         dst8 -= coord[lastDim] * typeSize;
-//         coord[lastDim] = 0;
-//         if ((coord[i] + 1) != dstIndex[i]) {
-//           coord[i]++;
-//           offsetIn += actPitch[i];
-//           offsetOut += dstPitch[i];
-//           src8 += actPitch[i] * typeSize;
-//           dst8 += dstPitch[i] * typeSize;
-//         } else {
-//           while ((coord[i] + 1) == dstIndex[i]) {
-//             if (i != 0) {
-//               coord[i] = 0;
-//               offsetOut -= (dstIndex[i] - 1) * dstPitch[i];
-//               offsetIn -= (actIndex[i] - 1) * actPitch[i];
-//               src8 -= (actIndex[i] - 1) * typeSize * actPitch[i];
-//               dst8 -= (dstIndex[i] - 1) * typeSize * dstPitch[i];
-//               i--;
-//               coord[i]++;
-//               offsetOut += dstPitch[i];
-//               offsetIn += actPitch[i];
-//               src8 += actPitch[i] * typeSize;
-//               dst8 += dstPitch[i] * typeSize;
-//             } else {
-//               done = true;
-//               break;
-//             }
-//           }
-//         }
-//       }
-//     }
-//     if (! done) {
-//       offsetOut += coord[lastDim]; // Due to addresser, last pitch = 1
-//       while (not done && offsetOut < posMax) {
-//         tOutput[offsetOut] = tAInput[offsetIn];
-//         done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
-//                           actPitch, dstPitch);
-//       }
-//     }
-//   }
-// }
 
 GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *dstDims, void *dstPitches,
                       void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,

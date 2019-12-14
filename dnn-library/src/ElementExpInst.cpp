@@ -26,6 +26,24 @@
 
 using namespace std;
 
+/**
+ * @brief Given a tensor, it gives the the exponential of each element.
+ *
+ * Given a tensor A, it generates the output tensor B in the following way 
+ * @f$ B_{i,j} = e^{A_{i,j}} @f$.
+ * 
+ * @tparam srcType The type of the elements in the input tensors.
+ * @tparam opType An operator that takes two srcType elements and returns a 
+    bool.
+ * @param[out] dstT Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] srcT Pointer to the first input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] srcPitches Vector of pitches of the first input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] scale, offset Parameters for the quantization.
+ */
 template <typename srcType>
 void dnn_lib::fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
                                    void *srcT, void *srcDims, void *srcPitches,

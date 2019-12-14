@@ -26,6 +26,23 @@
 
 using namespace std;
 
+/**
+ * @brief From a tensor gives a matrix with true in positions where NaN.
+ *
+ * Given a tensor A, it generates the bool output tensor B in the following way 
+ * @f$ B_{i,j} = (A_{i,j} == NaN) @f$. In this version all the work is done by
+ * the same minion.
+ * 
+ * @tparam srcType The type of the elements in the input tensors.
+ * @param[out] dstT Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] srcT1 Pointer to the first input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] srcPitches Vector of pitches of the first input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] scale, offset Parameters for the quantization.
+ */
 template <typename srcType>
 void dnn_lib::fwdLibElementIsNaNInst(void *dstT, void *dstDims,
                                      void *dstPitches, void *srcT1,
@@ -77,6 +94,27 @@ void dnn_lib::fwdLibElementIsNaNInst(void *dstT, void *dstDims,
   }
 }
 
+/**
+ * @brief From a tensor gives a matrix with true in positions where NaN.
+ *
+ * Given a tensor A, it generates the bool output tensor B in the following way 
+ * @f$ B_{i,j} = (A_{i,j} == NaN) @f$. This is the threaded version of the operator.
+ * 
+ * @note This implementation is similar to the CopyInstThreaded, where the
+ *  code is more explained.
+ *
+ * @tparam srcType The type of the elements in the input tensors.
+ * @param[out] dstT Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] srcT1 Pointer to the first input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] srcPitches Vector of pitches of the first input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] scale, offset Parameters for the quantization.
+ * @param[in] flags Controls the active shires and the type of evict that 
+ *  should be done at the end of the function.
+ */
 template <typename srcType>
 void dnn_lib::fwdLibElementIsNaNInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,

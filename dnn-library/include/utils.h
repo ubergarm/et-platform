@@ -73,24 +73,57 @@ constexpr std::size_t getsize<float16>() {
   return 2;
 }
 
+/**
+ * @brief Converts an offset in a tensor into its corresponding coordinates.
+ *
+ * This function takes into account the padding that the tensor my have, but if
+ * the offset corresponds to a padding position, the returned coordinates will
+ * point this padding position in the matrix (outside the dimensions).
+ *
+ * @param[out] coord Vector that will be filled with the coordinates of the 
+ *  offset in the tensor.
+ * @param[in] offset Unsigned integer referring to a position in a tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the tensor.
+ * @param[in] pitch The vector of pitches of the given tensor.
+ */
 inline __attribute__((always_inline))
-void getCoordinates(unsigned int *coord, unsigned int address,
-                    unsigned int srcDimNum, unsigned int *pitch) {
-  unsigned int rm = address;
-  for (unsigned int i = 0; i < srcDimNum; i++) {
+void getCoordinates(unsigned int *coord, unsigned int offset,
+                    unsigned int dimNum, unsigned int *pitch) {
+  unsigned int rm = offset;
+  for (unsigned int i = 0; i < dimNum; i++) {
     coord[i] = rm / pitch[i];
     rm = rm - coord[i] * pitch[i];
   }
 }
 
-inline __attribute__((always_inline))
-void getNonPaddingCoordinates(unsigned int *coord, unsigned int address,
+
+
+
+/**
+ * @brief Converts an offset in a tensor into its corresponding non-padding-coords.
+ *
+ * This function takes into account the padding that the tensor my have, and if
+ * the offset corresponds to a padding position, the returned coordinates will
+ * point the next position in the tensor that doesn't correspond to padding.
+ *
+ * @param[out] coord Vector that will be filled with the coordinates of the 
+ *  offset in the tensor.
+ * @param[in] offset Unsigned integer referring to a position in a tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the tensor.
+ * @param[in] pitch The vector of pitches of the given tensor.
+ * @param[in] dims The sizes of each dimension of the given tensor.
+ * @param[out] k The last coordinate that has not been set to 0 while searching
+ *  the next non-padding-position.
+ */
+inline __attribute__((always_inline)) 
+void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
                               unsigned int srcDimNum, unsigned int *pitch,
-                              unsigned int *Dims, unsigned int &k) {
-  getCoordinates(coord, address, srcDimNum, pitch);
-  k = srcDimNum; // If it is a padding position we compute next useful position
+                              unsigned int *dims, unsigned int &k) {
+
+  getCoordinates(coord, offset, srcDimNum, pitch);
+  k = srcDimNum;
   for (int j = srcDimNum - 1; j > 0; j--) {
-    if (unlikely(coord[j] >= Dims[j])) {
+    if (unlikely(coord[j] >= dims[j])) {
       coord[j - 1]++;
       k = j;
     }
@@ -99,174 +132,280 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int address,
     coord[j] = 0;
 }
 
-// Power saving partition. Being used right now.
-inline __attribute__((always_inline))
-void getCachelinePartition(unsigned int elementsize, unsigned int numElemsDst,
-                           unsigned int &address, unsigned int &maxRead,
+/**
+ * @brief Given a tensor, it divides it in cachelines for the minions.
+ *
+ * It gives to each minion an offset to start and how many elements to work on. 
+ * The division is made such that the there is no cacheline for two different minions. 
+ * The division ensures that all active minions minions (except for, possibly, 
+ * the last one) work with the same number of cachelines and the following
+ * have no positions to work with.
+ * 
+ * @warning The number maxRead does not take into account padding, so if maxRead
+ *  is 16, that does not mean that the minion has to work on 16 elements: some of
+ *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
+ *
+ * @warning The function works with the supposition that the minions working on this
+ *  tensor is numbered from 0 to activeMinions.
+ *
+ * @warning It is assumed that the tensor that starts at cacheline.
+ *
+ * @param[in] elementSize The number of bytes of each element in the matrix.
+ *  It is required to be a power of 2 and smaller than 64 (1, 2, 4, 8, usually).
+ * @param[in] numElems The number of elements in the tensor that is divided.
+ * @param[out] offset The starting offset for the minion.
+ * @param[out] maxRead The number of consecutive elements the minion is assigned.
+ * @param[in] minionId The id of the minion that calls the function.
+ * @param[in] activeMinions The number of minions that is working on the tensor.
+ */
+inline __attribute__((always_inline)) 
+void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
+                           unsigned int &offset, unsigned int &maxRead,
                            unsigned int minionId, unsigned int activeMinions) {
-  unsigned int cll = 64 / elementsize;            // 64/element_size_in_bytes
-  unsigned int ncl = (numElemsDst - 1) / cll + 1; // Total amount of cache lines
+
+  unsigned int cll = 64 / elementSize;              // Cacheline length
+  unsigned int ncl = (numElems - 1) / cll + 1;      // Amount of cache lines
   unsigned int mcl = (ncl - 1) / activeMinions + 1; // Amount of cl for a minion
-  unsigned int div = ncl / mcl; // div + 1 = number of active minions.
+  unsigned int div = ncl / mcl;
+
   if (minionId < div) {
     maxRead = mcl * cll;
-    address = maxRead * minionId;
+    offset = maxRead * minionId;
   } else if (minionId == div) {
     maxRead = (ncl - div * mcl) * cll;
-    address = mcl * cll * minionId;
+    offset = mcl * cll * minionId;
   } else
     maxRead = 0;
 }
 
-// Power wasting partition. Not being used.
+/**
+ * @brief Given a tensor, it divides it in cachelines for the minions.
+ *
+ * It gives to each minion an offset to start and how many elements to work on. 
+ * The division is made such that the there is no cacheline for two different minions. 
+ * The division ensures that the amount of cachelines for all the working minions 
+ * differs at most for one except for the ones that have no cachelines assigned.
+ * For a pair of minions with a non zero number of cachelines assigned it is true that
+ * the minion with a smaller id works on a greater or equal number of cachelines.
+ * 
+ * @warning The number maxRead does not take into account padding, so if maxRead
+ *  is 16, that does not mean that the minion has to work on 16 elements: some of
+ *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
+ *
+ * @warning The function works with the supposition that the minions working on this
+ *  tensor is numbered from 0 to activeMinions.
+ *
+ * @param[in] elementSize The number of bytes of each element in the matrix.
+ *  It is required to be a power of 2 and smaller than 64 (1, 2, 4, 8, usually).
+ * @param[in] numElems The number of elements in the tensor that is divided.
+ * @param[out] offset The starting offset for the minion.
+ * @param[out] maxRead The number of consecutive elements the minion is assigned.
+ * @param[in] activeMinions The number of minions that is working on the tensor.
+ */
 inline __attribute__((always_inline))
-void getUniformCachelinePartition(unsigned int elementsize, unsigned int numElemsDst,
-                                  unsigned int &address, unsigned int &maxRead,
+void getUniformCachelinePartition(unsigned int elementsize, unsigned int numElems,
+                                  unsigned int &offset, unsigned int &maxRead,
                                   unsigned int activeMinions) {
+
   unsigned int minionId = get_minion_id();
-  unsigned int cll = 64 / elementsize;            // 64/(Element Size in bytes)
-  unsigned int ncl = (numElemsDst - 1) / cll + 1; // Total amount of cache lines
-  unsigned int mcl =
-      ncl / activeMinions; // Amount of cache lines to do for the minion
+  unsigned int cll = 64 / elementsize;            // Cacheline lenght
+  unsigned int ncl = (numElems - 1) / cll + 1;    // Amount of cache lines
+  unsigned int mcl = ncl / activeMinions;         // Amount of cl for the minion
   unsigned int mod = ncl - activeMinions * mcl;
   if (minionId < mod) {
     ++mcl;
-    address = mcl * cll * minionId;
+    offset = mcl * cll * minionId;
   }
   else {
-    address = (mod + minionId * mcl) * cll;
+    offset = (mod + minionId * mcl) * cll;
   }
   maxRead = mcl * cll;
 }
 
-inline __attribute__((always_inline))
-void getReversedCachelinePartition(unsigned int elementsize, unsigned int numElemsDst,
-                                   unsigned int &address, unsigned int &maxRead,
+/**
+ * @brief Given a tensor, it divides it in cachelines for the minions.
+ *
+ * It gives to each minion an offset to start and how many elements to work on. 
+ * The division is made such that the there is no cacheline for two different minions. 
+ * The division ensures that the amount of cachelines for all the working minions 
+ * differs at most for one except for the ones that have no cachelines assigned.
+ * For a pair of minions with a non zero number of cachelines assigned it is true that
+ * the minion with a greater id works on a greater or equal number of cachelines.
+ * 
+ * @warning The number maxRead does not take into account padding, so if maxRead
+ *  is 16, that does not mean that the minion has to work on 16 elements: some of
+ *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
+ *
+ * @warning The function works with the supposition that the minions working on this
+ *  tensor is numbered from 0 to activeMinions.
+ *
+ * @param[in] elementSize The number of bytes of each element in the matrix.
+ *  It is required to be a power of 2 and smaller than 64 (1, 2, 4, 8, usually).
+ * @param[in] numElems The number of elements in the tensor that is divided.
+ * @param[out] offset The starting offset for the minion.
+ * @param[out] maxRead The number of consecutive elements the minion is assigned.
+ * @param[in] minionId The id of the minion that calls the function.
+ * @param[in] activeMinions The number of minions that is working on the tensor.
+ */
+inline __attribute__((always_inline)) 
+void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsDst,
+                                   unsigned int &offset, unsigned int &maxRead,
                                    unsigned int activeMinions) {
   unsigned int minionId = (activeMinions - get_minion_id()) - 1;
-  unsigned int cll = 64 / elementsize;            // 64/(Element Size in bytes)
-  unsigned int ncl = (numElemsDst - 1) / cll + 1; // Total amount of cache lines
-  unsigned int mcl =
-      ncl / activeMinions; // Amount of cache lines to do for the minion
+  unsigned int cll = 64 / elementsize;            // Cacheline length
+  unsigned int ncl = (ElemsDst - 1) / cll + 1;    // Amount of cache lines
+  unsigned int mcl = ncl / activeMinions;         // Amount of cl for a minion
   unsigned int mod = ncl - activeMinions * mcl;
   if (minionId < mod) {
     ++mcl;
-    address = mcl * cll * minionId;
+    offset = mcl * cll * minionId;
   } else
-    address = (mod + minionId * mcl) * cll;
+    offset = (mod + minionId * mcl) * cll;
+
   maxRead = mcl * cll;
 }
 
-template <typename mytype> // getOffsets may take as offsetAddr unsigned
-                           // integers or uint64_t
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr,
-                unsigned int *Index, unsigned int *Pitch) {
-  for (int j = DimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (Index[j] - 1))) {
-      offsetAddr += Pitch[j];
+/**
+ * @brief Updates a position in a tensor into the next non-padding position.
+ *
+ * Both the coordinates of the position and the offset are updated. It also
+ * returns if the end of the tensor has been reached.
+ * 
+ * @tparam T The type of the elements in the tensor.
+ * @param[in] dimNum The "number of dimensions" of the tensor.
+ * @param[in, out] coord Vector of coordinates of the initial position.
+ *  It is updated into the new coordinates.
+ * @param[in, out] offset The starting offset. It is updated into the new offset.
+ * @param[in] index The sizes of each dimension of the given tensor.
+ * @param[in] pitch The vector of pitches of the given tensor.
+ * @returns True if the tensor has ended and false otherwise.
+ */
+template <typename T>
+inline __attribute__((always_inline)) 
+bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
+                unsigned int *index, unsigned int *pitch) {
+
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (likely(coord[j] != (index[j] - 1))) {
+      offset += pitch[j];
       coord[j]++;
       return false;
     } else if (likely(j != 0)) {
-      offsetAddr -= (Index[j] - 1) * Pitch[j];
+      offset -= (index[j] - 1) * pitch[j];
       coord[j] = 0;
     } else
       return true;
   }
-  return true;
+
+  throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
+  return true; 
 }
 
-template <typename mytype> // getOffsets may take as offsetAddr unsigned
-                           // integers or uint64_t
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr1,
-                mytype &offsetAddr2, unsigned int *Index, unsigned int *pitch1,
+
+/**
+ * @brief Updates a position in two tensors into the next non-padding position.
+ *
+ * @overload
+ * 
+ * @warning The tensors in which we are moving should have the same dimensions
+ *  (but not necessarily the same pitches).
+ */
+template <typename T>
+inline __attribute__((always_inline)) 
+bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
+                T &offset2, unsigned int *index, unsigned int *pitch1,
                 unsigned int *pitch2) {
-  for (int j = DimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (Index[j] - 1))) {
-      offsetAddr1 += pitch1[j];
-      offsetAddr2 += pitch2[j];
+
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (likely(coord[j] != (index[j] - 1))) {
+      offset1 += pitch1[j];
+      offset2 += pitch2[j];
       coord[j]++;
       return false;
     } else if (likely(j != 0)) {
-      offsetAddr1 -= (Index[j] - 1) * pitch1[j];
-      offsetAddr2 -= (Index[j] - 1) * pitch2[j];
+      offset1 -= (index[j] - 1) * pitch1[j];
+      offset2 -= (index[j] - 1) * pitch2[j];
       coord[j] = 0;
     } else
       return true;
   }
-  return true;
+
+  throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
+  return true; 
 }
 
-template <typename mytype>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr1,
-                mytype &offsetAddr2, mytype &offsetAddr3, unsigned int *Index, unsigned int *pitch1,
+/**
+ * @brief Updates a position in three tensors into the next non-padding position.
+ *
+ * @overload
+ * 
+ * @warning The tensors in which we are moving should have the same dimensions
+ *  (but not necessarily the same pitches).
+ */
+template <typename T> 
+inline __attribute__((always_inline)) 
+bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
+                T &offset2, T &offset3, unsigned int *index, unsigned int *pitch1,
                 unsigned int *pitch2, unsigned int *pitch3) {
-  for (int j = DimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (Index[j] - 1))) {
-      offsetAddr1 += pitch1[j];
-      offsetAddr2 += pitch2[j];
-      offsetAddr3 += pitch3[j];
+
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (likely(coord[j] != (index[j] - 1))) {
+      offset1 += pitch1[j];
+      offset2 += pitch2[j];
+      offset3 += pitch3[j];
       coord[j]++;
       return false;
     } else if (likely(j != 0)) {
-      offsetAddr1 -= (Index[j] - 1) * pitch1[j];
-      offsetAddr2 -= (Index[j] - 1) * pitch2[j];
-      offsetAddr3 -= (Index[j] - 1) * pitch3[j];
+      offset1 -= (index[j] - 1) * pitch1[j];
+      offset2 -= (index[j] - 1) * pitch2[j];
+      offset3 -= (index[j] - 1) * pitch3[j];
       coord[j] = 0;
     } else
       return true;
   }
+
+  throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
   return true;
 }
 
-template <typename mytype>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int DimNum, unsigned int *coord, mytype &offsetAddr1,
-                mytype &offsetAddr2, mytype &offsetAddr3, mytype &offsetAddr4,
-                unsigned int *Index, unsigned int *pitch1, unsigned int *pitch2,
+/**
+ * @brief Updates a position in four tensors into the next non-padding position.
+ *
+ * @overload
+ * 
+ * @warning The tensors in which we are moving should have the same dimensions
+ *  (but not necessarily the same pitches).
+ */
+template <typename T> 
+inline __attribute__((always_inline)) 
+bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
+                T &offset2, T &offset3, T &offset4, unsigned int *index, 
+                unsigned int *pitch1, unsigned int *pitch2,
                 unsigned int *pitch3, unsigned int *pitch4) {
-  for (int j = DimNum - 1; j >= 0; j--) {
-    if (coord[j] != (Index[j] - 1)) {
-      offsetAddr1 += pitch1[j];
-      offsetAddr2 += pitch2[j];
-      offsetAddr3 += pitch3[j];
-      offsetAddr4 += pitch4[j];
+
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (coord[j] != (index[j] - 1)) {
+      offset1 += pitch1[j];
+      offset2 += pitch2[j];
+      offset3 += pitch3[j];
+      offset4 += pitch4[j];
       coord[j]++;
       return false;
     } else if (j != 0) {
-      offsetAddr1 -= (Index[j] - 1) * pitch1[j];
-      offsetAddr2 -= (Index[j] - 1) * pitch2[j];
-      offsetAddr3 -= (Index[j] - 1) * pitch3[j];
-      offsetAddr4 -= (Index[j] - 1) * pitch4[j];
+      offset1 -= (index[j] - 1) * pitch1[j];
+      offset2 -= (index[j] - 1) * pitch2[j];
+      offset3 -= (index[j] - 1) * pitch3[j];
+      offset4 -= (index[j] - 1) * pitch4[j];
       coord[j] = 0;
     } else
       return true;
   }
-  return true;
-}
 
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord,
-                unsigned int &offsetAddr1, unsigned int &offsetAddr2,
-                unsigned int &offsetAddr3, unsigned int *index, unsigned int *pitch1,
-                unsigned int *pitch2, unsigned int *pitch3) {
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offsetAddr1 += pitch1[j];
-      offsetAddr2 += pitch2[j];
-      offsetAddr3 += pitch3[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offsetAddr1 -= (index[j] - 1) * pitch1[j];
-      offsetAddr2 -= (index[j] - 1) * pitch2[j];
-      offsetAddr3 -= (index[j] - 1) * pitch3[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
+  throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
   return true;
 }
 

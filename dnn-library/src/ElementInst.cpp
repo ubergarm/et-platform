@@ -50,6 +50,32 @@ calcAddrOffset(unsigned int *pitches, unsigned int *coordinates) {
          (pitches[4] * coordinates[4]) + (pitches[5] * coordinates[5]);
 }
 
+/**
+ * @brief Given to tensors, it gives the result of the opType applied elementwise.
+ *
+ * Given an operator opType and two input tensors A, B, it generates the srcType
+ * tensor C in the following way @f$ C_{i,j} = opType(A_{i,j}, B_{i,j}) @f$. 
+ * In this version all the work is done by the first minion.
+ * 
+ * @warning It comes without doubt that A and B must have the same dimensions.
+ * 
+ * @note TThe next version is a generalization of this function as it allows the 
+ *  types of the three tensors not being the same.
+ *
+ * @tparam srcType The type of the elements in the input and output tensors.
+ * @tparam opType An operator that takes two srcType elements and returns a 
+    srcType (+, ·, etc).
+ * @param[out] dstT Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] srcT1 Pointer to the first input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] src1Pitches Vector of pitches of the first input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] srcT2 Pointer to the second input matrix.
+ * @param[in] src2Pitches Vector of pitches of the second input tensor.
+ * @param[in] scale, offset Parameters for the quantization.
+ */
 template <typename srcType, typename opType>
 void dnn_lib::fwdLibElementInst(void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT1, void *srcDims, void *src1Pitches,
@@ -108,7 +134,39 @@ void dnn_lib::fwdLibElementInst(void *dstT, void *dstDims, void *dstPitches,
 }
 
 
-
+/**
+ * @brief Given to tensors, it gives the result of the opType applied elementwise.
+ *
+ * Given an operator opType and two input tensors A, B, it generates the
+ * tensor C in the following way @f$ C_{i,j} = opType(A_{i,j}, B_{i,j}) @f$. 
+ * This is the threaded version.
+ * 
+ * @warning It comes without doubt that A and B must have the same dimensions.
+ * 
+ * @note This implementation is similar to the CopyInstThreaded, where the
+ *  code is more explained.
+ *
+ * @note This is a generalization of the previous version as it allows the 
+ *  types of the three tensors not being the same.
+ *
+ * @tparam src1Type The type of the elements in the first input tensors.
+ * @tparam src2Type The type of the elements in the second input tensors.
+ * @tparam dstType The type of the elements in the output tensor.
+ * @tparam opType An operator that takes two srcType elements and returns a 
+    srcType (+, ·, etc).
+ * @param[out] dstT Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] srcT1 Pointer to the first input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] src1Pitches Vector of pitches of the first input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] srcT2 Pointer to the second input matrix.
+ * @param[in] src2Pitches Vector of pitches of the second input tensor.
+ * @param[in] scale, offset Parameters for the quantization.
+ * @param[in] flags Controls the active shires and the type of evict that 
+ *  should be done at the end of the function.
+ */
 template <typename src1Type, typename src2Type, typename dstType, typename opType>
 void dnn_lib::fwdLibElementInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
@@ -170,10 +228,39 @@ void dnn_lib::fwdLibElementInstThreaded(
 
 
 
-/* This is a very similar implementation to CopyInst, it is recommended to
- * read it in order to more easily understand it, as it is well commented
- * there.*/
-
+/**
+ * @brief Given two tensors, it gives the result of the opType applied elementwise.
+ *
+ * Given an operator opType and two input tensors A, B, it generates a
+ * tensor C in the following way @f$ C_{i,j} = opType(A_{i,j}, B_{i,j}) @f$. 
+ * This is the threaded and and vectorized version of the operator.
+ * 
+ * @note This implementation is similar to the CopyInstVectorized, where the
+ *  code is more explained.
+ * 
+ * @warning It comes without doubt that A and B must have the same dimensions.
+ * 
+* @note This is a generalization of the previous version as it allows the 
+ *  types of the three tensors not being the same.
+ *
+ * @tparam src1Type The type of the elements in the first input tensors.
+ * @tparam src2Type The type of the elements in the second input tensors.
+ * @tparam dstType The type of the elements in the output tensor.
+ * @tparam opType An operator that takes two srcType elements and returns a 
+    srcType (+, ·, etc).
+ * @param[out] dstT Pointer to the output matrix.
+ * @param[in] dstDims The "number of dimensions" of the output matrix.
+ * @param[in] dstPitches Vector of pitches of the output matrix.
+ * @param[in] srcT1 Pointer to the first input matrix.
+ * @param[in] srcDims The vector of dimensions of the input tensor.
+ * @param[in] src1Pitches Vector of pitches of the first input tensor.
+ * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] srcT2 Pointer to the second input matrix.
+ * @param[in] src2Pitches Vector of pitches of the second input tensor.
+ * @param[in] scale, offset Parameters for the quantization.
+ * @param[in] flags Controls the active shires and the type of evict that 
+ *  should be done at the end of the function.
+ */
 template <typename src1Type, typename src2Type, typename dstType, typename opType>
 void dnn_lib::fwdLibElementInstVectorized(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
