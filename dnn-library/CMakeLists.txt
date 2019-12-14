@@ -44,6 +44,7 @@ set(CMAKE_CXX_STANDARD 11)
 message("${PROJECT_NAME}: Clang Build is set to ${CLANG_BUILD}")
 
 add_library(dnn_lib STATIC
+  src/AdaptiveAvgPoolInst.cpp
   src/AvgPoolInst.cpp
   src/BatchedAddInst.cpp
   src/BatchedReduceAddInst.cpp

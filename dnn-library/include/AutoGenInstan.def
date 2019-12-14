@@ -233,6 +233,10 @@ GEN_2TYPE_OP(fwdLibAvgPoolInstThreaded,void *dstMatrix, void *dstMatrixDims,
                          void *activationsDims, void *activationsPitches, 
                          void *pkernels, void *pstrides, void *ppads,
                          float *scale, int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibAdaptiveAvgPoolInst,void *dstMatrix, void *dstMatrixDims, 
+                         void *dstMatrixPitches, void *activations, 
+                         void *activationsDims, void *activationsPitches,
+                         float *scale, int32_t *offset);
 GEN_OP(fwdLibInsertTensorInst, void *dst, void *dstDims, 
                                void *dstPitches, unsigned int dstDimNum, 
                                void *src2, void *src2Dims, void *src2Pitches, 
