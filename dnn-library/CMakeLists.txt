@@ -63,9 +63,10 @@ add_library(dnn_lib STATIC
   src/ElementIsNaNInst.cpp
   src/ElementSelectInst.cpp
   src/ElementSingleInst.cpp
-  src/FullyConnectedInst.cpp
+  src/EmbeddingBagInst.cpp
   src/ETSOCMaxSplatInst.cpp
   src/ExtractTensorInst.cpp
+  src/FullyConnectedInst.cpp
   src/FusedRowwiseQuantizedSparseLengthsSum.cpp
   src/FusedRowwiseQuantizedSparseLengthsWeightedSum.cpp
   src/GatherInst.cpp

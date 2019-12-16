@@ -456,6 +456,12 @@ void fwdLibIntLookupTableInstInt8QTy(void *dstT, void *dstDims,
                                      void *src1Pitches, void *src2T,
                                      void *src2Dims, void *src2Pitches);
 void fwdLibFlushL3(uint32_t numShires);
+void fwdLibEmbeddingBagInstFloatTy(void *pdst,
+                                   void *pdata, uint64_t dataDim1Pitch,
+                                   void *pweights,
+                                   void *pindices, uint64_t indicesSize,
+                                   void *poffsets, uint64_t offsetsSize);
+                                
 /**********************
  * THREADED FUNCTIONS *
  **********************/
