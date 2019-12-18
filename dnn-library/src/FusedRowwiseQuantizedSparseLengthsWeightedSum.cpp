@@ -426,7 +426,8 @@ void dnn_lib::
 
   // Assign work to Minions :
   //
-  // - Each Minion gets assigned at least one group of output cache lines
+  // - Each Minion gets assigned at least 64 output elements or a full output row
+  //   if the row dimension is smaller than 64.
   //
 
   uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
