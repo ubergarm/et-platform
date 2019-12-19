@@ -365,10 +365,11 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
 void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], float *scale, int32_t *offset){}
 
-// Default version of MatMul in case the input weights have not been previously transposed.
+// 2-D MATRIX MULTIPLICATION: THREADED AND VECTORIZED VERSION.
 // Assumption: there is no padding in the last dimension (in this case, the second one),
 // since all the tensors involved are 2D. It is necessary to assume this at least for the
 // wgt and dst tensors, so we can use vectorization.
+
 template <typename srcType>
 void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
                                          void *dstMatrixPitches,
@@ -384,12 +385,8 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
   if (minionId >= activeMinions)
     return;
 
-// For debugging
-  Addresser<srcType> tOutput(dstMatrix, scale[4], offset[4]);
-
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
   unsigned int *wgtPitch = (unsigned int *)weightPitches;
@@ -397,7 +394,7 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions); // Output: initialAddr, maxRead.
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
 
@@ -406,17 +403,32 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
   unsigned int dstDimNum = 2;
   unsigned int coordOut[dstDimNum];
   unsigned int last_non_zero_coord = 0;
-  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord); // Output: coordOut.
+  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
 
-  unsigned int offsetOut = 0;
+// The vector coordOut now contains the coordinates for the first position in the dst tensor that should be written by the minion.
+// Additionally, posMax indicates the last position in the dst tensor that should be written by the minion, plus one.
+
+  unsigned int offsetOut = 0; // Position in destination tensor.
   for (int i = 0; i < last_non_zero_coord; i++) {
     offsetOut += coordOut[i] * dstPitch[i];
   }
-  unsigned int offsetAIn = coordOut[0]*actPitch[0];
-  unsigned int offsetWIn = coordOut[1];
+  unsigned int offsetAIn = coordOut[0]*actPitch[0]; // Position in activation tensor.
+  unsigned int offsetWIn = coordOut[1]; // Position in weight tensor.
+
+// Once the tensor offsets have been obtained, comes the vectorization part.
+// The following vector property is fundamental to understand this implementation.
+// Consider the product A x W = D. Let a_x denote the xth row of the tensor A, and
+// a_xy denote the yth element of the xth row of the tensor A (and the same for the
+// other tensors). Then, d_x = sum{a_xy*w_y}, where the sum is performed for each y.
+// In words: the xth row of the destination tensor is obtained by summing each weight
+// row multiplied by the corresponding element of the activation row a_x.
+
+// The following code uses a function named MatMulOp, which computes a whole row of
+// the destination tensor using the property above. The following lines compute
+// the parameters needed so the product can be performed.
 
   unsigned int currentRow = coordOut[0];
-  unsigned int lastRow = posMax/dstPitch[0]; // The number of elements to cover in the last row could be zero.
+  unsigned int lastRow = posMax/dstPitch[0]; // Row corresponding to the posMax position in the dst tensor.
   if (posMax%dstPitch[0] > dstIndex[1]) posMax = lastRow*dstPitch[0] + dstIndex[1];
   unsigned int lastElems = posMax - dstPitch[0]*lastRow; // Number of elements covered by the minion in its last row. Could be zero.
 
@@ -442,7 +454,7 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
     matmulOp <srcType>(dstAddr, actAddr, wgtAddr, regs, extra, length, wgtStep, gatherValues, scale, offset);
 
     ++currentRow;
-    if (currentRow > lastRow) break;
+    if (currentRow > lastRow) break; // The loop ends when all the minion rows have been covered.
 
     // Updating of tensor offsets: offsetWIn, offsetAIn, offsetOut.
     offsetWIn = 0;
