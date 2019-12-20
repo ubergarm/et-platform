@@ -59,6 +59,24 @@ void dnn_lib::fwdLibLengthsSumInst(void *pdst, void *pdstDims,
   }
 
   uint64_t addrSrc, addrDst;
+  // Initialize to zero output tensor
+  for (size_t i = 0; i < pLengthsSize; i++) {
+    for (size_t y = 0; y < eDims[1]; y++) {
+      for (size_t z = 0; z < eDims[2]; z++) {
+        for (size_t w = 0; w < eDims[3]; w++) {
+          for (size_t q = 0; q < eDims[4]; q++) {
+            for (size_t r = 0; r < eDims[5]; r++) {
+              addrDst = i * eDstPitch[0] + y * eDstPitch[1] +
+                        z * eDstPitch[2] + w * eDstPitch[3] +
+                        q * eDstPitch[4] + r * eDstPitch[5];
+              tOutput[addrDst] = 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Global index inside data
   size_t posIn = 0;
   for (size_t i = 0; i < pLengthsSize; i++) {

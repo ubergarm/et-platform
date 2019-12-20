@@ -72,6 +72,24 @@ void dnn_lib::fwdLibSparseToDenseInst(void *dstT, void *dstDims,
   }
   eBatchDims[0] = 1;
   uint64_t addrSrc, addrDst;
+
+  // Initialize to zero output tensor
+  for (size_t j = 0; j < dstIndex[0]; j++) {
+    for (size_t y = 0; y < eBatchDims[1]; y++) {
+      for (size_t z = 0; z < eBatchDims[2]; z++) {
+        for (size_t w = 0; w < eBatchDims[3]; w++) {
+          for (size_t q = 0; q < eBatchDims[4]; q++) {
+            for (size_t r = 0; r < eBatchDims[5]; r++) {
+              addrDst = j * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] 
+                      + w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
+              tOutput[addrDst] = 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
   for (size_t j = 0; j < indIndex[0]; j++) {
     long long index = tIndex[j];
     // We can use this loop for all shapes.

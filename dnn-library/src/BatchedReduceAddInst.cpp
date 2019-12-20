@@ -63,6 +63,24 @@ void dnn_lib::fwdLibBatchedReduceAddInst(void *pdst, void *pdstDims,
     eBatchPitch[i] = batchPitch[i];
   }
 
+  // Initialize to zero output tensor
+  for (size_t x = 0; x < eBatchDims[0]; x++) {
+    for (size_t y = 0; y < eBatchDims[1]; y++) {
+      for (size_t z = 0; z < eBatchDims[2]; z++) {
+        for (size_t w = 0; w < eBatchDims[3]; w++) {
+          for (size_t q = 0; q < eBatchDims[4]; q++) {
+            for (size_t r = 0; r < eBatchDims[5]; r++) {
+              uint64_t dstAddr = x * eDstPitch[0] + y * eDstPitch[1] +
+                                 z * eDstPitch[2] + w * eDstPitch[3] +
+                                 q * eDstPitch[4] + r * eDstPitch[5];
+              tOutput[dstAddr] = 0;
+            }
+          }
+        }
+      }
+    }
+  }
+
   Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> op;
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {

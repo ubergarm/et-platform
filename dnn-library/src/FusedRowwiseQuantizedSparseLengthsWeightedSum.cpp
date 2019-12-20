@@ -66,6 +66,15 @@ void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   const size_t inLineSize = totalSizeIn / dataIndex[0];
   const size_t outLineSize = totalSizeOut / dstIndex[0];
 
+  // Initialize to zero output tensor
+  for (size_t i = 0; i < segments; i++) {
+    size_t offsetOut = i * dstPitch[0];
+    for (size_t k = 0; k < outLineSize; k++) {
+      tOutput[offsetOut] = 0;
+      offsetOut++;
+    }
+  }
+
   // Output tensor should be zero at the begin
   size_t curIdx = 0;
   for (size_t i = 0; i < segments; i++) {

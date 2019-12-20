@@ -46,6 +46,9 @@ void dnn_lib::fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
   float op1;
   const float op2 = M_1_LOG2E;
 
+  // Initialize to zero output tensor
+  tOutput[0] = 0;
+
   for (size_t n = 0; n < srcIndex[0]; ++n) {
     size_t y = tLabels[n];
     float p_n = float(tInput[n * srcPitch[0] + y]);
