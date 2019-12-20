@@ -28,10 +28,9 @@ public:
             typename std::enable_if<std::is_same<U, float16>::value,
                                     std::size_t>::type = 0>
   Writer &operator=(float value) {
-    float16 f;
-    f.data_ = value;
-    float a = f.convertFp32ToFp16();
-    *ptrfp16_ = (*(uint16_t *)&a);
+    uint16_t v;
+    dnn_lib::convertFp32ToFp16(value, v);
+    *ptrfp16_ = v;
     return *this;
   }
 
