@@ -14,14 +14,28 @@
 
 #include <cmath>
 #include <limits>
+#include <cstring>
 
 namespace dnn_lib {
 
+template <typename T, typename U>
+inline T bitwise_copy(const U &x)
+{
+    static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value, "pseudo_cast can't handle types which are not trivially copyable");
+    static_assert(sizeof(T) == sizeof(U), "pseudo_cast can't handle types with different size");
+
+    T to;
+    memcpy(&to, &x, sizeof(T));
+    return to;
+}
+
+
+  
 inline __attribute__((always_inline)) void
 fpReciprocalSingleElement(float val, float &recval) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
                        "frcp.ps %[recval], %[val] \n"
-                       : [ recval ] "=&f"(recval)
+                       : [ recval ] "=f"(recval)
                        : [ val ] "f"(val));
 }
 
@@ -29,7 +43,7 @@ inline __attribute__((always_inline)) void
 fpPowSingleElement(float val1, float val2, float &res) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
                        "flog.ps %[res], %[val1] \n"
-                       "fmul.ps %[res], %[res], %[val2] \n"
+                       "fmul.s %[res], %[res], %[val2] \n"
                        "fexp.ps %[res], %[res] \n"
                        : [ res ] "=&f"(res)
                        : [ val1 ] "f"(val1), [ val2 ] "f"(val2));
@@ -39,47 +53,54 @@ inline __attribute__((always_inline))
 void fpLog2SingleElement(float val, float &res) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
                        "flog.ps %[res], %[val] \n"
-                       : [ res ] "=&f"(res)
+                       : [ res ] "=f"(res)
                        : [ val ] "f"(val));
 }
 
 inline __attribute__((always_inline))
 void fpAddSingleElement(float val1, float val2, float &res) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fadd.ps %[res], %[val1], %[val2] \n"
-                       : [ res ] "=&f"(res)
+  __asm__ __volatile__("fadd.s %[res], %[val1], %[val2] \n"
+                       : [ res ] "=f"(res)
                        : [ val1 ] "f"(val1), [ val2 ] "f"(val2));
 }
 
 inline __attribute__((always_inline))
-void loadFp32FromMemory(uint64_t addr, float &res) {
+void loadFp32FromMemory(float* addr, float &res) {
+#if 0
+  // code for simd (as with mask !=1)
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "flw.ps %[res], 0(%[addr]) \n"
-                       : [ res ] "=&f"(res)
-                       : [ addr ] "r"(addr));
+                       "flw.ps %[res], %[addr] \n"
+                       : [ res ] "=f"(res)
+                       : [addr] "m" (*(const float (*)[8]) addr)
+                       );
+#else
+   res = *addr;
+#endif
+
 }
 
 inline __attribute__((always_inline))
 void convertFp16ToFp32(float src, float &dst) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
                        "fcvt.ps.f16 %[dst], %[src] \n"
-                       : [ dst ] "=&f"(dst)
+                       : [ dst ] "=f"(dst)
                        : [ src ] "f"(src));
 }
 
 inline __attribute__((always_inline))
 void convertFp16ToFp32(uint16_t src, float &dst) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fcvt.ps.f16 %[dst], %[src] \n"
-                       : [ dst ] "=&f"(dst)
-                       : [ src ] "f"((float)src));
+                       "fmv.s.x %[dst], %[src]\n"
+                       "fcvt.ps.f16 %[dst], %[dst] \n"
+                       : [ dst ] "=f"(dst)
+                       : [src] "r" (src));
 }
 
 inline __attribute__((always_inline))
 void convertFp32ToFp16(float src, float &dst) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
                        "fcvt.f16.ps %[dst], %[src] \n"
-                       : [ dst ] "=&f"(dst)
+                       : [ dst ] "=f"(dst)
                        : [ src ] "f"(src));
 }
 inline __attribute__((always_inline))
@@ -88,30 +109,42 @@ void convertFp32ToFp16(float src, uint16_t &dst) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
                        "fcvt.f16.ps %[tmp], %[src] \n"
                        "fmv.x.w %[dst], %[tmp] \n"
-                       : [ dst ] "=&r"(dst)
-                       : [ src ] "f"(src), [ tmp ] "f"(tmp));
+                       : [ dst ] "=r"(dst), [ tmp ] "=f" (tmp)
+                       : [ src ] "f"(src));
 }
 
 inline __attribute__((always_inline))
-void storeFp32ToMemory(uint64_t addr, float val32) {
+void storeFp32ToMemory(float* addr, float val32) {
+#if 0
+  // code for simd (mask != 1)
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fsw %[val32], 0(%[addr])\n"
-                       :
-                       : [ val32 ] "f"(val32), [ addr ] "r"(addr));
+                       "fsw %[val32], %[addr]\n"
+                       : [addr] "=m" (*(float (*)[8]) addr)
+                       : [ val32 ] "f"(val32));
+#else
+  *addr = val32;
+#endif
+                         
 }
 
 inline __attribute__((always_inline))
-void storeFp16ToMemory(uint64_t addr, float val32) {
+void storeFp16ToMemory(uint16_t *addr, float val32) {
+#if 0
+  // code for simd
+  uint64_t tmp;
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       //"fsrli.pi %[val32], %[val32], 16 \n"
-                       "fmvz.x.ps x1, %[val32], 0 \n"
-                       "sh x1, 0(%[addr])\n"
-                       :
-                       : [ val32 ] "f"(val32), [ addr ] "r"(addr));
+                       "fmvz.x.ps %[tmp], %[val32], 0 \n"
+                       "sh %[tmp], %[addr]\n"
+                       : [addr] "=m" (*(uint16_t (*)[8]) addr), [tmp] "+r" (tmp)
+                       : [ val32 ] "f"(val32)
+                       );
+#else
+  *addr = static_cast<uint16_t>(bitwise_copy<uint32_t>(val32));
+#endif
 }
 
 inline __attribute__((always_inline))
-float loadAndConvertToFp32(uint64_t loadAddr) {
+float loadAndConvertToFp32(float* loadAddr) {
   float val16, val32;
   loadFp32FromMemory(loadAddr, val16);
   convertFp16ToFp32(val16, val32);
@@ -119,12 +152,12 @@ float loadAndConvertToFp32(uint64_t loadAddr) {
 }
 
 inline __attribute__((always_inline))
-void storeFp32(uint64_t storeAddr, float val32) {
+void storeFp32(float* storeAddr, float val32) {
   storeFp32ToMemory(storeAddr, val32);
 }
 
 inline __attribute__((always_inline))
-float loadAndConvertToFp16(uint64_t loadAddr) {
+float loadAndConvertToFp16(float* loadAddr) {
   float val16, val32;
   loadFp32FromMemory(loadAddr, val16);
   convertFp32ToFp16(val16, val32);
@@ -132,7 +165,7 @@ float loadAndConvertToFp16(uint64_t loadAddr) {
 }
 
 inline __attribute__((always_inline))
-void storeFp16(uint64_t storeAddr, float val32) {
+void storeFp16(uint16_t *storeAddr, float val32) {
   storeFp16ToMemory(storeAddr, val32);
 }
 
@@ -190,7 +223,7 @@ inline __attribute__((always_inline))
 int8_t quantizeValInt8(float val, float scale, int32_t offset) {
   return quantize<int8_t>(val, scale, offset);
 }
-
+  
 } // namespace dnn_lib
 
 #endif /* LIB_COMMON_H */

@@ -57,8 +57,9 @@ public:
             typename std::enable_if<std::is_same<U, float16>::value,
                                     std::size_t>::type = 0>
   float operator[](const int index) const {
-    float16 f = (*((float *)&ptrfp16_[index]));
-    return f.convertFp16ToFp32();
+    float f;
+    dnn_lib::convertFp16ToFp32(ptrfp16_[index], f);
+    return f;
   }
 
   template <typename U = T,
