@@ -297,7 +297,7 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
       return true;
   }
 
-  throw "getOffsets Malfunction";
+  //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
   return true; 
 }
@@ -331,7 +331,7 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
       return true;
   }
 
-  throw "getOffsets Malfunction";
+  //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
   return true; 
 }
@@ -366,7 +366,7 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
       return true;
   }
 
-  throw "getOffsets Malfunction";
+  //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
   return true;
 }
@@ -404,7 +404,7 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
       return true;
   }
 
-  throw "getOffsets Malfunction";
+  //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
   return true;
 }
