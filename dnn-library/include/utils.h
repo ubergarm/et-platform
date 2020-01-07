@@ -18,6 +18,7 @@
 #include <syscall.h>
 #include <device_common.h>
 
+#include "cacheops.h"
 #include "LibCommon.h"
 #include "Float16.h"
 
@@ -50,7 +51,7 @@ inline __attribute__((always_inline))
 void evict_va_multi(uint64_t dst, uintptr_t addr, uint64_t num_lines) {
   while (num_lines > 16) {
     evict_va(0, dst, addr, 15, 64);
-    addr += 64;
+    addr += (64*16);
     num_lines -= 16;
   }
   if (num_lines > 0)
