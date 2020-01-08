@@ -99,7 +99,6 @@ void dnn_lib::fwdLibSparseToDenseMaskInst(
   }
 }
 
-
 // Assumptions for the SparseToDenseMaskInst threaded version:
 // (1) The pmask vector size (pMaskSize) has the same length as the second dimension of the output tensor.
 // (2) The dimensions and pitches of the pdefault tensor are the ones of a batch of the data tensor.
@@ -199,7 +198,8 @@ void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
         coordIn[i] = 0;
       }
       ++semiBatchCount;
-      if (semiBatchCount == pMaskSize) { // Assumption (1): pMaskSize = dstIndex[1].
+      if ((semiBatchCount == pMaskSize) and // Assumption (1): pMaskSize = dstIndex[1].
+          (batchCount < pLengthsSize-1)) {
         semiBatchCount = 0;
         ++batchCount;
         firstIdx = lastIdx;
@@ -213,7 +213,6 @@ void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
           break;
         }
       }
-
     }
   }
 }
