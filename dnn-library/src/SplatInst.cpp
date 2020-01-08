@@ -186,13 +186,14 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
   for (unsigned int j = 0; j < numVals; j++)
     tOutput[startElem + j] = splatVal;
 
-  __asm__ __volatile__("mov.m.x m0, zero, 0x55\n"
+  __asm__ __volatile__(
+		       "beq %[regs], zero, 1f\n"
+		       "mov.m.x m0, zero, 0x55\n"
                        "fbc.ps f0, 0x0(%[dstPtr])\n"
                        "mov.m.x m0, zero, 0xaa\n"
                        "fbc.ps f0, 0x4(%[dstPtr])\n"
                        "mov.m.x m0, zero, 0xff\n"
 
-                       "beq %[regs], zero, 1f\n"
                        "2:\n"
                        "fsw.ps f0, 0x0(%[dstPtr])\n"
                        "addi %[dstPtr], %[dstPtr], 0x20\n"
@@ -203,7 +204,13 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
                        : [dstPtr] "+r"(dstPtr),
                          [regs] "+r"(regsperMinion)
                        :
-                       : "f0");
+                       : "f0", "memory");
+
+  if (!DO_EVICTS)
+    return;
+
+  if (CLperMinion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + offsetOut, CLperMinion);
+
 }
 
 template <typename srcType>
@@ -232,7 +239,7 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
   if (startCL >= totalCL) return;
   if (startCL + CLperMinion > totalCL) CLperMinion = totalCL - startCL;
 
-  uint64_t regsperMinion = 2 * CLperMinion;  // A cacheline contains 2 regs
+  uint64_t regsperMinion = 2 * CLperMinion;  // A cacheline contains 2 regs fx de 256b
   uint64_t offsetOut = startCL * 64;
   uint64_t startElem = offsetOut/typeSize;
   char *dstPtr = (char *)dst;
@@ -242,24 +249,31 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
   for (unsigned int j = 0; j < numVals; j++)
     tOutput[startElem + j] = splatVal;
 
-  __asm__ __volatile__("mov.m.x m0, zero, 0x55\n"
+  __asm__ __volatile__(
+		       "beq %[regs], zero, 1f\n"
+		       "mov.m.x m0, zero, 0x55\n"
                        "fbc.ps f0, 0x0(%[dstPtr])\n"
                        "mov.m.x m0, zero, 0xaa\n"
                        "fbc.ps f0, 0x4(%[dstPtr])\n"
                        "mov.m.x m0, zero, 0xff\n"
 
-                       "beq %[regs], zero, 1f\n"
                        "2:\n"
                        "fsw.ps f0, 0x0(%[dstPtr])\n"
                        "addi %[dstPtr], %[dstPtr], 0x20\n"
-                                   "addi %[regs], %[regs], -1\n"
+		       "addi %[regs], %[regs], -1\n"
                        "bne %[regs], zero, 2b\n"
                        "1:\n"
 
                        : [dstPtr] "+r"(dstPtr),
                          [regs] "+r"(regsperMinion)
                        :
-                       : "f0");
+                       : "f0", "memory");
+
+  if (!DO_EVICTS)
+    return;
+
+  if (CLperMinion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + offsetOut, CLperMinion);
+
 }
 
 GEN_INSTANCES_OP(template, fwdLibSplatInst, void *addr, int numElems, float splatVal,
