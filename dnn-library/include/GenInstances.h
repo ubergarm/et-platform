@@ -30,6 +30,7 @@
   template void functionName<uint8_t, int8_t, uint8_t, op>(__VA_ARGS__);       \
   template void functionName<int8_t, uint8_t, uint8_t, op>(__VA_ARGS__);       \
   template void functionName<uint8_t, uint8_t, uint8_t, op>(__VA_ARGS__);      \
+  template void functionName<int16_t, int16_t, int16_t, op>(__VA_ARGS__);      \
   template void functionName<int64_t, int64_t, int64_t, op>(__VA_ARGS__);
 
 #define GEN_INSTANCES_2TYPE(template, functionName, op, ...)                   \
@@ -52,6 +53,7 @@
   template void functionName<uint8_t, int8_t, uint8_t>(__VA_ARGS__);           \
   template void functionName<int8_t, uint8_t, uint8_t>(__VA_ARGS__);           \
   template void functionName<uint8_t, uint8_t, uint8_t>(__VA_ARGS__);          \
+  template void functionName<int16_t, int16_t, int16_t>(__VA_ARGS__);          \
   template void functionName<int64_t, int64_t, int64_t>(__VA_ARGS__);
 
 #define GEN_INSTANCES_2TYPE_OP(template, functionName, ...)                    \

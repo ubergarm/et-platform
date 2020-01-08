@@ -280,8 +280,10 @@ void dnn_lib::fwdLibConvolutionInstThreaded(
  * in the filter with the activations in groups of up to 8 elements and 
  * sums them together at the end.
  * 
- * @tparam srcType The type of the elements in the matrix, which in this funcion is
+ * @tparam src1Type The type of the elements in the src1 matrix, which in this funcion is
  *  is imposed to be float.
+ * @tparam src2Type The type of the elements in the src2 matrix.
+ * @tparam dstType The type of the elements in the dst matrix.
  * @param[in] activations Matrix of activations for the convolution.
  * @param[in] weights Matrix of weights for the convolution.
  * @param[in] coord The vector of coordinates to the initial position in the 
@@ -297,8 +299,8 @@ void dnn_lib::fwdLibConvolutionInstThreaded(
  *  we can't take 8 elements at the same time.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <typename srcType, typename std::enable_if<std::is_same<
-                            srcType, float>::value, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
+                            src1Type, float>::value, std::size_t>::type = 0>
 void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
@@ -411,8 +413,8 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  *
  * @overload
  */
-template <typename srcType, typename std::enable_if<std::is_same<
-                            srcType, float16>::value, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
+                            src1Type, float16>::value, std::size_t>::type = 0>
 void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
@@ -534,7 +536,9 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  * for all the non supported types in the vectorized version of this same 
  * function.
  * 
- * @tparam srcType The type of the elements in the matrix.
+ * @tparam src1Type The type of the elements in the src1 matrix.
+ * @tparam src2Type The type of the elements in the src2 matrix.
+ * @tparam dstType The type of the elements in the dst matrix.
  * @param[in] activations Matrix of activations for the convolution.
  * @param[in] weights Matrix of weights for the convolution.
  * @param[in] coord The vector of coordinates to the initial position in the 
@@ -549,17 +553,17 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  * @param[in] mask It has no relevance in this function.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <typename srcType, typename std::enable_if<(!std::is_same<
-                            srcType, float>::value) /*&& (!std::is_same<
-                            srcType, float16>::value) && (!std::is_same<
-                            srcType, int8_t>::value)*/, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<(!std::is_same<
+                            src1Type, float>::value) /*&& (!std::is_same<
+                            src1Type, float16>::value) && (!std::is_same<
+                            src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
+  const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
       for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
         ssize_t ox = x + fx;
@@ -588,17 +592,17 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  *
  * @overload
  */
-template <typename srcType, typename std::enable_if</*(!std::is_same<
-                            srcType, float>::value) && */(!std::is_same<
-                            srcType, float16>::value) /*&& (!std::is_same<
-                            srcType, int8_t>::value)*/, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if</*(!std::is_same<
+                            src1Type, float>::value) && */(!std::is_same<
+                            src1Type, float16>::value) /*&& (!std::is_same<
+                            src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
+  const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
       for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
         ssize_t ox = x + fx;
@@ -623,14 +627,14 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
 }
 
 
-template <typename srcType>
+template <typename src1Type, typename src2Type, typename dstType>
 void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, float *scale, int32_t *offset) {
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
+  const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
       for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
         ssize_t ox = x + fx;
@@ -662,7 +666,11 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
  * This is the threaded and vectorized version for the convolution.
  * 
- * @tparam srcType Type of the elements of the tensors involved in the 
+ * @tparam src1Type Type of the elements of the src1 tensor involved in the 
+ *  convolution (except for the bias)
+ * @tparam src2Type Type of the elements of the src2 tensor involved in the 
+ *  convolution (except for the bias)
+ * @tparam dstType Type of the elements of the dst tensor involved in the 
  *  convolution (except for the bias)
  * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
  * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 
@@ -681,7 +689,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename srcType>
+template <typename src1Type, typename src2Type, typename dstType>
 void dnn_lib::fwdLibConvolutionInstVectorized(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
@@ -689,7 +697,7 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
     void *pkernels, void *pstrides, void *ppads, unsigned int group,
     float *scale, int32_t *offset, uint64_t flags) {
 
-  Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<dstType> tOutput(dstMatrix, scale[3], offset[3]);
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -712,7 +720,7 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<src1Type>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -754,9 +762,9 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
     volatile int dist;
     volatile unsigned int *actAddr = (unsigned int *) activations;
     volatile unsigned int *weightAddr = (unsigned int *) weights;
-    convolutionOp <srcType> (activations, weights, coord, actPitch, weightPitch,
-                             actIndex, kernels, inCperG, sum, mask, x, y, d,
-                             scale, offset);
+    convolutionOp <src1Type, src2Type, dstType> (activations, weights, coord, actPitch, weightPitch,
+                                                 actIndex, kernels, inCperG, sum, mask, x, y, d,
+                                                 scale, offset);
     tOutput[offsetOut] = sum;
 
     done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);
@@ -777,7 +785,7 @@ GEN_INSTANCES_OP(template, fwdLibConvolutionInstThreaded, void *dstMatrix, void 
                               void *weights, void *weightsDims, void *weightPitches, void *bias,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,
                               float *scale, int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                               void *activations, void *activationsDims, void *activationsPitches,
                               void *weights, void *weightsDims, void *weightPitches, void *bias,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,

@@ -208,6 +208,9 @@ enum PrecisionMode {
       functionName<uint8_t, uint8_t, uint8_t>(__VA_ARGS__);                                                \
     }                                                                                                      \
     break;                                                                                                 \
+  case dnn_lib::PrecisionMode::PM_INT_16:                                                                  \
+    functionName<int16_t, int16_t, int16_t>(__VA_ARGS__);                                                  \
+    break;                                                                                                 \
   case dnn_lib::PrecisionMode::PM_INT_I64:                                                                 \
     functionName<int64_t, int64_t, int64_t>(__VA_ARGS__);                                                  \
     break;                                                                                                 \

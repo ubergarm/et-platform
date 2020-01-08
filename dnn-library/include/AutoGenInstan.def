@@ -308,7 +308,7 @@ GEN_OP(fwdLibConvolutionInstThreaded, void *dstMatrix, void *dstMatrixDims, void
                               void *weights, void *weightsDims, void *weightPitches, void *bias,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,
                               float *scale, int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+GEN_3TYPE_OP(fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                               void *activations, void *activationsDims, void *activationsPitches,
                               void *weights, void *weightsDims, void *weightPitches, void *bias,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,
