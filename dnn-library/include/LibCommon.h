@@ -29,8 +29,6 @@ inline T bitwise_copy(const U &x)
     return to;
 }
 
-
-  
 inline __attribute__((always_inline)) void
 fpReciprocalSingleElement(float val, float &recval) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
@@ -103,6 +101,7 @@ void convertFp32ToFp16(float src, float &dst) {
                        : [ dst ] "=f"(dst)
                        : [ src ] "f"(src));
 }
+
 inline __attribute__((always_inline))
 void convertFp32ToFp16(float src, uint16_t &dst) {
   float tmp;
