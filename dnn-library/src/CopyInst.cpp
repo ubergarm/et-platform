@@ -223,8 +223,8 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   if (maxRead == 0)
     return;
   // We move the initialAddr to the next non-padding position
-  unsigned int k;                  // Amount of non-zero coordinates
-  unsigned int coord[srcDimNum]; // Vector of coordinates
+  unsigned int k = 0;                  // Amount of non-zero coordinates
+  unsigned int coord[srcDimNum]= {0}; // Vector of coordinates
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
@@ -241,20 +241,23 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   unsigned int lastDim = srcDimNum - 1;
 
   unsigned int laneElems = 4 / typeSize;
-  unsigned int registerElems;
+  unsigned int registerElems = 0;
   if (laneElems != 0) {
     registerElems = 8 * laneElems;
   } else {
     registerElems = 4;
   }
   unsigned int maxRow = (srcDimNum > 1) ? posMax / dstPitch[lastDim - 1] : 0;
-  unsigned int elementsInRow, registersInRow, res, spareElems, fullLanes;
-  uint8_t mask;
+  unsigned int elementsInRow = 0, registersInRow = 0, res = 0, spareElems = 0, fullLanes = 0;
+  uint8_t mask = 0;
   bool firstRow = true;
   bool midRow = false;
   bool lastRow = false;
-  lastDim += (srcDimNum == 1);
-  coord[0] *= (srcDimNum != 1);
+
+  if (srcDimNum == 1) {
+    lastDim++;
+    coord[0] = 0;
+  }
 
   while ((offsetOut < posMax) && !done) {
     if (lastDim != 0) {
@@ -316,7 +319,8 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
     }
 
     if (lastRow)
-      return;
+      break;
+
     src8 = src8Init;
     dst8 = dst8Init;
     offsetIn -= coord[lastDim] * actPitch[lastDim];
