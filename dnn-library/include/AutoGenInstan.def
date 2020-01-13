@@ -445,21 +445,13 @@ GEN_OP(fwdLibTopKInstThreaded_k8, void *dstT, void *dstDims, void *dstPitches, v
                               void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
                               unsigned int srcDimNum, unsigned int k,
                               float *scale, int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSplatInst, void *addr, int numElems, float splatVal,
-                        float *scale, int32_t *offset);
-GEN_OP(fwdLibSplatInst, void *addr, int numElems, int64_t splatVal,
+GEN_OP(fwdLibSplatInst, void *addr, int numElems, uint64_t *splatVal,
                         float *scale, int32_t *offset);
 GEN_OP(fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, float splatVal,
-                             float *scale, int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, int64_t splatVal,
+                             unsigned int dstDimNum, uint64_t *splatVal,
                              float *scale, int32_t *offset, uint64_t flags);
 GEN_OP(fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, float splatVal,
-                             float *scale, int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, int64_t splatVal,
+                             unsigned int dstDimNum, uint64_t *splatVal,
                              float *scale, int32_t *offset, uint64_t flags);
 GEN_OP(fwdLibSigmoidInst, void *dstT, void *dstDims, void *dstPitches,
                            void *srcT1, void *srcDims, void *srcPitches,

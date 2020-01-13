@@ -29,6 +29,18 @@ inline T bitwise_copy(const U &x)
     return to;
 }
 
+template <typename T, typename U>
+inline T bitwise_lsb_copy(const U &x)
+{
+    static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value, "pseudo_cast can't handle types which are not trivially copyable");
+    static_assert(sizeof(U) >= sizeof(T), "src type has to be equal or wider than dst type");
+
+    T to;
+    memcpy(&to, &x, sizeof(T));
+    return to;
+}
+
+
 inline __attribute__((always_inline)) void
 fpReciprocalSingleElement(float val, float &recval) {
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
@@ -222,6 +234,7 @@ inline __attribute__((always_inline))
 int8_t quantizeValInt8(float val, float scale, int32_t offset) {
   return quantize<int8_t>(val, scale, offset);
 }
+
   
 } // namespace dnn_lib
 
