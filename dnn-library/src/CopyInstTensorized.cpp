@@ -89,6 +89,7 @@ using namespace std;
 
   while (minionCacheLines >= 16) {
     tensor_load(0, 0, 0, 0, 0, srcAddr, 0, 0xF, 0x40, 0);
+    WAIT_TENSOR_LOAD_0;
     tensor_store_scp(0, 0, 0xF, dstAddr, 0x40);
     srcAddr += 1024;
     dstAddr += 1024;
@@ -96,6 +97,7 @@ using namespace std;
   }
   if (minionCacheLines == 0) return;
   tensor_load(0, 0, 0, 0, 0, srcAddr, 0, minionCacheLines-1, 0x40, 0);
+  WAIT_TENSOR_LOAD_0;
   tensor_store_scp(0, 0, minionCacheLines-1, dstAddr, 0x40);
 }
 
