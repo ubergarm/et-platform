@@ -195,7 +195,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
-  if ((minionId >= activeMinions) || (minionId >= activeMinions))
+  if (minionId >= activeMinions)
     return;
 
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);

@@ -32,8 +32,10 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                                      void *src2Dims, void *src2Pitches,
                                      void *pcoord, unsigned int count,
                                      unsigned int axis, float *scale,
-                                     int32_t *offset) {
-  unsigned int minionId = get_minion_id();
+                                     int32_t *offset,
+                                     const uint32_t minionOffset) {
+
+  unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
     return;
 
@@ -264,9 +266,12 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                              void *src2Dims, void *src2Pitches,
                                              void *poffsets, unsigned int count,
                                              unsigned int axis, float *scale,
-                                             int32_t *offset, uint64_t flags) {
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+                                             int32_t *offset, uint64_t flags,
+                                             const uint32_t minionOffset,
+                                             const uint32_t assignedMinions) {
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -280,7 +285,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                      src2Dims, src2Pitches,
                                      poffsets, count,
                                      axis, scale,
-                                     offset);
+                                     offset, minionOffset);
     return;
   }
 
@@ -540,9 +545,11 @@ GEN_INSTANCES_OP(template, fwdLibInsertTensorInst, void *dst, void *dstDims,
                                void *dstPitches, unsigned int dstDimNum,
                                void *src2, void *src2Dims, void *src2Pitches,
                                void * poffsets, unsigned int count,
-                               unsigned int axis, float *scale, int32_t *offset);
+                               unsigned int axis, float *scale, int32_t *offset,
+                               const uint32_t minionOffset);
 GEN_INSTANCES_OP(template, fwdLibInsertTensorInstThreaded, void *dst, void *dstDims,
                                 void *dstPitches, unsigned int dstDimNum,
                                 void *src2, void *src2Dims, void *src2Pitches,
                                 void * poffsets, unsigned int count,
-                                unsigned int axis, float *scale, int32_t *offset, uint64_t flags);
+                                unsigned int axis, float *scale, int32_t *offset, uint64_t flags,
+                                const uint32_t minionOffset, const uint32_t assignedMinions);
