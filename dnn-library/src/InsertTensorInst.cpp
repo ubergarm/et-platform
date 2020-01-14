@@ -214,47 +214,59 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
                       int lanes, int res, int32_t *gatherValues) {
   uint8_t *dst8 = (uint8_t *) dst + addrOut * typeSize;
   uint8_t *src8 = (uint8_t *) src + addrIn * typeSize;
-  __asm__ __volatile__("mov.m.x m0, zero, 0xff");
+  float scratch;
   while (lanes > 8) {
-    __asm__ __volatile__("flw.ps f0, 0x0(%[src])\n"
-                         "fsw.ps f0, 0x0(%[dst])\n"
-                         :
-                         : [ src ] "r"(src8), [ dst ] "r"(dst8)
-                         : "f0", "memory");
+
+    __asm__ __volatile__("flq2 %[d], %[src]\n"
+                         "fsq2 %[d], %[dst]\n"
+                         : [ dst ] "=m"(*(uint8_t(*)[32]) dst8), [d] "=&f" (scratch)
+                         : [ src ] "m" ( *(const uint8_t(*)[32]) src8)
+                         );
     lanes -= 8;
     src8 += 32;
     dst8 += 32;
   }
   __asm__ __volatile__(
-  "maskand m0, m1, m1\n"
-  "flw.ps f0, 0x0(%[src])\n"
-  "fsw.ps f0, 0x0(%[dst])\n"
-  :
-  : [ src ] "r"(src8), [ dst ] "r"(dst8)
-  : "f0", "memory");
+                       "maskand m0, m1, m1\n"
+                       "flw.ps %[d], %[src]\n"
+                       "fsw.ps %[d], %[dst]\n"
+                       : [ dst ] "=m"(*(uint8_t(*)[32]) dst8), [d] "=&f" (scratch)
+                       : [ src ] "m" ( *(const uint8_t(*)[32]) src8)
+                       );
+  
   src8 += 4*lanes;
   dst8 += 4*lanes;
   if (res != 0) {
     if (getsize<srcType>() == 2) {
-      __asm__ __volatile__(
-          "maskand m0, m2, m2\n"
-          "flw.ps f1, 0x0(%[gatherValues]) \n"
-          "fgh.ps f0, f1(%[src]) \n"
-          "fsch.ps f0, f1(%[dst]) \n"
-          :
-          : [ src ] "r"(src8), [ dst ] "r"(dst8),
-            [ gatherValues ] "r"(gatherValues)
-          : "f0", "f1", "memory");
+      float o, d;
+      __asm__ __volatile__
+        (
+         "maskand m0, m2, m2\n"
+         "flw.ps %[o], %[gatherValues] \n"
+         "fgh.ps %[d], %[o](%[src]) \n"
+         "fsch.ps %[d], %[o](%[dst]) \n"
+         : [d] "=&f" (d), [o] "=&f" (o),
+           [ dstMem ] "=m"(*(uint8_t(*)[getsize<srcType>()*8]) dst8)
+         : [ srcMem ] "m" ( *(const uint8_t(*)[getsize<srcType>()*8]) src8),
+           [ dst ] "r"(dst8),
+           [ src ] "r"(src8),
+           [ gatherValues ] "m"( * ( const int32_t(*)[8]) gatherValues)
+         );
     } else if (getsize<srcType>() == 1) {
-      __asm__ __volatile__(
-          "maskand m0, m2, m2\n"
-          "flw.ps f1, 0x0(%[gatherValues]) \n"
-          "fgb.ps f0, f1(%[src]) \n"
-          "fscb.ps f0, f1(%[dst]) \n"
-          :
-          : [ src ] "r"(src8), [ dst ] "r"(dst8),
-            [ gatherValues ] "r"(gatherValues)
-          : "f0", "f1", "memory");
+      float o, d;
+      __asm__ __volatile__
+        (
+         "maskand m0, m2, m2\n"
+         "flw.ps %[o], %[gatherValues] \n"
+         "fgb.ps %[d], %[o](%[src]) \n"
+         "fscb.ps %[d], %[o](%[dst]) \n"
+         : [d] "=&f" (d), [o] "=&f" (o),
+           [ dstMem ] "=m"(*(uint8_t(*)[getsize<srcType>()*8]) dst8)
+         : [ srcMem ] "m" ( *(const uint8_t(*)[getsize<srcType>()*8]) src8),
+           [ dst ] "r"(dst8),
+           [ src ] "r"(src8),
+           [ gatherValues ] "m" ( * ( const int32_t(*)[8]) gatherValues)
+         );
     }
   }
 }
