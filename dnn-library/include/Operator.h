@@ -18,7 +18,7 @@
 using namespace dnn_lib;
 
 #define OPERATION_STEP1   \
-           "flw.ps f31, 0x0(%[gatherValues])\n"          \
+           "flw.ps f31, %[gatherValues]\n"               \
            "fgb.ps  f0, f31(%[src1]) \n"                 \
            "fgb.ps  f1, f31(%[src2]) \n"
 
@@ -114,23 +114,23 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  ///SW-1505: REVIEWED UNTIL THIS POINT IN THE FILE
+
   void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
-                         "fbc.ps f30, 0x4(%[offset]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n"
+                         "fbc.ps f30, 0x4+%[offset] \n"
+                         "fbc.ps f29, 0x4+%[scale] \n"
                          "fgb.ps  f1, f31(%[src2]) \n"
                          "fsub.pi f1, f1, f30 \n"
                          "fcvt.ps.pw f1, f1 \n"
                          "fmul.ps f1, f1, f29 \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
-                         "fbc.ps f30, 0x0(%[offset]) \n"
-                         "fbc.ps f29, 0x0(%[scale]) \n"
+                         "fbc.ps f30, %[offset] \n"
+                         "fbc.ps f29, %[scale] \n"
                          "fsub.pi f0, f0, f30 \n"
                          "fcvt.ps.pw f0, f0 \n"
                          "fmadd.ps f0, f0, f29, f1 \n"
-                         "fbc.ps f30, 0x8(%[offset]) \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n"
+                         "fbc.ps f30, 0x8+%[offset] \n"
+                         "fbc.ps f29, 0x8+%[scale] \n"
                          "frcp.ps f29, f29 \n"
                          "fcvt.ps.pw f30, f30 \n"
                          "fmadd.ps f0, f0, f29, f30 \n"
@@ -142,8 +142,8 @@ public:
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
-                           [ offset ] "r"(offset),
-                           [ scale ] "r"(scale)
+                           [ offset ] "m"(*(const char(*)[12]) offset),
+                           [ scale ]  "m"(*(const char(*)[12]) scale)
                          : "f0", "f1", "f29", "f30", "f31", "memory");
   }
 
@@ -161,7 +161,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -181,7 +181,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -201,7 +201,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -223,7 +223,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -245,7 +245,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -266,7 +266,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -289,7 +289,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -301,7 +301,7 @@ public:
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
@@ -310,7 +310,7 @@ public:
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
@@ -338,7 +338,7 @@ public:
                                     std::size_t>::type = 0>
 
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
                          "fbc.ps f29, 0x4(%[scale]) \n"
                          "fgb.ps  f1, f31(%[src2]) \n"
@@ -360,7 +360,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -383,7 +383,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -403,7 +403,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -423,7 +423,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -445,7 +445,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -467,7 +467,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -488,7 +488,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -511,7 +511,7 @@ public:
                          "fcmov.ps f0, f1, f29, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -531,7 +531,7 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
@@ -540,7 +540,7 @@ public:
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
@@ -567,7 +567,7 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fandi.pi f0, f0, 0xff \n"
@@ -587,7 +587,7 @@ public:
                          "fsatu8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -599,7 +599,7 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
@@ -617,7 +617,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -629,7 +629,7 @@ public:
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
 
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -652,7 +652,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -673,7 +673,7 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
@@ -683,7 +683,7 @@ public:
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
@@ -711,7 +711,7 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fandi.pi f0, f0, 0xff \n"
@@ -732,7 +732,7 @@ public:
                          "fsatu8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -744,7 +744,7 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
@@ -763,7 +763,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m" (*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -775,7 +775,7 @@ public:
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"
-                         "flw.ps f31, 0x0(%[gatherValues])\n"
+                         "flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -799,7 +799,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -842,7 +842,7 @@ public:
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
@@ -851,7 +851,7 @@ public:
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
@@ -878,7 +878,7 @@ public:
             typename std::enable_if<std::is_same<U, Max>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fandi.pi f0, f0, 0xff \n"
@@ -898,7 +898,7 @@ public:
                          "fsatu8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -910,7 +910,7 @@ public:
             typename std::enable_if<std::is_same<U, Max>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
@@ -928,7 +928,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -939,7 +939,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -962,7 +962,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -984,7 +984,7 @@ public:
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
@@ -993,7 +993,7 @@ public:
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
@@ -1020,7 +1020,7 @@ public:
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fandi.pi f0, f0, 0xff \n"
@@ -1040,7 +1040,7 @@ public:
                          "fsatu8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -1052,7 +1052,7 @@ public:
             typename std::enable_if<std::is_same<U, Min>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
@@ -1070,7 +1070,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -1081,7 +1081,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -1104,7 +1104,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r"(dstAddr),
@@ -1125,7 +1125,7 @@ public:
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
@@ -1149,7 +1149,7 @@ public:
                          "maskand m0, m0, m1 \n"
                          "fsw.ps f2, -12(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
@@ -1193,7 +1193,7 @@ public:
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -1225,7 +1225,7 @@ public:
                          "maskand m0, m0, m1 \n"
                          "fsw.ps f2, -12(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr),
@@ -1247,7 +1247,7 @@ public:
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
@@ -1272,7 +1272,7 @@ public:
                          "maskand m0, m0, m1 \n"
                          "fsw.ps f2, -12(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
@@ -1315,7 +1315,7 @@ public:
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -1347,7 +1347,7 @@ public:
                          "maskand m0, m0, m1 \n"
                          "fsw.ps f2, -12(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr),
@@ -1372,7 +1372,7 @@ public:
     float half = 0.5;
     float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n"
+                         "flw.ps f28, %[gatherValues]\n"
                          "fgh.ps  f0, f28(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f28(%[src2]) \n"
@@ -1420,7 +1420,7 @@ public:
                            [ dst ] "r" (dstAddr),
                            [ half ] "r"(&half),
                            [ minus2 ] "r"(&minus2),
-                           [ gatherValues ] "r"(gatherValues)
+                           [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues)
                          : "f0", "f1", "f2", "f3", "f4", "f5", "f28", "f29", "f30", "f31", "memory");
   }
 
@@ -1485,7 +1485,7 @@ public:
     __asm__ __volatile__("maskand m1, m0, m0 \n"
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n"
+                         "flw.ps f28, %[gatherValues]\n"
                          "fbc.ps f26, 0x0(%[offset]) \n"
                          "fbc.ps f27, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f28(%[src1]) \n"
@@ -1547,7 +1547,7 @@ public:
                            [ minus2 ] "r"(&minus2),
                            [ offset ] "r"(offset),
                            [ scale ] "r"(scale),
-                           [ gatherValues ] "r"(gatherValues)
+                           [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues)
                          : "f0", "f1", "f2", "f3", "f4", "f5", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
   }
 
@@ -1560,7 +1560,7 @@ public:
     __asm__ __volatile__("maskand m1, m0, m0 \n"
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n"
+                         "flw.ps f28, %[gatherValues]\n"
                          "fbc.ps f27, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f28(%[src1]) \n"
                          "fcvt.ps.pw f0, f0 \n"
@@ -1615,7 +1615,7 @@ public:
                            [ half ] "r"(&half),
                            [ minus2 ] "r"(&minus2),
                            [ scale ] "r"(scale),
-                           [ gatherValues ] "r"(gatherValues)
+                           [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues)
                          : "f0", "f1", "f2", "f3", "f4", "f5", "f27", "f28", "f29", "f30", "f31", "memory");
   }
 
@@ -1628,7 +1628,7 @@ public:
     __asm__ __volatile__("maskand m1, m0, m0 \n"
                          "fbc.ps f31, 0x0(%[half]) \n"
                          "fbc.ps f30, 0x0(%[minus2]) \n"
-                         "flw.ps f28, 0x0(%[gatherValues])\n"
+                         "flw.ps f28, %[gatherValues]\n"
                          "fbc.ps f27, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f28(%[src1]) \n"
                          "fandi.pi f0, f0, 0xff \n"
@@ -1685,7 +1685,7 @@ public:
                            [ half ] "r"(&half),
                            [ minus2 ] "r"(&minus2),
                            [ scale ] "r"(scale),
-                           [ gatherValues ] "r"(gatherValues)
+                           [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues)
                          : "f0", "f1", "f2", "f3", "f4", "f5", "f27", "f28", "f29", "f30", "f31", "memory");
   }
 
@@ -1702,7 +1702,7 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
     float log2e = M_1_LOG2E;
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[log2e]) \n"
                          "fgh.ps  f0, f31(%[src]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -1711,7 +1711,7 @@ public:
                          "fcvt.f16.ps f0, f0 \n"
                          "fsch.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src ] "r"(srcAddr),
                            [ dst ] "r"(dstAddr),
                            [ log2e ] "r"(&log2e)
@@ -1742,7 +1742,7 @@ public:
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
     float log2e = M_1_LOG2E;
-    __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f28, 0x0(%[log2e]) \n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
@@ -1761,7 +1761,7 @@ public:
                          "fsat8.pi f0, f0 \n"
                          "fscb.ps  f0, f31(%[dst]) \n"
                          :
-                         : [ gatherValues ] "r"(gatherValues),
+                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
                            [ src ] "r"(srcAddr),
                            [ dst ] "r"(dstAddr),
                            [ offset ] "r"(offset),
