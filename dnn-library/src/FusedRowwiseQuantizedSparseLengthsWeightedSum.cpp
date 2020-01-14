@@ -247,7 +247,7 @@ inline void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
   // For all sparse input rows.
   for (uintptr_t j = 0, currIndex = minionCurrIndex;
        j < currSegmentLength; j++, currIndex++) {
-    volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataRowPitch;
+    uint8_t * data_ptr   = tAInput + indices[currIndex] * dataRowPitch;
     void             * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
     void             * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
   

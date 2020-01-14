@@ -451,18 +451,18 @@ void dnn_lib::fwdLibTopKInstThreaded_k4(
     }
   }
 
-  volatile int32_t gather_values[] = {0, 4, 8, 12, 0, 4, 8, 12};
-  volatile int32_t gather_indices[] = {0, 8, 16, 24, 4, 12, 20, 28};
-  __asm__ __volatile__("flw.ps  f31, 0x0(%[gather_values])\n"
+  int32_t gather_values[] = {0, 4, 8, 12, 0, 4, 8, 12};
+  int32_t gather_indices[] = {0, 8, 16, 24, 4, 12, 20, 28};
+  __asm__ __volatile__("flw.ps  f31, %[gather_values]\n"
                        "fgw.ps f0, f31(%[tmpValues])\n"
-                       "flw.ps  f31, 0x0(%[gather_indices])\n"
+                       "flw.ps  f31, %[gather_indices]\n"
                        "fgw.ps f1, f31(%[tmpInd])\n"
 
                        :
-                       : [ gather_values ] "r"(gather_values),
-                         [ gather_indices ] "r"(gather_indices),
+                       : [ gather_values ]  "m"( *(const int32_t(*)[8]) gather_values),
+                         [ gather_indices ] "m"( *(const int32_t(*)[8]) gather_indices),
                          [ tmpValues ] "r"(tmpValues), [ tmpInd ] "r"(tmpInd)
-                       : "f31", "memory");
+                       : "f31", "f0", "memory");
 
   unsigned int pow = 1;
   for (int j = 0; j <= level; j++) {
@@ -547,16 +547,16 @@ void dnn_lib::fwdLibTopKInstThreaded_k4(
   }
 
   if (row_minionId == 0) {
-    volatile int32_t gather_coord[] = {0, 8, 16, 24, 4, 12, 20, 28};
-    volatile float tmpT[4];
-    __asm__ __volatile__("flw.ps  f31, 0x0(%[gather_coord])\n"
+    int32_t gather_coord[] = {0, 8, 16, 24, 4, 12, 20, 28};
+    float tmpT[4];
+    __asm__ __volatile__("flw.ps  f31, %[gather_coord]\n"
                          "fscw.ps f1, f31(%[indT])\n"
                          "mov.m.x m0, zero, 0x0f\n"
-                         "fsw.ps f0, 0x0(%[tmpT])\n"
-                         :
-                         : [ tmpT ] "r"(tmpT), [ indT ] "r"(indT),
-                           [ gather_coord ] "r"(gather_coord)
-                         : "f0", "f1", "f31");
+                         "fsw.ps f0, %[tmpT]\n"
+                         : [ tmpT ] "=m"( *(float(*)[4]) tmpT)
+                         : [ indT ] "r"(indT),
+                           [ gather_coord ] "m"( *(const int32_t(*)[8]) gather_coord)
+                         : "f0", "f1", "f31", "memory");
     for (int i = 0; i < k; i++)
       valuesT[batch_offset * valuesPitch[batchDim] + i] = tmpT[i];
   }
@@ -641,22 +641,25 @@ void dnn_lib::fwdLibTopKInstThreaded_k8(
 
   int32_t gather_values[] = {0, 4, 8, 12, 0, 4, 8, 12};
   int32_t gather_indices[] = {0, 8, 16, 24, 4, 12, 20, 28};
-  __asm__ __volatile__("flw.ps  f31, 0x0(%[gather_values])\n"
+  __asm__ __volatile__("flw.ps  f31, %[gather_values]\n"
                        "fgw.ps f0, f31(%[tmpValues])\n"
                        "faddi.pi f31, f31, 0x10\n" // New gather = {16, 20, 24,
                                                    // 28, 16, 20, 24, 28}
                        "fgw.ps f1, f31(%[tmpValues])\n"
-                       "flw.ps  f31, 0x0(%[gather_indices])\n"
+                       "flw.ps  f31, %[gather_indices]\n"
                        "fgw.ps f2, f31(%[tmpInd])\n"
                        "faddi.pi f31, f31, 0x20\n" // New gather = {32, 40, 48,
                                                    // 56, 36, 44, 52, 60}
                        "fgw.ps f3, f31(%[tmpInd])\n"
 
                        :
-                       : [ gather_values ] "r"(gather_values),
-                         [ gather_indices ] "r"(gather_indices),
-                         [ tmpValues ] "r"(tmpValues), [ tmpInd ] "r"(tmpInd)
-                       : "f31", "memory");
+                       : [ gather_values ]  "m"( *(const int32_t(*)[8]) gather_values),
+                         [ gather_indices ] "m"( *(const int32_t(*)[8]) gather_indices),
+                         [ tmpValues ] "r"(tmpValues),
+                         [tmpValuesMem] "m" (*(const float(*)[9]) tmpValues),
+                         [ tmpInd ] "r"(tmpInd),
+                         [tmpIndMem] "m" (*(const long long(*)[9]) tmpInd)
+                       : "f31", "f0", "f1", "f2", "f3");
 
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
@@ -749,19 +752,19 @@ void dnn_lib::fwdLibTopKInstThreaded_k8(
   }
 
   if (rowMinionId == 0) {
-    volatile int32_t gather_indices[] = {0, 8, 16, 24, 4, 12, 20, 28};
-    volatile float tmpT[8];
-    __asm__ __volatile__("flw.ps  f31, 0x0(%[gather_indices])\n"
+    int32_t gather_indices[] = {0, 8, 16, 24, 4, 12, 20, 28};
+    float tmpT[8];
+    __asm__ __volatile__("flw.ps  f31, %[gather_indices]\n"
                          "fscw.ps f2, f31(%[indT])\n"
                          "faddi.pi f31, f31, 0x20\n"
                          "fscw.ps f3, f31(%[indT])\n"
                          "mov.m.x m0, zero, 0x0F\n"
-                         "fsw.ps f0, 0x0(%[tmpT])\n"
-                         "fsw.ps f1, 0x10(%[tmpT])\n"
+                         "fsw.ps f0, %[tmpT]\n"
+                         "fsw.ps f1, 0x10+%[tmpT]\n"
 
-                         :
-                         : [ tmpT ] "r"(tmpT), [ indT ] "r"(indT),
-                           [ gather_indices ] "r"(gather_indices),
+                         : [ tmpT ] "=m"( *(float(*)[8]) tmpT)
+                         : [ indT ] "r"(indT),
+                           [ gather_indices ] "m"( *(const int32_t(*)[8]) gather_indices),
                            [ gather_values ] "r"(gather_values)
                          : "f0", "f1", "f2", "f3", "f31");
     for (int i = 0; i < k; i++)

@@ -30,9 +30,10 @@ using namespace dnn_lib;
 #define DO_EVICTS     ((flags & 0x60) >> 5) // 01 = evictL2, 10 = evictL3, 11 = evictMem
 
 #define M_1_LOG2E float(1.0f / M_LOG2E)
-#define SET_FG32B_VAL(_reg) "li " #_reg ", 0x398A418820\n"
-#define SET_FG32H_VAL(_reg) "li " #_reg ", 0x76543210\n"
-//   No SET_FG32W.PS_VAL(_reg) because flw.ps is used instead of fg32w.ps.
+
+constexpr uint64_t fg32b_conf = 0x398A418820;
+constexpr uint64_t fg32h_conf = 0x76543210;
+
 #define SET_MINUS_INFTY(_reg) "fbci.ps " #_reg ", 0xff800 \n" // _reg is vect
 
 #define likely(x)       __builtin_expect((x),1)

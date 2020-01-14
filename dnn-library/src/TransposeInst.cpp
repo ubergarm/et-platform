@@ -152,14 +152,14 @@ void dnn_lib::fwdLibTransposeInstThreaded(void *dst, void *dstDims,
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
-void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t *gatherValues){
+  __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        "fgw.ps  f0, f31(%[src]) \n"
-                       "flw.ps f31, 0x0(%[scatterValues]) \n"
+                       "flw.ps f31, %[scatterValues] \n"
                        "fscw.ps  f0, f31(%[dst]) \n"
                        :
-                       : [ gatherValues ] "r"(gatherValues),
-                         [ scatterValues ] "r"(scatterValues),
+                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
+                         [ scatterValues ] "m"(*(const int32_t(*)[8]) scatterValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "f0", "f31", "memory");
@@ -167,14 +167,14 @@ void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues,
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
-void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t *gatherValues){
+  __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        "fgh.ps  f0, f31(%[src]) \n"
-                       "flw.ps f31, 0x0(%[scatterValues]) \n"
+                       "flw.ps f31, %[scatterValues] \n"
                        "fsch.ps  f0, f31(%[dst]) \n"
                        :
-                       : [ gatherValues ] "r"(gatherValues),
-                         [ scatterValues ] "r"(scatterValues),
+                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
+                         [ scatterValues ] "m"(*(const int32_t(*)[8]) scatterValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "f0", "f31", "memory");
@@ -183,14 +183,14 @@ void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues,
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
-void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+void transposeOp (uintptr_t dst, uintptr_t src,  int32_t *scatterValues,  int32_t *gatherValues){
+  __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        "fgb.ps  f0, f31(%[src]) \n"
-                       "flw.ps f31, 0x0(%[scatterValues]) \n"
+                       "flw.ps f31, %[scatterValues] \n"
                        "fscb.ps  f0, f31(%[dst]) \n"
                        :
-                       : [ gatherValues ] "r"(gatherValues),
-                         [ scatterValues ] "r"(scatterValues),
+                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
+                         [ scatterValues ] "m"(*(const int32_t(*)[8]) scatterValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "f0", "f31", "memory");
@@ -200,7 +200,9 @@ void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues,
 template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
 && !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void transposeOp (uintptr_t dst, uintptr_t src, volatile int32_t *scatterValues, volatile int32_t *gatherValues){}
+void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t *gatherValues){
+  //FIXME: TODO: implement
+}
 
 
 
@@ -266,10 +268,10 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
 
 
   unsigned int newPitchSize = newPitch[lastDim] * typeSize;
-  volatile int32_t gatherValues[8];
+  int32_t gatherValues[8];
   for (unsigned int i = 0; i < 8; i++) gatherValues[i] = i*newPitchSize;
   unsigned int dstPitchSize = dstPitch[lastDim] * typeSize;
-  volatile int32_t scatterValues[8];
+  int32_t scatterValues[8];
   for (unsigned int i = 0; i < 8; i++) scatterValues[i] = i*dstPitchSize;
 
   while (!done && (offsetOut < posMax)) {
@@ -325,12 +327,12 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
-void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
+  __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        "fgw.ps  f0, f31(%[src]) \n"
                        "fsw.ps  f0, 0x0(%[dst]) \n"
                        :
-                       : [ gatherValues ] "r"(gatherValues),
+                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src)
                        : "f0", "f31", "memory");
@@ -338,30 +340,32 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
-void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
+  __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        "fgh.ps  f0, f31(%[src]) \n"
-                       SET_FG32H_VAL(t0)
+                       "li t0, %[g32_conf]\n"
                        "fsc32h.ps f0, t0(%[dst]) \n"
                        :
-                       : [ gatherValues ] "r"(gatherValues),
+                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
                          [ dst ] "r"(dst),
-                         [ src ] "r"(src)
+                         [ src ] "r"(src),
+                         [g32_conf] "i" (fg32h_conf)
                        : "t0", "f0", "f31", "memory");
 
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
-void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues]) \n"
+void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src,  int32_t *gatherValues){
+  __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        "fgb.ps  f0, f31(%[src]) \n"
-                       SET_FG32B_VAL(t0)
+                       "li t0, %[g32_conf]\n"
                        "fsc32b.ps  f0, t0(%[dst]) \n"
                        :
-                       : [ gatherValues ] "r"(gatherValues),
+                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
                          [ dst ] "r"(dst),
-                         [ src ] "r"(src)
+                         [ src ] "r"(src),
+                         [g32_conf] "i" (fg32b_conf)
                        : "t0", "f0", "f31", "memory");
 
 }
@@ -369,7 +373,9 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *
 template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
 && !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, volatile int32_t *gatherValues){}
+void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
+  //FIXME: not implemented
+}
 
 
 
@@ -425,7 +431,7 @@ void dnn_lib::fwdLibTransposeInstAligned32Bytes(void *dst,
 
   unsigned int lastDim = srcDimNum - 1;
   unsigned int newPitchSize = newPitch[lastDim] * typeSize;
-  volatile int32_t gatherValues[8];
+  int32_t gatherValues[8];
   for (unsigned int i = 0; i < 8; i++) gatherValues[i] = i*newPitchSize;
 
   //We modify the pitches and coord so that the function getOffsets

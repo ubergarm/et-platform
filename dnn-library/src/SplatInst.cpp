@@ -172,7 +172,7 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
          [endPtr] "r" (endPtr),
          [endPtrUnrolled] "r" (endPtrUnrolled),
          [splatValPtr] "r" (splatVal),
-         [splatValMem] "m" ( (uint64_t (*)[1]) splatVal)
+         [splatValMem] "m" ( (const uint64_t (*)[1]) splatVal)
      );
   }
 

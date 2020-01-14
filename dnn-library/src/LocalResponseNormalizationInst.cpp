@@ -302,14 +302,15 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
                          "fadd.s f0, f30, f0 \n"
                          "fmvs.x.ps %[sum], f0, 0x0 \n"
 
-                         : [ sum ] "+r"(squareSum)
+                         : [ sum ] "=r"(squareSum),
+                           [ src ] "+&r"(srcAddr)
                          : [ mask ] "r"(mask),
                            [ mod ] "r"(mod),
                            [ offs ] "I"(offs),
-                           [ src ] "r"(srcAddr),
+                           [ srcMem ] "m"(* (char(*)[]) srcAddr),
                            [ registers ] "r"(registers)
 
-                         : "t0", "t1", "f0", "f1", "f30", "f31", "memory");
+                         : "t0", "f0", "f1", "f30");
 
     auto scale = k + normedAlpha * squareSum;
 

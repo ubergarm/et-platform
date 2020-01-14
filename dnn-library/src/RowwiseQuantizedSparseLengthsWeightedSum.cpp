@@ -287,7 +287,7 @@ void dnn_lib::
     if (dstGroupNotInRowTail) {
       // Not in tail
 
-      volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
       // Initialize vector mask
       // Clear vector registers that will be used for accumulation
@@ -305,9 +305,9 @@ void dnn_lib::
         "fxor.pi f7, f0, f0\n"
         "li      t0, 0xff\n"
         "fbcx.ps f30, t0\n"
-        "flw.ps  f31, 0x0(%[gather_offsets])\n"
+        "flw.ps  f31, %[gather_offsets]\n"
         :
-        : [gather_offsets] "r" (gather_offsets)
+        : [gather_offsets] "m" (* ( const int32_t(*)[8]) gather_offsets)
         : "t0", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
           "f30", "f31"
       );
@@ -326,7 +326,7 @@ void dnn_lib::
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
 		int64_t            rowIndex   = indices[currIndex];
-        volatile uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
+        uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
         float            * scale_ptr  = (float *) &scales[rowIndex];
         float            * offset_ptr = (float *) &offsets[rowIndex];
         float            * weight_ptr = (float *) &tWInput[currIndex];
@@ -477,7 +477,7 @@ void dnn_lib::
       minionCurrIndex += currSegmentLength;
     }
     else {
-      volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
       // Initialize vector mask
       // Clear vector registers that will be used for accumulation
@@ -488,9 +488,9 @@ void dnn_lib::
         "fxor.pi f0, f0, f0\n"
         "li      t0, 0xff\n"
         "fbcx.ps f30, t0\n"
-        "flw.ps  f31, 0x0(%[gather_offsets])\n"
+        "flw.ps  f31, %[gather_offsets]\n"
         :
-        : [gather_offsets] "r" (gather_offsets)
+        : [gather_offsets] "m" (* ( const int32_t(*)[8]) gather_offsets)
         : "t0", "f0", "f30", "f31"
       );
 
@@ -510,7 +510,7 @@ void dnn_lib::
         for (uintptr_t j = 0, currIndex = minionCurrIndex;
              j < currSegmentLength; j++, currIndex++) {
           int64_t            rowIndex   = indices[currIndex];
-          volatile uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
+          uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
           float            * scale_ptr  = (float *) &scales[rowIndex];
           float            * offset_ptr = (float *) &offsets[rowIndex];
           float            * weight_ptr = (float *) &tWInput[currIndex];
@@ -583,7 +583,7 @@ void dnn_lib::
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
         int64_t            rowIndex   = indices[currIndex];
-        volatile uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
+        uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
         float            * scale_ptr  = (float *) &scales[rowIndex];
         float            * offset_ptr = (float *) &offsets[rowIndex];
         float            * weight_ptr = (float *) &tWInput[currIndex];

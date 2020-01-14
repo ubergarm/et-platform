@@ -752,16 +752,15 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
   unsigned int posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y, d;
-  volatile int32_t mask = (1 << (((inCperG - 1) & 0x7)  + 1)) - 1;
+  int32_t mask = (1 << (((inCperG - 1) & 0x7)  + 1)) - 1;
   while ((offsetOut < posMax) && !done) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
     y = coord[2] * strides[1] - ssize_t(pads[1]);
     d = coord[3] * outCperG + coord[4];
 
     auto sum = tBias[d];
-    volatile int dist;
-    volatile unsigned int *actAddr = (unsigned int *) activations;
-    volatile unsigned int *weightAddr = (unsigned int *) weights;
+    unsigned int *actAddr = (unsigned int *) activations;
+    unsigned int *weightAddr = (unsigned int *) weights;
     convolutionOp <src1Type, src2Type, dstType> (activations, weights, coord, actPitch, weightPitch,
                                                  actIndex, kernels, inCperG, sum, mask, x, y, d,
                                                  scale, offset);

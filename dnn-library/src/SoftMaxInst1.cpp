@@ -275,7 +275,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
 
       "addi t0, zero, 0x1 \n"
       "beq %[floatType], t0, 1f \n"
-      SET_FG32H_VAL(t0)
+      "li t0, %[gs32_offsets]\n"
 
       "1: \n" // Coverage of the srcIndex[1]/8 full registers.
       "addi t1, t1, 0x1 \n"
@@ -366,7 +366,8 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
         [srcAddr] "r" (srcAddr),
         [dstAddr] "r" (dstAddr),
         [numRegs] "r" (numRegs),
-        [extraLanes] "r" (extraLanes)
+        [extraLanes] "r" (extraLanes),
+        [gs32_offsets] "i" (  fg32b_conf )
       : "t0", "t1", "t2", "t3", "f0", "f27", "f28", "f29", "memory");
 
     srcAddr += step;
@@ -464,7 +465,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
 
       "addi t0, zero, 0x1 \n"
       "beq %[floatType], t0, 1f \n"
-      SET_FG32H_VAL(t0)
+      "li t0, %[g32_conf]\n"
 
       "1: \n" // Coverage of the full registers.
       "addi t1, t1, 0x1 \n"
@@ -585,7 +586,8 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
         [numRegs] "r" (numRegs),
         [extraLanes] "r" (extraLanes),
         [csr_enc] "r" (&csr_enc),
-        [level] "r" (level)
+        [level] "r" (level),
+        [g32_conf] "i" (fg32h_conf)
       : "t0", "t1", "t2", "t3", "t4", "t5", "f0", "f27", "f28", "f29", "memory");
 
   }

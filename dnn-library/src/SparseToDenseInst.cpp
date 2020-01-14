@@ -186,12 +186,12 @@ std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
 
-  volatile int32_t gatherValues[] = {0, 4, 8, 12, 16, 20, 24, 28};
+  int32_t gatherValues[] = {0, 4, 8, 12, 16, 20, 24, 28};
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
 
                        "addi    t3, %[tIndex], 0x0\n"
-                       "flw.ps f31, 0x0(%[gatherValues])\n"
+                       "flw.ps f31, %[gatherValues]\n"
                        "1:\n"
 
                        "ld t1, 0x0(t3)\n"
@@ -211,7 +211,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                        "fscw.ps  f0, f31(%[dst]) \n"
 
                        :
-                       : [ gatherValues ] "r"(gatherValues),
+                       : [ gatherValues ] "m" (* ( const int32_t(*)[8]) gatherValues),
                          [ src ] "r"(src),
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),
@@ -227,14 +227,14 @@ template <typename srcType, typename std::enable_if<std::is_same<srcType, float1
 std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
-  volatile int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
+  int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
 
 
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
                        "fcvt.ps.f16 f0, f0\n"
                        "addi    t3, %[tIndex], 0x0\n"
-                       "flw.ps f31, 0x0(%[gatherValues])\n"
+                       "flw.ps f31, %[gatherValues]\n"
                        "1:\n"
 
                        "ld t1, 0x0(t3)\n"
@@ -256,7 +256,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                        "fsch.ps  f0, f31(%[dst]) \n"
 
                        :
-                       : [ gatherValues ] "r"(gatherValues),
+                       : [ gatherValues ] "m" (* ( const int32_t(*)[8]) gatherValues),
                          [ src ] "r"(src),
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),
@@ -274,10 +274,10 @@ template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t
 std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
-  volatile int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
+  int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
-                       "flw.ps f31, 0x0(%[gatherValues])\n"
+                       "flw.ps f31, %[gatherValues]\n"
                        "fbc.ps f30, 0x0(%[offset]) \n"
                        "fbc.ps f29, 0x0(%[scale]) \n"
 
@@ -318,7 +318,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
 
 
                        :
-                       : [ gatherValues ] "r"(gatherValues),
+                       : [ gatherValues ] "m" (* ( const int32_t(*)[8]) gatherValues),
                          [ src ] "r"(src),
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),

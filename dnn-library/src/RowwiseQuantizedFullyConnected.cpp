@@ -234,7 +234,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
     "fadd.pi    f0, f0, f1\n"          \
     "fadd.pi    f31, f0, f31\n"
 
-    volatile int32_t gatherValues[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+    int32_t gatherValues[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
     __asm__ __volatile__(
       "mov.m.x m0, zero, 0xff\n"        // Mask m0 is set so all lanes are
                                         //active.
@@ -242,7 +242,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
                                         //the integer register t0.
       "xor t1, t1, t1\n"                // The int register t1 is set to
                                         //0x0: it will count iterations.
-      "flw.ps f28, 0x0(%[gthValues])\n" // The gatherValues vector is loaded
+      "flw.ps f28, %[gthValues]\n" // The gatherValues vector is loaded
                                         //to f28, one int32 per lane.
       "fbc.ps f29, 0x0(%[srcoffset])\n" // The int32 srcoffset is broadcast
                                         //to the 8 lanes of f29.
@@ -287,7 +287,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
                                         //the variable "sum".
 
       : [sum] "+r" (sum)
-      : [gthValues] "r" (gatherValues),
+      : [gthValues] "m" (* (const int32_t(*)[8]) gatherValues),
         [srcoffset] "r" (&srcoffset),
         [woffset]   "r" (&woffset),
         [actAddr] "r" (actAddr),
@@ -394,7 +394,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
 
     __asm__ __volatile__(
       "mov.m.x m0, zero, 0xff\n"
-      SET_FG32B_VAL(t0)
+      "li t0, %[g32_conf]\n"
       "xor t1, t1, t1\n"
       "fbc.ps f29, 0x0(%[srcoffset])\n"
       "fbc.ps f30, 0x0(%[woffset])\n"
@@ -427,7 +427,8 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
         [wgtAddr] "r" (wgtAddr),
         [srcoffset] "r" (&srcoffset),
         [woffset]   "r" (&woffset),
-        [elemsRow]  "r" (dataIndex[1])
+        [elemsRow]  "r" (dataIndex[1]),
+        [g32_conf] "i" (fg32b_conf)
       : "t0", "t1", "t2", "f0", "f1", "f29", "f30", "f31");
 
     tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(

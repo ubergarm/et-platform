@@ -261,83 +261,116 @@ void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
-std::size_t>::type = 0>
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0,
+          bool aligned32B = false>
 void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
-  volatile int32_t gatherValues[] = {0, 4, 8, 12, 16, 20, 24, 28};
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
-                       "fgw.ps f0, f31(%[src])\n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n"
-                       "fmax.ps f0, f0, f1\n"
-                       "fscw.ps  f0, f31(%[dst]) \n"
+  float op0, op1;
+  // note: no difference between aligned and non aligned versions, as it is not using gathers or scatters
+  __asm__ __volatile__(
+                       "flw.ps %[op0], %[src]\n"
+                       "fbcx.ps %[op1], %[splatVal]\n"
+                       "fmax.ps %[op0], %[op0], %[op1]\n"
+                       "fsw.ps  %[op0], %[dst] \n"
 
-                       :
-                       : [ gatherValues ] "r"(gatherValues),
-                         [ splatVal ] "r"(&splatVal),
-                         [ dst ] "r"(dst),
-                         [ src ] "r"(src)
-                       : "f0", "f1", "f31", "memory");
-
-
-
+                       : [op0] "=&f" (op0), [op1] "=&f" (op1),
+                         [dst] "=m" (*( char(*)[32]) dst)
+                       : [ splatVal ] "r"(bitwise_copy<uint32_t>(splatVal)),
+                         [ src] "m" (*(const char(*)[32]) src)
+                       );
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
-std::size_t>::type = 0>
+template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0,
+          bool aligned32B = false >
 void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
-  volatile int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
-                       "fgh.ps f0, f31(%[src])\n"
-                       "fcvt.ps.f16 f0, f0\n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n"
-                       "fmax.ps f0, f0, f1\n"
-                       "fcvt.f16.ps f0, f0\n"
-                       "fsch.ps  f0, f31(%[dst]) \n"
+  // aligned used gather/scatter32, non aligned uses regular ones
+  int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
+  float gv, op0, op1;
+  __asm__ __volatile__(
+                       ".if %[aligned]\n"
+                       "    li %[gv], %[gs32_offsets]\n"
+                       "    fg32h.ps %[op0],  %[gv](%[src])\n"
+                       ".else\n"
+                       "    flw.ps %[gv], %[gatherValues]\n"
+                       "    fgh.ps %[op0], %[gv](%[src])\n"                       
+                       ".endif\n"
+                       "fcvt.ps.f16 %[op0], %[op0]\n"
+                       "fbcx.ps %[op1], %[splatVal]\n"                       
+                       "fmax.ps %[op0], %[op0], %[op1]\n"
+                       "fcvt.f16.ps %[op0], %[op0]\n"
+                       ".if %[aligned]\n"
+                       "    fsc32h.ps %[op0], %[gv](%[dst]) \n"
+                       ".else\n"
+                       "    fsch.ps  %[op0], %[gv](%[dst]) \n"
+                       ".endif\n"
 
-                       :
-                       : [ gatherValues ] "r"(gatherValues),
-                         [ splatVal ] "r"(&splatVal),
-                         [ dst ] "r"(dst),
-                         [ src ] "r"(src)
-                       : "f0", "f1", "f31", "memory");
+                       : [gv] "=&f" (gv),  [op0] "=&f" (op0), [op1] "=&f" (op1),
+                         [dstMem] "=m" (*( char(*)[16]) dst)
+                       : [gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
+                         [splatVal ] "r"(bitwise_copy<uint32_t>(splatVal)),
+                         [dst ] "r"(dst),
+                         [src ] "r"(src),
+                         [srcMem] "m" (*(const char(*)[16]) src),
+                         [aligned] "i" (aligned32B),
+                         [gs32_offsets] "i" (  fg32h_conf )
+                       );
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
-std::size_t>::type = 0>
+template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,std::size_t>::type = 0,
+          bool aligned32B = false > 
 void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){
-
-  volatile int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
-  __asm__ __volatile__("flw.ps f31, 0x0(%[gatherValues])\n"
-                       "fgb.ps f0, f31(%[src])\n"
-                       "fbc.ps f30, 0x0(%[offset]) \n"
-                       "fbc.ps f29, 0x0(%[scale]) \n"
-                       "fsub.pi f0, f0, f30 \n"
-                       "fcvt.ps.pw f0, f0 \n"
-                       "fmul.ps f0, f0, f29 \n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n"
-                       "fmax.ps f0, f0, f1\n"
-                       "frcp.ps f29, f29 \n"
-                       "fcvt.ps.pw f30, f30 \n"
-                       "fmadd.ps f0, f0, f29, f30 \n"
-                       "fcvt.pw.ps f0, f0 \n"
-                       "fsat8.pi f0, f0 \n"
-                       "fscb.ps  f0, f31(%[dst]) \n"
-                       :
-                       : [ gatherValues ] "r"(gatherValues),
-                         [ splatVal ] "r"(&splatVal),
-                         [ dst ] "r"(dst),
-                         [ src ] "r"(src),
-                         [ offset ] "r"(offset),
-                         [ scale ] "r"(scale)
-
-                       : "f0", "f1", "f29", "f30", "f31", "memory");
+  // aligned used gather/scatter32, non aligned uses regular ones
+  float gv, scale_v, offset_v, op0, op1;
+  int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
+  __asm__ __volatile__(
+                       ".if %[aligned]\n"
+                       "    li %[gv], %[gs32_offsets]\n"
+                       "    fg32b.ps %[op0], %[gv](%[src])\n"
+                       ".else\n"
+                       "    flw.ps %[gv], %[gatherValues]\n"
+                       "    fgb.ps %[op0], %[gv](%[src])\n"
+                       ".endif\n"
+                       "fbcx.ps %[offset], %[offset_s] \n"
+                       "fbcx.ps %[scale], %[scale_s] \n"
+                       "fsub.pi %[op0], %[op0], %[offset] \n"
+                       "fcvt.ps.pw %[op0], %[op0] \n"
+                       "fmul.ps %[op0], %[op0], %[scale] \n"
+                       "fbcx.ps %[op1], %[splatVal]\n"
+                       "fmax.ps %[op0], %[op0], %[op1]\n"
+                       "frcp.ps %[scale], %[scale] \n"
+                       "fcvt.ps.pw %[offset], %[offset] \n"
+                       "fmadd.ps %[op0], %[op0], %[scale], %[offset] \n"
+                       "fcvt.pw.ps %[op0], %[op0] \n"
+                       "fsat8.pi %[op0], %[op0] \n"
+                       ".if %[aligned]\n"
+                       "    fsc32b.ps %[op0],  %[gv](%[dst]) \n"
+                       ".else\n"
+                       "    fscb.ps  %[op0], %[gv](%[dst]) \n"
+                       ".endif\n"
+                       : [gv] "=&f" (gv), [op0] "=&f" (op0), [op1] "=&f" (op1),
+                         [scale] "=&f" (scale_v), [offset] "=&f" (offset_v),
+                         [dstMem] "=m" (*( char(*)[8]) dst)
+                       : [gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
+                         [dst ] "r"(dst),
+                         [src ] "r"(src),
+                         [splatVal ] "r"(bitwise_copy<uint32_t>(splatVal)),
+                         [scale_s ] "r"(bitwise_copy<uint32_t>(scale[0])),
+                         [offset_s ] "r"(offset[0]),
+                         [srcMem] "m" (*(const char(*)[8]) src),
+                         [aligned] "i" (aligned32B),
+                         [gs32_offsets] "i" (  fg32b_conf )
+                        );
+  //FIXME:  only using scale[0] and offset[0] => probably something wrong here;
+  
 }
 
 template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
-&& !std::is_same<srcType, float16>::value
-&& !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){}
+                                                    && !std::is_same<srcType, float16>::value
+                                                    && !std::is_same<srcType, float>::value, std::size_t>::type = 0,
+          bool aligned32B = false>
+void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){
+  //FIXME: implementation missing
+}
 
 template <typename srcType>
 void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
@@ -444,75 +477,6 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
-std::size_t>::type = 0>
-void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
-  __asm__ __volatile__("flw.ps f0, 0x0(%[src])\n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n"
-                       "fmax.ps f0, f0, f1\n"
-                       "fsw.ps  f0, 0x0(%[dst]) \n"
-                       :
-                       : [ splatVal ] "r"(&splatVal),
-                         [ dst ] "r"(dst),
-                         [ src ] "r"(src)
-                       : "f0", "f1", "f31", "memory");
-
-
-
-}
-
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
-std::size_t>::type = 0>
-void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
-  __asm__ __volatile__( SET_FG32H_VAL(t0)
-                       "fg32h.ps f0, t0(%[src])\n"
-                       "fcvt.ps.f16 f0, f0\n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n"
-                       "fmax.ps f0, f0, f1\n"
-                       "fcvt.f16.ps f0, f0\n"
-                       "fsc32h.ps f0, t0(%[dst]) \n"
-
-                       :
-                       : [ splatVal ] "r"(&splatVal),
-                         [ dst ] "r"(dst),
-                         [ src ] "r"(src)
-                       : "t0", "f0", "f1", "f31", "memory");
-}
-
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
-std::size_t>::type = 0>
-void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){
-
-  __asm__ __volatile__(SET_FG32B_VAL(t0)
-                       "fg32b.ps f0, t0(%[src])\n"
-                       "fbc.ps f30, 0x0(%[offset]) \n"
-                       "fbc.ps f29, 0x0(%[scale]) \n"
-                       "fsub.pi f0, f0, f30 \n"
-                       "fcvt.ps.pw f0, f0 \n"
-                       "fmul.ps f0, f0, f29 \n"
-                       "fbc.ps f1, 0x0(%[splatVal])\n"
-                       "fmax.ps f0, f0, f1\n"
-                       "frcp.ps f29, f29 \n"
-                       "fcvt.ps.pw f30, f30 \n"
-                       "fmadd.ps f0, f0, f29, f30 \n"
-                       "fcvt.pw.ps f0, f0 \n"
-                       "fsat8.pi f0, f0 \n"
-                       "fsc32b.ps f0, t0(%[dst]) \n"
-                       :
-                       : [ splatVal ] "r"(&splatVal),
-                         [ dst ] "r"(dst),
-                         [ src ] "r"(src),
-                         [ offset ] "r"(offset),
-                         [ scale ] "r"(scale)
-
-                       : "t0", "f0", "f1", "f29", "f30", "f31", "memory");
-}
-
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
-&& !std::is_same<srcType, float16>::value
-&& !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void maxSplatOpAligned32Bytes (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){}
-
 template <typename srcType>
 void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
@@ -573,7 +537,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
          __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
     else __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
-    maxSplatOpAligned32Bytes <srcType>(dstAddr, srcAddr, splatVal, scale, offset);
+    maxSplatOp <srcType, true>(dstAddr, srcAddr, splatVal, scale, offset);
 
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
                       actPitch, dstPitch);
