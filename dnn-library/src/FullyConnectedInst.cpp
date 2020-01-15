@@ -255,18 +255,18 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
 void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, float *scale, int32_t *offset){
 
 #define INT8_TO_FP32(_reg)                  \
-    "fsub.pi " #_reg ", " #_reg ", f26 \n"  \
+    "fsub.pi " #_reg ", " #_reg ", f16 \n"  \
     "fcvt.ps.pw " #_reg ", " #_reg " \n"    \
-    "fmul.ps " #_reg ", " #_reg ", f27 \n"
+    "fmul.ps " #_reg ", " #_reg ", f17 \n"
 
 #define MATMUL_ITERATION               \
     "fgb.ps   f0, f28(%[actAddr])\n"   \
     "fgb.ps   f1, f29(%[wgtAddr])\n"   \
-    "fbc.ps   f26, 0x0(%[offset]) \n"  \
-    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    "fbc.ps   f16, 0x0(%[offset]) \n"  \
+    "fbc.ps   f17, 0x0(%[scale]) \n"   \
     INT8_TO_FP32(f0)                   \
-    "fbc.ps   f26, 0x4(%[offset]) \n"  \
-    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    "fbc.ps   f16, 0x4(%[offset]) \n"  \
+    "fbc.ps   f17, 0x4(%[scale]) \n"   \
     INT8_TO_FP32(f1)                   \
     "fmul.ps    f0, f0, f1\n"          \
     "fswizz.ps  f1, f0, 0xe\n"         \
@@ -276,9 +276,9 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "fadd.ps    f31, f0, f31\n"
 
 #define FP32_TO_INT8(_reg)                      \
-    "frcp.ps f27, f27 \n"                       \
-    "fcvt.ps.pw f26, f26 \n"                    \
-    "fmadd.ps " #_reg ", " #_reg ", f27, f26 \n" \
+    "frcp.ps f17, f17 \n"                       \
+    "fcvt.ps.pw f16, f16 \n"                    \
+    "fmadd.ps " #_reg ", " #_reg ", f17, f16 \n" \
     "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
     "fsat8.pi " #_reg ", " #_reg "\n"
 
@@ -313,8 +313,8 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "mov.m.x m0, zero, 0x1\n"
     "fbc.ps f30, 0x0(%[biasAddr])\n"
     "fadd.s f31, f30, f31\n"
-    "fbc.ps f26, 0x8(%[offset]) \n"
-    "fbc.ps f27, 0x8(%[scale]) \n"
+    "fbc.ps f16, 0x8(%[offset]) \n"
+    "fbc.ps f17, 0x8(%[scale]) \n"
     FP32_TO_INT8(f31)
     "fscb.ps f31, f28(%[dstAddr])\n"
 
@@ -329,7 +329,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 #undef INT8_TO_FP32
 #undef MATMUL_ITERATION
@@ -338,20 +338,20 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 
 #define INT8_TO_FP32(_reg)                  \
     "fcvt.ps.pw " #_reg ", " #_reg " \n"    \
-    "fmul.ps " #_reg ", " #_reg ", f27 \n"
+    "fmul.ps " #_reg ", " #_reg ", f17 \n"
 
 #define UINT8_TO_FP32(_reg)                   \
     "fandi.pi " #_reg ", " #_reg ", 0xff \n"  \
     "fcvt.ps.pw " #_reg ", " #_reg " \n"      \
-    "fmul.ps " #_reg ", " #_reg ", f27 \n"
+    "fmul.ps " #_reg ", " #_reg ", f17 \n"
 
 
 #define MATMUL_ITERATION_U8_U8         \
     "fgb.ps   f0, f28(%[actAddr])\n"   \
     "fgb.ps   f1, f29(%[wgtAddr])\n"   \
-    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    "fbc.ps   f17, 0x0(%[scale]) \n"   \
     UINT8_TO_FP32(f0)                   \
-    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    "fbc.ps   f17, 0x4(%[scale]) \n"   \
     UINT8_TO_FP32(f1)                   \
     "fmul.ps    f0, f0, f1\n"          \
     "fswizz.ps  f1, f0, 0xe\n"         \
@@ -363,9 +363,9 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 #define MATMUL_ITERATION_I8_U8         \
     "fgb.ps   f0, f28(%[actAddr])\n"   \
     "fgb.ps   f1, f29(%[wgtAddr])\n"   \
-    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    "fbc.ps   f17, 0x0(%[scale]) \n"   \
     INT8_TO_FP32(f0)                   \
-    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    "fbc.ps   f17, 0x4(%[scale]) \n"   \
     UINT8_TO_FP32(f1)                   \
     "fmul.ps    f0, f0, f1\n"          \
     "fswizz.ps  f1, f0, 0xe\n"         \
@@ -377,9 +377,9 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 #define MATMUL_ITERATION_U8_I8         \
     "fgb.ps   f0, f28(%[actAddr])\n"   \
     "fgb.ps   f1, f29(%[wgtAddr])\n"   \
-    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    "fbc.ps   f17, 0x0(%[scale]) \n"   \
     UINT8_TO_FP32(f0)                   \
-    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    "fbc.ps   f17, 0x4(%[scale]) \n"   \
     INT8_TO_FP32(f1)                   \
     "fmul.ps    f0, f0, f1\n"          \
     "fswizz.ps  f1, f0, 0xe\n"         \
@@ -391,9 +391,9 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 #define MATMUL_ITERATION_I8_I8         \
     "fgb.ps   f0, f28(%[actAddr])\n"   \
     "fgb.ps   f1, f29(%[wgtAddr])\n"   \
-    "fbc.ps   f27, 0x0(%[scale]) \n"   \
+    "fbc.ps   f17, 0x0(%[scale]) \n"   \
     INT8_TO_FP32(f0)                   \
-    "fbc.ps   f27, 0x4(%[scale]) \n"   \
+    "fbc.ps   f17, 0x4(%[scale]) \n"   \
     INT8_TO_FP32(f1)                   \
     "fmul.ps    f0, f0, f1\n"          \
     "fswizz.ps  f1, f0, 0xe\n"         \
@@ -404,19 +404,19 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 
 
 #define FP32_TO_INT8(_reg)                      \
-    "frcp.ps f27, f27 \n"                       \
-    "fmadd.ps " #_reg ", " #_reg ", f27, f26 \n" \
+    "frcp.ps f17, f17 \n"                       \
+    "fmadd.ps " #_reg ", " #_reg ", f17, f16 \n" \
     "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
     "fsat8.pi " #_reg ", " #_reg "\n"
 
 
 #define FP32_TO_UINT8(_reg)                     \
-    "frcp.ps f27, f27 \n"                       \
-    "fmul.ps " #_reg ", " #_reg ", f27 \n"      \
+    "frcp.ps f17, f17 \n"                       \
+    "fmul.ps " #_reg ", " #_reg ", f17 \n"      \
     "fcvt.pw.ps " #_reg ", " #_reg "\n"         \
     "fsrli.pi f2," #_reg ", 0x8 \n"             \
-    "fxor.pi f27, f27, f27 \n"                  \
-    "fcmov.ps " #_reg" , f12, f27, " #_reg " \n"
+    "fxor.pi f17, f17, f17 \n"                  \
+    "fcmov.ps " #_reg" , f12, f17, " #_reg " \n"
 
 
 #define STEP1                                            \
@@ -451,8 +451,8 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
     "mov.m.x m0, zero, 0x1\n"                            \
     "fbc.ps f30, 0x0(%[biasAddr])\n"                     \
     "fadd.s f31, f30, f31\n"                             \
-    "fbc.ps f26, 0x8(%[offset]) \n"                      \
-    "fbc.ps f27, 0x8(%[scale]) \n"                       \
+    "fbc.ps f16, 0x8(%[offset]) \n"                      \
+    "fbc.ps f17, 0x8(%[scale]) \n"                       \
 
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
@@ -478,7 +478,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 }
 
@@ -504,7 +504,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 }
 
@@ -531,7 +531,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 }
 
@@ -558,7 +558,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 }
 
@@ -585,7 +585,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 
 }
@@ -613,7 +613,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 }
 
@@ -640,7 +640,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
       [biasAddr] "r" (biasAddr),
       [scale] "r" (scale),
       [offset] "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 }
 

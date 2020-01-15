@@ -284,32 +284,63 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
         spareElems = 0;
       }
       mask = ((1 << fullLanes) - 1);
-      __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
+      __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
       if (!firstRow) midRow = true;
     }
     firstRow = false;
     src8 += offsetIn * typeSize;
     dst8 += offsetOut * typeSize;
 
-    unsigned int cnt = 0;
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-    while (cnt < registersInRow) {
-      __asm__ __volatile__("flw.ps f0, 0x0(%[src]) \n"
-                           "fsw.ps f0, 0x0(%[dst]) \n"
-                           :
-                           : [ src ] "r"(src8), [ dst ] "r"(dst8)
-                           : "f0", "memory");
-      src8 += 32;
-      dst8 += 32;
-      cnt++;
+#ifndef DNN_LIB_DO_NOT_UNROLL_LOOPS
+    uint8_t *endPtrUnrolled = dst8 + (registersInRow & (~(0x20*8 -1)) ) * 0x20; // unrolling 8 stores in the same iteration
+    for(; dst8 < endPtrUnrolled; dst8+=0x20*8, src8+=0x20*8){ // copying using 8 registers at a time
+      float scratch[8];
+      __asm__ __volatile__
+        (
+         "flq2 %[d0], 0x20*0 + %[src] \n"
+         "flq2 %[d1], 0x20*1 + %[src] \n"
+         "flq2 %[d2], 0x20*2 + %[src] \n"
+         "flq2 %[d3], 0x20*3 + %[src] \n"
+         "flq2 %[d4], 0x20*4 + %[src] \n"
+         "flq2 %[d5], 0x20*5 + %[src] \n"
+         "flq2 %[d6], 0x20*6 + %[src] \n"
+         "flq2 %[d7], 0x20*7 + %[src] \n"
+         
+         "fsq2 %[d0], 0x20*0 + %[dst] \n"
+         "fsq2 %[d1], 0x20*1 + %[dst] \n"
+         "fsq2 %[d2], 0x20*2 + %[dst] \n"
+         "fsq2 %[d3], 0x20*3 + %[dst] \n"
+         "fsq2 %[d4], 0x20*4 + %[dst] \n"
+         "fsq2 %[d5], 0x20*5 + %[dst] \n"
+         "fsq2 %[d6], 0x20*6 + %[dst] \n"
+         "fsq2 %[d7], 0x20*7 + %[dst] \n"
+
+         : [dst] "=m" (* (uint8_t(*)[32*8]) dst8),
+           [d0] "=&f" (scratch[0]), [d1] "=&f" (scratch[1]), [d2] "=&f" (scratch[2]), [d3] "=&f" (scratch[3]),
+           [d4] "=&f" (scratch[4]), [d5] "=&f" (scratch[5]), [d6] "=&f" (scratch[6]), [d7] "=&f" (scratch[7])
+         : [src] "m" (* (const uint8_t(*)[32*8]) src8)
+         );
     }
-    __asm__ __volatile__("maskand m0, m0, m1 \n"
-                         "flw.ps f0, 0x0(%[src]) \n"
-                         "fsw.ps f0, 0x0(%[dst]) \n"
-                         "mov.m.x m0, zero, 0xff \n"
-                         :
-                         : [ src ] "r"(src8), [ dst ] "r"(dst8)
-                         : "f0", "memory");
+#endif
+    uint8_t *endPtr = dst8 + registersInRow * 0x20;
+    for(; dst8 < endPtr; dst8+=0x20, src8+=0x20){ // copying using 8 registers at a time
+      float scratch;
+      __asm__ __volatile__
+        (
+         "flq2 %[d], %[src] \n"
+         "fsq2 %[d], %[dst] \n"
+         : [dst] "=m" (* ( uint8_t(*)[32]) dst8),
+           [d] "=&f" (scratch)
+         : [src] "m" (* (const uint8_t(*)[32]) src8)
+         );
+    }
+    float scratch;
+    __asm__ __volatile__("flw.ps %[d], %[src] \n"
+                         "fsw.ps %[d], %[dst] \n"
+                         : [dst] "=m" (* ( uint8_t(*)[32]) dst8),
+                           [d] "=&f" (scratch)
+                         : [src] "m" (* (const uint8_t(*)[32]) src8)
+                         );
     src8 += fullLanes * 4;
     dst8 += fullLanes * 4;
     unsigned int offsetInAux = (src8 - src8Init) / typeSize;
@@ -329,6 +360,7 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 
     done = getOffsets(srcDimNum - 1, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
   }
+  __asm__ __volatile__ ("mov.m.x m0, zero, 0xff \n");
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / 64;

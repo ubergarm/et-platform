@@ -86,19 +86,21 @@ using namespace std;
   uint64_t dstAddr = (uint64_t)dst + initialCacheLine*64;
 
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-
   while (minionCacheLines >= 16) {
     tensor_load(0, 0, 0, 0, 0, srcAddr, 0, 0xF, 0x40, 0);
     WAIT_TENSOR_LOAD_0;
-    tensor_store_scp(0, 0, 0xF, dstAddr, 0x40);
     srcAddr += 1024;
-    dstAddr += 1024;
     minionCacheLines -= 16;
+    tensor_store_scp(0, 0, 0xF, dstAddr, 0x40);
+    dstAddr += 1024;
   }
   if (minionCacheLines == 0) return;
+
   tensor_load(0, 0, 0, 0, 0, srcAddr, 0, minionCacheLines-1, 0x40, 0);
   WAIT_TENSOR_LOAD_0;
   tensor_store_scp(0, 0, minionCacheLines-1, dstAddr, 0x40);
+
+
 }
 
 GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, void *dst, void *dstDims, void *dstPitches,

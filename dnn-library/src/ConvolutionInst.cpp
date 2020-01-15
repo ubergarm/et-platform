@@ -384,14 +384,14 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "fadd.s    f31, f31, f0\n"
     "fmv.x.w   %[sum], f31\n"
 
-    : [ weightAddr ] "+r" (weightAddr),
-      [ actAddr ] "+r" (actAddr),
-      [ dist ] "+r" (dist),
-      [ sum ] "+r" (sum),
-      [ ox ] "+r" (ox),
-      [ oy ] "+r" (oy),
-      [ fy ] "+r" (fy),
-      [ fx ] "+r" (fx)
+    : [ weightAddr ] "+&r" (weightAddr),
+      [ actAddr ] "+&r" (actAddr),
+      [ dist ] "+&r" (dist),
+      [ sum ] "+&r" (sum),
+      [ ox ] "+&r" (ox),
+      [ oy ] "+&r" (oy),
+      [ fy ] "+&r" (fy),
+      [ fx ] "+&r" (fx)
     : [ weightPitch1 ] "r" (weightPitch[1] * 4),
       [ weightPitch2 ] "r" (weightPitch[2] * 4),
       [ actIndex1 ] "r" (actIndex[1]),
@@ -503,14 +503,14 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
     "fadd.s    f31, f31, f0\n"
     "fmv.x.w   %[sum], f31\n"
 
-    : [ weightAddr ] "+r" (weightAddr),
-      [ actAddr ] "+r" (actAddr),
-      [ dist ] "+r" (dist),
-      [ sum ] "+r" (sum),
-      [ ox ] "+r" (ox),
-      [ oy ] "+r" (oy),
-      [ fy ] "+r" (fy),
-      [ fx ] "+r" (fx)
+    : [ weightAddr ] "+&r" (weightAddr),
+      [ actAddr ] "+&r" (actAddr),
+      [ dist ] "+&r" (dist),
+      [ sum ] "+&r" (sum),
+      [ ox ] "+&r" (ox),
+      [ oy ] "+&r" (oy),
+      [ fy ] "+&r" (fy),
+      [ fx ] "+&r" (fx)
     : [ weightPitch1 ] "r" (weightPitch[1] * 2),
       [ weightPitch2 ] "r" (weightPitch[2] * 2),
       [ gatherValues ] "r" (gatherValues),

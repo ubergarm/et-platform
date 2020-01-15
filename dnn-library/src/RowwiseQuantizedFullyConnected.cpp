@@ -286,7 +286,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
       "addi      %[sum], t0, 0x0\n"     // The value in t0 is then stored in
                                         //the variable "sum".
 
-      : [sum] "+r" (sum)
+      : [sum] "+&r" (sum)
       : [gthValues] "m" (* (const int32_t(*)[8]) gatherValues),
         [srcoffset] "r" (&srcoffset),
         [woffset]   "r" (&woffset),
@@ -422,7 +422,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
       "add       t0, t0,  t1\n"
       "add       %[sum], t0, %[sum]\n"
 
-      : [sum] "+r" (sum)
+      : [sum] "=r" (sum)
       : [actAddr] "r" (actAddr),
         [wgtAddr] "r" (wgtAddr),
         [srcoffset] "r" (&srcoffset),

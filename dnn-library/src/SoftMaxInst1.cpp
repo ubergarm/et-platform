@@ -246,18 +246,18 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
 
 #define EXP                                       \
       "fadd.ps f0, f0, f29 \n"                    \
-      "fmul.ps f0, f0, f27 \n"                    \
+      "fmul.ps f0, f0, f17 \n"                    \
       "fexp.ps f0, f0 \n"
 
 #define DO_REG(_op, _reg)                         \
       "mov.m.x m0, zero, 0xff \n"                 \
-      "fswizz.ps    f27, " #_reg ", 0xe \n"       \
-      "f" #_op ".ps " #_reg ", f27, " #_reg " \n" \
-      "fswizz.ps    f27, " #_reg ", 0x1 \n"       \
-      "f" #_op ".ps " #_reg ", f27, " #_reg " \n" \
+      "fswizz.ps    f17, " #_reg ", 0xe \n"       \
+      "f" #_op ".ps " #_reg ", f17, " #_reg " \n" \
+      "fswizz.ps    f17, " #_reg ", 0x1 \n"       \
+      "f" #_op ".ps " #_reg ", f17, " #_reg " \n" \
       "fmvs.x.ps    t1, " #_reg ", 0x4 \n"        \
-      "fmv.w.x      f27, t1 \n"                   \
-      "f" #_op ".s  " #_reg ", f27, " #_reg " \n" \
+      "fmv.w.x      f17, t1 \n"                   \
+      "f" #_op ".s  " #_reg ", f17, " #_reg " \n" \
       "fmvs.x.ps    t1, " #_reg ", 0x0 \n"        \
       "fbcx.ps      " #_reg ", t1 \n"
 
@@ -304,7 +304,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
       "add %[srcAddr], zero, t2 \n"
       "add %[dstAddr], zero, t3 \n"
 
-      "fbc.ps f27, 0x0(%[log2e]) \n"
+      "fbc.ps f17, 0x0(%[log2e]) \n"
 
       "4: \n" // Coverage of the srcIndex[1]/8 full registers.
       "addi t1, t1, 0x1 \n"
@@ -368,7 +368,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
         [numRegs] "r" (numRegs),
         [extraLanes] "r" (extraLanes),
         [gs32_offsets] "i" (  fg32b_conf )
-      : "t0", "t1", "t2", "t3", "f0", "f27", "f28", "f29", "memory");
+      : "t0", "t1", "t2", "t3", "f0", "f17", "f28", "f29", "memory");
 
     srcAddr += step;
     dstAddr += step;
@@ -504,7 +504,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
       "add %[srcAddr], zero, t2 \n"
       "add %[dstAddr], zero, t3 \n"
 
-      "fbc.ps f27, 0x0(%[log2e]) \n"
+      "fbc.ps f17, 0x0(%[log2e]) \n"
 
       "4: \n" // Coverage of the srcIndex[1]/8 full registers.
       "addi t1, t1, 0x1 \n"
@@ -588,7 +588,7 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
         [csr_enc] "r" (&csr_enc),
         [level] "r" (level),
         [g32_conf] "i" (fg32h_conf)
-      : "t0", "t1", "t2", "t3", "t4", "t5", "f0", "f27", "f28", "f29", "memory");
+      : "t0", "t1", "t2", "t3", "t4", "t5", "f0", "f17", "f28", "f29", "memory");
 
   }
 #undef GATHER_FLOAT

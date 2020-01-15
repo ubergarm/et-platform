@@ -200,28 +200,35 @@ template <typename srcType>
 inline __attribute__((always_inline)) void
 gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
                    int32_t *gatherValues) {
+  float d0,d1;
   if (getsize<srcType>() == 2) {
-    __asm__ __volatile__(
-        "mov.m.x m0, %[mask], 0\n"
-        "flw.ps f1, 0x0(%[gatherValues]) \n"
-        "fgh.ps f0, f1(%[src]) \n"
-        "fsch.ps f0, f1(%[dst]) \n"
-        :
-        : [ src ] "r"(src8), [ dst ] "r"(dst8),
-          [ gatherValues ] "r"(gatherValues),
-          [ mask ] "r" (mask)
-        : "f0", "f1", "memory");
+    __asm__ __volatile__
+      (
+       "mov.m.x m0, %[mask], 0\n"
+       "flw.ps %[d1], %[gatherValues] \n"
+       "fgh.ps %[d0], %[d1](%[src]) \n"
+       "fsch.ps %[d0], %[d1](%[dst]) \n"
+       : [dstMem] "=m" (*(uint8_t(*)[16]) dst8),
+         [d0] "=&f" (d0), [d1] "=&f" (d1)
+       : [ src ] "r"(src8), [ dst ] "r"(dst8),
+         [srcMem] "m" (*(const uint8_t(*)[16]) src8),
+         [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
+         [ mask ] "r" (mask)
+      );
+
   } else if (getsize<srcType>() == 1) {
     __asm__ __volatile__(
         "mov.m.x m0, %[mask], 0\n"
-        "flw.ps f1, 0x0(%[gatherValues]) \n"
-        "fgb.ps f0, f1(%[src]) \n"
-        "fscb.ps f0, f1(%[dst]) \n"
-        :
+        "flw.ps %[d1], %[gatherValues] \n"
+        "fgb.ps %[d0], %[d1](%[src]) \n"
+        "fscb.ps %[d0], %[d1](%[dst]) \n"
+        : [dstMem] "=m" (*(uint8_t(*)[8]) dst8),
+          [d0] "=&f" (d0), [d1] "=&f" (d1)
         : [ src ] "r"(src8), [ dst ] "r"(dst8),
-          [ gatherValues ] "r"(gatherValues),
+          [srcMem] "m" (*(const uint8_t(*)[8]) src8),
+          [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
           [ mask ] "r" (mask)
-        : "f0", "f1", "memory");
+     );
   }
   return;
 }

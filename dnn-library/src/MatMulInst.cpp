@@ -298,7 +298,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "blt  %[length], t1, 5f\n"                     \
       "fbc.ps f0, 0x0(t2)\n"                       \
       SIGN_EXTEND_INT8_REG(f0)                     \
-      INT8_TO_FP32(f0, f26, f27)                   \
+      INT8_TO_FP32(f0, f16, f17)                   \
       "fgb.ps f1, f3(t3)\n"                        \
       INT8_TO_FP32(f1, f28, f29)                   \
       "fmadd.ps f2, f0, f1, f2\n"                  \
@@ -317,8 +317,8 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "xor t0, t0, t0\n"
 
     // Activation tensor scale and offset
-    "fbc.ps   f26, 0x0(%[scale]) \n"
-    "fbc.ps   f27, 0x0(%[offset]) \n"
+    "fbc.ps   f16, 0x0(%[scale]) \n"
+    "fbc.ps   f17, 0x0(%[offset]) \n"
     // Weight tensor scale and offset
     "fbc.ps   f28, 0x4(%[scale]) \n"
     "fbc.ps   f29, 0x4(%[offset]) \n"
@@ -354,7 +354,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
       [gthVals] "r" (gatherValues),
       [scale]   "r" (scale),
       [offset]  "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f3", "f4", "f26", "f27", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "f0", "f1", "f2", "f3", "f4", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 #undef MATMUL_ITERATION
 #undef INT8_TO_FP32

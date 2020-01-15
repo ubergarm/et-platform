@@ -186,12 +186,10 @@ std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
 
-  int32_t gatherValues[] = {0, 4, 8, 12, 16, 20, 24, 28};
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
 
                        "addi    t3, %[tIndex], 0x0\n"
-                       "flw.ps f31, %[gatherValues]\n"
                        "1:\n"
 
                        "ld t1, 0x0(t3)\n"
@@ -200,7 +198,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                        "mul t2, t0, %[typeSize]\n"
                        "mul t2, t2, %[batchPitch]\n"
                        "add t2, t2, %[src]\n"
-                       "fgw.ps  f1, f31(t2) \n"
+                       "flw.ps  f1, 0(t2) \n"
                        "fadd.ps f0, f0, f1 \n"
                        "2:\n"
 
@@ -208,18 +206,17 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
                        "addi t3, t3, 0x8\n"
                        "blt t0, %[numIndices], 1b\n"
 
-                       "fscw.ps  f0, f31(%[dst]) \n"
+                       "fsw.ps  f0, %[dst] \n"
 
-                       :
-                       : [ gatherValues ] "m" (* ( const int32_t(*)[8]) gatherValues),
-                         [ src ] "r"(src),
+                       : [ dst ] "=m" (* (char(*)[32]) dst)
+                       : [ src ] "r"(src),
+                         [ srcMem ] "m" (* (const char(*)[]) src),
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),
                          [ tIndex ] "r"(tIndex),
                          [ batchPitch ] "r"(batchPitch),
-                         [ typeSize ] "r"(typeSize),
-                         [ dst ] "r"(dst)
-                       : "t0", "t1", "t2", "t3", "f0", "f1", "f31", "memory");
+                         [ typeSize ] "r"(typeSize)
+                       : "t0", "t1", "t2", "t3", "f0", "f1");
 
 }
 
