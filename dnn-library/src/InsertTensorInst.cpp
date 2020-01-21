@@ -23,6 +23,7 @@
 #include "Converter.h"
 #include "Operator.h"
 #include "utils.h"
+#include "cacheops.h"
 
 using namespace std;
 
@@ -32,8 +33,8 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                                      void *src2Dims, void *src2Pitches,
                                      void *pcoord, unsigned int count,
                                      unsigned int axis, float *scale,
-                                     int32_t *offset,
-                                     const uint32_t minionOffset) {
+                                     int32_t *offset, uint64_t flags,
+				     const uint32_t minionOffset = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
@@ -63,6 +64,8 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
   }
 
   size_t advanceOnAxis = 0;
+  uint64_t idx;
+  uintptr_t addr2wr = 0, previous_addr2wr = 0;
 
   for (size_t cnt = 0; cnt < count; cnt++) {
     // We can use this loop for all shapes.
@@ -72,15 +75,26 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
           for (size_t w = 0; w < eDims[3]; w++) {
             for (size_t q = 0; q < eDims[4]; q++) {
               for (size_t r = 0; r < eDims[5]; r++) {
-                tOutput[(eOffsets[0] + x) * eDstPitch[0] +
-                        (eOffsets[1] + y) * eDstPitch[1] +
-                        (eOffsets[2] + z) * eDstPitch[2] +
-                        (eOffsets[3] + w) * eDstPitch[3] +
-                        (eOffsets[4] + q) * eDstPitch[4] +
-                        (eOffsets[5] + r) * eDstPitch[5] + advanceOnAxis] =
-                    tSmallInput[x * eSrcPitch[0] + y * eSrcPitch[1] +
-                                z * eSrcPitch[2] + w * eSrcPitch[3] +
-                                q * eSrcPitch[4] + r * eSrcPitch[5]];
+
+                idx = (eOffsets[0] + x) * eDstPitch[0] +
+		  (eOffsets[1] + y) * eDstPitch[1] +
+		  (eOffsets[2] + z) * eDstPitch[2] +
+		  (eOffsets[3] + w) * eDstPitch[3] +
+		  (eOffsets[4] + q) * eDstPitch[4] +
+		  (eOffsets[5] + r) * eDstPitch[5] + advanceOnAxis;
+
+		tOutput[idx] = tSmallInput[x * eSrcPitch[0] + y * eSrcPitch[1] +
+					   z * eSrcPitch[2] + w * eSrcPitch[3] +
+					   q * eSrcPitch[4] + r * eSrcPitch[5]];
+		if (DO_EVICTS) {
+		  addr2wr = (uintptr_t)dst + idx*getsize<srcType>();
+		  if ((addr2wr >> 6) != (previous_addr2wr >> 6))  
+		  {
+		    /* evict current cache line */
+		    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 15, 64);
+		    previous_addr2wr = addr2wr;
+		  }
+		}
               }
             }
           }
@@ -89,6 +103,11 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
     }
     advanceOnAxis += eDstPitch[axis] * eDims[axis];
   }
+
+  if (DO_EVICTS) {
+    evict_va(0, DO_EVICTS, addr2wr, 15, 64);
+  }
+
 }
 
 //FIXME This version fits the small cases that currently are not vectorized,
@@ -211,18 +230,23 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 template <typename srcType>
 inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
                       const unsigned int& addrIn, const int32_t& typeSize,
-                      int lanes, int res, int32_t *gatherValues) {
+                      pair<int, int> lanes, int32_t *gatherValues, 
+		      uint64_t flags) 
+{
   uint8_t *dst8 = (uint8_t *) dst + addrOut * typeSize;
   uint8_t *src8 = (uint8_t *) src + addrIn * typeSize;
   float scratch;
-  while (lanes > 8) {
+
+  uintptr_t addr2evict = (uintptr_t)dst8;
+
+  while (lanes.first > 8) {
 
     __asm__ __volatile__("flq2 %[d], %[src]\n"
                          "fsq2 %[d], %[dst]\n"
                          : [ dst ] "=m"(*(uint8_t(*)[32]) dst8), [d] "=&f" (scratch)
                          : [ src ] "m" ( *(const uint8_t(*)[32]) src8)
                          );
-    lanes -= 8;
+    lanes.first -= 8;
     src8 += 32;
     dst8 += 32;
   }
@@ -234,9 +258,14 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
                        : [ src ] "m" ( *(const uint8_t(*)[32]) src8)
                        );
   
-  src8 += 4*lanes;
-  dst8 += 4*lanes;
-  if (res != 0) {
+  src8 += 4*lanes.first;
+  dst8 += 4*lanes.first;
+
+  if (DO_EVICTS) {
+    evict_va(0, DO_EVICTS, addr2evict, lanes.first,0);
+  }
+  
+  if (lanes.second != 0) {
     if (getsize<srcType>() == 2) {
       float o, d;
       __asm__ __volatile__
@@ -268,6 +297,10 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
            [ gatherValues ] "m" ( * ( const int32_t(*)[8]) gatherValues)
          );
     }
+    
+    if (DO_EVICTS) {
+      evict_va(0, DO_EVICTS, addr2evict, lanes.second, 0);
+    }
   }
 }
 
@@ -279,11 +312,11 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                              void *poffsets, unsigned int count,
                                              unsigned int axis, float *scale,
                                              int32_t *offset, uint64_t flags,
-                                             const uint32_t minionOffset,
-                                             const uint32_t assignedMinions) {
+					     const uint32_t minionOffset,
+					     const  uint32_t assignedMinions) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) :  assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -297,7 +330,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                      src2Dims, src2Pitches,
                                      poffsets, count,
                                      axis, scale,
-                                     offset, minionOffset);
+                                     offset, flags);
     return;
   }
 
@@ -325,14 +358,13 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                               4 * typeSize, 5 * typeSize, 6 * typeSize,
                               7 * typeSize};
 
-  int lanes, res;
-  getLanesResTView<srcType>(lanes, res, actIndex[lastDim]);
+  pair<int, int> lanes = getLanesResFromNElements<srcType>(actIndex[lastDim]);
 
-  uint32_t mask = (1 << (((lanes - 1) % 8) + 1)) - 1;
+  uint32_t mask = (1 << (((lanes.first - 1) % 8) + 1)) - 1;
   __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                         :
                         : [ mask ] "r" (mask));
-  mask = (1 << res) - 1;
+  mask = (1 << lanes.second) - 1;
   __asm__ __volatile__ ("mov.m.x m2, %[mask], 0x0 \n"
                         :
                         : [ mask ] "r" (mask));
@@ -368,7 +400,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
     bool done = false;
     while (mRows > 0) {
       insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-                initialAddrIn, typeSize, lanes, res, gatherValues);
+			 initialAddrIn, typeSize, lanes, gatherValues, flags);
       for (int j = dimRow; j >= 0; j--) {
         if (likely(offsetIn[j] != (actIndex[j] - 1))) {
           initialAddrIn += actPitch[j];
@@ -415,7 +447,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       for (int i = 0; i < mRows; i++) {
         for (int j = 0; j < count; j++) {
           insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-                    initialAddrIn, typeSize, lanes, res, gatherValues);
+			     initialAddrIn, typeSize, lanes, gatherValues, flags);
           addrOut += actIndex[axis] * dstPitch[axis];
         }
         addrOut -= count * actIndex[axis] * dstPitch[axis];
@@ -507,61 +539,60 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       }
       maxRead = std::min(maxRead, lastRowElem - addrOut);
       unsigned int length = std::min(maxRead, actIndex[axis] - offsetIn[axis]);
-      int auxlanes, auxres;
-      getLanesResTView<srcType>(auxlanes, auxres, length);
+
+      std::pair<int, int> auxlanes = getLanesResFromNElements<srcType>(length);
       maxRead -= length;
-      mask = (1 << (((auxlanes - 1) % 8) + 1)) - 1;
+      mask = (1 << (((auxlanes.first - 1) % 8) + 1)) - 1;
       __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
-      mask = (1 << auxres) - 1;
+      mask = (1 << auxlanes.second) - 1;
       __asm__ __volatile__ ("mov.m.x m2, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
 
       insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-                initialAddrIn, typeSize, auxlanes, auxres, gatherValues);
+			 initialAddrIn, typeSize, auxlanes, gatherValues, flags);
       addrOut += length * dstPitch[axis];
       initialAddrIn -= offsetIn[axis] * actPitch[axis];
 
-      mask = (1 << (((lanes - 1) % 8) + 1)) - 1;
+      mask = (1 << (((lanes.first - 1) % 8) + 1)) - 1;
       __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
-      mask = (1 << res) - 1;
+      mask = (1 << lanes.second) - 1;
       __asm__ __volatile__ ("mov.m.x m2, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
       while (maxRead > actIndex[axis]) {
         insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-                  initialAddrIn, typeSize, lanes, res, gatherValues);
+			   initialAddrIn, typeSize, lanes, gatherValues,flags);
         maxRead -= actIndex[axis];
         addrOut += actIndex[axis] * dstPitch[axis];
       }
-      getLanesResTView<srcType>(auxlanes, auxres, maxRead);
-      mask = (1 << (((auxlanes - 1) % 8) + 1)) - 1;
+      auxlanes = getLanesResFromNElements<srcType>(maxRead);
+      mask = (1 << (((auxlanes.first - 1) % 8) + 1)) - 1;
       __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
-      mask = (1 << auxres) - 1;
+      mask = (1 << auxlanes.second) - 1;
       __asm__ __volatile__ ("mov.m.x m2, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
       insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-                initialAddrIn, typeSize, auxlanes, auxres, gatherValues);
+			 initialAddrIn, typeSize, auxlanes, gatherValues, flags);
     }
   }
 }
 
 GEN_INSTANCES_OP(template, fwdLibInsertTensorInst, void *dst, void *dstDims,
-                               void *dstPitches, unsigned int dstDimNum,
-                               void *src2, void *src2Dims, void *src2Pitches,
-                               void * poffsets, unsigned int count,
-                               unsigned int axis, float *scale, int32_t *offset,
-                               const uint32_t minionOffset);
+		 void *dstPitches, unsigned int dstDimNum, void *src2, 
+		 void *src2Dims, void *src2Pitches, void * poffsets, 
+		 unsigned int count, unsigned int axis, float *scale, 
+		 int32_t *offset, uint64_t flags, const uint32_t minionOffset);
 GEN_INSTANCES_OP(template, fwdLibInsertTensorInstThreaded, void *dst, void *dstDims,
-                                void *dstPitches, unsigned int dstDimNum,
-                                void *src2, void *src2Dims, void *src2Pitches,
-                                void * poffsets, unsigned int count,
-                                unsigned int axis, float *scale, int32_t *offset, uint64_t flags,
-                                const uint32_t minionOffset, const uint32_t assignedMinions);
+		 void *dstPitches, unsigned int dstDimNum, void *src2, 
+		 void *src2Dims, void *src2Pitches, void * poffsets, 
+		 unsigned int count, unsigned int axis, float *scale, 
+		 int32_t *offset, uint64_t flags,
+		 const uint32_t minionOffset, const uint32_t assignedMinions);
