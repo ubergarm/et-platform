@@ -443,18 +443,22 @@ void dnn_lib::
 
   //  Distribute the tail of groups.
   uintptr_t minionWorkUnits;
+  uintptr_t minionFirstWorkUnit;
   if ((totalWorkUnits % activeMinions) == 0) {
     minionWorkUnits = totalWorkUnits / activeMinions;
   }
   else {
     minionWorkUnits = totalWorkUnits / activeMinions;
     uintptr_t remainingWorkUnits = totalWorkUnits % activeMinions;
-    if (minionId < remainingWorkUnits)
+    if (minionId < remainingWorkUnits) {
       minionWorkUnits++;
+      // Compute the index into the first work unit.
+      minionFirstWorkUnit = minionId * minionWorkUnits;
+    } else
+      // Compute the index into the first work unit.
+      minionFirstWorkUnit = remainingWorkUnits * (minionWorkUnits + 1)
+                         +  (minionId - remainingWorkUnits) * minionWorkUnits;
   }
-
-  // Compute the index into the first work unit.
-  uintptr_t minionFirstWorkUnit = minionId * minionWorkUnits;
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
@@ -737,9 +741,20 @@ void dnn_lib::
         );
       }
 
-      minionCurrRowGroup++;
-
       minionCurrIndex += currSegmentLength;
+
+      if (minionCurrRowGroup != (dstRowGroups - 1)) {
+        minionCurrRowGroup++;
+      } else {
+        // Move from row tail to next row.
+        minionCurrSegment++;
+        minionCurrRowGroup = 0;
+        currSegmentLength = lengths[minionCurrSegment];
+
+        dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
+        if (Float32Dst and Float16Dst)
+          dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
+      }
     }
     else {
       volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
