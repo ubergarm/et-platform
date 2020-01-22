@@ -34,7 +34,7 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                                      void *pcoord, unsigned int count,
                                      unsigned int axis, float *scale,
                                      int32_t *offset, uint64_t flags,
-				     const uint32_t minionOffset = 0) {
+				     const uint32_t minionOffset) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
@@ -230,8 +230,7 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 template <typename srcType>
 inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
                       const unsigned int& addrIn, const int32_t& typeSize,
-                      pair<int, int> lanes, int32_t *gatherValues, 
-		      uint64_t flags) 
+                      pair<int, int> lanes, int32_t *gatherValues, uint64_t flags) 
 {
   uint8_t *dst8 = (uint8_t *) dst + addrOut * typeSize;
   uint8_t *src8 = (uint8_t *) src + addrIn * typeSize;
@@ -326,11 +325,9 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
 
   if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
     fwdLibInsertTensorInst<srcType>(dst, dstDims, dstPitches,
-                                     dstDimNum, src2,
-                                     src2Dims, src2Pitches,
-                                     poffsets, count,
-                                     axis, scale,
-                                     offset, flags);
+				    dstDimNum, src2, src2Dims, src2Pitches,
+				    poffsets, count, axis, scale, offset, 
+				    flags, minionOffset);
     return;
   }
 
@@ -358,7 +355,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                               4 * typeSize, 5 * typeSize, 6 * typeSize,
                               7 * typeSize};
 
-  pair<int, int> lanes = getLanesResFromNElements<srcType>(actIndex[lastDim]);
+  std::pair<int, int> lanes = getLanesResFromNElements<srcType>(actIndex[lastDim]);
 
   uint32_t mask = (1 << (((lanes.first - 1) % 8) + 1)) - 1;
   __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
@@ -570,7 +567,9 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         maxRead -= actIndex[axis];
         addrOut += actIndex[axis] * dstPitch[axis];
       }
+
       auxlanes = getLanesResFromNElements<srcType>(maxRead);
+
       mask = (1 << (((auxlanes.first - 1) % 8) + 1)) - 1;
       __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                             :

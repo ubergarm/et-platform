@@ -521,12 +521,26 @@ float getPow(float base, float exp) {
 ///
 template <typename srcType>
 inline __attribute__((always_inline))
-std::pair<int,int>  getLanesResFromNElements(unsigned int numofelement) 
+std::pair<int,int>  getLanesResFromNElements(unsigned int numofelements) 
 {
   int lanes = 0, res = 0;
 
-  lanes = numofelement * (getsize<srcType>() / 4) ;
-  res = numofelement - (4 * lanes / getsize<srcType>());
+  if (getsize<srcType>() == 1) {
+    lanes = numofelements / 4;
+    res = numofelements - 4 *lanes;
+  }
+  else if (getsize<srcType>() == 2) {
+    lanes = numofelements / 2;
+    res = numofelements -2 *lanes;
+   }
+  else if (getsize<srcType>() == 4) {
+      lanes = numofelements;
+      res = 0;
+  }
+  else if (getsize<srcType>() == 8) {
+      lanes = numofelements * 2;
+      res = 0;
+  }
 
   return std::make_pair(lanes, res);
 }
