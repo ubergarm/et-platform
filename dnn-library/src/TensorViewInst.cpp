@@ -14,6 +14,7 @@
 #include <limits>
 #include <cmath>
 #include <cstring>
+#include <utility>
 
 #include "LibNodes.h"
 #include "GenInstances.h"
@@ -323,21 +324,22 @@ void dnn_lib::fwdLibTensorViewInstVectorized(
     }
 
     maxRead -= d; // FIXME it does not support doubles
-    int lanes, res;
-    getLanesResTView <srcType> (lanes, res, d);
+
+    std::pair<int, int> lanes = getLanesResFromNElements<srcType>(d);
+
     __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
-    while (lanes >= 8) {
+    while (lanes.first >= 8) {
       __asm__ __volatile__("flw.ps f0, 0x0(%[src])\n"
                            "fsw.ps f0, 0x0(%[dst])\n"
                            :
                            : [ src ] "r"(src8), [ dst ] "r"(dst8)
                            : "f0", "memory");
-      lanes -= 8;
+      lanes.first -= 8;
       src8 += 32;
       dst8 += 32;
     }
-    if (lanes != 0) {
-      uint32_t mask = ((1 << lanes) - 1);
+    if (lanes.first != 0) {
+      uint32_t mask = ((1 << lanes.first) - 1);
       __asm__ __volatile__(
         "mov.m.x m0, %[mask], 0\n"
         "flw.ps f0, 0x0(%[src])\n"
@@ -346,11 +348,11 @@ void dnn_lib::fwdLibTensorViewInstVectorized(
         : [ src ] "r"(src8), [ dst ] "r"(dst8),
           [ mask ] "r" (mask)
         : "f0", "memory");
-      src8 += 4*lanes;
-      dst8 += 4*lanes;
+      src8 += 4*lanes.first;
+      dst8 += 4*lanes.first;
     }
-    if (res != 0) {
-      uint8_t mask = ((1 << res) - 1);
+    if (lanes.second != 0) {
+      uint8_t mask = ((1 << lanes.second) - 1);
       gatherScatterTView <srcType>(src8, dst8, mask, gatherValues);
     }
     if (type == 0)

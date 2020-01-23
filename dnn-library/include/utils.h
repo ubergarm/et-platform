@@ -14,9 +14,11 @@
 
 #include <sstream>
 #include <cstdint>
+#include <utility>
 
 #include <syscall.h>
 #include <device_common.h>
+
 
 #include "cacheops.h"
 #include "LibCommon.h"
@@ -495,23 +497,52 @@ float getPow(float base, float exp) {
   }
 }
 
+///
+/// \brief calculates the lanes for given number of elements
+///
+///
+/// Given a number of elements for a dimension and the data srcType 
+/// calculates the number of lanes needed to processing all the elements.
+/// A lane has 32 bits (4Bytes) depending on the srcType in use we have
+/// have the following table.
+///
+///   
+///      1B  uint8    4 for each lane
+///      2B  uint16   2 for each lane
+///      4B  uint32   1 for each lane
+///      8B  uint64   1/2 for each lane. (We need 2 lanes for represent this 
+///                                       srcType)
+///
+///
+/// \tparam[in] srcType, source type of data.
+/// \param[out] lanes, Number of lanes needed.
+/// \param[out] res, Part of lane to complete all elements.
+/// \param[in]  numofelement, All elements for a given dimension to be processed.
+///
 template <typename srcType>
 inline __attribute__((always_inline))
-void getLanesResTView (int &lanes, int &res, const unsigned int &d) {
+std::pair<int,int>  getLanesResFromNElements(unsigned int numofelements) 
+{
+  int lanes = 0, res = 0;
+
   if (getsize<srcType>() == 1) {
-    lanes = d / 4;
-    res = d - 4 * lanes;
-  } else if (getsize<srcType>() == 2) {
-    lanes = d / 2;
-    res = d - 2 * lanes;
-  } else if (getsize<srcType>() == 4) {
-    lanes = d;
-    res = 0;
-  } else if (getsize<srcType>() == 8) {
-    lanes = d * 2;
-    res = 0;
+    lanes = numofelements / 4;
+    res = numofelements - 4 *lanes;
   }
-  return;
+  else if (getsize<srcType>() == 2) {
+    lanes = numofelements / 2;
+    res = numofelements -2 *lanes;
+   }
+  else if (getsize<srcType>() == 4) {
+      lanes = numofelements;
+      res = 0;
+  }
+  else if (getsize<srcType>() == 8) {
+      lanes = numofelements * 2;
+      res = 0;
+  }
+
+  return std::make_pair(lanes, res);
 }
 
 inline __attribute__((always_inline))
