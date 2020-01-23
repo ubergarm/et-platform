@@ -97,7 +97,7 @@ add_library(dnn_lib STATIC
   src/TensorViewInst.cpp
   src/TopKInst.cpp
   src/TransposeInst.cpp
-  src/tinyprintf.cpp
+  src/printf.cpp
 )
 
 include_directories(include)
