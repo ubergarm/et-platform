@@ -668,9 +668,15 @@ void dnn_lib::fwdLibFullyConnectedInstVectorized(
   unsigned int *actPitch = (unsigned int *)activationsPitches;
   unsigned int *weightPitch = (unsigned int *)weightPitches;
 
+  // Total number of elements to process is the size of the outter
+  // dimension of the destination tensor multiplied by its pitch
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<src1Type>();
+  
+  // Gets the total number of elements to work on for the minion
+  // initialAddr: is first element to start working on
+  // maxRead: number of elements to process
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;

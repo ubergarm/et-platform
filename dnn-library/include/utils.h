@@ -80,7 +80,7 @@ constexpr std::size_t getsize<float16>() {
 /**
  * @brief Converts an offset in a tensor into its corresponding coordinates.
  *
- * This function takes into account the padding that the tensor my have, but if
+ * This function takes into account the padding that the tensor might have, but if
  * the offset corresponds to a padding position, the returned coordinates will
  * point this padding position in the matrix (outside the dimensions).
  *
@@ -106,7 +106,7 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
 /**
  * @brief Converts an offset in a tensor into its corresponding non-padding-coords.
  *
- * This function takes into account the padding that the tensor my have, and if
+ * This function takes into account the padding that the tensor might have, and if
  * the offset corresponds to a padding position, the returned coordinates will
  * point the next position in the tensor that doesn't correspond to padding.
  *
