@@ -242,7 +242,7 @@ GEN_OP(fwdLibInsertTensorInst, void *dst, void *dstDims,
                                void *src2, void *src2Dims, void *src2Pitches, 
                                void * poffsets, unsigned int count, 
                                unsigned int axis, float *scale, int32_t *offset,
-                               const uint32_t minionOffset = 0);
+                               uint64_t flags, const uint32_t minionOffset = 0);
 GEN_OP(fwdLibInsertTensorInstThreaded, void *dst, void *dstDims, 
                                 void *dstPitches, unsigned int dstDimNum, 
                                 void *src2, void *src2Dims, void *src2Pitches, 
