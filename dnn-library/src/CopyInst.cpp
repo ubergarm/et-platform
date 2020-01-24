@@ -92,16 +92,20 @@ void dnn_lib::fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
  * @param[in] scale, offset Parameters for the quantization.
  * @param[in] flags Gives the information of the Active Shires and the
  *  type of evict required.
+ * @param[in] minionOffset The first minion that is assigned to this node.
+ * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
 void dnn_lib::fwdLibCopyInstThreaded(void *dst, void *dstDims,
                                      void *dstPitches, void *src,
                                      void *srcDims, void *srcPitches,
                                      unsigned int srcDimNum, float *scale,
-                                     int32_t *offset, uint64_t flags) {
+                                     int32_t *offset, uint64_t flags,
+                                     const uint32_t minionOffset,
+                                     const uint32_t assignedMinions) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -373,10 +377,10 @@ GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *dstDims, void *dstPi
                        float *scale, int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                  float *scale, int32_t *offset,
-                                  uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum,
                                   float *scale, int32_t *offset, uint64_t flags,
                                   const uint32_t minionOffset, const uint32_t assignedMinions);
+GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
+                                  void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
+                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const uint32_t minionOffset, const uint32_t assignedMinions);
+

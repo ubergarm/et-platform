@@ -71,10 +71,12 @@ void dnn_lib::fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
                                        void *activationsPitches, void *weights,
                                        void *weightsDims, void *weightPitches,
                                        float *scale, int32_t *offset,
-                                       uint64_t flags) {
+                                       uint64_t flags,
+                                       const uint32_t minionOffset,
+                                       const uint32_t assignedMinions) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -485,7 +487,8 @@ GEN_INSTANCES_OP(template, fwdLibMatMulInst, void *dstMatrix, void *dstMatrixDim
 GEN_INSTANCES_OP(template, fwdLibMatMulInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset, uint64_t flags);
+                         float *scale, int32_t *offset, uint64_t flags,
+                         const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,

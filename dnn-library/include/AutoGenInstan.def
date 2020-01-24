@@ -276,8 +276,8 @@ GEN_OP(fwdLibCopyInst, void *dst, void *dstDims, void *dstPitches,
 GEN_OP(fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
-                                  float *scale, int32_t *offset,
-                                  uint64_t flags);
+                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 GEN_OP(fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
@@ -342,7 +342,8 @@ GEN_OP(fwdLibMatMulInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPi
 GEN_OP(fwdLibMatMulInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset, uint64_t flags);
+                         float *scale, int32_t *offset, uint64_t flags,
+                         const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 GEN_OP(fwdLibMatMulInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
