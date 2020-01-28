@@ -86,7 +86,7 @@ void dnn_lib::fwdLibTopKInst(void *dstT, void *dstDims, void *dstPitches,
     return;
 
   const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  Addresser<srcType> valuesT(dstT, scale[1], offset[1]);
+  Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
 
   long long *indT = (long long *)dstT2;
 
@@ -160,7 +160,7 @@ void dnn_lib::fwdLibTopKInstThreaded_all(
     return;
 
   const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  Addresser<srcType> valuesT(dstT, scale[1], offset[1]);
+  Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
 
   long long *indT = (long long *)dstT2;
 
@@ -246,7 +246,7 @@ void dnn_lib::fwdLibTopKInstThreaded_k4(void *dstT, void *dstDims, void
   __asm__ __volatile__ ("mov.m.x m0, zero, 0xff \n");
 
   const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  Addresser<srcType> valuesT(dstT, scale[1], offset[1]);
+  Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
 
   long long *indT = (long long *)dstT2;
   srcType *valT = (srcType *)dstT;
@@ -387,7 +387,7 @@ void dnn_lib::fwdLibTopKInstThreaded_k4(
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
   const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  Addresser<srcType> valuesT(dstT, scale[1], offset[1]);
+  Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
 
   long long *indT = (long long *)dstT2;
   // srcType *valT = (srcType *)dstT;
@@ -576,7 +576,7 @@ void dnn_lib::fwdLibTopKInstThreaded_k8(
     return;
 
   const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  Addresser<srcType> valuesT(dstT, scale[1], offset[1]);
+  Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
 
   long long *indT = (long long *)dstT2;
 
