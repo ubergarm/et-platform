@@ -26,6 +26,7 @@
 
 using namespace std;
 
+
 template <typename srcType, typename indexType>
 void dnn_lib::fwdLibGatherRangesInst(
     void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
@@ -141,11 +142,13 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
 
   unsigned int last_minion = activeMinions - 1;
 
+  size_t typeSize = getsize<srcType>();
+  unsigned int initialAddr = 0, maxRead = 0;
+
   if (minionId < last_minion) {
 
     unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
-    unsigned int initialAddr, maxRead;
-    size_t typeSize = getsize<srcType>();
+
     getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions - 1);
     if (maxRead == 0)
       return;
@@ -234,6 +237,11 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
     unsigned int offsetRanges = rangesPitch[2];
     unsigned int auxoffsetRanges = rangesPitch[2]; // this aux variable helps avoiding products.
     unsigned int offsetLengths = 0;
+
+    //It isn't thought that tlength writes will have more than 16 cache_lines.
+    //So that, the initialAddr doesn't update.
+    initialAddr = 0;
+
     for (size_t example = 0; example < numExamples; example++) { // size_t or indexType?
       indexType totalLength = 0;
       for (size_t range = 0; range < exampleSize; range++) {
@@ -245,12 +253,17 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
       auxoffsetRanges = offsetRanges;
       offsetLengths += lenPitch[0];
     }
-/*
+
     // Todo: initialAddr should be the virtual address of the Length tensor.
     if (!DO_EVICTS) return;
     unsigned int clperminion = lenIndex[0]*lenPitch[0]*sizeof(srcType)/64;
-    if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
-*/
+    if (clperminion > 0) {
+      evict_va_multi(DO_EVICTS, (uintptr_t)dst2T + typeSize*initialAddr, clperminion);
+    }
+    else {
+      //evict all cache line even it wasn't completely written
+      evict_va_multi(DO_EVICTS, (uintptr_t)dst2T + typeSize*initialAddr, 1);      
+    }
   }
 }
 
