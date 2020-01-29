@@ -62,7 +62,7 @@ GEN_INSTANCES(fwdLibElementSingleInst,ElementLog,void *dstT, void *dstDims,
                                  float * scale , int32_t  * offset);
 GEN_OP(fwdLibMaxPoolInst,bool XY, void *dstMatrix,void *dstMatrixDims, 
                          void *dstMatrixPitches, void *dst2Matrix,
-                         void *dst2MatrixDims, void *dst2MatrixPitches, 
+                         void *dst2MatrixDims, void *dst2MatrixPitches, void *dst2MatrixPitchesNoPadding,
                          void *activations, void *activationsDims, 
                          void *activationsPitches, void *pkernels,
                          void *pstrides, void *ppads, float *scale,

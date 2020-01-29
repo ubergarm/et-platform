@@ -27,9 +27,9 @@
 using namespace std;
 
 template <typename srcType>
-void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
+void dnn_lib::fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDims,
                                 void *dstMatrixPitches, void *dst2Matrix,
-                                void *dst2MatrixDims, void *dst2MatrixPitches,
+                                void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
                                 void *activations, void *activationsDims,
                                 void *activationsPitches, void *pkernels,
                                 void *pstrides, void *ppads, float *scale,
@@ -41,7 +41,7 @@ void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
 
   Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
   const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  uint64_t *tOutput2 = (uint64_t *)dst2Matrix;
+  int64_t *tOutput2 = (int64_t *)dst2Matrix;
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *dst2Index = (unsigned int *)dst2MatrixDims;
@@ -50,6 +50,7 @@ void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
+  unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
 
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;
@@ -64,12 +65,12 @@ void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
       for (size_t ax = 0; ax < dstIndex[1]; x += strides[0], ax++) {
         ssize_t y = -ssize_t(pads[1]);
         for (size_t ay = 0; ay < dstIndex[2]; y += strides[1], ay++) {
-          size_t maxX = x;
-          size_t maxY = y;
 
           bool first = true;
           auto max_value = tAInput[0];
+          auto first_element =  tAInput[0];
           max_value = 0;
+          int64_t argmaxNHWC = 0;
 
           for (size_t fx = 0; fx < kernels[0]; fx++) {
             for (size_t fy = 0; fy < kernels[1]; fy++) {
@@ -82,13 +83,17 @@ void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
                 continue;
               }
 
-              auto val = tAInput[n * actPitch[0] + (size_t)ox * actPitch[1] +
-                                 (size_t)oy * actPitch[2] + z];
+              int64_t idx = n * actPitch[0] + (size_t)ox * actPitch[1] +
+                (size_t)oy * actPitch[2] + z;
+              auto val = tAInput[idx];
               if (first || (val >= max_value)) {
                 first = false;
                 max_value = val;
-                maxX = ox;
-                maxY = oy;
+                if (argMax) 
+                  argmaxNHWC = n * srcPitchNoPadding[0] +
+                    (size_t)ox * srcPitchNoPadding[1] +
+                    (size_t)oy * srcPitchNoPadding[2]
+                    + z;
               }
             }
           }
@@ -97,11 +102,11 @@ void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
                             (size_t)ay * dstPitch[2] + z;
           tOutput[dstAddr] = max_value;
 
-          if (XY) {
+          if (argMax) {
             int64_t dst2Addr = n * dst2Pitch[0] + (size_t)ax * dst2Pitch[1] +
                                (size_t)ay * dst2Pitch[2] + z * dst2Pitch[3];
-            tOutput2[dst2Addr] = (long long)maxX;
-            tOutput2[dst2Addr + dst2Pitch[4]] = (long long)maxY;
+            tOutput2[dst2Addr] =argmaxNHWC;
+            
           }
         } // W
       }   // H
@@ -111,8 +116,8 @@ void dnn_lib::fwdLibMaxPoolInst(bool XY, void *dstMatrix, void *dstMatrixDims,
 
 template <typename srcType, typename dstType>
 void dnn_lib::fwdLibMaxPoolInstThreaded(
-    bool XY, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
+    bool argMax, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
+    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
     void *activations, void *activationsDims, void *activationsPitches,
     void *pkernels, void *pstrides, void *ppads, float *scale, int32_t *offset,
     uint64_t flags) {
@@ -124,7 +129,7 @@ void dnn_lib::fwdLibMaxPoolInstThreaded(
 
   Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
   const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  uint64_t *tOutput2 = (uint64_t *)dst2Matrix;
+  int64_t *tOutput2 = (int64_t *)dst2Matrix;
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *dst2Index = (unsigned int *)dst2MatrixDims;
@@ -133,6 +138,7 @@ void dnn_lib::fwdLibMaxPoolInstThreaded(
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
+  unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
 
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;
@@ -163,12 +169,12 @@ void dnn_lib::fwdLibMaxPoolInstThreaded(
   while (!done && (offsetOut < posMax)) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
     y = coord[2] * strides[1] - ssize_t(pads[1]);
-    size_t maxX = x;
-    size_t maxY = y;
 
     bool first = true;
     auto max_value = tAInput[0];
+    auto first_element = tAInput[0];
     max_value = 0;
+    int64_t argmaxNHWC = 0;
 
     for (size_t fx = 0; fx < kernels[0]; fx++) {
       for (size_t fy = 0; fy < kernels[1]; fy++) {
@@ -181,24 +187,27 @@ void dnn_lib::fwdLibMaxPoolInstThreaded(
           continue;
         }
 
-        auto val = tAInput[coord[0] * actPitch[0] + (size_t)ox * actPitch[1] +
-                           (size_t)oy * actPitch[2] + coord[3] * actPitch[3]];
+        int64_t idx = coord[0] * actPitch[0] + (size_t)ox * actPitch[1] +
+          (size_t)oy * actPitch[2] + coord[3] * actPitch[3];
+        auto val = tAInput[idx];
         if (first || (val >= max_value)) {
           first = false;
           max_value = val;
-          maxX = ox;
-          maxY = oy;
+          if (argMax) 
+            argmaxNHWC = coord[0] * srcPitchNoPadding[0] +
+              (size_t)ox * srcPitchNoPadding[1] +
+              (size_t)oy * srcPitchNoPadding[2]
+              + coord[3];
         }
       }
     }
 
     tOutput[offsetOut] = max_value;
 
-    if (XY) {
+    if (argMax) {
       int64_t dst2Addr = coord[0] * dst2Pitch[0] + coord[1] * dst2Pitch[1] +
                          coord[2] * dst2Pitch[2] + coord[3] * dst2Pitch[3];
-      tOutput2[dst2Addr] = (long long)maxX;
-      tOutput2[dst2Addr + dst2Pitch[4]] = (long long)maxY;
+      tOutput2[dst2Addr] = argmaxNHWC;
     }
     done = getOffsets(4, coord, offsetOut, dstIndex, dstPitch);
   }
@@ -208,16 +217,16 @@ void dnn_lib::fwdLibMaxPoolInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibMaxPoolInst, bool XY, void *dstMatrix,void *dstMatrixDims,
+GEN_INSTANCES_OP(template, fwdLibMaxPoolInst, bool argMax, void *dstMatrix,void *dstMatrixDims,
                          void *dstMatrixPitches, void *dst2Matrix,
-                         void *dst2MatrixDims, void *dst2MatrixPitches,
+                         void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
                          void *activations, void *activationsDims,
                          void *activationsPitches, void *pkernels,
                          void *pstrides, void *ppads, float *scale,
                          int32_t *offset);
-GEN_INSTANCES_2TYPE_OP(template, fwdLibMaxPoolInstThreaded, bool XY, void *dstMatrix,void *dstMatrixDims,
+GEN_INSTANCES_2TYPE_OP(template, fwdLibMaxPoolInstThreaded, bool argMax, void *dstMatrix,void *dstMatrixDims,
                          void *dstMatrixPitches, void *dst2Matrix,
-                         void *dst2MatrixDims, void *dst2MatrixPitches,
+                         void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
                          void *activations, void *activationsDims,
                          void *activationsPitches, void *pkernels,
                          void *pstrides, void *ppads, float *scale,
