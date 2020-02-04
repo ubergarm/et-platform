@@ -16,6 +16,8 @@
 #include <limits>
 #include <cstring>
 
+#define INLINE_ATTR __attribute__((always_inline))
+
 namespace dnn_lib {
 
 template <typename T, typename U>
@@ -237,6 +239,31 @@ int8_t quantizeValInt8(float val, float scale, int32_t offset) {
 
 using dim_t = uint64_t;
 using sdim_t = int64_t;
+
+/**
+ * @brief Using C++ template for size-based type selection.
+ *
+ * Standardisation of size-specific integer types in C/C++ is extremely useful
+ * for portability and avoiding Addresser class always that it is possible for
+ * perfomance increase. It will depends on kind of node operation.
+ * The workhorse of the code is the contional template.
+ * "std::conditional<bool condition, typename ifTrue, typename ifFalse>"
+ * 
+ * @warning 
+ *
+ * @note One limitation to note is that this only goes up to 8 bytes(64 bits).
+ *
+ * @tparam T_numBytes  byte size to be choosen.
+ */
+template <std::uint8_t T_numBytes>
+using UintSelector = 
+  typename std::conditional<T_numBytes == 1, uint8_t,
+    typename std::conditional<T_numBytes == 2, uint16_t,
+      typename std::conditional<T_numBytes == 4, uint32_t, 
+           std::uint64_t
+      >::type
+    >::type
+  >::type;
 
 } // namespace dnn_lib
 

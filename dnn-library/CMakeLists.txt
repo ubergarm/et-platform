@@ -90,7 +90,7 @@ add_library(dnn_lib STATIC
   src/RescaleQuantizedInst.cpp
   src/RowwiseQuantizedFullyConnected.cpp
   src/RowwiseQuantizedSparseLengthsWeightedSum.cpp
-  src/ScatterAssignInst.cpp
+  src/ScatterDataInst.cpp
   src/SigmoidInst.cpp
   src/SoftMaxInst1.cpp
   src/SoftMaxInst2.cpp

@@ -541,11 +541,11 @@ GEN_QUANT(fwdLibRescaleQuantizedInstThreaded, void *dstT, void *dstDims, void *d
                                       void *srcT, void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, float srcScale, int32_t srcOffset, 
                                       float dstScale, int32_t dstOffset, uint64_t flags);                                                                                                                                                                                  
-GEN_OP(fwdLibScatterAssignInst, void *dstT, void *dstDims, 
-                                void *dstPitches, void *indexT, void *indicesDims, void *pindicesPitches, 
-                                void *slicesT, void *slicesDims, void *slicesPitches , 
+GEN_OP(fwdLibScatterDataInst, void *dstT, void *dstDims, 
+                                void *dstPitches, unsigned int dstNumDim, void *indexT, void *indicesDims, void *pindicesPitches, 
+                                void *slicesT, void *slicesDims, unsigned int sliceSize, void *slicesPitches, unsigned int sliceNumDim,
                                 float *scale, int32_t *offset); 
-GEN_OP(fwdLibScatterAssignInstThreaded, void *dstT, void *dstDims,  
+GEN_OP(fwdLibScatterDataInstThreaded, void *dstT, void *dstDims,  
                                 void *dstPitches, unsigned int dstDimNum, void *indexT, void *indicesDims, void *pindicesPitches, 
                                 void *slicesT, void *slicesDims, void *slicesPitches , 
                                 float *scale, int32_t *offset, uint64_t flags);  
