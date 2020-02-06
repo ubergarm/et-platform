@@ -59,6 +59,7 @@ add_library(dnn_lib STATIC
   src/ConvolutionInst.cpp
   src/CopyInst.cpp
   src/CopyInstTensorized.cpp
+  src/SyncopyInstTensorized.cpp
   src/CrossEntropyLossInst.cpp
   src/DequantizeInst.cpp
   src/ElementBoolInst.cpp
