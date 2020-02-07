@@ -223,6 +223,11 @@ GEN_2TYPE_OP(fwdLibMaxPoolInstThreaded, bool XY, void *dstMatrix,void *dstMatrix
                          void *activationsPitches, void *pkernels,
                          void *pstrides, void *ppads, float *scale,
                          int32_t *offset, uint64_t flags);
+
+GEN_OP(fwdLibArgMaxInst, void *src, void *srcDims, void *srcPitches, float srcScale, int32_t srcOffset,
+                         void *dst, void *dstDims, void *dstPitches,
+                         size_t axis, bool keepDim);
+
 GEN_OP(fwdLibAvgPoolInst,void *dstMatrix, void *dstMatrixDims, 
                          void *dstMatrixPitches, void *activations, 
                          void *activationsDims, void *activationsPitches, 

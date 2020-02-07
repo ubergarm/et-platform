@@ -235,7 +235,9 @@ int8_t quantizeValInt8(float val, float scale, int32_t offset) {
   return quantize<int8_t>(val, scale, offset);
 }
 
-  
+using dim_t = uint64_t;
+using sdim_t = int64_t;
+
 } // namespace dnn_lib
 
 #endif /* LIB_COMMON_H */

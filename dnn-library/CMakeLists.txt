@@ -84,6 +84,7 @@ add_library(dnn_lib STATIC
   src/MatMulInst.cpp
   src/MatMulInstTransposed.cpp
   src/MaxPoolInst.cpp
+  src/ArgMaxInst.cpp
   src/ModuloInst.cpp
   src/QuantizeInst.cpp
   src/RescaleQuantizedInst.cpp
