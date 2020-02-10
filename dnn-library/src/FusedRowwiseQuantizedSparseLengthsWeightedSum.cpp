@@ -31,10 +31,13 @@ void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
 
+  unsigned int minionId = get_minion_id();
+  
+  if (minionId != 0) {
+    return;
+  }
+  
   float *tOutput = (float *)pdst;
   uint8_t *tAInput = (uint8_t *)pdata;
   float *tWInput = (float *)pweights;
@@ -51,6 +54,7 @@ void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
 
   size_t segments = pLengthsSize;
   size_t totalLength = 0;
+
   for (size_t i = 0; i < segments; i++) {
     totalLength += lengths[i];
   }
@@ -442,22 +446,23 @@ void dnn_lib::
   uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
 
   //  Distribute the tail of groups.
-  uintptr_t minionWorkUnits;
-  uintptr_t minionFirstWorkUnit;
+  uintptr_t minionWorkUnits = 0;
+  uintptr_t minionFirstWorkUnit = 0;
+
   if ((totalWorkUnits % activeMinions) == 0) {
     minionWorkUnits = totalWorkUnits / activeMinions;
-  }
-  else {
+  } else {
     minionWorkUnits = totalWorkUnits / activeMinions;
     uintptr_t remainingWorkUnits = totalWorkUnits % activeMinions;
     if (minionId < remainingWorkUnits) {
       minionWorkUnits++;
       // Compute the index into the first work unit.
       minionFirstWorkUnit = minionId * minionWorkUnits;
-    } else
+    } else {
       // Compute the index into the first work unit.
       minionFirstWorkUnit = remainingWorkUnits * (minionWorkUnits + 1)
                          +  (minionId - remainingWorkUnits) * minionWorkUnits;
+    }
   }
 
   // Compute the first output row (segment) assigned to the Minion.

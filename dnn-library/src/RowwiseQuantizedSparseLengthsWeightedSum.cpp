@@ -244,12 +244,9 @@ void dnn_lib::
   uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
 
   //  Distribute the tail of groups.
-  uintptr_t minionWorkUnits;
-  if ((totalWorkUnits % activeMinions) == 0) {
-    minionWorkUnits = totalWorkUnits / activeMinions;
-  }
-  else {
-    minionWorkUnits = totalWorkUnits / activeMinions;
+  uintptr_t minionWorkUnits = totalWorkUnits / activeMinions;
+  
+  if ((totalWorkUnits % activeMinions) != 0) {
     uintptr_t remainingWorkUnits = totalWorkUnits % activeMinions;
     if (minionId < remainingWorkUnits)
       minionWorkUnits++;
