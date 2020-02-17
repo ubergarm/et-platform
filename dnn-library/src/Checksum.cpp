@@ -104,7 +104,7 @@ void dnn_lib::fwdLibFlushL3(uint32_t numShires) {
   uint32_t minion = get_minion_id() & 0x1F;
   // The T0 of minion N of shire 0 flushes the L3 of shire N
   if ((get_shire_id() == 0) && (get_thread_id() == 0) && (minion < numShires)) {
-      syscall(SYSCALL_FLUSH_L3_ALT, minion, 0, 0);
+      syscall(SYSCALL_FLUSH_L3, minion, 0, 0);
   }
 }
 
