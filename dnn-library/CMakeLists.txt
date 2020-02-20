@@ -105,9 +105,11 @@ add_library(dnn_lib STATIC
   src/TransposeInst.cpp
   src/libc.c
   src/printf.c
+  src/Float16.cpp
 )
 
-include_directories(include)
+include_directories(include/)
+include_directories(include/private)
 
 target_link_libraries(${PROJECT_NAME} device_common fake-fw)
 

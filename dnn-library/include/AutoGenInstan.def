@@ -1,4 +1,7 @@
-#ifdef GEN_INSTANCES
+#ifndef AUTOGEN_INSTANCES_H
+#define AUTOGEN_INSTANCES_H
+
+#include "GenInstances.h"
 
 GEN_INSTANCES(fwdLibElementInst,Add,void *dstT, void *dstDims,
                                  void *dstPitches, void *srcT1,
@@ -633,8 +636,6 @@ GEN_RQSLWS_V(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect,
              uintptr_t dataRowSize, uintptr_t dstElemSize,
              uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr);
 
-#endif
-
 #undef GEN_INSTANCES
 #undef GEN_OP
 #undef GEN_INTONLY_OP
@@ -649,3 +650,4 @@ GEN_RQSLWS_V(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect,
 
 #undef GEN_2TYPE
 
+#endif // AUTOGEN_INSTANCES_H

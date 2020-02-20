@@ -15,6 +15,8 @@
 #include <cmath>
 #include <limits>
 #include <cstring>
+#include <type_traits>
+#include <algorithm>
 
 #define INLINE_ATTR __attribute__((always_inline))
 

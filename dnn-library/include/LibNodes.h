@@ -18,7 +18,6 @@
 #include <vector>
 
 #include "Float16.h"
-#include "GenInstances.h"
 
 class Add {};
 class Sub {};
@@ -73,6 +72,7 @@ enum PrecisionMode {
   default:                                                                                                 \
     break;                                                                                                 \
   }
+
 
 #define dispatchLibImplEltWise(functionName, pm1, pm2, op, ...)                                            \
   switch (pm1) {                                                                                           \
@@ -344,74 +344,6 @@ enum PrecisionMode {
   default:                                                                     \
     break;                                                                     \
   }
-
-#define GEN_INSTANCES(functionName, op, ...)                                          \
-  template <typename srcType, typename opType>                                        \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_INSTANCES(extern template, functionName, op, __VA_ARGS__)
-
-#define GEN_OP(functionName, ...)                                                     \
-  template <typename srcType>                                                         \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_OP(extern template, functionName, __VA_ARGS__)
-
-#define GEN_1TYPEFP(functionName, ...)                                                \
-  template <typename dstType>                                                         \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_1TYPEFP(extern template, functionName, __VA_ARGS__)
-
-#define GEN_3TYPE(functionName, op, ...)                                              \
-  template <typename src1Type, typename src2Type, typename dstType, typename opType>  \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_3TYPE(extern template, functionName, op, __VA_ARGS__)
-
-#define GEN_2TYPE(functionName, op, ...)                                              \
-  template <typename src1Type, typename dstType, typename opType>                     \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_2TYPE(extern template, functionName, op, __VA_ARGS__)
-
-#define GEN_3TYPE_OP(functionName, ...)                                               \
-  template <typename src1Type, typename src2Type, typename dstType>                   \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_3TYPE_OP(extern template, functionName, __VA_ARGS__)
-
-#define GEN_2TYPE_OP(functionName, ...)                                               \
-  template <typename src1Type, typename dstType>                                      \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_2TYPE_OP(extern template, functionName, __VA_ARGS__)
-
-#define GEN_INTONLY_OP(functionName, ...)                                             \
-  template <typename srcType>                                                         \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_INTONLY_OP(extern template, functionName, __VA_ARGS__)
-
-#define GEN_QUANT(functionName, ...)                                                  \
-  template <typename srcType>                                                         \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_QUANT(extern template, functionName, __VA_ARGS__)
-
-#define GEN_OP_INDEX(functionName, ...)                                               \
-  template <typename srcType, typename indexType>                                     \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_OP_INDEX(extern template, functionName, __VA_ARGS__)
-
-#define GEN_CONVERT(functionName, ...)                                                \
-  template <typename srcType, typename dstType>                                       \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_CONVERT(extern template, functionName, __VA_ARGS__)
-
-#define GEN_INT8_FUN(functionName, ...)                                               \
-  void functionNameInt8(__VA_ARGS__);
-
-#define GEN_FRQSLWS_V(functionName, ...)                                              \
-  template <bool Weighted = true, bool Float32Dst = true, bool FLoat16Dst = false>    \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_FRQSLWS_V(extern template, functionName, __VA_ARGS__)
-
-#define GEN_RQSLWS_V(functionName, ...)                                               \
-  template <bool Int8Src = false, bool FLoat16Dst = false>                            \
-  void functionName(__VA_ARGS__);                                                     \
-  GEN_INSTANCES_RQSLWS_V(extern template, functionName, __VA_ARGS__)
 
 #include "AutoGenInstan.def"
 
