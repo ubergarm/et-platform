@@ -31,7 +31,7 @@ void dnn_lib::fwdLibAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
                                 void *dstMatrixPitches, void *activations,
                                 void *activationsDims, void *activationsPitches,
                                 void *pkernels, void *pstrides, void *ppads,
-                                float *scale, int32_t *offset) {
+                                const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -96,7 +96,7 @@ template <typename srcType, typename dstType>
 void dnn_lib::fwdLibAvgPoolInstThreaded(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
-    void *pkernels, void *pstrides, void *ppads, float *scale, int32_t *offset,
+    void *pkernels, void *pstrides, void *ppads, const float *scale, const int32_t *offset,
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -183,10 +183,10 @@ GEN_INSTANCES_OP(template, fwdLibAvgPoolInst,void *dstMatrix, void *dstMatrixDim
                  void *dstMatrixPitches, void *activations,
                  void *activationsDims, void *activationsPitches,
                  void *pkernels, void *pstrides, void *ppads,
-                 float *scale, int32_t *offset);
+                 const float *scale, const int32_t *offset);
 
 GEN_INSTANCES_2TYPE_OP(template, fwdLibAvgPoolInstThreaded,void *dstMatrix, void *dstMatrixDims,
                          void *dstMatrixPitches, void *activations,
                          void *activationsDims, void *activationsPitches,
                          void *pkernels, void *pstrides, void *ppads,
-                         float *scale, int32_t *offset, uint64_t flags);
+                         const float *scale, const int32_t *offset, uint64_t flags);

@@ -58,7 +58,7 @@ void dnn_lib::fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
                                     void *weightsDims, void *weightPitches,
                                     void *bias, void *pkernels, void *pstrides,
                                     void *ppads, unsigned int group,
-                                    float *scale, int32_t *offset) {
+                                    const float *scale, const int32_t *offset) {
 
   // FIXME: going back to single thread until general case is solved with
   // multithread
@@ -173,7 +173,7 @@ void dnn_lib::fwdLibConvolutionInstThreaded(
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
     void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    float *scale, int32_t *offset, uint64_t flags) {
+    const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -305,7 +305,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, float *scale, int32_t *offset) {
+                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -419,7 +419,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, float *scale, int32_t *offset) {
+                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -561,7 +561,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, float *scale, int32_t *offset) {
+                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
   const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
@@ -600,7 +600,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, float *scale, int32_t *offset) {
+                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
   const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
@@ -632,7 +632,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, float *scale, int32_t *offset) {
+                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
   const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
@@ -695,7 +695,7 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
     void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    float *scale, int32_t *offset, uint64_t flags) {
+    const float *scale, const int32_t *offset, uint64_t flags) {
 
   Addresser<dstType> tOutput(dstMatrix, scale[3], offset[3]);
 
@@ -778,14 +778,14 @@ GEN_INSTANCES_OP(template, fwdLibConvolutionInst, void *dstMatrix, void *dstMatr
                               void *activations, void *activationsDims, void *activationsPitches,
                               void *weights, void *weightsDims, void *weightPitches, void *bias,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              float *scale, int32_t *offset);
+                              const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibConvolutionInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                               void *activations, void *activationsDims, void *activationsPitches,
                               void *weights, void *weightsDims, void *weightPitches, void *bias,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              float *scale, int32_t *offset, uint64_t flags);
+                              const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                               void *activations, void *activationsDims, void *activationsPitches,
                               void *weights, void *weightsDims, void *weightPitches, void *bias,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              float *scale, int32_t *offset, uint64_t flags);
+                              const float *scale, const int32_t *offset, uint64_t flags);

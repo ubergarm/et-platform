@@ -30,7 +30,7 @@ template <typename srcType>
 void dnn_lib::fwdLibTransposeInst(void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum, void *pshuffle,
-                                  float *scale, int32_t *offset) {
+                                  const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -91,8 +91,8 @@ void dnn_lib::fwdLibTransposeInstThreaded(void *dst, void *dstDims,
                                           void *dstPitches, void *src,
                                           void *srcDims, void *srcPitches,
                                           unsigned int srcDimNum,
-                                          void *pshuffle, float *scale,
-                                          int32_t *offset, uint64_t flags) {
+                                          void *pshuffle, const float *scale,
+                                          const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -191,8 +191,8 @@ void dnn_lib::fwdLibTransposeInstVectorized(void *dst, void *dstDims,
                                             void *dstPitches, void *src,
                                             void *srcDims, void *srcPitches,
                                             unsigned int srcDimNum,
-                                            void *pshuffle, float *scale,
-                                            int32_t *offset, uint64_t flags) {
+                                            void *pshuffle, const float *scale,
+                                            const int32_t *offset, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -347,8 +347,8 @@ void dnn_lib::fwdLibTransposeInstAligned32Bytes(void *dst,
                                           void *dstPitches, void *src,
                                           void *srcDims, void *srcPitches,
                                           unsigned int srcDimNum,
-                                          void *pshuffle, float *scale,
-                                          int32_t *offset, uint64_t flags) {
+                                          void *pshuffle, const float *scale,
+                                          const int32_t *offset, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -428,16 +428,16 @@ void dnn_lib::fwdLibTransposeInstAligned32Bytes(void *dst,
 GEN_INSTANCES_OP(template, fwdLibTransposeInst, void *dst, void *dstDims, void *dstPitches,
                             void *src, void *srcDims, void *srcPitches,
                             unsigned int srcDimNum, void *pshuffle,
-                            float *scale, int32_t *offset);
+                            const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibTransposeInstThreaded, void *dst, void *dstDims, void *dstPitches,
                             void *src, void *srcDims, void *srcPitches,
                             unsigned int srcDimNum, void *pshuffle,
-                            float *scale, int32_t *offset, uint64_t flags);
+                            const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibTransposeInstVectorized, void *dst, void *dstDims, void *dstPitches,
                             void *src, void *srcDims, void *srcPitches,
                             unsigned int srcDimNum, void *pshuffle,
-                            float *scale, int32_t *offset, uint64_t flags);
+                            const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibTransposeInstAligned32Bytes, void *dst, void *dstDims, void *dstPitches,
                             void *src, void *srcDims, void *srcPitches,
                             unsigned int srcDimNum, void *pshuffle,
-                            float *scale, int32_t *offset, uint64_t flags);
+                            const float *scale, const int32_t *offset, uint64_t flags);

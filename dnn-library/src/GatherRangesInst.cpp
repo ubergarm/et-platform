@@ -32,7 +32,7 @@ void dnn_lib::fwdLibGatherRangesInst(
     void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-    void *prangesPitches, float *scale, int32_t *offset) {
+    void *prangesPitches, const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -119,7 +119,7 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-    void *prangesPitches, float *scale, int32_t *offset, uint64_t flags) {
+    void *prangesPitches, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32*ACTIVE_SHIRES;
@@ -271,9 +271,9 @@ GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, void *dstT, void *dstDi
                                      void *dst2T, void *dst2Dims, void *dst2Pitches,
                                      void *srcT, void *srcDims, void *srcPitches,
                                      unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-                                     void *prangesPitches, float *scale, int32_t *offset);
+                                     void *prangesPitches, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
                                      void *dst2T, void *dst2Dims, void *dst2Pitches,
                                      void *srcT, void *srcDims, void *srcPitches,
                                      unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-                                     void *prangesPitches, float *scale, int32_t *offset, uint64_t flags);
+                                     void *prangesPitches, const float *scale, const int32_t *offset, uint64_t flags);

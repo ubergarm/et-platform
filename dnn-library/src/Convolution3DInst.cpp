@@ -32,7 +32,7 @@ void dnn_lib::fwdLibConvolution3DInst(
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
     void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    float *scale, int32_t *offset) {
+    const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -129,7 +129,7 @@ void dnn_lib::fwdLibConvolution3DInstThreaded(
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
     void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    float *scale, int32_t *offset, uint64_t flags) {
+    const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -234,9 +234,9 @@ GEN_INSTANCES_OP(template, fwdLibConvolution3DInst, void *dstMatrix, void *dstMa
                                 void *activations, void *activationsDims, void *activationsPitches,
                                 void *weights, void *weightsDims, void *weightPitches, void *bias,
                                 void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                                float *scale, int32_t *offset);
+                                const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibConvolution3DInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                 void *activations, void *activationsDims, void *activationsPitches,
                                 void *weights, void *weightsDims, void *weightPitches, void *bias,
                                 void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                                float *scale, int32_t *offset, uint64_t flags);
+                                const float *scale, const int32_t *offset, uint64_t flags);

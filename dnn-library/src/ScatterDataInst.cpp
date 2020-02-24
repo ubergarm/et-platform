@@ -82,8 +82,8 @@ void dnn_lib::fwdLibScatterDataInst(void *dstT, void *dstDims,
 				    void *dstPitches, unsigned int dstNumDim, void *indexT,
 				    void *indicesDims, void *pindicesPitches,
 				    void *slicesT, void *slicesDims, unsigned int sliceSize,
-				    void *slicesPitches, unsigned int sliceNumDim, float *scale,
-				    int32_t *offset) {
+				    void *slicesPitches, unsigned int sliceNumDim, const float *scale,
+				    const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -189,8 +189,8 @@ void dnn_lib::fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
                                               void *dstPitches, unsigned int dstDimNum, void *indexT,
                                               void *indicesDims, void *pindicesPitches,
                                               void *slicesT, void *slicesDims,
-                                              void *slicesPitches, float *scale,
-                                              int32_t *offset, uint64_t flags) {
+                                              void *slicesPitches, const float *scale,
+                                              const int32_t *offset, uint64_t flags) {
 
 
   unsigned int minionId = get_minion_id();
@@ -284,8 +284,8 @@ void dnn_lib::fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
 GEN_INSTANCES_OP(template, fwdLibScatterDataInst, void *dstT, void *dstDims,
 		 void *dstPitches, unsigned int dstNumDim, void *indexT, void *indicesDims, void *pindicesPitches,
 		 void *slicesT, void *slicesDims, unsigned int sliceSize, void *slicesPitches, unsigned int sliceNumDim,
-		 float *scale, int32_t *offset);
+		 const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibScatterDataInstThreaded, void *dstT, void *dstDims,
 		 void *dstPitches, unsigned int dstDimNum, void *indexT, void *indicesDims, void *pindicesPitches,
 		 void *slicesT, void *slicesDims, void *slicesPitches ,
-		 float *scale, int32_t *offset, uint64_t flags);
+		 const float *scale, const int32_t *offset, uint64_t flags);

@@ -40,7 +40,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value && !std::is_same<S, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
 
 
   }
@@ -48,7 +48,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
 
 
   }
@@ -56,7 +56,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
 
 
   }
@@ -72,7 +72,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float  scratch0, scratch1, scratch2;
     __asm__ __volatile__("flw.ps %[op1], %[gatherValues]\n"
                          "fgh.ps  %[op0], %[op1](%[src1]) \n"
@@ -97,7 +97,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float scratch0, scratch1;
     __asm__ __volatile__("flw.ps  %[op0], %[src1] \n"
                          "flw.ps  %[op1], %[src2] \n"
@@ -115,7 +115,7 @@ public:
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
 
-  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x4+%[offset] \n"
                          "fbc.ps f29, 0x4+%[scale] \n"
@@ -151,7 +151,7 @@ public:
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
 
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          OPERATION_STEP2
                          "fmadd.ps f0, f0, f29, f1 \n"
@@ -172,7 +172,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
@@ -192,7 +192,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
@@ -212,7 +212,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
@@ -234,7 +234,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
@@ -256,7 +256,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          "fandi.pi f1, f1, 0xff \n"
@@ -277,7 +277,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Add>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          "fandi.pi f1, f1, 0xff \n"
@@ -300,7 +300,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -321,7 +321,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect( int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
                          "flw.ps  f1, 0x0(%[src2]) \n"
                          "fsub.ps f0, f0, f1 \n"
@@ -337,7 +337,7 @@ public:
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
 
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x4(%[offset]) \n"
                          "fbc.ps f29, 0x4(%[scale]) \n"
@@ -373,7 +373,7 @@ public:
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
 
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          OPERATION_STEP2
                          "fmsub.ps f0, f0, f29, f1 \n"
@@ -394,7 +394,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
@@ -414,7 +414,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
@@ -434,7 +434,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f1, f1, 0xff \n"
                          OPERATION_STEP2
@@ -456,7 +456,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          OPERATION_STEP2
@@ -478,7 +478,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          "fandi.pi f1, f1, 0xff \n"
@@ -499,7 +499,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Sub>::value && std::is_same<S1, Addresser<uint8_t>>::value && std::is_same<S2, Addresser<uint8_t>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__(OPERATION_STEP1
                          "fandi.pi f0, f0, 0xff \n"
                          "fandi.pi f1, f1, 0xff \n"
@@ -530,7 +530,7 @@ public:
    template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -551,7 +551,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
                          "flw.ps  f1, 0x0(%[src2]) \n"
                          "fmul.ps f0, f0, f1 \n"
@@ -566,7 +566,7 @@ public:
   template <typename U = opType, typename S = src1Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -598,7 +598,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Mul>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -628,7 +628,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Mul>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
 
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
@@ -672,7 +672,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -694,7 +694,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
                          "flw.ps  f1, 0x0(%[src2]) \n"
                          "frcp.ps f1, f1 \n"
@@ -710,7 +710,7 @@ public:
   template <typename U = opType, typename S = src1Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -743,7 +743,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Div>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -773,7 +773,7 @@ public:
 
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"
                          "flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
@@ -841,7 +841,7 @@ public:
    template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -862,7 +862,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
                          "flw.ps  f1, 0x0(%[src2]) \n"
                          "fmax.ps f0, f0, f1 \n"
@@ -877,7 +877,7 @@ public:
   template <typename U = opType, typename S = src1Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Max>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value && std::is_same<D, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -909,7 +909,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Max>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -938,7 +938,7 @@ public:
 
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Max>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
@@ -983,7 +983,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -1004,7 +1004,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
                          "flw.ps  f1, 0x0(%[src2]) \n"
                          "fmin.ps f0, f0, f1 \n"
@@ -1019,7 +1019,7 @@ public:
   template <typename U = opType, typename S = src1Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -1051,7 +1051,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Min>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
                          "fgb.ps  f0, f31(%[src1]) \n"
@@ -1080,7 +1080,7 @@ public:
 
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Min>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
@@ -1124,7 +1124,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -1160,7 +1160,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
                          "flw.ps  f1, 0x0(%[src2]) \n"
                          "feq.ps f0, f0, f1 \n"
@@ -1192,7 +1192,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
@@ -1246,7 +1246,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
@@ -1282,7 +1282,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
                          "flw.ps  f1, 0x0(%[src2]) \n"
                          "fle.ps f0, f0, f1 \n"
@@ -1314,7 +1314,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[offset]) \n"
                          "fbc.ps f29, 0x0(%[scale]) \n"
@@ -1368,7 +1368,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Pow>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float half = 0.5;
     float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
@@ -1428,7 +1428,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, Pow>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float half = 0.5;
     float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
@@ -1479,7 +1479,7 @@ public:
 
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Pow>::value && std::is_same<S1, Addresser<int8_t>>::value && std::is_same<S2, Addresser<int8_t>>::value && std::is_same<D, Addresser<int8_t>>::value, std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float half = 0.5;
     float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
@@ -1554,7 +1554,7 @@ public:
   template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Pow>::value && (std::is_same<S1, Addresser<uint8_t>>::value || std::is_same<S2, Addresser<uint8_t>>::value) && std::is_same<D, Addresser<int8_t>>::value && !std::is_same<S1, Addresser<float>>::value && !std::is_same<S1, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float half = 0.5;
     float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
@@ -1622,7 +1622,7 @@ public:
   template <typename U = opType, typename S = src1Type, typename D = dstType,
             typename std::enable_if<std::is_same<U, Pow>::value && std::is_same<D, Addresser<uint8_t>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float half = 0.5;
     float minus2 = -2;
     __asm__ __volatile__("maskand m1, m0, m0 \n"
@@ -1700,7 +1700,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, ElementLog>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float log2e = M_1_LOG2E;
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f30, 0x0(%[log2e]) \n"
@@ -1722,7 +1722,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, ElementLog>::value && std::is_same<S, Addresser<float>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float log2e = M_1_LOG2E;
     __asm__ __volatile__("flw.ps  f0, 0x0(%[src]) \n"
                          "fbc.ps f30, 0x0(%[log2e]) \n"
@@ -1740,7 +1740,7 @@ public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, ElementLog>::value && std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, float *scale, int32_t *offset) {
+  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
     float log2e = M_1_LOG2E;
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fbc.ps f28, 0x0(%[log2e]) \n"

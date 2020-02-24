@@ -28,8 +28,8 @@ using namespace std;
 
 template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInst(void *dstT, void *srcT, void *srcTDims,
-                                void *srcTPitches, float *scale,
-                                int32_t *offset) {
+                                void *srcTPitches, const float *scale,
+                                const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -72,8 +72,8 @@ void dnn_lib::fwdLibSoftMaxInst(void *dstT, void *srcT, void *srcTDims,
 
 template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInstThreaded(void *dstT, void *srcT, void *srcTDims,
-                                        void *srcTPitches, float *scale,
-                                        int32_t *offset, uint64_t flags) {
+                                        void *srcTPitches, const float *scale,
+                                        const int32_t *offset, uint64_t flags) {
 
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
@@ -94,8 +94,8 @@ void dnn_lib::fwdLibSoftMaxInstThreaded(void *dstT, void *srcT, void *srcTDims,
 
 template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInstVectorized(void *dstT, void *srcT, void *srcTDims,
-                                          void *srcTPitches, float *scale,
-                                          int32_t *offset, uint64_t flags) {
+                                          void *srcTPitches, const float *scale,
+                                          const int32_t *offset, uint64_t flags) {
 
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
@@ -115,8 +115,8 @@ void dnn_lib::fwdLibSoftMaxInstVectorized(void *dstT, void *srcT, void *srcTDims
 }
 
 GEN_INSTANCES_OP(template, fwdLibSoftMaxInst, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, float *scale, int32_t *offset);
+                          void *srcTPitches, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibSoftMaxInstVectorized, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);

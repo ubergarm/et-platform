@@ -35,7 +35,7 @@ using namespace std;
 
 namespace dnn_lib {
 
-enum PrecisionMode {
+enum class PrecisionMode {
   // TODO: Get same enumerate as Jitter
   PM_FP_32 = 0,   // fp32
   PM_FP_16 = 1,   // fp16
@@ -49,321 +49,55 @@ enum PrecisionMode {
   MAX_PRECISION_MODES
 };
 
-#define dispatchLibImplEltWiseSingle(functionName, pm1, op, ...)                                            \
-  switch (pm1) {                                                                                           \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                                                   \
-    functionName<float, op>(__VA_ARGS__);                                                           \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                                                   \
-    functionName<float16, op>(__VA_ARGS__);                                                       \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                                                   \
-    functionName<int8_t, op>(__VA_ARGS__);                                                       \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_UINT_8:                                                                  \
-    functionName<uint8_t, op>(__VA_ARGS__);                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                                                 \
-    functionName<int64_t, op>(__VA_ARGS__);                                                       \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_BOOL:                                                                    \
-    functionName<bool, op>(__VA_ARGS__);                                                             \
-    break;                                                                                                 \
-  default:                                                                                                 \
-    break;                                                                                                 \
-  }
+#define dispatchLibImplEltWiseSingle(functionName, pm1, op, ...) \
+  functionName<pm1, op>(__VA_ARGS__)
 
+#define dispatchLibImplEltWise(functionName, pm1, pm2, op, ...) \
+  functionName<pm1, pm2, op>(__VA_ARGS__)
 
-#define dispatchLibImplEltWise(functionName, pm1, pm2, op, ...)                                            \
-  switch (pm1) {                                                                                           \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                                                   \
-    functionName<float, float, op>(__VA_ARGS__);                                                           \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                                                   \
-    functionName<float16, float16, op>(__VA_ARGS__);                                                       \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                                                   \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8) {                                                         \
-      functionName<int8_t, int8_t, op>(__VA_ARGS__);                                                       \
-    } else {                                                                                               \
-      functionName<int8_t, uint8_t, op>(__VA_ARGS__);                                                      \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_UINT_8:                                                                  \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8) {                                                         \
-      functionName<uint8_t, int8_t, op>(__VA_ARGS__);                                                      \
-    } else {                                                                                               \
-      functionName<uint8_t, uint8_t, op>(__VA_ARGS__);                                                     \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                                                 \
-    functionName<int64_t, int64_t, op>(__VA_ARGS__);                                                       \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_BOOL:                                                                    \
-    functionName<bool, bool, op>(__VA_ARGS__);                                                             \
-    break;                                                                                                 \
-  default:                                                                                                 \
-    break;                                                                                                 \
-  }
+#define dispatchLibImplEltWiseParal(functionName, pm1, pm2, pm3, op, ...) \
+  functionName<pm1, pm2, pm3, op>(__VA_ARGS__)
 
-#define dispatchLibImplEltWiseParal(functionName, pm1, pm2, pm3, op, ...)                                  \
-  switch (pm1) {                                                                                           \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                                                   \
-    functionName<float, float, float, op>(__VA_ARGS__);                                                    \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                                                   \
-    functionName<float16, float16, float16, op>(__VA_ARGS__);                                     \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                                                   \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {              \
-      functionName<int8_t, int8_t, int8_t, op>(__VA_ARGS__);                                               \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_UINT_8) {      \
-      functionName<int8_t, int8_t, uint8_t, op>(__VA_ARGS__);                                              \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_UINT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {      \
-      functionName<int8_t, uint8_t, int8_t, op>(__VA_ARGS__);                                              \
-    } else {                                                                                               \
-      functionName<int8_t, uint8_t, uint8_t, op>(__VA_ARGS__);                                             \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_UINT_8:                                                                  \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {              \
-      functionName<uint8_t, int8_t, int8_t, op>(__VA_ARGS__);                                              \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_UINT_8) {      \
-      functionName<uint8_t, int8_t, uint8_t, op>(__VA_ARGS__);                                             \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_UINT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {      \
-      functionName<uint8_t, uint8_t, int8_t, op>(__VA_ARGS__);                                             \
-    } else {                                                                                               \
-      functionName<uint8_t, uint8_t, uint8_t, op>(__VA_ARGS__);                                            \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                                                 \
-    functionName<int64_t, int64_t, int64_t, op>(__VA_ARGS__);                                                       \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_BOOL:                                                                    \
-    functionName<bool, bool, bool, op>(__VA_ARGS__);                                                             \
-    break;                                                                                                 \
-  default:                                                                                                 \
-    break;                                                                                                 \
-  }
+#define dispatchLibImpl2Types(functionName, pm1, pm2, ...) \
+  functionName<pm1, pm2>(__VA_ARGS__)
 
-#define dispatchLibImpl2Types(functionName, pm1, pm2, ...)                                                 \
-  switch (pm1) {                                                                                           \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                                                   \
-    functionName<float, float>(__VA_ARGS__);                                                               \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                                                   \
-    functionName<float16, float16>(__VA_ARGS__);                                                                    \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                                                   \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8) {                                                         \
-      functionName<int8_t, int8_t>(__VA_ARGS__);                                                           \
-    } else {                                                                                               \
-      functionName<int8_t, uint8_t>(__VA_ARGS__);                                                          \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_UINT_8:                                                                  \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8) {                                                         \
-      functionName<uint8_t, int8_t>(__VA_ARGS__);                                                          \
-    } else {                                                                                               \
-      functionName<uint8_t, uint8_t>(__VA_ARGS__);                                                         \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                                                 \
-    functionName<int64_t, int64_t>(__VA_ARGS__);                                                           \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_BOOL:                                                                    \
-    functionName<bool, bool>(__VA_ARGS__);                                                                 \
-    break;                                                                                                 \
-  default:                                                                                                 \
-    break;                                                                                                 \
-  }
+#define dispatchLibImpl3Types(functionName, pm1, pm2, pm3, ...) \
+  functionName<pm1, pm2, pm3>(__VA_ARGS__)
 
-#define dispatchLibImpl3Types(functionName, pm1, pm2, pm3, ...)                                            \
-  switch (pm1) {                                                                                           \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                                                   \
-    functionName<float, float, float>(__VA_ARGS__);                                                        \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                                                   \
-    functionName<float16, float16, float16>(__VA_ARGS__);                                         \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                                                   \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {              \
-      functionName<int8_t, int8_t, int8_t>(__VA_ARGS__);                                                   \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_UINT_8) {      \
-      functionName<int8_t, int8_t, uint8_t>(__VA_ARGS__);                                                  \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_UINT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {      \
-      functionName<int8_t, uint8_t, int8_t>(__VA_ARGS__);                                                  \
-    } else {                                                                                               \
-      functionName<int8_t, uint8_t, uint8_t>(__VA_ARGS__);                                                 \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_UINT_8:                                                                  \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {              \
-      functionName<uint8_t, int8_t, int8_t>(__VA_ARGS__);                                                  \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_8 && pm3 == dnn_lib::PrecisionMode::PM_UINT_8) {      \
-      functionName<uint8_t, int8_t, uint8_t>(__VA_ARGS__);                                                 \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_UINT_8 && pm3 == dnn_lib::PrecisionMode::PM_INT_8) {      \
-      functionName<uint8_t, uint8_t, int8_t>(__VA_ARGS__);                                                 \
-    } else {                                                                                               \
-      functionName<uint8_t, uint8_t, uint8_t>(__VA_ARGS__);                                                \
-    }                                                                                                      \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_16:                                                                  \
-    functionName<int16_t, int16_t, int16_t>(__VA_ARGS__);                                                  \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                                                 \
-    functionName<int64_t, int64_t, int64_t>(__VA_ARGS__);                                                  \
-    break;                                                                                                 \
-  case dnn_lib::PrecisionMode::PM_BOOL:                                                                    \
-    functionName<bool, bool, bool>(__VA_ARGS__);                                                           \
-    break;                                                                                                 \
-  default:                                                                                                 \
-    break;                                                                                                 \
-  }
+#define dispatchLibImpl(functionName, pm, ...) \
+  functionName<pm>(__VA_ARGS__)
 
-#define dispatchLibImpl(functionName, pm, ...)                                 \
-  switch (pm) {                                                                \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                       \
-    functionName<float>(__VA_ARGS__);                                          \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                       \
-    functionName<float16>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                       \
-    functionName<int8_t>(__VA_ARGS__);                                         \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_16:                                      \
-    functionName<int16_t>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                     \
-    functionName<int64_t>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_I32:                                     \
-    functionName<int32_t>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_BOOL:                                        \
-    functionName<bool>(__VA_ARGS__);                                           \
-    break;                                                                     \
-  default:                                                                     \
-    break;                                                                     \
-  }
+#define dispatchLibQuantizedTyImpl(functionName, pm, ...) \
+  functionName<pm>(__VA_ARGS__)
 
-#define dispatchLibQuantizedTyImpl(functionName, pm, ...)                      \
-  switch (pm) {                                                                \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                       \
-    functionName<int8_t>(__VA_ARGS__);                                         \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_16:                                      \
-    functionName<int16_t>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_32:                                      \
-    functionName<int32_t>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  default:                                                                     \
-    break;                                                                     \
-  }
+#define dispatchLibWithIndexImpl(functionName, pm1, pm2, ...) \
+  functionName<pm1, pm2>(__VA_ARGS__)
 
-#define dispatchLibWithIndexImpl(functionName, pm1, pm2, ...)                  \
-  switch (pm1) {                                                               \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                       \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_I64) {                           \
-      functionName<float, int64_t>(__VA_ARGS__);                               \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_I32) {                    \
-      functionName<float, int32_t>(__VA_ARGS__);                               \
-    }                                                                          \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                       \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_I64) {                           \
-      functionName<float16, int64_t>(__VA_ARGS__);                             \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_I32) {                    \
-      functionName<float16, int32_t>(__VA_ARGS__);                             \
-    }                                                                          \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_8:                                       \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_I64) {                           \
-      functionName<int8_t, int64_t>(__VA_ARGS__);                              \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_I32) {                    \
-      functionName<int8_t, int32_t>(__VA_ARGS__);                              \
-    }                                                                          \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                     \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_I64) {                           \
-      functionName<int64_t, int64_t>(__VA_ARGS__);                             \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_I32) {                    \
-      functionName<int64_t, int32_t>(__VA_ARGS__);                             \
-    }                                                                          \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_I32:                                     \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_I64) {                           \
-      functionName<int32_t, int64_t>(__VA_ARGS__);                             \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_I32) {                    \
-      functionName<int32_t, int32_t>(__VA_ARGS__);                             \
-    }                                                                          \
-    break;                                                                     \
-  default:                                                                     \
-    break;                                                                     \
-  }
+#define dispatchLibConvertImpl(functionName, pm1, pm2, ...) \
+  functionName<pm1, pm2>(__VA_ARGS__)
 
-#define dispatchLibConvertImpl(functionName, pm1, pm2, ...)                    \
-  switch (pm1) {                                                               \
-  case dnn_lib::PrecisionMode::PM_FP_32:                                       \
-    if (pm2 == dnn_lib::PrecisionMode::PM_INT_I64) {                           \
-      functionName<float, int64_t>(__VA_ARGS__);                               \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_FP_16) {                      \
-      functionName<float, float16>(__VA_ARGS__);                               \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_FP_32) {                      \
-      functionName<float, float>(__VA_ARGS__);                                 \
-    }                                                                          \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_FP_16:                                       \
-    if (pm2 == dnn_lib::PrecisionMode::PM_FP_32) {                             \
-      functionName<float16, float>(__VA_ARGS__);                               \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_FP_16) {                      \
-      functionName<float16, float16>(__VA_ARGS__);                             \
-    }                                                                          \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                     \
-    if (pm2 == dnn_lib::PrecisionMode::PM_FP_32) {                             \
-      functionName<int64_t, float>(__VA_ARGS__);                               \
-    } else if (pm2 == dnn_lib::PrecisionMode::PM_INT_I64) {                    \
-      functionName<int64_t, int64_t>(__VA_ARGS__);                             \
-    }                                                                          \
-    break;                                                                     \
-  default:                                                                     \
-    break;                                                                     \
-  }
-
-#define dispatchLibIntTyImpl(functionName, pm, ...)                            \
-  switch (pm) {                                                                \
-  case dnn_lib::PrecisionMode::PM_INT_I64:                                     \
-    functionName<int64_t>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  case dnn_lib::PrecisionMode::PM_INT_32:                                      \
-    functionName<int32_t>(__VA_ARGS__);                                        \
-    break;                                                                     \
-  default:                                                                     \
-    break;                                                                     \
-  }
+#define dispatchLibIntTyImpl(functionName, pm, ...) \
+  functionName<pm>(__VA_ARGS__)
 
 #include "AutoGenInstan.def"
 
 void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims, void *pdstPitches,
                                void *pbatch, void *pbatchDims,
                                void *pbatchPitches, unsigned int pbatchDimNum,
-                               void *pslice, void *pslicePitches, float *scale,
-                               int32_t *offset);
+                               void *pslice, void *pslicePitches, const float *scale,
+                               const int32_t * offset);
 void fwdLibBatchedReduceAddInstInt8(void *pdst, void *pdstDims,
                                     void *pdstPitches, void *pbatch,
                                     void *pbatchDims, void *pbatchPitches,
                                     unsigned int pbatchDimNum,
-                                    unsigned int axis, float *scale,
-                                    int32_t *offset);
+                                    unsigned int axis, const float *scale,
+                                    const int32_t * offset);
 void fwdLibBatchedReduceAddInstInt8Threaded(void *pdst, void *pdstDims,
                                             void *pdstPitches, void *pbatch,
                                             void *pbatchDims, void *pbatchPitches,
                                             unsigned int pbatchDimNum,
-                                            unsigned int axis, float *scale,
-                                            int32_t *offset, uint64_t flags);
+                                            unsigned int axis, const float *scale,
+                                            const int32_t * offset, uint64_t flags);
 void fwdLibSparseLengthsWeightedSumInstFloatTy(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
@@ -417,8 +151,8 @@ void fwdLibIntLookupTableInstInt8QTyThreaded(
 void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims, void *pdstPitches,
                                void *pbatch, void *pbatchDims,
                                void *pbatchPitches, unsigned int pbatchDimNum,
-                               void *pslice, void *pslicePitches, float *scale,
-                               int32_t *offset, uint64_t flags);
+                               void *pslice, void *pslicePitches, const float *scale,
+                               const int32_t * offset, uint64_t flags);
 void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
     void *pdataPitches, void *pscale, void *poffset, void *pweights,

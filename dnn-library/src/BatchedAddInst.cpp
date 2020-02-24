@@ -31,7 +31,7 @@ void dnn_lib::fwdLibBatchedAddInst(void *pdst, void *pdstDims,
                                    void *pdstPitches, void *pbatch,
                                    void *pbatchDims, void *pbatchPitches,
                                    unsigned int pbatchDimNum, void *pslice,
-                                   float *scale, int32_t *offset) {
+                                   const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -91,7 +91,7 @@ template <typename srcType>
 void dnn_lib::fwdLibBatchedAddInstThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
     void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    void *pslice, float *scale, int32_t *offset, uint64_t flags) {
+    void *pslice, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -155,8 +155,8 @@ void dnn_lib::fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
                                         void *pdstPitches, void *pbatch,
                                         void *pbatchDims, void *pbatchPitches,
                                         unsigned int pbatchDimNum, void *pslice,
-                                        void *pslicePitches, float *scale,
-                                        int32_t *offset) {
+                                        void *pslicePitches, const float *scale,
+                                        const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -233,8 +233,8 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
                                                 void *pdstPitches, void *pbatch,
                                                 void *pbatchDims, void *pbatchPitches,
                                                 unsigned int pbatchDimNum, void *pslice,
-                                                void *pslicePitches, float *scale,
-                                                int32_t *offset, uint64_t flags) {
+                                                void *pslicePitches, const float *scale,
+                                                const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -314,8 +314,8 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
 GEN_INSTANCES_OP(template, fwdLibBatchedAddInst, void *pdst, void *pdstDims, void *pdstPitches,
                              void *pbatch, void *pbatchDims, void *pbatchPitches,
                              unsigned int pbatchDimNum, void *pslice,
-                             float *scale, int32_t *offset);
+                             const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibBatchedAddInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
                              void *pbatch, void *pbatchDims, void *pbatchPitches,
                              unsigned int pbatchDimNum, void *pslice,
-                             float *scale, int32_t *offset, uint64_t flags);
+                             const float *scale, const int32_t *offset, uint64_t flags);

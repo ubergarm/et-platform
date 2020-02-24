@@ -31,8 +31,8 @@ void dnn_lib::fwdLibLengthsSumInst(void *pdst, void *pdstDims,
                                    void *pdstPitches, void *pdata,
                                    void *pdataDims, void *pdataPitches,
                                    unsigned int pdataDimNum, void *plengths,
-                                   unsigned int pLengthsSize, float *scale,
-                                   int32_t *offset) {
+                                   unsigned int pLengthsSize, const float *scale,
+                                   const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId > 0)
     return;
@@ -110,8 +110,8 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
                                            void *pdstPitches, void *pdata,
                                            void *pdataDims, void *pdataPitches,
                                            unsigned int pdataDimNum, void *plengths,
-                                           unsigned int pLengthsSize, float *scale,
-                                           int32_t *offset, uint64_t flags) {
+                                           unsigned int pLengthsSize, const float *scale,
+                                           const int32_t *offset, uint64_t flags) {
 
   unsigned int minion_id = get_minion_id();
   unsigned int activeMinions = 32*ACTIVE_SHIRES;
@@ -249,7 +249,7 @@ void dnn_lib::fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
 
 GEN_INSTANCES_OP(template, fwdLibLengthsSumInst, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
                              void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
-                             void *plengths, unsigned int pLengthsSize, float *scale, int32_t *offset);
+                             void *plengths, unsigned int pLengthsSize, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibLengthsSumInstThreaded, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
                                      void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
-                                     void *plengths, unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags);
+                                     void *plengths, unsigned int pLengthsSize, const float *scale, const int32_t *offset, uint64_t flags);

@@ -35,8 +35,8 @@ static inline void uint32_to_ascii_hex(char *s, uint32_t value) {
 
 template <typename srcType>
 void dnn_lib::fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, float *scale,
-                             int32_t *offset, uint64_t flags) {
+                             unsigned int srcDimNum, const float *scale,
+                             const int32_t *offset, uint64_t flags) {
   // The checksum is the u32 addition of all the non-padding bytes of the tensor
   uint32_t checksum = 0;
 
@@ -110,5 +110,5 @@ void dnn_lib::fwdLibFlushL3(uint32_t numShires) {
 
 GEN_INSTANCES_OP(template, fwdLibChecksum, void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
-                                  float *scale, int32_t *offset,
+                                  const float *scale, const int32_t *offset,
                                   uint64_t flags);

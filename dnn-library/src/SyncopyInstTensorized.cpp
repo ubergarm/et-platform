@@ -47,7 +47,7 @@ using namespace std;
  template <typename srcType>
  void dnn_lib::fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
                                            void *src, unsigned int DimNum,
-                                           float *scale, int32_t *offset,
+                                           const float *scale, const int32_t *offset,
                                            unsigned int off) {
 
   uint32_t hart = get_hart_id();
@@ -134,5 +134,5 @@ using namespace std;
 
 GEN_INSTANCES_OP(template, fwdLibSyncopyInstTensorized, void *dst, void *Dims, void *Pitches,
                                   void *src, unsigned int DimNum,
-                                  float *scale, int32_t *offset,
+                                  const float *scale, const int32_t *offset,
                                   unsigned int off);

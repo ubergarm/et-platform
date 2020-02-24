@@ -30,8 +30,8 @@ using namespace std;
 template <typename srcType>
 void dnn_lib::fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
                              void *srcT1, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, float *scale,
-                             int32_t *offset) {
+                             unsigned int srcDimNum, const float *scale,
+                             const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -87,7 +87,7 @@ void dnn_lib::fwdLibTanhInstThreaded(void *dstT, void *dstDims,
                                      void *dstPitches, void *srcT1,
                                      void *srcDims, void *srcPitches,
                                      unsigned int srcDimNum,
-                                     float *scale, int32_t *offset,
+                                     const float *scale, const int32_t *offset,
                                      uint64_t flags) {
 
 
@@ -145,7 +145,7 @@ void dnn_lib::fwdLibTanhInstThreaded(void *dstT, void *dstDims,
 
 GEN_INSTANCES_OP(template, fwdLibTanhInst, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
                        void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       float *scale, int32_t *offset);
+                       const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibTanhInstThreaded, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
                        void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       float *scale, int32_t *offset, uint64_t flags);
+                       const float *scale, const int32_t *offset, uint64_t flags);

@@ -32,7 +32,7 @@ void dnn_lib::fwdLibSparseLengthsWeightedSumInst(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, float *scale, int32_t *offset) {
+    unsigned int pLengthsSize, const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -94,7 +94,7 @@ void dnn_lib::fwdLibSparseLengthsWeightedSumInstThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags) {
+    unsigned int pLengthsSize, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -170,8 +170,8 @@ void dnn_lib::fwdLibSparseLengthsWeightedSumInstThreaded(
 GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInst,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
                                           void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
                                           void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-                                          unsigned int pLengthsSize, float *scale, int32_t *offset);
+                                          unsigned int pLengthsSize, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInstThreaded,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
                                           void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
                                           void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-                                          unsigned int pLengthsSize, float *scale, int32_t *offset, uint64_t flags);
+                                          unsigned int pLengthsSize, const float *scale, const int32_t *offset, uint64_t flags);

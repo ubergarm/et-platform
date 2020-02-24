@@ -31,8 +31,8 @@ void dnn_lib::fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
                                void *srcT, void *srcDims, void *srcPitches,
                                unsigned int srcDimsNum, void *indexT,
                                void *indicesDims, void *pindicesPitches,
-                               unsigned int batchedDims, float *scale,
-                               int32_t *offset) {
+                               unsigned int batchedDims, const float *scale,
+                               const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -99,7 +99,7 @@ void dnn_lib::fwdLibGatherInstThreaded(
     void *pindicesPitches, unsigned int indicesDimsNum,
     unsigned int batchedDims, // indicesDimsNum is an new parameter for the
                               // threaded version.
-    float *scale, int32_t *offset, uint64_t flags) {
+    const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -196,9 +196,9 @@ GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInst, void *dstT, void *dstDims, vo
                                void *srcT, void *srcDims, void *srcPitches,
                                unsigned int srcDimsNum, void *indexT, void *indicesDims,
                                void *pindicesPitches, unsigned int batchedDims,
-                               float *scale, int32_t *offset);
+                               const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInstThreaded, void *dstT, void *dstDims, void *dstPitches,
                                void *srcT, void *srcDims, void *srcPitches,
                                unsigned int srcDimsNum, void *indexT, void *indicesDims,
                                void *pindicesPitches, unsigned int indicesDimsNum,
-                               unsigned int batchedDims, float *scale, int32_t *offset, uint64_t flags);
+                               unsigned int batchedDims, const float *scale, const int32_t *offset, uint64_t flags);

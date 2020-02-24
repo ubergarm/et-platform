@@ -32,7 +32,7 @@ void dnn_lib::fwdLibSparseToDenseInst(void *dstT, void *dstDims,
                                       void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, void *indicesT,
                                       void *indDims, void *indPitches,
-                                      float *scale, int32_t *offset) {
+                                      const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId > 0)
     return;
@@ -116,7 +116,7 @@ template <typename srcType>
 void dnn_lib::fwdLibSparseToDenseInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
-    void *indPitches, float *scale, int32_t *offset, uint64_t flags) {
+    void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -184,7 +184,7 @@ void dnn_lib::fwdLibSparseToDenseInstThreaded(
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
+unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
@@ -223,7 +223,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
+unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
 
 
@@ -270,7 +270,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int3
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
+unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
@@ -335,7 +335,7 @@ template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_
 && !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
 void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, float *scale, int32_t *offset){
+unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 }
 
 
@@ -343,7 +343,7 @@ template <typename srcType>
 void dnn_lib::fwdLibSparseToDenseInstVectorized(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
-    void *indPitches, float *scale, int32_t *offset, uint64_t flags) {
+    void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -456,12 +456,12 @@ void dnn_lib::fwdLibSparseToDenseInstVectorized(
 GEN_INSTANCES_OP(template, fwdLibSparseToDenseInst, void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT, void *srcDims, void *srcPitches,
                                 unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, float *scale, int32_t *offset);
+                                void *indPitches, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstThreaded, void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT, void *srcDims, void *srcPitches,
                                 unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, float *scale, int32_t *offset, uint64_t flags);
+                                void *indPitches, const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstVectorized, void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT, void *srcDims, void *srcPitches,
                                 unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, float *scale, int32_t *offset, uint64_t flags);
+                                void *indPitches, const float *scale, const int32_t *offset, uint64_t flags);

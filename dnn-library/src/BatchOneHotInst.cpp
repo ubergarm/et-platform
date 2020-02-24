@@ -33,7 +33,7 @@ void dnn_lib::fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
                                     void *pdataDims, void *pdataPitches,
                                     void *pvalues, void *pvaluesDims,
                                     void *pvaluesPitches, void *plengths,
-                                    float *scale, int32_t *offset) {
+                                    const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -80,7 +80,7 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
                                             void *pdataDims, void *pdataPitches,
                                             void *pvalues, void *pvaluesDims,
                                             void *pvaluesPitches, void *plengths,
-                                            float *scale, int32_t *offset, uint64_t flags) {
+                                            const float *scale, const int32_t *offset, uint64_t flags) {
 
 
   unsigned int minionId = get_minion_id();
@@ -200,8 +200,8 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
 GEN_INSTANCES_OP(template, fwdLibBatchOneHotInst, void *pdst, void *pdstDims, void *pdstPitches,
                               void *pdata, void *pdataDims, void *pdataPitches,
                               void *pvalues, void *pvaluesDims, void *pvaluesPitches,
-                              void *plengths, float *scale, int32_t *offset);
+                              void *plengths, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibBatchOneHotInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
                                       void *pdata, void *pdataDims, void *pdataPitches,
                                       void *pvalues, void *pvaluesDims, void *pvaluesPitches,
-                                      void *plengths, float *scale, int32_t *offset, uint64_t flags);
+                                      void *plengths, const float *scale, const int32_t *offset, uint64_t flags);

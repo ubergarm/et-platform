@@ -33,7 +33,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
                                       void *dstPitches, void *srcT,
                                       void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, float splatVal,
-                                      float *scale, int32_t *offset) {
+                                      const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -85,7 +85,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
                                       void *dstPitches, void *srcT,
                                       void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, int64_t splatVal,
-                                      float *scale, int32_t *offset) {
+                                      const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -137,8 +137,8 @@ void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
-                                              float splatVal, float *scale,
-                                              int32_t *offset, uint64_t flags) {
+                                              float splatVal, const float *scale,
+                                              const int32_t *offset, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -201,8 +201,8 @@ void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
-                                              int64_t splatVal, float *scale,
-                                              int32_t *offset, uint64_t flags) {
+                                              int64_t splatVal, const float *scale,
+                                              const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -263,7 +263,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0,
           bool aligned32B = false>
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
+void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
   float op0, op1;
   // note: no difference between aligned and non aligned versions, as it is not using gathers or scatters
   __asm__ __volatile__(
@@ -282,7 +282,7 @@ void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0,
           bool aligned32B = false >
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset){
+void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
   // aligned used gather/scatter32, non aligned uses regular ones
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
   float gv, op0, op1;
@@ -318,7 +318,7 @@ void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,std::size_t>::type = 0,
           bool aligned32B = false > 
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){
+void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
   // aligned used gather/scatter32, non aligned uses regular ones
   float gv, scale_v, offset_v, op0, op1;
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -368,7 +368,7 @@ template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_
                                                     && !std::is_same<srcType, float16>::value
                                                     && !std::is_same<srcType, float>::value, std::size_t>::type = 0,
           bool aligned32B = false>
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, float *scale, int32_t *offset ){
+void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
   //FIXME: implementation missing
 }
 
@@ -377,8 +377,8 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
-                                              float splatVal, float *scale,
-                                              int32_t *offset, uint64_t flags) {
+                                              float splatVal, const float *scale,
+                                              const int32_t *offset, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -482,8 +482,8 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
-                                              float splatVal, float *scale,
-                                              int32_t *offset, uint64_t flags) {
+                                              float splatVal, const float *scale,
+                                              const int32_t *offset, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -552,24 +552,24 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
 GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT, void *srcDims, void *srcPitches,
                                 unsigned int srcDimNum, float splatVal,
-                                float *scale, int32_t *offset);
+                                const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT, void *srcDims, void *srcPitches,
                                 unsigned int srcDimNum, int64_t splatVal,
-                                float *scale, int32_t *offset);
+                                const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
                                          void *src, void *srcDims, void *srcPitches,
                                          unsigned int srcDimNum, float splatVal,
-                                         float *scale, int32_t *offset, uint64_t flags);
+                                         const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
                                          void *src, void *srcDims, void *srcPitches,
                                          unsigned int srcDimNum, int64_t splatVal,
-                                         float *scale, int32_t *offset, uint64_t flags);
+                                         const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstVectorized,void *dst, void *dstDims, void *dstPitches,
                                          void *src, void *srcDims, void *srcPitches,
                                          unsigned int srcDimNum, float splatVal,
-                                         float *scale, int32_t *offset, uint64_t flags);
+                                         const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstAligned32Bytes,void *dst, void *dstDims, void *dstPitches,
                                          void *src, void *srcDims, void *srcPitches,
                                          unsigned int srcDimNum, float splatVal,
-                                         float *scale, int32_t *offset, uint64_t flags);
+                                         const float *scale, const int32_t *offset, uint64_t flags);

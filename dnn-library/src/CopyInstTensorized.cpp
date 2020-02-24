@@ -56,8 +56,8 @@ using namespace std;
  template <typename srcType>
  void dnn_lib::fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
                                         void *src, void *srcDims, void *srcPitches,
-                                        unsigned int srcDimNum, float *scale,
-                                        int32_t *offset, uint64_t flags,
+                                        unsigned int srcDimNum, const float *scale,
+                                        const int32_t *offset, uint64_t flags,
                                         const uint32_t minionOffset,
                                         const uint32_t assignedMinions) {
 
@@ -106,5 +106,5 @@ using namespace std;
 GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
-                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const float *scale, const int32_t *offset, uint64_t flags,
                                   const uint32_t minionOffset, const uint32_t assignedMinions);

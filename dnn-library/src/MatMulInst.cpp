@@ -31,8 +31,8 @@ void dnn_lib::fwdLibMatMulInst(void *dstMatrix, void *dstMatrixDims,
                                void *dstMatrixPitches, void *activations,
                                void *activationsDims, void *activationsPitches,
                                void *weights, void *weightsDims,
-                               void *weightPitches, float *scale,
-                               int32_t *offset) {
+                               void *weightPitches, const float *scale,
+                               const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -70,7 +70,7 @@ void dnn_lib::fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
                                        void *activations, void *activationsDims,
                                        void *activationsPitches, void *weights,
                                        void *weightsDims, void *weightPitches,
-                                       float *scale, int32_t *offset,
+                                       const float *scale, const int32_t *offset,
                                        uint64_t flags,
                                        const uint32_t minionOffset,
                                        const uint32_t assignedMinions) {
@@ -150,7 +150,7 @@ template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_
 void setGatherValues (int32_t gatherValues[]){} // includes the case srcType = float.
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], float *scale, int32_t *offset){
+void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION                           \
     "fxor.pi f2, f2, f2\n"                         \
@@ -206,7 +206,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
-void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], float *scale, int32_t *offset){
+void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION                           \
     "fxor.pi f2, f2, f2\n"                         \
@@ -267,7 +267,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
-void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], float *scale, int32_t *offset){
+void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define INT8_TO_FP32(_reg, _scl, _off)            \
     "fsub.pi " #_reg ", " #_reg ", " #_off " \n"  \
@@ -365,7 +365,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 }
 
 template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], float *scale, int32_t *offset){}
+void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){}
 
 // 2-D MATRIX MULTIPLICATION: THREADED AND VECTORIZED VERSION.
 // Assumption: there is no padding in the last dimension (in this case, the second one),
@@ -378,7 +378,7 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
                                          void *activations, void *activationsDims,
                                          void *activationsPitches, void *weights,
                                          void *weightsDims, void *weightPitches,
-                                         float *scale, int32_t *offset, uint64_t flags,
+                                         const float *scale, const int32_t *offset, uint64_t flags,
                                          const uint32_t minionOffset,
                                          const uint32_t assignedMinions) {
 
@@ -483,14 +483,14 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
 GEN_INSTANCES_OP(template, fwdLibMatMulInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset);
+                         const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibMatMulInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset, uint64_t flags,
+                         const float *scale, const int32_t *offset, uint64_t flags,
                          const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset, uint64_t flags,
+                         const float *scale, const int32_t *offset, uint64_t flags,
                          const uint32_t minionOffset = 0, const uint32_t numShires = 0);

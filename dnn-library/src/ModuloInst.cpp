@@ -30,8 +30,8 @@ template <typename srcType>
 void dnn_lib::fwdLibModuloInst(void *dstT, void *dstDims, void *dstPitches,
                                void *srcT, void *srcDims, void *srcPitches,
                                unsigned int srcDimNum, long long divisor,
-                               bool signFollowDivisor, float *scale,
-                               int32_t *offset) {
+                               bool signFollowDivisor, const float *scale,
+                               const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -84,7 +84,7 @@ template <typename srcType>
 void dnn_lib::fwdLibModuloInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, long long divisor,
-    bool signFollowDivisor, float *scale, int32_t *offset, uint64_t flags) {
+    bool signFollowDivisor, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -140,8 +140,8 @@ void dnn_lib::fwdLibModuloInstThreaded(
 GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInst, void *dstT, void *dstDims, void *dstPitches,
                                  void *srcT, void *srcDims, void *srcPitches,
                                  unsigned int srcDimNum, long long divisor, bool signFollowDivisor,
-                                 float * scale, int32_t * offset);
+                                 const float * scale, const int32_t * offset);
 GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInstThreaded, void *dstT, void *dstDims, void *dstPitches,
                                  void *srcT, void *srcDims, void *srcPitches,
                                  unsigned int srcDimNum, long long divisor, bool signFollowDivisor,
-                                 float * scale, int32_t * offset, uint64_t flags);
+                                 const float * scale, const int32_t * offset, uint64_t flags);

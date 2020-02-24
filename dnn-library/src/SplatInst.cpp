@@ -28,7 +28,7 @@ using namespace std;
 
 template <typename srcType>
 void dnn_lib::fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
-                              float *scale, int32_t *offset) {
+                              const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -50,8 +50,8 @@ void dnn_lib::fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
 template <typename sourceTy>
 void dnn_lib::fwdLibSplatInstThreaded(void *dst, void *dstDims,
                                       void *dstPitches, unsigned int dstDimNum,
-                                      uint64_t *splatValPtr, float *scale,
-                                      int32_t *offset, uint64_t flags) {
+                                      uint64_t *splatValPtr, const float *scale,
+                                      const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -101,8 +101,8 @@ void dnn_lib::fwdLibSplatInstThreaded(void *dst, void *dstDims,
 template <typename srcType>
 void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
                                         void *dstPitches, unsigned int dstDimNum,
-                                        uint64_t *splatVal, float *scale,
-                                        int32_t *offset, uint64_t flags) {
+                                        uint64_t *splatVal, const float *scale,
+                                        const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -185,10 +185,10 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
 
 
 GEN_INSTANCES_OP(template, fwdLibSplatInst, void *addr, int numElems, uint64_t *splatVal,
-                        float *scale, int32_t *offset);
+                        const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
                              unsigned int dstDimNum, uint64_t *splatVal,
-                             float *scale, int32_t *offset, uint64_t flags);
+                             const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
                              unsigned int dstDimNum, uint64_t *splatVal,
-                             float *scale, int32_t *offset, uint64_t flags);
+                             const float *scale, const int32_t *offset, uint64_t flags);

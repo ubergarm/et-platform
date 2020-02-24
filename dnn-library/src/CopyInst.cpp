@@ -46,7 +46,7 @@ using namespace std;
 template <typename srcType>
 void dnn_lib::fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
                              void *src, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, float *scale, int32_t *offset) {
+                             unsigned int srcDimNum, const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -99,8 +99,8 @@ template <typename srcType>
 void dnn_lib::fwdLibCopyInstThreaded(void *dst, void *dstDims,
                                      void *dstPitches, void *src,
                                      void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, float *scale,
-                                     int32_t *offset, uint64_t flags,
+                                     unsigned int srcDimNum, const float *scale,
+                                     const int32_t *offset, uint64_t flags,
                                      const uint32_t minionOffset,
                                      const uint32_t assignedMinions) {
 
@@ -192,8 +192,8 @@ template <typename srcType>
 void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
                                        void *dstPitches, void *src,
                                        void *srcDims, void *srcPitches,
-                                       unsigned int srcDimNum, float *scale,
-                                       int32_t *offset, uint64_t flags,
+                                       unsigned int srcDimNum, const float *scale,
+                                       const int32_t *offset, uint64_t flags,
                                        const uint32_t minionOffset,
                                        const uint32_t assignedMinions) {
 
@@ -374,13 +374,13 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
 
 GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *dstDims, void *dstPitches,
                       void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       float *scale, int32_t *offset);
+                       const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const float *scale, const int32_t *offset, uint64_t flags,
                                   const uint32_t minionOffset, const uint32_t assignedMinions);
 GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
                                   void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                  float *scale, int32_t *offset, uint64_t flags,
+                                  const float *scale, const int32_t *offset, uint64_t flags,
                                   const uint32_t minionOffset, const uint32_t assignedMinions);
 

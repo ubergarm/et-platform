@@ -31,7 +31,7 @@ void dnn_lib::fwdLibExtractTensorInst(void *dst, void *dstDims,
                                       void *dstPitches, unsigned int dstDimNum,
                                       void *src, void *srcDims,
                                       void *srcPitches, void *pcoord,
-                                      float *scale, int32_t *offset) {
+                                      const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -87,8 +87,8 @@ void dnn_lib::fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
                                               void *dstPitches,
                                               unsigned int dstDimNum, void *src,
                                               void *srcDims, void *srcPitches,
-                                              void *pcoord, float *scale,
-                                              int32_t *offset, uint64_t flags) {
+                                              void *pcoord, const float *scale,
+                                              const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -142,8 +142,8 @@ void dnn_lib::fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
 GEN_INSTANCES_OP(template, fwdLibExtractTensorInst, void *dst, void *dstDims,
                                 void *dstPitches, unsigned int dstDimNum,
                                 void *src2, void *src2Dims, void *src2Pitches,
-                                void * poffsets, float *scale, int32_t *offset);
+                                void * poffsets, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibExtractTensorInstThreaded, void *dst, void *dstDims,
                                 void *dstPitches, unsigned int dstDimNum,
                                 void *src, void *srcDims, void *srcPitches,
-                                void * poffsets, float *scale, int32_t *offset, uint64_t flags);
+                                void * poffsets, const float *scale, const int32_t *offset, uint64_t flags);

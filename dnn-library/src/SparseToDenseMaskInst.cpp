@@ -31,7 +31,7 @@ void dnn_lib::fwdLibSparseToDenseMaskInst(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pdefault,
     int pdefaultSize, void *pindices, void *plengths, unsigned int pLengthsSize,
-    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset) {
+    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset) {
 
   Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
   const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
@@ -108,7 +108,7 @@ void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, unsigned int pdataDimNum, void *pdefault,
     int pdefaultSize, void *pindices, void *plengths, unsigned int pLengthsSize,
-    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset, uint64_t flags) {
+    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32*ACTIVE_SHIRES;
@@ -221,9 +221,9 @@ GEN_INSTANCES_OP(template, fwdLibSparseToDenseMaskInst, void *pdst, void *pdstDi
                                     unsigned int pdstDimNum, void *pdata, void *pdataDims,
                                     void *pdataPitches, void *pdefault, int pdefaultSize,
                                     void *pindices, void *plengths, unsigned int pLengthsSize,
-                                    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset);
+                                    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibSparseToDenseMaskInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
                                     unsigned int pdstDimNum, void *pdata, void *pdataDims,
                                     void *pdataPitches, unsigned int pdataDimNum, void *pdefault, int pdefaultSize,
                                     void *pindices, void *plengths, unsigned int pLengthsSize,
-                                    void *pmask, unsigned int pMaskSize, float *scale, int32_t *offset, uint64_t flags);
+                                    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset, uint64_t flags);

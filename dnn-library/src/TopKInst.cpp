@@ -79,7 +79,7 @@ void dnn_lib::fwdLibTopKInst(void *dstT, void *dstDims, void *dstPitches,
                              void *dstT2, void *dst2Dims, void *dst2Pitches,
                              void *srcT, void *srcDims, void *srcPitches,
                              unsigned int srcDimNum, unsigned int k,
-                             float *scale, int32_t *offset) {
+                             const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -151,7 +151,7 @@ template <typename srcType>
 void dnn_lib::fwdLibTopKInstThreaded_all(
     void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, unsigned int k, float *scale, int32_t *offset,
+    unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -236,8 +236,8 @@ void dnn_lib::fwdLibTopKInstThreaded_all(
 template <typename srcType>
 void dnn_lib::fwdLibTopKInstThreaded_k4(void *dstT, void *dstDims, void
 *dstPitches, void *dstT2, void *dst2Dims, void *dst2Pitches, void *srcT, void
-*srcDims, void *srcPitches, unsigned int srcDimNum, unsigned int k, float
-*scale, int32_t *offset, uint64_t flags) {
+*srcDims, void *srcPitches, unsigned int srcDimNum, unsigned int k, const float
+*scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32*ACTIVE_SHIRES;
@@ -376,7 +376,7 @@ template <typename srcType>
 void dnn_lib::fwdLibTopKInstThreaded_k4(
     void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, unsigned int k, float *scale, int32_t *offset,
+    unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -567,7 +567,7 @@ template <typename srcType>
 void dnn_lib::fwdLibTopKInstThreaded_k8(
     void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, unsigned int k, float *scale, int32_t *offset,
+    unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -775,16 +775,16 @@ void dnn_lib::fwdLibTopKInstThreaded_k8(
 GEN_INSTANCES_OP(template, fwdLibTopKInst, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
                               void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
                               unsigned int srcDimNum, unsigned int k,
-                              float *scale, int32_t *offset);
+                              const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_all, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
                               void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
                               unsigned int srcDimNum, unsigned int k,
-                              float *scale, int32_t *offset, uint64_t flags);
+                              const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k4, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
                               void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
                               unsigned int srcDimNum, unsigned int k,
-                              float *scale, int32_t *offset, uint64_t flags);
+                              const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k8, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
                               void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
                               unsigned int srcDimNum, unsigned int k,
-                              float *scale, int32_t *offset, uint64_t flags);
+                              const float *scale, const int32_t *offset, uint64_t flags);

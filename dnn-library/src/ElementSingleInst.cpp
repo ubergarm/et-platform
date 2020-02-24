@@ -30,8 +30,8 @@ template <typename srcType, typename opType>
 void dnn_lib::fwdLibElementSingleInst(void *dstT, void *dstDims,
                                       void *dstPitches, void *srcT1,
                                       void *srcDims, void *srcPitches,
-                                      unsigned int srcDimNum, float *scale,
-                                      int32_t *offset) {
+                                      unsigned int srcDimNum, const float *scale,
+                                      const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -85,8 +85,8 @@ void dnn_lib::fwdLibElementSingleInst(void *dstT, void *dstDims,
 template <typename srcType, typename opType>
 void dnn_lib::fwdLibElementSingleInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, float *scale,
-    int32_t *offset, uint64_t flags) {
+    void *srcPitches, unsigned int srcDimNum, const float *scale,
+    const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -140,8 +140,8 @@ void dnn_lib::fwdLibElementSingleInstThreaded(
 template <typename src1Type, typename dstType, typename opType>
 void dnn_lib::fwdLibElementSingleInstVectorized(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, float *scale,
-    int32_t *offset, uint64_t flags) {
+    void *srcPitches, unsigned int srcDimNum, const float *scale,
+    const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -248,14 +248,14 @@ GEN_INSTANCES_INSTANCES(template, fwdLibElementSingleInst,ElementLog,void *dstT,
                                  void *dstPitches, void *srcT1,
                                  void *srcDims, void *srcPitches,
                                  unsigned int srcDimNum,
-                                 float * scale , int32_t  * offset);
+                                 const float * scale, const int32_t * offset);
 GEN_INSTANCES_INSTANCES(template, fwdLibElementSingleInstThreaded,ElementLog,void *dstT, void *dstDims,
                                  void *dstPitches, void *srcT1,
                                  void *srcDims, void *srcPitches,
                                  unsigned int srcDimNum,
-                                 float * scale , int32_t  * offset, uint64_t flags);
+                                 const float * scale, const int32_t * offset, uint64_t flags);
 GEN_INSTANCES_2TYPE(template, fwdLibElementSingleInstVectorized,ElementLog,void *dstT, void *dstDims,
                                  void *dstPitches, void *srcT1,
                                  void *srcDims, void *srcPitches,
                                  unsigned int srcDimNum,
-                                 float * scale , int32_t  * offset, uint64_t flags);
+                                 const float * scale, const int32_t * offset, uint64_t flags);

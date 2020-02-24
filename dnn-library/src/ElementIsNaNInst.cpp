@@ -47,8 +47,8 @@ template <typename srcType>
 void dnn_lib::fwdLibElementIsNaNInst(void *dstT, void *dstDims,
                                      void *dstPitches, void *srcT1,
                                      void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, float *scale,
-                                     int32_t *offset) {
+                                     unsigned int srcDimNum, const float *scale,
+                                     const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -118,7 +118,7 @@ void dnn_lib::fwdLibElementIsNaNInst(void *dstT, void *dstDims,
 template <typename srcType>
 void dnn_lib::fwdLibElementIsNaNInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, float *scale, int32_t *offset,
+    void *srcPitches, unsigned int srcDimNum, const float *scale, const int32_t *offset,
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -168,9 +168,9 @@ void dnn_lib::fwdLibElementIsNaNInstThreaded(
 
 GEN_INSTANCES_OP(template, fwdLibElementIsNaNInst,void *dstT, void *dstDims, void *dstPitches,
                                  void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, float * scale,
-                                 int32_t * offset);
+                                 unsigned int srcDimNum, const float * scale,
+                                 const int32_t * offset);
 GEN_INSTANCES_OP(template, fwdLibElementIsNaNInstThreaded,void *dstT, void *dstDims, void *dstPitches,
                                  void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, float * scale,
-                                 int32_t * offset, uint64_t flags);
+                                 unsigned int srcDimNum, const float * scale,
+                                 const int32_t * offset, uint64_t flags);

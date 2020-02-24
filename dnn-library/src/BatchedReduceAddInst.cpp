@@ -31,8 +31,8 @@ void dnn_lib::fwdLibBatchedReduceAddInst(void *pdst, void *pdstDims,
                                          void *pdstPitches, void *pbatch,
                                          void *pbatchDims, void *pbatchPitches,
                                          unsigned int pbatchDimNum,
-                                         unsigned int axis, float *scale,
-                                         int32_t *offset) {
+                                         unsigned int axis, const float *scale,
+                                         const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -109,8 +109,8 @@ void dnn_lib::fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
                                                  void *pdstPitches, void *pbatch,
                                                  void *pbatchDims, void *pbatchPitches,
                                                  unsigned int pbatchDimNum,
-                                                 unsigned int axis, float *scale,
-                                                 int32_t *offset, uint64_t flags) {
+                                                 unsigned int axis, const float *scale,
+                                                 const int32_t *offset, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -190,7 +190,7 @@ void dnn_lib::fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
 void dnn_lib::fwdLibBatchedReduceAddInstInt8(
     void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
     void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    unsigned int axis, float *scale, int32_t *offset) {
+    unsigned int axis, const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -273,7 +273,7 @@ void dnn_lib::fwdLibBatchedReduceAddInstInt8(
 void dnn_lib::fwdLibBatchedReduceAddInstInt8Threaded(
     void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
     void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    unsigned int axis, float *scale, int32_t *offset, uint64_t flags) {
+    unsigned int axis, const float *scale, const int32_t *offset, uint64_t flags) {
 
 
   unsigned int minionId = get_minion_id();
@@ -351,8 +351,8 @@ void dnn_lib::fwdLibBatchedReduceAddInstInt8Threaded(
 GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInst, void *pdst, void *pdstDims, void *pdstPitches,
                                    void *pbatch, void *pbatchDims, void *pbatchPitches,
                                    unsigned int pbatchDimNum, unsigned int axis,
-                                   float *scale, int32_t *offset);
+                                   const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
                                    void *pbatch, void *pbatchDims, void *pbatchPitches,
                                    unsigned int pbatchDimNum, unsigned int axis,
-                                   float *scale, int32_t *offset, uint64_t flags);
+                                   const float *scale, const int32_t *offset, uint64_t flags);

@@ -36,8 +36,8 @@ using namespace std;
 
 template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
-                                         void *srcTPitches, float *scale,
-                                         int32_t *offset, uint64_t flags) {
+                                         void *srcTPitches, const float *scale,
+                                         const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -193,8 +193,8 @@ void dnn_lib::fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
 
 template <typename srcType>
 void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
-                                           void *srcTPitches, float *scale,
-                                           int32_t *offset, uint64_t flags) {
+                                           void *srcTPitches, const float *scale,
+                                           const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -600,6 +600,6 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
 }
 
 GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded1, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibSoftMaxInstVectorized1, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, float *scale, int32_t *offset, uint64_t flags);
+                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);

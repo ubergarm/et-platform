@@ -31,8 +31,8 @@ void dnn_lib::fwdLibLocalResponseNormalizationInst(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, float *scale,
-    int32_t *offset) {
+    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
+    const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -115,8 +115,8 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstThreaded(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, float *scale,
-    int32_t *offset, uint64_t flags) {
+    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
+    const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -210,8 +210,8 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, float *scale,
-    int32_t *offset, uint64_t flags) {
+    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
+    const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -337,14 +337,14 @@ GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInst, void *dstMatrix
                                              void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
                                              void *activations, void *activationsDims, void *activationsPitches,
                                              unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             float *scale, int32_t *offset);
+                                             const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                              void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
                                              void *activations, void *activationsDims, void *activationsPitches,
                                              unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             float *scale, int32_t *offset, uint64_t flags);
+                                             const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                                              void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
                                              void *activations, void *activationsDims, void *activationsPitches,
                                              unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             float *scale, int32_t *offset, uint64_t flags);
+                                             const float *scale, const int32_t *offset, uint64_t flags);

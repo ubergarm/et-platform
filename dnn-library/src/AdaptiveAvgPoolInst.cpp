@@ -30,7 +30,7 @@ template <typename srcType>
 void dnn_lib::fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
                                 void *dstMatrixPitches, void *activations,
                                 void *activationsDims, void *activationsPitches,
-                                float *scale, int32_t *offset) {
+                                const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -92,4 +92,4 @@ void dnn_lib::fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
 GEN_INSTANCES_OP(template, fwdLibAdaptiveAvgPoolInst,void *dstMatrix, void *dstMatrixDims,
                  void *dstMatrixPitches, void *activations,
                  void *activationsDims, void *activationsPitches,
-                 float *scale, int32_t *offset);
+                 const float *scale, const int32_t *offset);

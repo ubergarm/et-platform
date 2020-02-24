@@ -29,8 +29,8 @@ using namespace std;
 template <typename srcType, typename dstType>
 void dnn_lib::fwdLibConvertToInst(void *dstT, void *dstDims, void *dstPitches,
                                   void *srcT1, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum, float *scale,
-                                  int32_t *offset) {
+                                  unsigned int srcDimNum, const float *scale,
+                                  const int32_t *offset) {
 
   // FIXME: single thread convertto fails when combined with multi-threaded
   // operators
@@ -89,8 +89,8 @@ template <typename srcType, typename dstType>
 void dnn_lib::fwdLibConvertToInstThreaded(void *dst, void *dstDims,
                                           void *dstPitches, void *src,
                                           void *srcDims, void *srcPitches,
-                                          unsigned int srcDimNum, float *scale,
-                                          int32_t *offset, uint64_t flags) {
+                                          unsigned int srcDimNum, const float *scale,
+                                          const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -156,8 +156,8 @@ template <typename srcType, typename dstType>
 void dnn_lib::fwdLibConvertToInstVectorized(void *dst, void *dstDims,
                                             void *dstPitches, void *src,
                                             void *srcDims, void *srcPitches,
-                                            unsigned int srcDimNum, float *scale,
-                                            int32_t *offset, uint64_t flags) {
+                                            unsigned int srcDimNum, const float *scale,
+                                            const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -293,10 +293,10 @@ void dnn_lib::fwdLibConvertToInstVectorized(void *dst, void *dstDims,
 
 GEN_INSTANCES_CONVERT(template, fwdLibConvertToInst, void *dstT, void *dstDims, void *dstPitches,
                                  void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, float *scale, int32_t *offset);
+                                 unsigned int srcDimNum, const float *scale, const int32_t *offset);
 GEN_INSTANCES_CONVERT(template, fwdLibConvertToInstThreaded, void *dstT, void *dstDims, void *dstPitches,
                                  void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, float *scale, int32_t *offset, uint64_t flags);
+                                 unsigned int srcDimNum, const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_CONVERT(template, fwdLibConvertToInstVectorized, void *dstT, void *dstDims, void *dstPitches,
                                  void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, float *scale, int32_t *offset, uint64_t flags);
+                                 unsigned int srcDimNum, const float *scale, const int32_t *offset, uint64_t flags);

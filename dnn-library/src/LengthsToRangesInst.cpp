@@ -29,8 +29,8 @@ using namespace std;
 template <typename srcType>
 void dnn_lib::fwdLibLengthsToRangesInst(void *dstT, void *dstDims,
                                         void *dstPitches, void *plengths,
-                                        unsigned int lenDim, float *scale,
-                                        int32_t *offset) {
+                                        unsigned int lenDim, const float *scale,
+                                        const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -54,8 +54,8 @@ void dnn_lib::fwdLibLengthsToRangesInst(void *dstT, void *dstDims,
 template <typename srcType>
 void dnn_lib::fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
                                         void *dstPitches, void *plengths,
-                                        unsigned int lenDim, float *scale,
-                                        int32_t *offset, uint64_t flags) {
+                                        unsigned int lenDim, const float *scale,
+                                        const int32_t *offset, uint64_t flags) {
 
   const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
   Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
@@ -158,7 +158,7 @@ void dnn_lib::fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
 
 GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInst, void *dstT, void *dstDims, void *dstPitches,
                                   void *plengths, unsigned int lenDim,
-                                  float *scale, int32_t *offset);
+                                  const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
                                   void *plengths, unsigned int lenDim,
-                                  float *scale, int32_t *offset, uint64_t flags);
+                                  const float *scale, const int32_t *offset, uint64_t flags);

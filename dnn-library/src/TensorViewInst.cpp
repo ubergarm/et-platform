@@ -32,7 +32,7 @@ void dnn_lib::fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
                                    unsigned int dstDimNum, void *src,
                                    void *srcDims, void *srcPitches,
                                    unsigned int srcDimNum, void *pcoord,
-                                   float *scale, int32_t *offset) {
+                                   const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -105,7 +105,7 @@ template <typename srcType>
 void dnn_lib::fwdLibTensorViewInstThreaded(
     void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
     void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-    void *pcoord, float *scale, int32_t *offset, uint64_t flags) {
+    void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -238,7 +238,7 @@ template <typename srcType>
 void dnn_lib::fwdLibTensorViewInstVectorized(
     void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
     void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-    void *pcoord, float *scale, int32_t *offset, uint64_t flags) {
+    void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32 * ACTIVE_SHIRES;
@@ -381,12 +381,12 @@ void dnn_lib::fwdLibTensorViewInstVectorized(
 GEN_INSTANCES_OP(template, fwdLibTensorViewInst, void *dst, void *dstDims, void *dstPitches,
                              unsigned int dstDimNum, void *src, void *srcDims,
                              void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             float *scale, int32_t *offset);
+                             const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibTensorViewInstThreaded, void *dst, void *dstDims, void *dstPitches,
                              unsigned int dstDimNum, void *src, void *srcDims,
                              void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             float *scale, int32_t *offset, uint64_t flags );
+                             const float *scale, const int32_t *offset, uint64_t flags );
 GEN_INSTANCES_OP(template, fwdLibTensorViewInstVectorized, void *dst, void *dstDims, void *dstPitches,
                              unsigned int dstDimNum, void *src, void *srcDims,
                              void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             float *scale, int32_t *offset, uint64_t flags );
+                             const float *scale, const int32_t *offset, uint64_t flags );

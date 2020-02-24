@@ -30,7 +30,7 @@ template <typename srcType>
 void dnn_lib::fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
                                          void *srcPitches,
                                          unsigned int srcDimNum, void *labelsT,
-                                         float *scale, int32_t *offset) {
+                                         const float *scale, const int32_t *offset) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -63,7 +63,7 @@ void dnn_lib::fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
 template <typename srcType>
 void dnn_lib::fwdLibCrossEntropyLossInstThreaded(
     void *dstT, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, void *labelsT, float *scale, int32_t *offset,
+    unsigned int srcDimNum, void *labelsT, const float *scale, const int32_t *offset,
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -115,7 +115,7 @@ void dnn_lib::fwdLibCrossEntropyLossInstThreaded(
 
 GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInst, void *dstT, void *srcT, void *srcDims,
                                    void *srcPitches, unsigned int srcDimNum, void* labelsT,
-                                   float *scale, int32_t *offset);
+                                   const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInstThreaded, void *dstT, void *srcT, void *srcDims,
                                    void *srcPitches, unsigned int srcDimNum, void* labelsT,
-                                   float *scale, int32_t *offset, uint64_t flags);
+                                   const float *scale, const int32_t *offset, uint64_t flags);

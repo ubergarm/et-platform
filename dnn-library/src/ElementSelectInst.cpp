@@ -31,7 +31,7 @@ void dnn_lib::fwdLibElementSelectInst(
     void *dstT, void *dstDims, void *dstPitches, void *condT, void *condDims,
     void *condPitches, void *srcT1, void *srcDims, void *src1Pitches,
     unsigned int srcDimNum, void *srcT2, void *src2Pitches,
-    float *scale, int32_t *offset) {
+    const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -98,7 +98,7 @@ template <typename srcType>
 void dnn_lib::fwdLibElementSelectInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *condT, void *condDims,
     void *condPitches, void *srcT1, void *srcDims, void *src1Pitches,
-    unsigned int srcDimNum, void *srcT2, void *src2Pitches, float *scale, int32_t *offset,
+    unsigned int srcDimNum, void *srcT2, void *src2Pitches, const float *scale, const int32_t *offset,
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -164,12 +164,12 @@ GEN_INSTANCES_OP(template, fwdLibElementSelectInst,void *dstT, void *dstDims,
                                  void *condDims, void *condPitches,
                                  void *srcT1, void *srcDims,
                                  void *src1Pitches,unsigned int srcDimNum,
-                                 void *srcT2, void *src2Pitches, float * scale,
-                                 int32_t  * offset);
+                                 void *srcT2, void *src2Pitches, const float * scale,
+                                 const int32_t * offset);
 GEN_INSTANCES_OP(template, fwdLibElementSelectInstThreaded,void *dstT, void *dstDims,
                                         void *dstPitches, void *condT,
                                         void *condDims, void *condPitches,
                                         void *srcT1, void *srcDims,
                                         void *src1Pitches,unsigned int srcDimNum,
-                                        void *srcT2, void *src2Pitches, float * scale,
-                                        int32_t  * offset, uint64_t flags);
+                                        void *srcT2, void *src2Pitches, const float * scale,
+                                        const int32_t * offset, uint64_t flags);

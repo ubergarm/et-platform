@@ -31,8 +31,8 @@ void dnn_lib::fwdLibMatMulInstTransposed(void *dstMatrix, void *dstMatrixDims,
                                          void *dstMatrixPitches, void *activations,
                                          void *activationsDims, void *activationsPitches,
                                          void *weights, void *weightsDims,
-                                         void *weightPitches, float *scale,
-                                         int32_t *offset) {
+                                         void *weightPitches, const float *scale,
+                                         const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -70,7 +70,7 @@ void dnn_lib::fwdLibMatMulInstThreadedTransposed(void *dstMatrix, void *dstMatri
                                                  void *activations, void *activationsDims,
                                                  void *activationsPitches, void *weights,
                                                  void *weightsDims, void *weightPitches,
-                                                 float *scale, int32_t *offset,
+                                                 const float *scale, const int32_t *offset,
                                                  uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -135,7 +135,7 @@ void dnn_lib::fwdLibMatMulInstThreadedTransposed(void *dstMatrix, void *dstMatri
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], float *scale, int32_t *offset){
+void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
     "flw.ps   f0, 0x0(%[actAddr])\n"   \
@@ -186,7 +186,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
-void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], float *scale, int32_t *offset){
+void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
     "fgh.ps   f0, f30(%[actAddr])\n"   \
@@ -241,7 +241,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
-void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], float *scale, int32_t *offset){
+void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define INT8_TO_FP32(_reg)                  \
     "fsub.pi " #_reg ", " #_reg ", f28 \n"  \
@@ -320,7 +320,7 @@ void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsi
 }
 
 template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void matmulOpTrans (uintptr_t dstAddr, intptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], float *scale, int32_t *offset){}
+void matmulOpTrans (uintptr_t dstAddr, intptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){}
 
 // Version assuming the weights tensor is transposed. Used for CONSTANT tensors
 template <typename srcType>
@@ -329,7 +329,7 @@ void dnn_lib::fwdLibMatMulInstVectorizedTransposed(void *dstMatrix, void *dstMat
                                                    void *activations, void *activationsDims,
                                                    void *activationsPitches, void *weights,
                                                    void *weightsDims, void *weightPitches,
-                                                   float *scale, int32_t *offset,
+                                                   const float *scale, const int32_t *offset,
                                                    uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -399,12 +399,12 @@ void dnn_lib::fwdLibMatMulInstVectorizedTransposed(void *dstMatrix, void *dstMat
 GEN_INSTANCES_OP(template, fwdLibMatMulInstTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset);
+                         const float *scale, const int32_t *offset);
 GEN_INSTANCES_OP(template, fwdLibMatMulInstThreadedTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset, uint64_t flags);
+                         const float *scale, const int32_t *offset, uint64_t flags);
 GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorizedTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
-                         float *scale, int32_t *offset, uint64_t flags);
+                         const float *scale, const int32_t *offset, uint64_t flags);
