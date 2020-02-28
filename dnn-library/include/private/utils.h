@@ -17,10 +17,9 @@
 #include <utility>
 
 #include <syscall.h>
-#include <device_common.h>
 
-
-#include "cacheops.h"
+#include "shire.h"
+#include "tensors.h"
 #include "LibCommon.h"
 #include "Float16.h"
 
