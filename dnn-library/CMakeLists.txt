@@ -12,8 +12,17 @@ cmake_minimum_required(VERSION 3.5)
 
 project(dnn_lib VERSION 0.1.0 LANGUAGES CXX C)
 
-find_package(LibDeviceCommon REQUIRED)
-find_package(fake-fw REQUIRED)
+# FIXME make this a required package
+find_package(EsperantoDeviceMinionRuntime
+  NO_CMAKE_PATH
+  NO_CMAKE_ENVIRONMENT_PATH
+  NO_DEFAULT_PATH
+  )
+
+if(NOT EsperantoDeviceMinionRuntime_FOUND)
+  find_package(LibDeviceCommon REQUIRED)
+  find_package(fake-fw REQUIRED)
+endif()
 
 set(INCLUDE_INSTALL_DIR include/ CACHE STRING "Include install dir")
 set(LIB_INSTALL_DIR     lib/     CACHE STRING "Library install dir")
@@ -109,7 +118,12 @@ add_library(dnn_lib STATIC
 
 include_directories(include)
 
-target_link_libraries(${PROJECT_NAME} device_common fake-fw)
+if(EsperantoDeviceMinionRuntime_FOUND)
+  # FIXME SW-2092 define the library to link against form the EsperantoDeviceMinionRuntime
+  # Unclear what the dnn-library depends on fake-fw
+else()
+  target_link_libraries(${PROJECT_NAME} device_common fake-fw)
+endif()
 
 target_include_directories(dnn_lib INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
