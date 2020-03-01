@@ -123,6 +123,10 @@ include_directories(include/private)
 if(EsperantoDeviceMinionRuntime_FOUND)
   # FIXME SW-2092 define the library to link against form the EsperantoDeviceMinionRuntime
   # Unclear what the dnn-library depends on fake-fw
+  target_link_libraries(dnn_lib
+    EsperantoDeviceMinionRuntime::device_common
+    EsperantoDeviceMinionRuntime::fw_helpers
+    )
 else()
   target_link_libraries(${PROJECT_NAME} device_common fake-fw)
 endif()
