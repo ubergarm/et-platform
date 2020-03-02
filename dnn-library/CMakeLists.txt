@@ -121,8 +121,6 @@ include_directories(include/)
 include_directories(include/private)
 
 if(EsperantoDeviceMinionRuntime_FOUND)
-  # FIXME SW-2092 define the library to link against form the EsperantoDeviceMinionRuntime
-  # Unclear what the dnn-library depends on fake-fw
   target_link_libraries(dnn_lib
     EsperantoDeviceMinionRuntime::device_common
     EsperantoDeviceMinionRuntime::fw_helpers
@@ -140,12 +138,50 @@ install(FILES ${INSTALL_HEADERS}
   DESTINATION "${CMAKE_INSTALL_PREFIX}/include/dnn_lib"
 )
 
-install(TARGETS dnn_lib
-  DESTINATION "${CMAKE_INSTALL_PREFIX}/lib"
-  EXPORT dnn_libConfig
+### Add package information
+include(CMakePackageConfigHelpers)
+
+# Export the package for use from the build-tree
+# (this registers the build-tree with a global CMake-registry)
+export(PACKAGE dnn_lib)
+
+# Create the EsperantoNeuralizerConfig.cmake and EsperantoNeuralizerConfigVersion files
+configure_package_config_file(dnn_libConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/dnn_libConfig.cmake
+  INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}
+  INSTALL_DESTINATION ${LIB_INSTALL_DIR}/dnn_lib/cmake
+  PATH_VARS INCLUDE_INSTALL_DIR LIB_INSTALL_DIR)
+
+set_target_properties(dnn_lib PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/include/dnn_lib"
 )
 
-# This makes the project importable from the install directory
-install(EXPORT dnn_libConfig
-  DESTINATION "${LIB_INSTALL_DIR}/cmake/dnn_lib"
+# Add all targets to the build-tree export set
+export(TARGETS dnn_lib NAMESPACE dnn_lib:: FILE "${PROJECT_BINARY_DIR}/dnnLibTargets.cmake")
+
+## Build shared Neuralizer library
+install(TARGETS dnn_lib
+  EXPORT dnnLibTargets
+  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+  COMPONENT dnn-lib
+)
+
+# Install the dnn_libConfig.cmake and NeuralizerConfigVersion.cmake
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/dnn_libConfig.cmake"
+  DESTINATION ${LIB_INSTALL_DIR}/cmake/dnn_lib
+  COMPONENT dnn-lib
+)
+
+# Install the export set for use with the install-tree
+install(EXPORT dnnLibTargets DESTINATION
+  "${LIB_INSTALL_DIR}/cmake/dnn_lib" 
+  COMPONENT dnn-lib
+)
+
+# Install the export set for use with the install-tree
+install(EXPORT dnnLibTargets DESTINATION
+  "${LIB_INSTALL_DIR}/cmake/dnn_lib" COMPONENT dnn-lib
 )
