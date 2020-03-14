@@ -12,6 +12,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(dnn_lib VERSION 0.1.0 LANGUAGES CXX C)
 
+set(GCC_SYSROOT_PATH /esperanto/minion/ CACHE STRING "Path to the gcc riscv toolchain sysroot folder")
+
 # FIXME make this a required package
 find_package(EsperantoDeviceMinionRuntime
   NO_CMAKE_PATH
@@ -46,8 +48,8 @@ if(CLANG_BUILD)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I$(RISCV)/riscv64-unknown-elf/include/c++/8.2.0/riscv64-unknown-elf")
   set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 else()
-  set(CMAKE_C_COMPILER "riscv64-unknown-elf-gcc")
-  set(CMAKE_CXX_COMPILER "riscv64-unknown-elf-g++")
+  set(CMAKE_C_COMPILER "${GCC_SYSROOT_PATH}/bin/riscv64-unknown-elf-gcc")
+  set(CMAKE_CXX_COMPILER "${GCC_SYSROOT_PATH}/bin/riscv64-unknown-elf-g++")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -O2 -mcmodel=medany -march=rv64imf -mabi=lp64f")
   set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
 endif()
