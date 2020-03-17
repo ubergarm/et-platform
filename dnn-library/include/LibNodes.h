@@ -30,6 +30,9 @@ class CmpLTE {};
 class Select {};
 class Pow {};
 class ElementLog {};
+class And {}; // bit-wise
+class Or {}; // bit-wise
+class Xor {}; // bit-wise
 
 using namespace std;
 

@@ -1779,6 +1779,33 @@ public:
     fpLog2SingleElement(src1[s1], op1);
     dst[d] = op1 * op2;
   }
+
+  // And Immediate version (src, imm)
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, And>::value,
+                                    std::size_t>::type = 0>
+  void doOp(dstType *dst, const src1Type *src1, src2Type src2, uint64_t &d,
+            uint64_t &s1) {
+    dst[d] = src1[s1] & src2;
+  }
+
+  // Or Immediate version (src, imm)
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Or>::value,
+                                    std::size_t>::type = 0>
+  void doOp(dstType *dst, const src1Type *src1, src2Type src2, uint64_t &d,
+            uint64_t &s1) {
+    dst[d] = src1[s1] | src2;
+  }
+
+  // Xor Immediate version (src, imm)
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Xor>::value,
+                                    std::size_t>::type = 0>
+  void doOp(dstType *dst, const src1Type *src1, src2Type src2, uint64_t &d,
+            uint64_t &s1) {
+    dst[d] = src1[s1] ^ src2;
+  }
 };
 
 #endif /* OPERATOR_H */

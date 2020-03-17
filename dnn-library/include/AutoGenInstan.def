@@ -111,6 +111,21 @@ GEN_3TYPE(fwdLibElementInstVectorized,Min,void *dstT, void *dstDims,
                                  unsigned int srcDimNum, void *srcT2,
                                  void *src2Pitches, const float * scale,
                                  const int32_t * offset, uint64_t flags); 
+GEN_INSTANCES(fwdLibElementImmLogic, And, void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *imm,
+                                 const float * scale, const int32_t  * offset); 
+GEN_INSTANCES(fwdLibElementImmLogic, Or, void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *imm,
+                                 const float * scale, const int32_t  * offset); 
+GEN_INSTANCES(fwdLibElementImmLogic, Xor, void *dstT, void *dstDims,
+                                 void *dstPitches, void *srcT1,
+                                 void *srcDims, void *src1Pitches,
+                                 unsigned int srcDimNum, void *imm,
+                                 const float * scale, const int32_t  * offset); 
 GEN_INSTANCES(fwdLibElementBoolInst,CmpEQ,void *dstT, void *dstDims,
                                  void *dstPitches, void *srcT1,
                                  void *srcDims, void *src1Pitches,

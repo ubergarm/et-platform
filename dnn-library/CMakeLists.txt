@@ -75,6 +75,7 @@ add_library(dnn_lib STATIC
   src/DequantizeInst.cpp
   src/ElementBoolInst.cpp
   src/ElementExpInst.cpp
+  src/ElementImmLogic.cpp
   src/ElementInst.cpp
   src/ElementIsNaNInst.cpp
   src/ElementSelectInst.cpp

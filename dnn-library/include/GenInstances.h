@@ -7,6 +7,11 @@
   template void functionName<int8_t, op>(__VA_ARGS__);                         \
   template void functionName<int64_t, op>(__VA_ARGS__);
 
+// The logic operators only support integral values
+#define GEN_INSTANCES_INSTANCES_LOGIC(template, functionName, op, ...)    \
+  template void functionName<int8_t, op>(__VA_ARGS__);                         \
+  template void functionName<int64_t, op>(__VA_ARGS__);
+
 #define GEN_INSTANCES_OP(template, functionName, ...)                          \
   template void functionName<float>(__VA_ARGS__);                              \
   template void functionName<float16>(__VA_ARGS__);                            \
