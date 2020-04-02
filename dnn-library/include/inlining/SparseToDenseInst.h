@@ -213,13 +213,12 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
                        : [ dst ] "=m" (* (char(*)[32]) dst)
                        : [ src ] "r"(src),
-                         [ srcMem ] "m" (* (const char(*)[]) src),
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),
                          [ tIndex ] "r"(tIndex),
                          [ batchPitch ] "r"(batchPitch),
                          [ typeSize ] "r"(typeSize)
-                       : "t0", "t1", "t2", "t3", "f0", "f1");
+                       : "t0", "t1", "t2", "t3", "f0", "f1", "memory");
 
 }
 

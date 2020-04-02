@@ -136,8 +136,8 @@ inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
     unsigned int end = start + clperminion * cll;
     // If the minion is the last working minion in its row, its ending position
     // should be modified so it avoids padding.
-    if ((clperrow < minionsperrow) && (minioninrow == clperrow - 1) ||
-        (clperrow >= minionsperrow) && (minioninrow == minionsperrow - 1))
+    if (((clperrow < minionsperrow) && (minioninrow == clperrow - 1)) ||
+        ((clperrow >= minionsperrow) && (minioninrow == minionsperrow - 1)))
       end = start - K + srcIndex[1];
 
     // Now, we perform the SoftMax operation, using shared information between
@@ -416,8 +416,8 @@ inline void fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
     unsigned int end = start + clperminion * cll;
     // If the minion is the last working minion in its row, its ending position
     // should be modified so it avoids padding.
-    if ((clperrow < minionsperrow) && (minioninrow == clperrow - 1) ||
-        (clperrow >= minionsperrow) && (minioninrow == minionsperrow - 1))
+    if (((clperrow < minionsperrow) && (minioninrow == clperrow - 1)) ||
+        ((clperrow >= minionsperrow) && (minioninrow == minionsperrow - 1)))
       end = start - K + srcIndex[1];
 
     memOffset = start*typeSize;

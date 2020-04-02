@@ -63,9 +63,13 @@ inline void fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *actPitch = (unsigned int *)srcPitches;
   
-  unsigned int coord[srcDimNum] = {0};
+  unsigned int coord[srcDimNum];
   unsigned int offsetIn  = 0;
   unsigned int offsetOut = 0;
+
+  for (size_t index = 0; index < srcDimNum; ++index) {
+    coord[index] = 0;
+  }
 
   bool done = false;
 
@@ -230,8 +234,11 @@ inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
   if (maxRead == 0)
     return;
   // We move the initialAddr to the next non-padding position
-  unsigned int k = 0;                  // Amount of non-zero coordinates
-  unsigned int coord[srcDimNum]= {0}; // Vector of coordinates
+  unsigned int k = 0;            // Amount of non-zero coordinates
+  unsigned int coord[srcDimNum]; // Vector of coordinates
+  for (size_t index = 0; index < srcDimNum; ++index) {
+    coord[index] = 0;
+  }
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 

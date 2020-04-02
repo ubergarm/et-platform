@@ -309,10 +309,9 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(
                          : [ mask ] "r"(mask),
                            [ mod ] "r"(mod),
                            [ offs ] "I"(offs),
-                           [ srcMem ] "m"(* (char(*)[]) srcAddr),
                            [ registers ] "r"(registers)
 
-                         : "t0", "f0", "f1", "f30");
+                         : "t0", "f0", "f1", "f30", "memory");
 
     auto scale = k + normedAlpha * squareSum;
 

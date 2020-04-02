@@ -172,14 +172,13 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t 
                        ".else\n"
                        "    fscb.ps  f0, f31(%[dst]) \n"
                        ".endif\n"
-                       : [ dstMem ] "=m" (*(char(*)[]) dst)
+                       :
                        : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
                          [ scatterValues ] "m"(*(const int32_t(*)[8]) scatterValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src),
-                         [ srcMem ] "m" (*(const char(*)[]) src),
                          [ size] "i" (size)
-                       : "f0", "f31");
+                       : "f0", "f31", "memory");
 }
 
   template <typename srcType, typename std::enable_if< (getsize<srcType>()>4), int>::type = 0 >
@@ -316,7 +315,7 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
   __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        ".if %[size] == 4\n"
                        "    fgw.ps  f0, f31(%[src]) \n"
-                       "    fsw.ps  f0, %[dstMem] \n"
+                       "    fsw.ps  f0, (%[dst]) \n"
                        ".elseif %[size] == 2\n"
                        "    fgh.ps  f0, f31(%[src]) \n"
                        "    li t0, %[g32_conf]\n"
@@ -326,14 +325,13 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
                        "    li t0, %[g32_conf]\n"
                        "    fsc32b.ps  f0, t0(%[dst]) \n"
                        ".endif\n"
-                       : [ dstMem ] "=m" (*(char(*)[32]) dst)
+                       :
                        : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
                          [ src ] "r"(src),
                          [ dst ] "r"(dst),
-                         [ srcMem ] "m" (*(const char(*)[]) src),
                          [g32_conf] "i" (g32_conf),
                          [size] "i" (size)
-                       : "f0", "f31", "t0"
+                       : "f0", "f31", "t0", "memory"
                        );
 }
   

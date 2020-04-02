@@ -168,14 +168,14 @@ inline void fwdLibSplatInstVectorized(void *dst, void *dstDims,
        "2:"
        
        : [dstPtr] "+&r" (dstPtr),      // pointer in xreg
-         [scratch] "=&f" (scratch),  // scratch floating point register
-         "+m" (( char(*)[]) dstPtr)   // only to tell the compiler the memory is being RW
+         [scratch] "=&f" (scratch)  // scratch floating point register
          
        : [fg32w_conf] "r" (0x208208),   // gather32 configuration in xreg
          [endPtr] "r" (endPtr),
          [endPtrUnrolled] "r" (endPtrUnrolled),
-         [splatValPtr] "r" (splatVal),
-         [splatValMem] "m" ( (const uint64_t (*)[1]) splatVal)
+         [splatValPtr] "r" (splatVal)
+
+       : "memory"
      );
   }
 
