@@ -85,6 +85,9 @@
 #define dispatchLibImpl(functionName, pm, ...) \
   dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
 
+#define dispatchLibNonInliningImpl(functionName, pm, ...) \
+  dnn_lib::functionName<pm>(__VA_ARGS__)
+
 #define dispatchLibQuantizedTyImpl(functionName, pm, ...) \
   dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
 
