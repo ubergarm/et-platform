@@ -34,7 +34,7 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                                      void *pcoord, unsigned int count,
                                      unsigned int axis, const float *scale,
                                      const int32_t *offset, uint64_t flags,
-				     const uint32_t minionOffset) {
+                                     const uint32_t minionOffset) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
@@ -77,24 +77,24 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
               for (size_t r = 0; r < eDims[5]; r++) {
 
                 idx = (eOffsets[0] + x) * eDstPitch[0] +
-		  (eOffsets[1] + y) * eDstPitch[1] +
-		  (eOffsets[2] + z) * eDstPitch[2] +
-		  (eOffsets[3] + w) * eDstPitch[3] +
-		  (eOffsets[4] + q) * eDstPitch[4] +
-		  (eOffsets[5] + r) * eDstPitch[5] + advanceOnAxis;
+                  (eOffsets[1] + y) * eDstPitch[1] +
+                  (eOffsets[2] + z) * eDstPitch[2] +
+                  (eOffsets[3] + w) * eDstPitch[3] +
+                  (eOffsets[4] + q) * eDstPitch[4] +
+                  (eOffsets[5] + r) * eDstPitch[5] + advanceOnAxis;
 
-		tOutput[idx] = tSmallInput[x * eSrcPitch[0] + y * eSrcPitch[1] +
-					   z * eSrcPitch[2] + w * eSrcPitch[3] +
-					   q * eSrcPitch[4] + r * eSrcPitch[5]];
-		if (DO_EVICTS) {
-		  addr2wr = (uintptr_t)dst + idx*getsize<srcType>();
-		  if ((addr2wr >> 6) != (previous_addr2wr >> 6))  
-		  {
-		    /* evict current cache line */
-		    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 15, 64);
-		    previous_addr2wr = addr2wr;
-		  }
-		}
+                tOutput[idx] = tSmallInput[x * eSrcPitch[0] + y * eSrcPitch[1] +
+                                           z * eSrcPitch[2] + w * eSrcPitch[3] +
+                                           q * eSrcPitch[4] + r * eSrcPitch[5]];
+                if (DO_EVICTS) {
+                  addr2wr = (uintptr_t)dst + idx*getsize<srcType>();
+                  if ((addr2wr >> 6) != (previous_addr2wr >> 6))  
+                  {
+                    /* evict current cache line */
+                    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 15, 64);
+                    previous_addr2wr = addr2wr;
+                  }
+                }
               }
             }
           }
@@ -237,6 +237,10 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
   float scratch;
 
   uintptr_t addr2evict = (uintptr_t)dst8;
+  // Computes bytes to evict (adds the unaligned cache line bytes of the base address
+  uint32_t  bytes2evict = ((lanes.first * 4) + (addr2evict & 0x3F));
+  // With that computes the cl2evict (0 means 1, 1 means 2, ...)
+  uint32_t  cl2evict = bytes2evict / 64;
 
   while (lanes.first > 8) {
 
@@ -261,7 +265,7 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
   dst8 += 4*lanes.first;
 
   if (DO_EVICTS) {
-    evict_va(0, DO_EVICTS, addr2evict, lanes.first,0);
+    evict_va_multi(DO_EVICTS, addr2evict, cl2evict);
   }
   
   if (lanes.second != 0) {
@@ -298,7 +302,7 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
     }
     
     if (DO_EVICTS) {
-      evict_va(0, DO_EVICTS, addr2evict, lanes.second, 0);
+      evict_va(0, DO_EVICTS, (uintptr_t) dst8, 0);
     }
   }
 }
@@ -311,8 +315,8 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                              void *poffsets, unsigned int count,
                                              unsigned int axis, const float *scale,
                                              const int32_t *offset, uint64_t flags,
-					     const uint32_t minionOffset,
-					     const  uint32_t assignedMinions) {
+                                             const uint32_t minionOffset,
+                                             const  uint32_t assignedMinions) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) :  assignedMinions;
@@ -325,9 +329,9 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
 
   if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
     fwdLibInsertTensorInst<srcType>(dst, dstDims, dstPitches,
-				    dstDimNum, src2, src2Dims, src2Pitches,
-				    poffsets, count, axis, scale, offset, 
-				    flags, minionOffset);
+                                    dstDimNum, src2, src2Dims, src2Pitches,
+                                    poffsets, count, axis, scale, offset, 
+                                    flags, minionOffset);
     return;
   }
 
@@ -397,7 +401,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
     bool done = false;
     while (mRows > 0) {
       insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-			 initialAddrIn, typeSize, lanes, gatherValues, flags);
+                         initialAddrIn, typeSize, lanes, gatherValues, flags);
       for (int j = dimRow; j >= 0; j--) {
         if (likely(offsetIn[j] != (actIndex[j] - 1))) {
           initialAddrIn += actPitch[j];
@@ -444,7 +448,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       for (int i = 0; i < mRows; i++) {
         for (int j = 0; j < count; j++) {
           insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-			     initialAddrIn, typeSize, lanes, gatherValues, flags);
+                             initialAddrIn, typeSize, lanes, gatherValues, flags);
           addrOut += actIndex[axis] * dstPitch[axis];
         }
         addrOut -= count * actIndex[axis] * dstPitch[axis];
@@ -549,7 +553,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                             : [ mask ] "r" (mask));
 
       insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-			 initialAddrIn, typeSize, auxlanes, gatherValues, flags);
+                         initialAddrIn, typeSize, auxlanes, gatherValues, flags);
       addrOut += length * dstPitch[axis];
       initialAddrIn -= offsetIn[axis] * actPitch[axis];
 
@@ -563,7 +567,7 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                             : [ mask ] "r" (mask));
       while (maxRead > actIndex[axis]) {
         insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-			   initialAddrIn, typeSize, lanes, gatherValues,flags);
+                           initialAddrIn, typeSize, lanes, gatherValues,flags);
         maxRead -= actIndex[axis];
         addrOut += actIndex[axis] * dstPitch[axis];
       }
@@ -579,19 +583,19 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                             :
                             : [ mask ] "r" (mask));
       insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
-			 initialAddrIn, typeSize, auxlanes, gatherValues, flags);
+                         initialAddrIn, typeSize, auxlanes, gatherValues, flags);
     }
   }
 }
 
 GEN_INSTANCES_OP(template, fwdLibInsertTensorInst, void *dst, void *dstDims,
-		 void *dstPitches, unsigned int dstDimNum, void *src2, 
-		 void *src2Dims, void *src2Pitches, void * poffsets, 
-		 unsigned int count, unsigned int axis, const float *scale, 
-		 const int32_t *offset, uint64_t flags, const uint32_t minionOffset);
+                 void *dstPitches, unsigned int dstDimNum, void *src2, 
+                 void *src2Dims, void *src2Pitches, void * poffsets, 
+                 unsigned int count, unsigned int axis, const float *scale, 
+                 const int32_t *offset, uint64_t flags, const uint32_t minionOffset);
 GEN_INSTANCES_OP(template, fwdLibInsertTensorInstThreaded, void *dst, void *dstDims,
-		 void *dstPitches, unsigned int dstDimNum, void *src2, 
-		 void *src2Dims, void *src2Pitches, void * poffsets, 
-		 unsigned int count, unsigned int axis, const float *scale, 
-		 const int32_t *offset, uint64_t flags,
-		 const uint32_t minionOffset, const uint32_t assignedMinions);
+                 void *dstPitches, unsigned int dstDimNum, void *src2, 
+                 void *src2Dims, void *src2Pitches, void * poffsets, 
+                 unsigned int count, unsigned int axis, const float *scale, 
+                 const int32_t *offset, uint64_t flags,
+                 const uint32_t minionOffset, const uint32_t assignedMinions);
