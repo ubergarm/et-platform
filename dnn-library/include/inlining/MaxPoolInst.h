@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _MAX_POOL_INST_H_
+#define _MAX_POOL_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDims,
+inline void fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDims,
                                 void *dstMatrixPitches, void *dst2Matrix,
                                 void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
                                 void *activations, void *activationsDims,
@@ -115,7 +118,7 @@ void dnn_lib::fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDim
 }
 
 template <typename srcType, typename dstType>
-void dnn_lib::fwdLibMaxPoolInstThreaded(
+inline void fwdLibMaxPoolInstThreaded(
     bool argMax, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
     void *activations, void *activationsDims, void *activationsPitches,
@@ -217,17 +220,8 @@ void dnn_lib::fwdLibMaxPoolInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibMaxPoolInst, bool argMax, void *dstMatrix,void *dstMatrixDims,
-                         void *dstMatrixPitches, void *dst2Matrix,
-                         void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
-                         void *activations, void *activationsDims,
-                         void *activationsPitches, void *pkernels,
-                         void *pstrides, void *ppads, const float *scale,
-                         const int32_t *offset);
-GEN_INSTANCES_2TYPE_OP(template, fwdLibMaxPoolInstThreaded, bool argMax, void *dstMatrix,void *dstMatrixDims,
-                         void *dstMatrixPitches, void *dst2Matrix,
-                         void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
-                         void *activations, void *activationsDims,
-                         void *activationsPitches, void *pkernels,
-                         void *pstrides, void *ppads, const float *scale,
-                         const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _MAX_POOL_INST_H_

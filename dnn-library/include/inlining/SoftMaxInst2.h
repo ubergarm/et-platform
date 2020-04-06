@@ -9,27 +9,30 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SOFTMAX_INST2_H_
+#define _SOFTMAX_INST2_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 // Single-thread version with small optimisations. Useful when the padding
 // hypothesis are not met.
 template <typename srcType>
-void dnn_lib::fwdLibSoftMaxInst2(void *dstT, void *srcT, void *srcTDims,
+inline void fwdLibSoftMaxInst2(void *dstT, void *srcT, void *srcTDims,
                                  void *srcTPitches, const float *scale,
                                  const int32_t *offset) {
   unsigned int minionId = get_minion_id();
@@ -72,7 +75,7 @@ void dnn_lib::fwdLibSoftMaxInst2(void *dstT, void *srcT, void *srcTDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibSoftMaxInstThreaded2 (void *dstT, void *srcT, void *srcTDims,
+inline void fwdLibSoftMaxInstThreaded2 (void *dstT, void *srcT, void *srcTDims,
                                           void *srcTPitches, const float *scale,
                                           const int32_t *offset, uint64_t flags) {
   Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
@@ -128,8 +131,8 @@ void dnn_lib::fwdLibSoftMaxInstThreaded2 (void *dstT, void *srcT, void *srcTDims
   }
 }
 
-GEN_INSTANCES_OP(template, fwdLibSoftMaxInst2, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset);
+} // namespace inlining
 
-GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded2, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace dnn_lib
+
+#endif // _SOFTMAX_INST2_H_

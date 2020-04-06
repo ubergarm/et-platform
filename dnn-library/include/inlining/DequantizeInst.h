@@ -9,27 +9,30 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _DEQUANTIZE_INST_H_
+#define _DEQUANTIZE_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 /// Dequantize integer tensor. Scale and Offset are based
 /// on the source tensor type.
 template <typename srcType>
-void dnn_lib::fwdLibDequantizeInst(void *dstT, void *dstDims, void *dstPitches,
+inline void fwdLibDequantizeInst(void *dstT, void *dstDims, void *dstPitches,
                                    void *srcT, void *srcDims, void *srcPitches,
                                    unsigned int srcDimNum, float scale,
                                    int32_t offset) {
@@ -80,7 +83,7 @@ void dnn_lib::fwdLibDequantizeInst(void *dstT, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibDequantizeInstThreaded(void *dstT, void *dstDims,
+inline void fwdLibDequantizeInstThreaded(void *dstT, void *dstDims,
                                            void *dstPitches, void *srcT,
                                            void *srcDims, void *srcPitches,
                                            unsigned int srcDimNum, float scale,
@@ -141,9 +144,8 @@ void dnn_lib::fwdLibDequantizeInstThreaded(void *dstT, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_QUANT(template, fwdLibDequantizeInst, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                float scale,  int32_t offset);
-GEN_INSTANCES_QUANT(template, fwdLibDequantizeInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                              void *srcT, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                              float scale,  int32_t offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _DEQUANTIZE_INST_H_

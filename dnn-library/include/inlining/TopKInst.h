@@ -9,24 +9,29 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _TOPK_INST_H_
+#define _TOPK_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
 
-void swap(void *vals, void *inds, int i, int j) {
+void partialQuicksort(void *vals, void *inds, int low, int high, int m);
+
+namespace inlining {
+
+inline void swap(void *vals, void *inds, int i, int j) {
   float *fVals = (float *)vals;
   long long *lInds = (long long *)inds;
 
@@ -38,7 +43,7 @@ void swap(void *vals, void *inds, int i, int j) {
   lInds[j] = tind;
 }
 
-int partition(void *vals, void *inds, int low, int high) {
+inline int partition(void *vals, void *inds, int low, int high) {
   float *fVals = (float *)vals;
   long long *lInds = (long long *)inds;
 
@@ -50,32 +55,22 @@ int partition(void *vals, void *inds, int low, int high) {
     if (fVals[j] != pivotVal) {
       if (fVals[j] > pivotVal) {
         i++;
-        swap(vals, inds, i, j);
+        dnn_lib::inlining::swap(vals, inds, i, j);
       }
     } else if (lInds[j] < pivotInd) {
       i++;
-      swap(vals, inds, i, j);
+      dnn_lib::inlining::swap(vals, inds, i, j);
     }
   }
-  swap(vals, inds, i + 1, high);
+  dnn_lib::inlining::swap(vals, inds, i + 1, high);
   return (i + 1);
-}
-
-void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
-  if (low < high) {
-    int pidx = partition(vals, inds, low, high);
-    partialQuicksort(vals, inds, low, pidx - 1, m);
-    if (pidx < m) {
-      partialQuicksort(vals, inds, pidx + 1, high, m);
-    }
-  }
 }
 
 // In this implementation we suppose that the dstPitches (1 and 2) have padding
 // which ensures the dstPitches[n-2] being multiple of cacheline length if not,
 // it needs sore global or reduce
 template <typename srcType>
-void dnn_lib::fwdLibTopKInst(void *dstT, void *dstDims, void *dstPitches,
+inline void fwdLibTopKInst(void *dstT, void *dstDims, void *dstPitches,
                              void *dstT2, void *dst2Dims, void *dst2Pitches,
                              void *srcT, void *srcDims, void *srcPitches,
                              unsigned int srcDimNum, unsigned int k,
@@ -148,7 +143,7 @@ void dnn_lib::fwdLibTopKInst(void *dstT, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibTopKInstThreaded_all(
+inline void fwdLibTopKInstThreaded_all(
     void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
@@ -234,7 +229,7 @@ void dnn_lib::fwdLibTopKInstThreaded_all(
 /*
 
 template <typename srcType>
-void dnn_lib::fwdLibTopKInstThreaded_k4(void *dstT, void *dstDims, void
+void fwdLibTopKInstThreaded_k4(void *dstT, void *dstDims, void
 *dstPitches, void *dstT2, void *dst2Dims, void *dst2Pitches, void *srcT, void
 *srcDims, void *srcPitches, unsigned int srcDimNum, unsigned int k, const float
 *scale, const int32_t *offset, uint64_t flags) {
@@ -373,7 +368,7 @@ void dnn_lib::fwdLibTopKInstThreaded_k4(void *dstT, void *dstDims, void
 
 // ONLY FOR K = 1, 2, 3, 4
 template <typename srcType>
-void dnn_lib::fwdLibTopKInstThreaded_k4(
+inline void fwdLibTopKInstThreaded_k4(
     void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
@@ -564,7 +559,7 @@ void dnn_lib::fwdLibTopKInstThreaded_k4(
 
 // ONLY FOR K = 5, 6, 7, 8
 template <typename srcType>
-void dnn_lib::fwdLibTopKInstThreaded_k8(
+inline void fwdLibTopKInstThreaded_k8(
     void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
@@ -772,19 +767,8 @@ void dnn_lib::fwdLibTopKInstThreaded_k8(
   }
 }
 
-GEN_INSTANCES_OP(template, fwdLibTopKInst, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_all, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k4, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k8, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _TOPK_INST_H_ 

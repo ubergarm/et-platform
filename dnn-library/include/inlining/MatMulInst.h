@@ -9,14 +9,15 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _MATMUL_INST_H_
+#define _MATMUL_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
 #include "Writer.h"
 #include "Addresser.h"
@@ -24,10 +25,12 @@
 #include "Operator.h"
 #include "utils.h"
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibMatMulInst(void *dstMatrix, void *dstMatrixDims,
+void fwdLibMatMulInst(void *dstMatrix, void *dstMatrixDims,
                                void *dstMatrixPitches, void *activations,
                                void *activationsDims, void *activationsPitches,
                                void *weights, void *weightsDims,
@@ -65,7 +68,7 @@ void dnn_lib::fwdLibMatMulInst(void *dstMatrix, void *dstMatrixDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
+void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
                                        void *dstMatrixPitches,
                                        void *activations, void *activationsDims,
                                        void *activationsPitches, void *weights,
@@ -373,7 +376,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 // wgt and dst tensors, so we can use vectorization.
 
 template <typename srcType>
-void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
+void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
                                          void *dstMatrixPitches,
                                          void *activations, void *activationsDims,
                                          void *activationsPitches, void *weights,
@@ -480,17 +483,8 @@ void dnn_lib::fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
 }
 
 
-GEN_INSTANCES_OP(template, fwdLibMatMulInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                         void *activations, void *activationsDims, void *activationsPitches,
-                         void *weights, void *weightsDims, void *weightPitches,
-                         const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibMatMulInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                         void *activations, void *activationsDims, void *activationsPitches,
-                         void *weights, void *weightsDims, void *weightPitches,
-                         const float *scale, const int32_t *offset, uint64_t flags,
-                         const uint32_t minionOffset = 0, const uint32_t numShires = 0);
-GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                         void *activations, void *activationsDims, void *activationsPitches,
-                         void *weights, void *weightsDims, void *weightPitches,
-                         const float *scale, const int32_t *offset, uint64_t flags,
-                         const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _MATMUL_INST_H_

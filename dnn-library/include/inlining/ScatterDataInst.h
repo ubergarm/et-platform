@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SCATTER_DATA_INST_H_
+#define _SCATTER_DATA_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
-#include "LibNodes.h"
-#include "GenInstances.h"
+
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
+namespace dnn_lib {
 
-using namespace std;
+namespace inlining {
 
 #define MAX_DIM_ALLOWED 6
 
@@ -78,7 +81,7 @@ class WriteSliceToDst<ptrT, 0> {
 };
 
 template <typename srcType>
-void dnn_lib::fwdLibScatterDataInst(void *dstT, void *dstDims,
+inline void fwdLibScatterDataInst(void *dstT, void *dstDims,
 				    void *dstPitches, unsigned int dstNumDim, void *indexT,
 				    void *indicesDims, void *pindicesPitches,
 				    void *slicesT, void *slicesDims, unsigned int sliceSize,
@@ -185,7 +188,7 @@ void dnn_lib::fwdLibScatterDataInst(void *dstT, void *dstDims,
 
 
 template <typename srcType>
-void dnn_lib::fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
+inline void fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
                                               void *dstPitches, unsigned int dstDimNum, void *indexT,
                                               void *indicesDims, void *pindicesPitches,
                                               void *slicesT, void *slicesDims,
@@ -281,11 +284,8 @@ void dnn_lib::fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibScatterDataInst, void *dstT, void *dstDims,
-		 void *dstPitches, unsigned int dstNumDim, void *indexT, void *indicesDims, void *pindicesPitches,
-		 void *slicesT, void *slicesDims, unsigned int sliceSize, void *slicesPitches, unsigned int sliceNumDim,
-		 const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibScatterDataInstThreaded, void *dstT, void *dstDims,
-		 void *dstPitches, unsigned int dstDimNum, void *indexT, void *indicesDims, void *pindicesPitches,
-		 void *slicesT, void *slicesDims, void *slicesPitches ,
-		 const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _SCATTER_DATA_INST_H_

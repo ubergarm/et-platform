@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ELEMENT_SINGLE_INST_H_
+#define _ELEMENT_SINGLE_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType, typename opType>
-void dnn_lib::fwdLibElementSingleInst(void *dstT, void *dstDims,
+inline void fwdLibElementSingleInst(void *dstT, void *dstDims,
                                       void *dstPitches, void *srcT1,
                                       void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, const float *scale,
@@ -83,7 +86,7 @@ void dnn_lib::fwdLibElementSingleInst(void *dstT, void *dstDims,
 }
 
 template <typename srcType, typename opType>
-void dnn_lib::fwdLibElementSingleInstThreaded(
+inline void fwdLibElementSingleInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, const float *scale,
     const int32_t *offset, uint64_t flags) {
@@ -138,7 +141,7 @@ void dnn_lib::fwdLibElementSingleInstThreaded(
 }
 
 template <typename src1Type, typename dstType, typename opType>
-void dnn_lib::fwdLibElementSingleInstVectorized(
+inline void fwdLibElementSingleInstVectorized(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, const float *scale,
     const int32_t *offset, uint64_t flags) {
@@ -244,18 +247,8 @@ void dnn_lib::fwdLibElementSingleInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementSingleInst,ElementLog,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum,
-                                 const float * scale, const int32_t * offset);
-GEN_INSTANCES_INSTANCES(template, fwdLibElementSingleInstThreaded,ElementLog,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum,
-                                 const float * scale, const int32_t * offset, uint64_t flags);
-GEN_INSTANCES_2TYPE(template, fwdLibElementSingleInstVectorized,ElementLog,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum,
-                                 const float * scale, const int32_t * offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _ELEMENT_SINGLE_INST_H_

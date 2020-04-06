@@ -9,26 +9,29 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
+#define _SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 // This version does NOT support Tensors of more than 2 dimensions with padding
 template <typename srcType>
-void dnn_lib::fwdLibSparseLengthsWeightedSumInst(
+inline void fwdLibSparseLengthsWeightedSumInst(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
@@ -90,7 +93,7 @@ void dnn_lib::fwdLibSparseLengthsWeightedSumInst(
 
 // This version DOES support Tensors of more than 2 dimensions with padding
 template <typename srcType>
-void dnn_lib::fwdLibSparseLengthsWeightedSumInstThreaded(
+inline void fwdLibSparseLengthsWeightedSumInstThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
@@ -167,11 +170,8 @@ void dnn_lib::fwdLibSparseLengthsWeightedSumInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInst,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-                                          unsigned int pLengthsSize, const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInstThreaded,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-                                          unsigned int pLengthsSize, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace dnn_lib
+
+} // namespace inlining
+
+#endif // _SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_

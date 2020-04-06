@@ -9,24 +9,27 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ROWWISE_QUANTIZED_SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
+#define _ROWWISE_QUANTIZED_SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
 
-void dnn_lib::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
+namespace inlining {
+
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
     void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
@@ -87,7 +90,7 @@ void dnn_lib::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   }
 }
 
-void dnn_lib::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
     void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
@@ -161,13 +164,12 @@ void dnn_lib::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
 }
 
 template<bool Int8Src, bool Float16Dst>
-void dnn_lib::
-    fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
 	    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
 	    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
 	    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-	    const uint32_t minionOffset, const uint32_t assignedMinions) {
+	    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   // Get offset of the Minion inside the group of Minions assigned to this Node.
   int64_t minionId = get_minion_id() - minionOffset;
@@ -653,10 +655,8 @@ void dnn_lib::
   }
 }
 
+} // namespace inlining
 
-GEN_INSTANCES_RQSLWS_V(template, fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
-            	void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-	    		void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-	    		void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-	    		void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-	    		const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+} // namespace dnn_lib
+
+#endif // _ROWWISE_QUANTIZED_SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_

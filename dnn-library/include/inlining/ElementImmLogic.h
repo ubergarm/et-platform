@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ELEMENT_IMM_LOGIC_H_
+#define _ELEMENT_IMM_LOGIC_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 /**
  * @brief Immediate logic operations, like andi, ori, xori...
@@ -46,7 +49,7 @@ using namespace std;
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType, typename opType>
-void dnn_lib::fwdLibElementImmLogic(void *dstT, void *dstDims,
+inline void fwdLibElementImmLogic(void *dstT, void *dstDims,
                                      void *dstPitches, void *srcT1,
                                      void *srcDims, void *srcPitches,
                                      unsigned int srcDimNum, void *imm,
@@ -99,20 +102,8 @@ void dnn_lib::fwdLibElementImmLogic(void *dstT, void *dstDims,
   }
 }
 
-GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, And, void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *imm, 
-                                 const float * scale, const int32_t * offset);
+} // namespace inlining
 
-GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, Or, void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *imm, 
-                                 const float * scale, const int32_t * offset);
+} // namespace dnn_lib
 
-GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, Xor, void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *imm, 
-                                 const float * scale, const int32_t * offset);
+#endif // _ELEMENT_IMM_LOGIC_H_

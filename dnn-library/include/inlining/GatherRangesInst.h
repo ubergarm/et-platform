@@ -9,26 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _GATHER_RANGES_INST_H_
+#define _GATHER_RANGES_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
 
+namespace inlining {
 
 template <typename srcType, typename indexType>
-void dnn_lib::fwdLibGatherRangesInst(
+inline void fwdLibGatherRangesInst(
     void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
@@ -115,7 +117,7 @@ void dnn_lib::fwdLibGatherRangesInst(
 // of batches of the source tensor that will be copied.
 
 template <typename srcType, typename indexType>
-void dnn_lib::fwdLibGatherRangesInstThreaded(
+inline void fwdLibGatherRangesInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
     void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
@@ -267,13 +269,8 @@ void dnn_lib::fwdLibGatherRangesInstThreaded(
   }
 }
 
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, void *dstT, void *dstDims, void *dstPitches,
-                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
-                                     void *srcT, void *srcDims, void *srcPitches,
-                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-                                     void *prangesPitches, const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
-                                     void *srcT, void *srcDims, void *srcPitches,
-                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-                                     void *prangesPitches, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _GATHER_RANGES_INST_H_

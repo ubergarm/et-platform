@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _EMBEDDING_BAG_INST_H_
+#define _EMBEDDING_BAG_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 // Notes :
 //
@@ -39,7 +42,7 @@ using namespace std;
 // indices and offsets tensors dimensions are required.
 //
 
-void dnn_lib::fwdLibEmbeddingBagInstFloatTy(void *pdst,
+inline void fwdLibEmbeddingBagInstFloatTy(void *pdst,
   void *pdata, uint64_t dataDim1Pitch,
   void *pweights,
   void *pindices, uint64_t indicesSize,
@@ -89,3 +92,8 @@ void dnn_lib::fwdLibEmbeddingBagInstFloatTy(void *pdst,
   }
 }
 
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _EMBEDDING_BAG_INST_H_

@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SPARSE_TO_DENSE_INST_H_
+#define _SPARSE_TO_DENSE_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibSparseToDenseInst(void *dstT, void *dstDims,
+inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(void *dstT, void *dstDims,
                                       void *dstPitches, void *srcT,
                                       void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, void *indicesT,
@@ -113,7 +116,7 @@ void dnn_lib::fwdLibSparseToDenseInst(void *dstT, void *dstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibSparseToDenseInstThreaded(
+inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
     void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
@@ -183,7 +186,7 @@ void dnn_lib::fwdLibSparseToDenseInstThreaded(
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
 std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__("add t0, zero, zero\n"
@@ -222,7 +225,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
 std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
 
@@ -269,7 +272,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
 std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
   __asm__ __volatile__("add t0, zero, zero\n"
@@ -334,13 +337,13 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
 && !std::is_same<srcType, float16>::value
 && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
-void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 }
 
 
 template <typename srcType>
-void dnn_lib::fwdLibSparseToDenseInstVectorized(
+inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
     void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
     void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
@@ -453,15 +456,8 @@ void dnn_lib::fwdLibSparseToDenseInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseInst, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstVectorized, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _SPARSE_TO_DENSE_INST_H_

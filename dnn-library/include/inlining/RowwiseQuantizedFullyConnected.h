@@ -9,24 +9,27 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ROWWISE_QUANTIZED_FULLY_CONNECTED_H_
+#define _ROWWISE_QUANTIZED_FULLY_CONNECTED_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
 
-void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
+namespace inlining {
+
+inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
     void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
     void *pdataPitches, void *pscale, void *poffset, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
@@ -75,7 +78,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
 }
 
 
-void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
+inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
     void *pdataPitches, void *pscale, void *poffset, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
@@ -159,7 +162,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 }
 
-void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
+inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
     void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
     void *pdataPitches, void *pscale, void *poffset, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
@@ -317,7 +320,7 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 #undef MATMUL_ITERATION
 }
 
-void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
+inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
     void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
     void *pdataPitches, void *pscale, void *poffset, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
@@ -452,3 +455,8 @@ void dnn_lib::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
 #undef MATMUL_ITERATION
 }
 
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _ROWWISE_QUANTIZED_FULLY_CONNECTED_H_

@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SPLAT_INST_H_
+#define _SPLAT_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
+inline void fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
                               const float *scale, const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
@@ -48,7 +51,7 @@ void dnn_lib::fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
 }
 
 template <typename sourceTy>
-void dnn_lib::fwdLibSplatInstThreaded(void *dst, void *dstDims,
+inline void fwdLibSplatInstThreaded(void *dst, void *dstDims,
                                       void *dstPitches, unsigned int dstDimNum,
                                       uint64_t *splatValPtr, const float *scale,
                                       const int32_t *offset, uint64_t flags) {
@@ -99,7 +102,7 @@ void dnn_lib::fwdLibSplatInstThreaded(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
+inline void fwdLibSplatInstVectorized(void *dst, void *dstDims,
                                         void *dstPitches, unsigned int dstDimNum,
                                         uint64_t *splatVal, const float *scale,
                                         const int32_t *offset, uint64_t flags) {
@@ -183,12 +186,8 @@ void dnn_lib::fwdLibSplatInstVectorized(void *dst, void *dstDims,
 
 }
 
+} // namespace inlining
 
-GEN_INSTANCES_OP(template, fwdLibSplatInst, void *addr, int numElems, uint64_t *splatVal,
-                        const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, uint64_t *splatVal,
-                             const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibSplatInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, uint64_t *splatVal,
-                             const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace dnn_lib
+
+#endif // _SPLAT_INST_H_

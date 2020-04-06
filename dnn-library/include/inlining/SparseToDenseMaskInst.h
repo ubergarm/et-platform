@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SPARSE_TO_DENSE_MASK_INST_H
+#define _SPARSE_TO_DENSE_MASK_INST_H
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibSparseToDenseMaskInst(
+inline void fwdLibSparseToDenseMaskInst(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pdefault,
     int pdefaultSize, void *pindices, void *plengths, unsigned int pLengthsSize,
@@ -104,7 +107,7 @@ void dnn_lib::fwdLibSparseToDenseMaskInst(
 // (2) The dimensions and pitches of the pdefault tensor are the ones of a batch of the data tensor.
 
 template <typename srcType>
-void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
+inline void fwdLibSparseToDenseMaskInstThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, unsigned int pdataDimNum, void *pdefault,
     int pdefaultSize, void *pindices, void *plengths, unsigned int pLengthsSize,
@@ -217,13 +220,8 @@ void dnn_lib::fwdLibSparseToDenseMaskInstThreaded(
   }
 }
 
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseMaskInst, void *pdst, void *pdstDims, void *pdstPitches,
-                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
-                                    void *pdataPitches, void *pdefault, int pdefaultSize,
-                                    void *pindices, void *plengths, unsigned int pLengthsSize,
-                                    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseMaskInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
-                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
-                                    void *pdataPitches, unsigned int pdataDimNum, void *pdefault, int pdefaultSize,
-                                    void *pindices, void *plengths, unsigned int pLengthsSize,
-                                    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _SPARSE_TO_DENSE_MASK_INST_H

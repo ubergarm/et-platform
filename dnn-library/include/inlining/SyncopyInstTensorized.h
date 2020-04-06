@@ -9,24 +9,27 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SYNCOPY_INST_TENSORIZED_H_
+#define _SYNCOPY_INST_TENSORIZED_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 #include "shire.h"
 #include "barriers.h"
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 /**
  * @brief Sync Minions copy the src matrix to the dst matrix
@@ -44,8 +47,8 @@ using namespace std;
  * @param[in] scale, offset Parameters for the quantization.
  * @param[in] off offset applied to ensure tensor starting at CL
  */
- template <typename srcType>
- void dnn_lib::fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
+template <typename srcType>
+inline void fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
                                            void *src, unsigned int DimNum,
                                            const float *scale, const int32_t *offset,
                                            unsigned int off) {
@@ -132,7 +135,8 @@ using namespace std;
   WAIT_CACHEOPS;
 }
 
-GEN_INSTANCES_OP(template, fwdLibSyncopyInstTensorized, void *dst, void *Dims, void *Pitches,
-                                  void *src, unsigned int DimNum,
-                                  const float *scale, const int32_t *offset,
-                                  unsigned int off);
+} // namespace dnn_lib
+
+} // namespace inlining
+
+#endif // _SYNCOPY_INST_TENSORIZED_H_

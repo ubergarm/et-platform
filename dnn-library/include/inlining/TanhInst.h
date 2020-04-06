@@ -9,26 +9,29 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _TANH_INST_H_
+#define _TANH_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 // TODO Check corner cases
 template <typename srcType>
-void dnn_lib::fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
+inline void fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
                              void *srcT1, void *srcDims, void *srcPitches,
                              unsigned int srcDimNum, const float *scale,
                              const int32_t *offset) {
@@ -83,7 +86,7 @@ void dnn_lib::fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibTanhInstThreaded(void *dstT, void *dstDims,
+inline void fwdLibTanhInstThreaded(void *dstT, void *dstDims,
                                      void *dstPitches, void *srcT1,
                                      void *srcDims, void *srcPitches,
                                      unsigned int srcDimNum,
@@ -143,9 +146,8 @@ void dnn_lib::fwdLibTanhInstThreaded(void *dstT, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibTanhInst, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
-                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibTanhInstThreaded, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
-                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _TANH_INST_H_

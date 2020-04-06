@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _FULLY_CONNECTED_INST_H_
+#define _FULLY_CONNECTED_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibFullyConnectedInst(
+inline void fwdLibFullyConnectedInst(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -69,7 +72,7 @@ void dnn_lib::fwdLibFullyConnectedInst(
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibFullyConnectedInstThreaded(
+inline void fwdLibFullyConnectedInstThreaded(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -131,7 +134,7 @@ void dnn_lib::fwdLibFullyConnectedInstThreaded(
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, float>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
     "flw.ps   f0, 0x0(%[actAddr])\n"   \
@@ -189,7 +192,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, float16>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
     "fgh.ps   f0, f28(%[actAddr])\n"   \
@@ -252,7 +255,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
 #define INT8_TO_FP32(_reg)                  \
     "fsub.pi " #_reg ", " #_reg ", f16 \n"  \
@@ -456,7 +459,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
     STEP1
@@ -483,7 +486,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
   __asm__ __volatile__(
     STEP1
     MATMUL_ITERATION_I8_U8
@@ -509,7 +512,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
     STEP1
@@ -536,7 +539,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, int8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
     STEP1
@@ -563,7 +566,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, int8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
     STEP1
@@ -591,7 +594,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, int8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset) {
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset) {
 
   __asm__ __volatile__(
     STEP1
@@ -618,7 +621,7 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 }
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<src1Type, uint8_t>::value && std::is_same<src2Type, uint8_t>::value && std::is_same<dstType, uint8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
     STEP1
@@ -644,13 +647,23 @@ void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, 
 
 }
 
-
+#undef INT8_TO_FP32
+#undef UINT8_TO_FP32
+#undef MATMUL_ITERATION_U8_U8
+#undef MATMUL_ITERATION_I8_U8
+#undef MATMUL_ITERATION_U8_I8
+#undef MATMUL_ITERATION_I8_I8
+#undef FP32_TO_INT8
+#undef FP32_TO_UINT8
+#undef STEP1
+#undef STEP2
+#undef STEP3
 
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<!std::is_same<src1Type, int8_t>::value && !std::is_same<src1Type, float16>::value && !std::is_same<src1Type, float>::value && !std::is_same<src1Type, uint8_t>::value, std::size_t>::type = 0>
-void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){}
+inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){}
 
 template <typename src1Type, typename src2Type, typename dstType>
-void dnn_lib::fwdLibFullyConnectedInstVectorized(
+inline void fwdLibFullyConnectedInstVectorized(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches1,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -721,15 +734,8 @@ void dnn_lib::fwdLibFullyConnectedInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibFullyConnectedInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                      void *activations, void *activationsDims, void *activationsPitches,
-                                      void *weights, void *weightsDims, void *weightPitches,
-                                      void *bias, const float *scale, const int32_t *offset );
-GEN_INSTANCES_OP(template, fwdLibFullyConnectedInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                      void *activations, void *activationsDims, void *activationsPitches,
-                                      void *weights, void *weightsDims, void *weightPitches,
-                                      void *bias, const float *scale, const int32_t *offset, uint64_t flags );
-GEN_INSTANCES_3TYPE_OP(template, fwdLibFullyConnectedInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                      void *activations, void *activationsDims, void *activationsPitches,
-                                      void *weights, void *weightsDims, void *weightPitches,
-                                      void *bias, const float *scale, const int32_t *offset, uint64_t flags );
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _FULLY_CONNECTED_INST_H_

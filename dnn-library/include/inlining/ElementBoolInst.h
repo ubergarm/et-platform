@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ELEMENT_BOOL_INST_H_
+#define _ELEMENT_BOOL_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 /**
  * @brief Given to tensors, it gives the result of the opType applied elementwise.
@@ -50,7 +53,7 @@ using namespace std;
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType, typename opType>
-void dnn_lib::fwdLibElementBoolInst(void *dstT, void *dstDims, void *dstPitches,
+inline void fwdLibElementBoolInst(void *dstT, void *dstDims, void *dstPitches,
                                     void *srcT1, void *srcDims,
                                     void *src1Pitches, unsigned int srcDimNum,
                                     void *srcT2, void *src2Pitches, const float *scale,
@@ -134,7 +137,7 @@ void dnn_lib::fwdLibElementBoolInst(void *dstT, void *dstDims, void *dstPitches,
  *  should be done at the end of the function.
  */
 template <typename srcType, typename opType>
-void dnn_lib::fwdLibElementBoolInstThreaded(
+inline void fwdLibElementBoolInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
     void *src1Pitches, unsigned int srcDimNum, void *srcT2, void *src2Pitches,
     const float *scale, const int32_t *offset, uint64_t flags) {
@@ -219,7 +222,7 @@ void dnn_lib::fwdLibElementBoolInstThreaded(
  *  should be done at the end of the function.
  */
 template <typename src1Type, typename src2Type, typename opType>
-void dnn_lib::fwdLibElementBoolInstVectorized(
+inline void fwdLibElementBoolInstVectorized(
     void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
     void *src1Pitches, unsigned int srcDimNum, void *srcT2, void *src2Pitches,
     const float *scale, const int32_t *offset, uint64_t flags) {
@@ -328,45 +331,9 @@ void dnn_lib::fwdLibElementBoolInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInst,CmpEQ,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *srcT2,
-                                 void *src2Pitches,
-                                 const float * scale, const int32_t * offset);
+} // namespace inlining
 
+} // namespace dnn_lib
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInst,CmpLTE,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *srcT2,
-                                 void *src2Pitches,
-                                 const float * scale, const int32_t * offset);
+#endif // _ELEMENT_BOOL_INST_H_
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInstThreaded,CmpEQ,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *srcT2,
-                                 void *src2Pitches,
-                                 const float * scale, const int32_t  * offset, uint64_t flags);
-
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInstThreaded,CmpLTE,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *srcT2,
-                                 void *src2Pitches,
-                                 const float * scale, const int32_t * offset, uint64_t flags);
-
-GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstVectorized,CmpEQ,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *srcT2,
-                                 void *src2Pitches,
-                                 const float * scale, const int32_t * offset, uint64_t flags);
-
-GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstVectorized,CmpLTE,void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *srcT2,
-                                 void *src2Pitches,
-                                 const float * scale, const int32_t * offset, uint64_t flags);

@@ -9,6 +9,9 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _TENSOR_VIEW_INST_H_
+#define _TENSOR_VIEW_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
@@ -16,19 +19,19 @@
 #include <cstring>
 #include <utility>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
+inline void fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
                                    unsigned int dstDimNum, void *src,
                                    void *srcDims, void *srcPitches,
                                    unsigned int srcDimNum, void *pcoord,
@@ -102,7 +105,7 @@ void dnn_lib::fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibTensorViewInstThreaded(
+inline void fwdLibTensorViewInstThreaded(
     void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
     void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
     void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
@@ -235,7 +238,7 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibTensorViewInstVectorized(
+inline void fwdLibTensorViewInstVectorized(
     void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
     void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
     void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
@@ -378,15 +381,9 @@ void dnn_lib::fwdLibTensorViewInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddrOut, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibTensorViewInst, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibTensorViewInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset, uint64_t flags );
-GEN_INSTANCES_OP(template, fwdLibTensorViewInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset, uint64_t flags );
+} // namespace inlining
+
+} // namespace dnn_lib
+
+
+#endif // _TENSOR_VIEW_INST_H_

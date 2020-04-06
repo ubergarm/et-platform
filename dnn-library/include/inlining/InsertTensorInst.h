@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
+ * Copyright (C) 2020, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -9,32 +9,35 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _INSERT_TENSOR_INST_H_
+#define _INSERT_TENSOR_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 #include "cacheops.h"
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
+void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                                      unsigned int dstDimNum, void *src2,
                                      void *src2Dims, void *src2Pitches,
                                      void *pcoord, unsigned int count,
                                      unsigned int axis, const float *scale,
                                      const int32_t *offset, uint64_t flags,
-                                     const uint32_t minionOffset) {
+                                     const uint32_t minionOffset = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
@@ -113,7 +116,7 @@ void dnn_lib::fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 //FIXME This version fits the small cases that currently are not vectorized,
 //but it still fails some tests.
 //template <typename srcType>
-//void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
+//void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
 //                                             void *dstPitches,
 //                                             unsigned int dstDimNum, void *src2,
 //                                             void *src2Dims, void *src2Pitches,
@@ -308,15 +311,15 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
+void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                              void *dstPitches,
                                              unsigned int dstDimNum, void *src2,
                                              void *src2Dims, void *src2Pitches,
                                              void *poffsets, unsigned int count,
                                              unsigned int axis, const float *scale,
                                              const int32_t *offset, uint64_t flags,
-                                             const uint32_t minionOffset,
-                                             const  uint32_t assignedMinions) {
+                                             const uint32_t minionOffset = 0,
+                                             const  uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) :  assignedMinions;
@@ -588,14 +591,9 @@ void dnn_lib::fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
   }
 }
 
-GEN_INSTANCES_OP(template, fwdLibInsertTensorInst, void *dst, void *dstDims,
-                 void *dstPitches, unsigned int dstDimNum, void *src2, 
-                 void *src2Dims, void *src2Pitches, void * poffsets, 
-                 unsigned int count, unsigned int axis, const float *scale, 
-                 const int32_t *offset, uint64_t flags, const uint32_t minionOffset);
-GEN_INSTANCES_OP(template, fwdLibInsertTensorInstThreaded, void *dst, void *dstDims,
-                 void *dstPitches, unsigned int dstDimNum, void *src2, 
-                 void *src2Dims, void *src2Pitches, void * poffsets, 
-                 unsigned int count, unsigned int axis, const float *scale, 
-                 const int32_t *offset, uint64_t flags,
-                 const uint32_t minionOffset, const uint32_t assignedMinions);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _INSERT_TENSOR_INST_H_
+

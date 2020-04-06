@@ -16,6 +16,8 @@
 #include "Writer.h"
 #include "LibCommon.h"
 
+namespace dnn_lib {
+
 template <typename T> class Addresser {
   T *ptrT_;
   uint16_t *ptrfp16_;
@@ -155,5 +157,7 @@ public:
     return ptrT_[index];
   }
 };
+
+} // dnn_lib
 
 #endif /* ADDRESSER_H */

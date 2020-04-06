@@ -9,24 +9,27 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _INT_LOOKUP_TABLE_INST_H_
+#define _INT_LOOKUP_TABLE_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
 
-void dnn_lib::fwdLibIntLookupTableInstInt8QTy(
+namespace inlining {
+
+inline void fwdLibIntLookupTableInstInt8QTy(
     void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
     void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,
     void *src2Pitches) {
@@ -78,7 +81,7 @@ void dnn_lib::fwdLibIntLookupTableInstInt8QTy(
   }
 }
 
-void dnn_lib::fwdLibIntLookupTableInstInt8QTyThreaded(
+inline void fwdLibIntLookupTableInstInt8QTyThreaded(
     void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
     void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,
     void *src2Pitches, uint64_t flags) {
@@ -132,3 +135,9 @@ void dnn_lib::fwdLibIntLookupTableInstInt8QTyThreaded(
   unsigned int clperminion = maxRead * sizeof(int8_t) / 64;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
 }
+
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _INT_LOOKUP_TABLE_INST_H_

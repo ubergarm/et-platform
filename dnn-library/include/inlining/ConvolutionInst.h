@@ -9,22 +9,27 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _CONVOLUTION_INST_H_
+#define _CONVOLUTION_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
 using namespace std;
+
+namespace dnn_lib {
+
+namespace inlining {
 
 /**
  * @brief Performs the conolution operation between the activation, weights and bias.
@@ -51,7 +56,7 @@ using namespace std;
  * @param[in] offset The offset for the quantization.
  */
 template <typename srcType>
-void dnn_lib::fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
+inline void fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
                                     void *dstMatrixPitches, void *activations,
                                     void *activationsDims,
                                     void *activationsPitches, void *weights,
@@ -168,7 +173,7 @@ void dnn_lib::fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
  *  should be done at the end of the function.
  */
 template <typename srcType>
-void dnn_lib::fwdLibConvolutionInstThreaded(
+inline void fwdLibConvolutionInstThreaded(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -301,7 +306,7 @@ void dnn_lib::fwdLibConvolutionInstThreaded(
  */
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
                             src1Type, float>::value, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord,
+inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
@@ -415,7 +420,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  */
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
                             src1Type, float16>::value, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord,
+inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
@@ -557,7 +562,7 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
                             src1Type, float>::value) /*&& (!std::is_same<
                             src1Type, float16>::value) && (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord,
+inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
@@ -596,7 +601,7 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
                             src1Type, float>::value) && */(!std::is_same<
                             src1Type, float16>::value) /*&& (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
-void convolutionOp (void *activations, void *weights, unsigned int *coord,
+inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
@@ -628,7 +633,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
 
 
 template <typename src1Type, typename src2Type, typename dstType>
-void convolutionOp (void *activations, void *weights, unsigned int *coord,
+inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                     unsigned int *actPitch, unsigned int *weightPitch,
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
@@ -690,7 +695,7 @@ void convolutionOp (void *activations, void *weights, unsigned int *coord,
  *  should be done at the end of the function.
  */
 template <typename src1Type, typename src2Type, typename dstType>
-void dnn_lib::fwdLibConvolutionInstVectorized(
+inline void fwdLibConvolutionInstVectorized(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
     void *weights, void *weightsDims, void *weightPitches, void *bias,
@@ -774,18 +779,8 @@ void dnn_lib::fwdLibConvolutionInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibConvolutionInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                              void *activations, void *activationsDims, void *activationsPitches,
-                              void *weights, void *weightsDims, void *weightPitches, void *bias,
-                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibConvolutionInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                              void *activations, void *activationsDims, void *activationsPitches,
-                              void *weights, void *weightsDims, void *weightPitches, void *bias,
-                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                              void *activations, void *activationsDims, void *activationsPitches,
-                              void *weights, void *weightsDims, void *weightPitches, void *bias,
-                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _CONVOLUTION_INST_H_

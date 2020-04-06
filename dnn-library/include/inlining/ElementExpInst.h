@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ELEMENT_EXP_INST_H_
+#define _ELEMENT_EXP_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 /**
  * @brief Given a tensor, it gives the the exponential of each element.
@@ -45,7 +48,7 @@ using namespace std;
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-void dnn_lib::fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
+inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
                                    void *srcT, void *srcDims, void *srcPitches,
                                    unsigned int srcDimNum, const float *scale,
                                    const int32_t *offset) {
@@ -96,7 +99,9 @@ void dnn_lib::fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
   }
 }
 
-GEN_INSTANCES_OP(template, fwdLibElementExpInst,void *dstT, void *dstDims, void *dstPitches,
-                                 void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, const float * scale,
-                                 const int32_t * offset);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _ELEMENT_EXP_INST_H_
+

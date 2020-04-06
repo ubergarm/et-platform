@@ -9,26 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _BATCH_ONE_HOST_INST_H_
+#define _BATCH_ONE_HOST_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
 
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
+inline void fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
                                     void *pdstPitches, void *pdata,
                                     void *pdataDims, void *pdataPitches,
                                     void *pvalues, void *pvaluesDims,
@@ -75,7 +77,7 @@ void dnn_lib::fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
+inline void fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
                                             void *pdstPitches, void *pdata,
                                             void *pdataDims, void *pdataPitches,
                                             void *pvalues, void *pvaluesDims,
@@ -197,11 +199,8 @@ void dnn_lib::fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*dstAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibBatchOneHotInst, void *pdst, void *pdstDims, void *pdstPitches,
-                              void *pdata, void *pdataDims, void *pdataPitches,
-                              void *pvalues, void *pvaluesDims, void *pvaluesPitches,
-                              void *plengths, const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibBatchOneHotInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
-                                      void *pdata, void *pdataDims, void *pdataPitches,
-                                      void *pvalues, void *pvaluesDims, void *pvaluesPitches,
-                                      void *plengths, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _BATCH_ONE_HOST_INST_H_

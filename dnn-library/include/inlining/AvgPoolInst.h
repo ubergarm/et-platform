@@ -9,25 +9,31 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _AVG_POOL_INST_H_
+#define _AVG_POOL_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
 using namespace std;
 
+
+namespace dnn_lib {
+
+namespace inlining {
+
 template <typename srcType>
-void dnn_lib::fwdLibAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
+inline void fwdLibAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
                                 void *dstMatrixPitches, void *activations,
                                 void *activationsDims, void *activationsPitches,
                                 void *pkernels, void *pstrides, void *ppads,
@@ -93,7 +99,7 @@ void dnn_lib::fwdLibAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
 }
 
 template <typename srcType, typename dstType>
-void dnn_lib::fwdLibAvgPoolInstThreaded(
+inline void fwdLibAvgPoolInstThreaded(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
     void *pkernels, void *pstrides, void *ppads, const float *scale, const int32_t *offset,
@@ -179,14 +185,8 @@ void dnn_lib::fwdLibAvgPoolInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibAvgPoolInst,void *dstMatrix, void *dstMatrixDims,
-                 void *dstMatrixPitches, void *activations,
-                 void *activationsDims, void *activationsPitches,
-                 void *pkernels, void *pstrides, void *ppads,
-                 const float *scale, const int32_t *offset);
+} // namespace inlining
 
-GEN_INSTANCES_2TYPE_OP(template, fwdLibAvgPoolInstThreaded,void *dstMatrix, void *dstMatrixDims,
-                         void *dstMatrixPitches, void *activations,
-                         void *activationsDims, void *activationsPitches,
-                         void *pkernels, void *pstrides, void *ppads,
-                         const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace dnn_lib
+
+#endif // _AVG_POOL_INST_H_

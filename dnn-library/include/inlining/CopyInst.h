@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _COPY_INST_H_
+#define _COPY_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 /**
  * @brief Copies the src matrix to the dst matrix.
@@ -44,7 +47,7 @@ using namespace std;
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-void dnn_lib::fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
+inline void fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
                              void *src, void *srcDims, void *srcPitches,
                              unsigned int srcDimNum, const float *scale, const int32_t *offset) {
 
@@ -96,13 +99,13 @@ void dnn_lib::fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-void dnn_lib::fwdLibCopyInstThreaded(void *dst, void *dstDims,
+inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
                                      void *dstPitches, void *src,
                                      void *srcDims, void *srcPitches,
                                      unsigned int srcDimNum, const float *scale,
                                      const int32_t *offset, uint64_t flags,
-                                     const uint32_t minionOffset,
-                                     const uint32_t assignedMinions) {
+                                     const uint32_t minionOffset = 0,
+                                     const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
@@ -189,13 +192,13 @@ void dnn_lib::fwdLibCopyInstThreaded(void *dst, void *dstDims,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
+inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
                                        void *dstPitches, void *src,
                                        void *srcDims, void *srcPitches,
                                        unsigned int srcDimNum, const float *scale,
                                        const int32_t *offset, uint64_t flags,
-                                       const uint32_t minionOffset,
-                                       const uint32_t assignedMinions) {
+                                       const uint32_t minionOffset = 0,
+                                       const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
@@ -371,16 +374,8 @@ void dnn_lib::fwdLibCopyInstVectorized(void *dst, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
+} // namespace inlining
 
-GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *dstDims, void *dstPitches,
-                      void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset, uint64_t flags,
-                                  const uint32_t minionOffset, const uint32_t assignedMinions);
-GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset, uint64_t flags,
-                                  const uint32_t minionOffset, const uint32_t assignedMinions);
+} // namespace dnn_lib
 
+#endif // _COPY_INST_H_

@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _LOCAL_RESPONSE_NORMALIZATION_INST_H_
+#define _LOCAL_RESPONSE_NORMALIZATION_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibLocalResponseNormalizationInst(
+inline void fwdLibLocalResponseNormalizationInst(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
@@ -111,7 +114,7 @@ void dnn_lib::fwdLibLocalResponseNormalizationInst(
 // pass, i.e. ETSOC won't be using it. Actually, we could skip generating it.
 
 template <typename srcType>
-void dnn_lib::fwdLibLocalResponseNormalizationInstThreaded(
+inline void fwdLibLocalResponseNormalizationInstThreaded(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
@@ -204,9 +207,8 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-
 template <typename srcType>
-void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
+inline void fwdLibLocalResponseNormalizationInstVectorized(
     void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
     void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
     void *activations, void *activationsDims, void *activationsPitches,
@@ -333,18 +335,8 @@ void dnn_lib::fwdLibLocalResponseNormalizationInstVectorized(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _LOCAL_RESPONSE_NORMALIZATION_INST_H_

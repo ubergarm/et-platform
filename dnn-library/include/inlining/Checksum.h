@@ -9,24 +9,27 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _CHECKSUM_H_
+#define _CHECKSUM_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
 
-static inline void uint32_to_ascii_hex(char *s, uint32_t value) {
+namespace inlining {
+
+inline void uint32_to_ascii_hex(char *s, uint32_t value) {
   for (uint32_t i = 0; i < 8; i++) {
     uint32_t bits = (value >> (28 - i * 4)) & 0xF;
     s[i] = (bits <= 9) ? ('0' + bits) : ('A' + bits - 10);
@@ -34,7 +37,7 @@ static inline void uint32_to_ascii_hex(char *s, uint32_t value) {
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
+inline void fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
                              unsigned int srcDimNum, const float *scale,
                              const int32_t *offset, uint64_t flags) {
   // The checksum is the u32 addition of all the non-padding bytes of the tensor
@@ -100,7 +103,7 @@ void dnn_lib::fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
 }
 
 // Node to force flushing the L3 at the end of the computation
-void dnn_lib::fwdLibFlushL3(uint32_t numShires) {
+inline void fwdLibFlushL3(uint32_t numShires) {
   uint32_t minion = get_minion_id() & 0x1F;
   // The T0 of minion N of shire 0 flushes the L3 of shire N
   if ((get_shire_id() == 0) && (get_thread_id() == 0) && (minion < numShires)) {
@@ -108,7 +111,8 @@ void dnn_lib::fwdLibFlushL3(uint32_t numShires) {
   }
 }
 
-GEN_INSTANCES_OP(template, fwdLibChecksum, void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset,
-                                  uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _CHECKSUM_H_

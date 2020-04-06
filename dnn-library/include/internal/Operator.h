@@ -14,8 +14,10 @@
 
 #include "LibCommon.h"
 #include "utils.h"
+#include "Operators.h"
 
 using namespace dnn_lib;
+using namespace std;
 
 #define OPERATION_STEP1   \
            "flw.ps f31, %[gatherValues]\n"               \

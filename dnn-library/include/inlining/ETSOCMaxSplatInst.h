@@ -9,27 +9,30 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ETSOC_MAX_SPLAT_INST_H_
+#define _ETSOC_MAX_SPLAT_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 // This function copies a matrix replacing all the elements which are < splatVal
 // and replaces them with splatVal
 template <typename srcType>
-void dnn_lib::fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
+inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
                                       void *dstPitches, void *srcT,
                                       void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, float splatVal,
@@ -81,7 +84,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
+inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
                                       void *dstPitches, void *srcT,
                                       void *srcDims, void *srcPitches,
                                       unsigned int srcDimNum, int64_t splatVal,
@@ -133,7 +136,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
+inline void fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
@@ -197,7 +200,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
+inline void fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
@@ -263,7 +266,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0,
           bool aligned32B = false>
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
+inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
   float op0, op1;
   // note: no difference between aligned and non aligned versions, as it is not using gathers or scatters
   __asm__ __volatile__(
@@ -282,7 +285,7 @@ void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scal
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0,
           bool aligned32B = false >
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
+inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
   // aligned used gather/scatter32, non aligned uses regular ones
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
   float gv, op0, op1;
@@ -318,7 +321,7 @@ void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scal
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,std::size_t>::type = 0,
           bool aligned32B = false > 
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
+inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
   // aligned used gather/scatter32, non aligned uses regular ones
   float gv, scale_v, offset_v, op0, op1;
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -368,12 +371,12 @@ template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_
                                                     && !std::is_same<srcType, float16>::value
                                                     && !std::is_same<srcType, float>::value, std::size_t>::type = 0,
           bool aligned32B = false>
-void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
+inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
   //FIXME: implementation missing
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
+inline void fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
@@ -478,7 +481,7 @@ void dnn_lib::fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
+inline void fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
                                               void *dstPitches, void *src,
                                               void *srcDims, void *srcPitches,
                                               unsigned int srcDimNum,
@@ -549,27 +552,8 @@ void dnn_lib::fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
     evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, 64);
 }
 
-GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, float splatVal,
-                                const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInst, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, int64_t splatVal,
-                                const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
-                                         void *src, void *srcDims, void *srcPitches,
-                                         unsigned int srcDimNum, float splatVal,
-                                         const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstThreaded,void *dst, void *dstDims, void *dstPitches,
-                                         void *src, void *srcDims, void *srcPitches,
-                                         unsigned int srcDimNum, int64_t splatVal,
-                                         const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstVectorized,void *dst, void *dstDims, void *dstPitches,
-                                         void *src, void *srcDims, void *srcPitches,
-                                         unsigned int srcDimNum, float splatVal,
-                                         const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibETSOCMaxSplatInstAligned32Bytes,void *dst, void *dstDims, void *dstPitches,
-                                         void *src, void *srcDims, void *srcPitches,
-                                         unsigned int srcDimNum, float splatVal,
-                                         const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _ETSOC_MAX_SPLAT_INST_H_

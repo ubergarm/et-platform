@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
+ * Copyright (C) 2020, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -9,25 +9,26 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ADAPTIVE_AVG_POOL_INST_H_
+#define _ADAPTIVE_AVG_POOL_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
-#include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "utils.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
 
 using namespace std;
 
+namespace dnn_lib {
+
+namespace inlining {
+
 template <typename srcType>
-void dnn_lib::fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
+inline void fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
                                 void *dstMatrixPitches, void *activations,
                                 void *activationsDims, void *activationsPitches,
                                 const float *scale, const int32_t *offset) {
@@ -36,8 +37,8 @@ void dnn_lib::fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  dnn_lib::Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
+  const dnn_lib::Addresser<srcType> tAInput(activations, scale[0], offset[0]);
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
@@ -89,7 +90,8 @@ void dnn_lib::fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
 #undef END_IND
 }
 
-GEN_INSTANCES_OP(template, fwdLibAdaptiveAvgPoolInst,void *dstMatrix, void *dstMatrixDims,
-                 void *dstMatrixPitches, void *activations,
-                 void *activationsDims, void *activationsPitches,
-                 const float *scale, const int32_t *offset);
+} // inlining
+
+} // dnn_lib
+
+#endif // _ADAPTIVE_AVG_POOL_INST_H_

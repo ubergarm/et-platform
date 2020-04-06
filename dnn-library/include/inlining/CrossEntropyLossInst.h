@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _CROSS_ENTROPY_LOST_INST_H_
+#define _CROSS_ENTROPY_LOST_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
+inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
                                          void *srcPitches,
                                          unsigned int srcDimNum, void *labelsT,
                                          const float *scale, const int32_t *offset) {
@@ -61,7 +64,7 @@ void dnn_lib::fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibCrossEntropyLossInstThreaded(
+inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
     void *dstT, void *srcT, void *srcDims, void *srcPitches,
     unsigned int srcDimNum, void *labelsT, const float *scale, const int32_t *offset,
     uint64_t flags) {
@@ -113,9 +116,8 @@ void dnn_lib::fwdLibCrossEntropyLossInstThreaded(
     tOutput[0] = sum * M_1_LOG2E;
 }
 
-GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInst, void *dstT, void *srcT, void *srcDims,
-                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
-                                   const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInstThreaded, void *dstT, void *srcT, void *srcDims,
-                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
-                                   const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _CROSS_ENTROPY_LOST_INST_H_

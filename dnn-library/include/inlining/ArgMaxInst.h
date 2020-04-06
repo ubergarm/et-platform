@@ -9,25 +9,31 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _ARG_MAX_INST_H_
+#define _ARG_MAX_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
+#include "Operators.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
 using namespace std;
 
+namespace dnn_lib {
+
+namespace inlining {
+
 template <typename srcType>
-void dnn_lib::fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float srcScale, int32_t srcOffset,
+inline void fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float srcScale, int32_t srcOffset,
                                 void *dst, void *dstDims, void *dstPitches,
                                 size_t axis, bool keepDim){
   // cast src parameters to objects we can handle
@@ -90,8 +96,8 @@ void dnn_lib::fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, floa
   
 }
 
+} // namespace dnn_lib
 
-GEN_INSTANCES_OP(template, fwdLibArgMaxInst,
-                 void *src, void *srcDims, void *srcPitches, float srcScale, int32_t srcOffset,
-                 void *dst, void *dstDims, void *dstPitches,
-                 size_t axis, bool keepDim);
+} // namespace inlininig
+
+#endif // _ARG_MAX_INST_H_

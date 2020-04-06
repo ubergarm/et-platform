@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _BATCHED_ADD_INST_H_
+#define _BATCHED_ADD_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibBatchedAddInst(void *pdst, void *pdstDims,
+inline void fwdLibBatchedAddInst(void *pdst, void *pdstDims,
                                    void *pdstPitches, void *pbatch,
                                    void *pbatchDims, void *pbatchPitches,
                                    unsigned int pbatchDimNum, void *pslice,
@@ -88,7 +91,7 @@ void dnn_lib::fwdLibBatchedAddInst(void *pdst, void *pdstDims,
 
 
 template <typename srcType>
-void dnn_lib::fwdLibBatchedAddInstThreaded(
+inline void fwdLibBatchedAddInstThreaded(
     void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
     void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
     void *pslice, const float *scale, const int32_t *offset, uint64_t flags) {
@@ -151,7 +154,7 @@ void dnn_lib::fwdLibBatchedAddInstThreaded(
 // we implement this function to support it, the correct way is extend the
 // BatchedAdd templatized op and the Operator class in order to support 2
 // different templates
-void dnn_lib::fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
+inline void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
                                         void *pdstPitches, void *pbatch,
                                         void *pbatchDims, void *pbatchPitches,
                                         unsigned int pbatchDimNum, void *pslice,
@@ -229,7 +232,7 @@ void dnn_lib::fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
 }
 
 
-void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
+inline void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
                                                 void *pdstPitches, void *pbatch,
                                                 void *pbatchDims, void *pbatchPitches,
                                                 unsigned int pbatchDimNum, void *pslice,
@@ -311,11 +314,8 @@ void dnn_lib::fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + sizeof(int8_t)*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibBatchedAddInst, void *pdst, void *pdstDims, void *pdstPitches,
-                             void *pbatch, void *pbatchDims, void *pbatchPitches,
-                             unsigned int pbatchDimNum, void *pslice,
-                             const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibBatchedAddInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
-                             void *pbatch, void *pbatchDims, void *pbatchPitches,
-                             unsigned int pbatchDimNum, void *pslice,
-                             const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _BATCHED_ADD_INST_H_

@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _SOFTMAX_INST1_H_
+#define _SOFTMAX_INST1_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
   // Hypothesis 1 (SHAPE): both source and destination tensors have the same
   // padding pattern (and the same pitches, since they have the same
@@ -35,7 +38,7 @@ using namespace std;
   // line.
 
 template <typename srcType>
-void dnn_lib::fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
+inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
                                          void *srcTPitches, const float *scale,
                                          const int32_t *offset, uint64_t flags) {
 
@@ -192,7 +195,7 @@ void dnn_lib::fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
 // difference is in the GATHER_FLOAT and SCATTER_FLOAT functions).
 
 template <typename srcType>
-void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
+inline void fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
                                            void *srcTPitches, const float *scale,
                                            const int32_t *offset, uint64_t flags) {
 
@@ -599,7 +602,8 @@ void dnn_lib::fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDim
 #undef BROADCAST
 }
 
-GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded1, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
-GEN_INSTANCES_OP(template, fwdLibSoftMaxInstVectorized1, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _SOFTMAX_INST1_H_

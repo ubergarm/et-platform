@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _GATHER_INST_H_
+#define _GATHER_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType, typename indexType>
-void dnn_lib::fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
+inline void fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
                                void *srcT, void *srcDims, void *srcPitches,
                                unsigned int srcDimsNum, void *indexT,
                                void *indicesDims, void *pindicesPitches,
@@ -93,7 +96,7 @@ void dnn_lib::fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
 // index values for the i-th dimension of the source tensor tInput.
 
 template <typename srcType, typename indexType>
-void dnn_lib::fwdLibGatherInstThreaded(
+inline void fwdLibGatherInstThreaded(
     void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
     void *srcPitches, unsigned int srcDimsNum, void *indexT, void *indicesDims,
     void *pindicesPitches, unsigned int indicesDimsNum,
@@ -192,13 +195,8 @@ void dnn_lib::fwdLibGatherInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInst, void *dstT, void *dstDims, void *dstPitches,
-                               void *srcT, void *srcDims, void *srcPitches,
-                               unsigned int srcDimsNum, void *indexT, void *indicesDims,
-                               void *pindicesPitches, unsigned int batchedDims,
-                               const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                               void *srcT, void *srcDims, void *srcPitches,
-                               unsigned int srcDimsNum, void *indexT, void *indicesDims,
-                               void *pindicesPitches, unsigned int indicesDimsNum,
-                               unsigned int batchedDims, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _GATHER_INST_H_

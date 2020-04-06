@@ -9,25 +9,28 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _EXTRACT_TENSOR_INST_H_
+#define _EXTRACT_TENSOR_INST_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template <typename srcType>
-void dnn_lib::fwdLibExtractTensorInst(void *dst, void *dstDims,
+inline void fwdLibExtractTensorInst(void *dst, void *dstDims,
                                       void *dstPitches, unsigned int dstDimNum,
                                       void *src, void *srcDims,
                                       void *srcPitches, void *pcoord,
@@ -83,7 +86,7 @@ void dnn_lib::fwdLibExtractTensorInst(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-void dnn_lib::fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
+inline void fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
                                               void *dstPitches,
                                               unsigned int dstDimNum, void *src,
                                               void *srcDims, void *srcPitches,
@@ -139,11 +142,8 @@ void dnn_lib::fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialaddrOut, clperminion);
 }
 
-GEN_INSTANCES_OP(template, fwdLibExtractTensorInst, void *dst, void *dstDims,
-                                void *dstPitches, unsigned int dstDimNum,
-                                void *src2, void *src2Dims, void *src2Pitches,
-                                void * poffsets, const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibExtractTensorInstThreaded, void *dst, void *dstDims,
-                                void *dstPitches, unsigned int dstDimNum,
-                                void *src, void *srcDims, void *srcPitches,
-                                void * poffsets, const float *scale, const int32_t *offset, uint64_t flags);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _EXTRACT_TENSOR_INST_H_

@@ -9,35 +9,39 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _FUSED_ROWWISE_QUANTIZED_SPARSE_LENGTHS_SUM_H_
+#define _FUSED_ROWWISE_QUANTIZED_SPARSE_LENGTHS_SUM_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
+#include "FusedRowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 template<typename DstType>
-void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
+inline void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
         void *pdata, void *pdataDims, void *pdataPitches,
         void *pindices, void *plengths, unsigned int pLengthsSize,
         uint64_t flags,
-        const uint32_t minionOffset, const uint32_t assignedMinions) {
+        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   const bool float32Dst = (std::is_same<DstType, float>::value);
   const bool float16Dst = (std::is_same<DstType, float16>::value);
 
-  fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<false, float32Dst, float16Dst>(
+  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<false, float32Dst, float16Dst>(
     pdst, pdstDims, pdstPitches, pdstDimNum,
     nullptr, nullptr,
     pdata, pdataDims, pdataPitches,
@@ -46,9 +50,8 @@ void dnn_lib::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
     minionOffset, assignedMinions);
 }
 
-GEN_INSTANCES_1TYPEFP(template, fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized,
-            void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-            void *pdata, void *pdataDims, void *pdataPitches,
-            void *pindices, void *plengths, unsigned int pLengthsSize,
-            uint64_t flags,
-            const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _FUSED_ROWWISE_QUANTIZED_SPARSE_LENGTHS_SUM_H_

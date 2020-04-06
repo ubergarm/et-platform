@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2018, Esperanto Technologies Inc.
+ * Copyright (C) 2020, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -19,22 +19,9 @@
 
 #include "Float16.h"
 
-class Add {};
-class Sub {};
-class Mul {};
-class Div {};
-class Max {};
-class Min {};
-class CmpEQ {};
-class CmpLTE {};
-class Select {};
-class Pow {};
-class ElementLog {};
-class And {}; // bit-wise
-class Or {}; // bit-wise
-class Xor {}; // bit-wise
+#include "Operators.h"
 
-using namespace std;
+#include "inlining.h"
 
 namespace dnn_lib {
 
@@ -51,36 +38,6 @@ enum class PrecisionMode {
   PM_BOOL = 8,    // bool
   MAX_PRECISION_MODES
 };
-
-#define dispatchLibImplEltWiseSingle(functionName, pm1, op, ...) \
-  functionName<pm1, op>(__VA_ARGS__)
-
-#define dispatchLibImplEltWise(functionName, pm1, pm2, op, ...) \
-  functionName<pm1, pm2, op>(__VA_ARGS__)
-
-#define dispatchLibImplEltWiseParal(functionName, pm1, pm2, pm3, op, ...) \
-  functionName<pm1, pm2, pm3, op>(__VA_ARGS__)
-
-#define dispatchLibImpl2Types(functionName, pm1, pm2, ...) \
-  functionName<pm1, pm2>(__VA_ARGS__)
-
-#define dispatchLibImpl3Types(functionName, pm1, pm2, pm3, ...) \
-  functionName<pm1, pm2, pm3>(__VA_ARGS__)
-
-#define dispatchLibImpl(functionName, pm, ...) \
-  functionName<pm>(__VA_ARGS__)
-
-#define dispatchLibQuantizedTyImpl(functionName, pm, ...) \
-  functionName<pm>(__VA_ARGS__)
-
-#define dispatchLibWithIndexImpl(functionName, pm1, pm2, ...) \
-  functionName<pm1, pm2>(__VA_ARGS__)
-
-#define dispatchLibConvertImpl(functionName, pm1, pm2, ...) \
-  functionName<pm1, pm2>(__VA_ARGS__)
-
-#define dispatchLibIntTyImpl(functionName, pm, ...) \
-  functionName<pm>(__VA_ARGS__)
 
 #include "AutoGenInstan.def"
 

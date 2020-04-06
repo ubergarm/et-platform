@@ -9,22 +9,25 @@
  *-------------------------------------------------------------------------
  */
 
+#ifndef _COPY_INST_TENSORIZED_H_
+#define _COPY_INST_TENSORIZED_H_
+
 #include <assert.h>
 #include <fenv.h>
 #include <limits>
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "GenInstances.h"
 #include "Float16.h"
-#include "Writer.h"
-#include "Addresser.h"
-#include "Converter.h"
-#include "Operator.h"
-#include "utils.h"
+#include "Writer.h" // From include/internal path
+#include "Addresser.h" // From include/internal path
+#include "Converter.h" // From include/internal path
+#include "Operator.h" // From include/internal path
+#include "utils.h" // From include/internal path
 
-using namespace std;
+namespace dnn_lib {
+
+namespace inlining {
 
 /**
  * @brief Copies the src matrix to the dst matrix.
@@ -53,13 +56,13 @@ using namespace std;
  * @param[in] minionOffset The first minion that is assigned to this node.
  * @param[in] assignedMinions Amount of minions avaliable.
  */
- template <typename srcType>
- void dnn_lib::fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
+template <typename srcType>
+inline void fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
                                         void *src, void *srcDims, void *srcPitches,
                                         unsigned int srcDimNum, const float *scale,
                                         const int32_t *offset, uint64_t flags,
-                                        const uint32_t minionOffset,
-                                        const uint32_t assignedMinions) {
+                                        const uint32_t minionOffset = 0,
+                                        const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
@@ -99,12 +102,10 @@ using namespace std;
   tensor_load(0, 0, 0, 0, 0, srcAddr, 0, minionCacheLines-1, 0x40, 0);
   WAIT_TENSOR_LOAD_0;
   tensor_store_scp(0, 0, minionCacheLines-1, dstAddr, 0x40);
-
-
 }
 
-GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset, uint64_t flags,
-                                  const uint32_t minionOffset, const uint32_t assignedMinions);
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _COPY_INST_TENSORIZED_H_
