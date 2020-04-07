@@ -36,6 +36,7 @@
 #include "ElementSingleInst.h" // From include/inlining path
 #include "EmbeddingBagInst.h" // From include/inlining path
 #include "ExtractTensorInst.h" // From include/inlining path
+#include "FlipInst.h" // From include/inlining path
 #include "FullyConnectedInst.h" // From include/inlining path
 #include "FusedRowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining path
 #include "FusedRowwiseQuantizedSparseLengthsSum.h" // From include/inlining path

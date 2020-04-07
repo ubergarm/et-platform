@@ -651,6 +651,8 @@ GEN_RQSLWS_V(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect,
              uintptr_t dataRowSize, uintptr_t dstElemSize,
              uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr);
 
+GEN_OP(fwdLibFlipInst, LibTensor* inT, LibTensor* outT, unsigned int axis);
+
 #undef GEN_INSTANCES
 #undef GEN_OP
 #undef GEN_INTONLY_OP

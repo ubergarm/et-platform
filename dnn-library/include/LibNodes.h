@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "LibTensor.h"
 #include "Float16.h"
 
 #include "Operators.h"

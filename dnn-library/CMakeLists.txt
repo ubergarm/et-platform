@@ -36,6 +36,8 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/Operators.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibCommon.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTypes.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTensor.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/AdaptiveAvgPoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ArgMaxInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/AvgPoolInst.h"
@@ -60,6 +62,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementSingleInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ExtractTensorInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h"    
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FullyConnectedInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsSum.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsWeightedSum.h"
@@ -148,6 +151,7 @@ add_library(dnn_lib STATIC
   src/EmbeddingBagInst.cpp
   src/ETSOCMaxSplatInst.cpp
   src/ExtractTensorInst.cpp
+  src/FlipInst.cpp
   src/FullyConnectedInst.cpp
   src/FusedRowwiseQuantizedSparseLengthsSum.cpp
   src/FusedRowwiseQuantizedSparseLengthsWeightedSum.cpp
