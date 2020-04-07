@@ -25,7 +25,6 @@
 
 namespace dnn_lib {
 
- 
 template <typename T, typename U>
 inline T bitwise_copy(const U &x)
 {
