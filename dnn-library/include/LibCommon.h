@@ -18,7 +18,10 @@
 #include <type_traits>
 #include <algorithm>
 
-#define INLINE_ATTR __attribute__((always_inline))
+#include "LibTypes.h"
+#include "Float16.h"
+
+#define INLINE_ATTR __attribute__((always_inline)) inline
 
 namespace dnn_lib {
 
