@@ -68,10 +68,25 @@ inline void fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float 
   for (a = 0; a < inDims[(axis + 1) % 4]; a++) {
     for (b = 0; b < inDims[(axis + 2) % 4]; b++) {
       for (c = 0; c < inDims[(axis + 3) % 4]; c++) {
-        
-        float max = in[*(dim[0]) * inPitch[0] + 
-                       *(dim[1]) * inPitch[1] +
-                       *(dim[2]) * inPitch[2]];
+        float max;
+        if (axis == 0) {
+          max = in[*(dim[1]) * inPitch[1] +
+                   *(dim[2]) * inPitch[2] +
+                   *(dim[3]) * inPitch[3] ];
+        } else if (axis == 1) {
+          max = in[*(dim[0]) * inPitch[0] +
+                   *(dim[2]) * inPitch[2] +
+                   *(dim[3]) * inPitch[3] ];
+        } else if (axis == 2) {
+          max = in[*(dim[0]) * inPitch[0] +
+                   *(dim[1]) * inPitch[1] +
+                   *(dim[3]) * inPitch[3] ];
+        } else {
+          max = in[*(dim[0]) * inPitch[0] +
+                   *(dim[1]) * inPitch[1] +
+                   *(dim[2]) * inPitch[2] ];
+        }
+
         dim_t maxi = 0;
         
         for (d = 0; d < inDims[axis]; d++) {
@@ -96,8 +111,7 @@ inline void fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float 
   
 }
 
-} // namespace dnn_lib
-
 } // namespace inlininig
+} // namespace dnn_lib
 
 #endif // _ARG_MAX_INST_H_
