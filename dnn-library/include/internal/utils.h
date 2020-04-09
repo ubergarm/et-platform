@@ -23,8 +23,6 @@
 #include "LibCommon.h"
 #include "Float16.h"
 
-using namespace dnn_lib;
-
 #define MAX_TENSOR_DIMENSIONS 6
 
 #define ACTIVE_SHIRES ((flags & 0x1F) + 1)
@@ -418,11 +416,11 @@ float getExp(float val) {
   if (val == 0) {
     return 1;
   } else if (val > 0) {
-    fpPowSingleElement(M_E, val, ret);
+    dnn_lib::fpPowSingleElement(M_E, val, ret);
     return ret;
   } else { // val<0
-    fpPowSingleElement(M_E, -val, ret);
-    fpReciprocalSingleElement(ret, ret);
+    dnn_lib::fpPowSingleElement(M_E, -val, ret);
+    dnn_lib::fpReciprocalSingleElement(ret, ret);
     return ret;
   }
 }
@@ -433,11 +431,11 @@ float getSinh(float val) {
   if (val == 0) {
     op1 = op2 = 1;
   } else if (val > 0) {
-    fpPowSingleElement(M_E, val, op1);
-    fpReciprocalSingleElement(op1, op2);
+    dnn_lib::fpPowSingleElement(M_E, val, op1);
+    dnn_lib::fpReciprocalSingleElement(op1, op2);
   } else { // val<0
-    fpPowSingleElement(M_E, -val, op2);
-    fpReciprocalSingleElement(op2, op1);
+    dnn_lib::fpPowSingleElement(M_E, -val, op2);
+    dnn_lib::fpReciprocalSingleElement(op2, op1);
   }
   return 0.5 * (op1 - op2);
 }
@@ -448,11 +446,11 @@ float getCosh(float val) {
   if (val == 0) {
     op1 = op2 = 1;
   } else if (val > 0) {
-    fpPowSingleElement(M_E, val, op1);
-    fpReciprocalSingleElement(op1, op2);
+    dnn_lib::fpPowSingleElement(M_E, val, op1);
+    dnn_lib::fpReciprocalSingleElement(op1, op2);
   } else { // val<0
-    fpPowSingleElement(M_E, val, op2);
-    fpReciprocalSingleElement(op2, op1);
+    dnn_lib::fpPowSingleElement(M_E, val, op2);
+    dnn_lib::fpReciprocalSingleElement(op2, op1);
   }
   return 0.5 * (op1 + op2);
 }
@@ -478,18 +476,18 @@ float getPow(float base, float exp) {
     return 1;
   else if (exp > 0) {
     if (base < 0) {
-      fpPowSingleElement(-base, exp, dst_tmp);
+      dnn_lib::fpPowSingleElement(-base, exp, dst_tmp);
       if (isEven((int)exp))
         return dst_tmp;
       else
         return -dst_tmp;
     } else {
-      fpPowSingleElement(base, exp, dst_tmp);
+      dnn_lib::fpPowSingleElement(base, exp, dst_tmp);
       return dst_tmp;
     }
   } else if (exp < 0) {
-    fpPowSingleElement(base, -exp, inverted);
-    fpReciprocalSingleElement(inverted, dst_tmp);
+    dnn_lib::fpPowSingleElement(base, -exp, inverted);
+    dnn_lib::fpReciprocalSingleElement(inverted, dst_tmp);
     return dst_tmp;
   } else {
     return 0;
@@ -551,7 +549,7 @@ bool getNextStep(unsigned int dimNum,
     coord[0] = coord[0]+1;
   } else {
     coord[0] = 0;
-    for (int i = 1; i < dimNum; i++) {
+    for (unsigned int i = 1; i < dimNum; i++) {
       if (coord[i] < dims[i]-1) {
         coord[i] = coord[i]+1;
         break;
@@ -569,7 +567,7 @@ inline __attribute__((always_inline))
 unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
                        unsigned int *pitch) {
   unsigned int offset = 0;
-  for (int i = 0; i < dimNum; i++) {
+  for (unsigned int i = 0; i < dimNum; i++) {
     offset += coord[i] * pitch[i];
   }
   return offset;

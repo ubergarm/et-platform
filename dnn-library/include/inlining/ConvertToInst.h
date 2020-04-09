@@ -25,7 +25,6 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
-using namespace std;
 
 namespace dnn_lib {
 
@@ -46,7 +45,6 @@ inline void fwdLibConvertToInst(void *dstT, void *dstDims, void *dstPitches,
   Addresser<dstType> ptrDstT(dstT, scale[1], offset[1]);
   const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

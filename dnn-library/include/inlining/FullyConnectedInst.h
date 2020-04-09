@@ -47,15 +47,11 @@ inline void fwdLibFullyConnectedInst(
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
   unsigned int *weightPitch = (unsigned int *)weightPitches;
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> opAdd;
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Mul> opMul;
-  uint64_t addrSrc1, addrSrc2, addrSrc3, addrDst;
   // For each (x,y) in the destination matrix:
   for (unsigned int x = 0; x < dstIndex[0]; x++) {
     for (unsigned int y = 0; y < dstIndex[1]; y++) {
@@ -90,7 +86,6 @@ inline void fwdLibFullyConnectedInstThreaded(
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -109,7 +104,7 @@ inline void fwdLibFullyConnectedInstThreaded(
   getNonPaddingCoordinates(coord, initialAddr, 2, dstPitch, dstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coord[i] * dstPitch[i];
   }
   if (offsetOut >= numElemsDst)
@@ -699,7 +694,7 @@ inline void fwdLibFullyConnectedInstVectorized(
   getNonPaddingCoordinates(coord, initialAddr, 2, dstPitch, dstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coord[i] * dstPitch[i];
   }
   unsigned int offsetAIn = coord[0]*actPitch[0];

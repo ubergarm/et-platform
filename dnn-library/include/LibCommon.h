@@ -262,7 +262,6 @@ template <typename ElemTy>
 inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, dim_t *newDims, unsigned int axis) {
 
   dim_t indicesDest[max_tensor_dimensions] = {0,};
-  dim_t auxDst[max_tensor_dimensions] = {0,};
   dim_t indicesSrc[max_tensor_dimensions] = {0,};
   dim_t ndx[max_tensor_dimensions] = {0,};
   

@@ -43,7 +43,6 @@ inline void fwdLibRescaleQuantizedInst(void *dstT, void *dstDims,
   srcType *ptrDstT = (srcType *)dstT;
   srcType *ptrSrcT = (srcType *)srcT;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -105,7 +104,7 @@ inline void fwdLibRescaleQuantizedInstThreaded(
 
   // We give to each minion an initial address the number of positions that it
   // must work on (maxRead).
-  unsigned int initialAddr, maxRead;
+  unsigned int initialAddr = 0, maxRead; //TODO: review SW-2651
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);

@@ -119,9 +119,6 @@ inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
   const Addresser<srcType> tAInput(src, scale[0], offset[0]);
 
-  uint8_t *dst8 = (uint8_t *)dst;
-  uint8_t *src8 = (uint8_t *)src;
-
   unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 

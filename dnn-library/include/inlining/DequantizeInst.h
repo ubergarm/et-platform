@@ -43,7 +43,6 @@ inline void fwdLibDequantizeInst(void *dstT, void *dstDims, void *dstPitches,
   float *ptrDstT = (float *)dstT;
   const Addresser<srcType> ptrSrcT(srcT, scale, offset);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -97,7 +96,6 @@ inline void fwdLibDequantizeInstThreaded(void *dstT, void *dstDims,
   float *ptrDstT = (float *)dstT;
   const Addresser<srcType> ptrSrcT(srcT, scale, offset);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

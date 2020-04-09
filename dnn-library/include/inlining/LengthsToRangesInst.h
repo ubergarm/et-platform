@@ -41,7 +41,6 @@ inline void fwdLibLengthsToRangesInst(void *dstT, void *dstDims,
   const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
   Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *dstPitch = (unsigned int *)dstPitches;
 
   auto toffset = lengths[0];
@@ -67,10 +66,9 @@ void fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
   unsigned int activeMinions = 32;
   if (minionId >= activeMinions) return;
   int level = -1;
-  for (int j = 1; j < activeMinions; j*=2)
+  for (unsigned int j = 1; j < activeMinions; j*=2)
     level++;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *dstPitch = (unsigned int *)dstPitches;
 
   unsigned int initialAddr, maxRead;

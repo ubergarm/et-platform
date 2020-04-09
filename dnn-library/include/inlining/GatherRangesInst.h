@@ -44,10 +44,7 @@ inline void fwdLibGatherRangesInst(
   Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
   Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *rangesIndex = (unsigned int *)prangesDims;
-  unsigned int *lenIndex = (unsigned int *)dst2Dims;
 
   unsigned int *srcPitch = (unsigned int *)srcPitches;
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -67,7 +64,7 @@ inline void fwdLibGatherRangesInst(
   size_t grandTotalLen = 0;
 
   // For each example in ranges:
-  for (size_t example = 0; example < numExamples; example++) {
+  for (indexType example = 0; example < numExamples; example++) {
     // Keep a running total of the lengths of all ranges in this example
     // to record into lengthsT once the entire example is processed.
     indexType totalLen = 0;
@@ -171,7 +168,7 @@ inline void fwdLibGatherRangesInstThreaded(
     unsigned int accumLength = 0;
     unsigned int exampleSize = rangesIndex[1];
     unsigned int exampleMem = rangesIndex[1]*rangesPitch[1];
-    while ((accumLength + length)*dstPitch[0] < offsetOut) {
+    while ( static_cast<uint64_t> ((accumLength + length)*dstPitch[0]) < offsetOut) {
       accumLength += length;
       offsetRanges += rangesPitch[1];
       length = tRanges[offsetRanges];
@@ -184,8 +181,8 @@ inline void fwdLibGatherRangesInstThreaded(
     offsetRanges -= rangesPitch[2];
 
     uint64_t offsetIn = tRanges[offsetRanges]*srcPitch[0]; // tRanges[offsetRanges] is the starting batch id.
-    unsigned int count = 1;
-    while ((accumLength + count)*dstPitch[0] < offsetOut) {
+    indexType count = 1;
+    while (static_cast<uint64_t> ((accumLength + count)*dstPitch[0]) < offsetOut) {
       offsetIn += srcPitch[0];
       count++;
     }
@@ -196,20 +193,24 @@ inline void fwdLibGatherRangesInstThreaded(
     getNonPaddingCoordinates(coordIn, offsetIn, srcDimsNum, srcPitch, srcIndex, last_non_zero_coord); // useless last parameter.
 
     unsigned int batchElems = 1;
-    for (int i = 1; i < srcDimsNum; ++i) batchElems *= srcIndex[i]; // avoiding padding elements.
+    for (unsigned i = 1; i < srcDimsNum; ++i) batchElems *= srcIndex[i]; // avoiding padding elements.
 
     unsigned int posMax = maxRead + initialAddr;
     bool done = false;
-    bool doneIn = false; // useful for skipping padding positions in the source tensor.
+    //TODO: SW-2650    bool doneIn = false; // useful for skipping padding positions in the source tensor.
     while (!done && (offsetOut < posMax)) {
       tOutput[offsetOut] = tInput[offsetIn];
       done = getOffsets(srcDimsNum, coordOut, offsetOut, dstIndex, dstPitch);
       positionInBatch++;
-      if (positionInBatch != batchElems) doneIn = getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+      if (positionInBatch != batchElems) {
+        //TODO: SW-2650 doneIn = getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+      }
       else {
         positionInBatch = 0;
         count++;
-        if (count != length) doneIn = getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+        if (count != length) {
+          //TODO: SW-2650 doneIn = getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+        }
         else {
           count = 0;
           ++range;

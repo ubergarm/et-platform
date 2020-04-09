@@ -25,8 +25,6 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
-using namespace std;
-
 namespace dnn_lib {
 
 namespace inlining {
@@ -50,7 +48,6 @@ inline void fwdLibConvolution3DInst(
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -148,7 +145,6 @@ inline void fwdLibConvolution3DInstThreaded(
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -182,7 +178,7 @@ inline void fwdLibConvolution3DInstThreaded(
   getNonPaddingCoordinates(coord, initialAddr, 6, eDstPitch, eDstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coord[i] * eDstPitch[i];
   }
   if (offsetOut >= numElemsDst)

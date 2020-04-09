@@ -45,7 +45,6 @@ inline void fwdLibLengthsSumInst(void *pdst, void *pdstDims,
   const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
   int32_t *lengths = (int32_t *)plengths;
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
@@ -157,7 +156,6 @@ inline void fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   }
   unsigned int offsetIn0 = offsetIn;
   unsigned int offsetOut0 = offsetOut;
-  unsigned int offsetOutmax;
 
   unsigned int coordIn0[pdataDimNum];
   unsigned int coordOut0[pdataDimNum];
@@ -175,9 +173,8 @@ inline void fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   // In each iteration we copy a position and switch to the next one, until completion.
   bool endmatrix = false;
   bool done = false;
-  size_t posIn = 0;
   while (!done) {
-    for (size_t posIn = 0; posIn < lengths[coordOut[0]]; posIn++) {
+    for (int32_t posIn = 0; posIn < lengths[coordOut[0]]; posIn++) {
       while (!endmatrix && (offsetOut < posMax)) {
         tOutput[offsetOut] = tAInput[offsetIn] + tTmp[offsetOut];
         for (size_t j = pdataDimNum - 1; j > 0; j--) {
@@ -231,7 +228,7 @@ inline void fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
       coordIn[i] = coordIn0[i] = 0;
       coordOut[i] = coordOut0[i] = 0;
     }
-    for (int j = 0; j <= coordOut0[0]; j++) {
+    for (unsigned int j = 0; j <= coordOut0[0]; j++) {
       offsetIn += dataPitch[0] * lengths[j];
       offsetIn0 += dataPitch[0] * lengths[j];
       offsetOut += dstPitch[0];

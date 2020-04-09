@@ -41,24 +41,19 @@ inline void fwdLibIntLookupTableInstInt8QTy(
   int8_t *ptrSrcT1 = (int8_t *)src1T;
   int8_t *ptrSrcT2 = (int8_t *)src2T;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *src1Index = (unsigned int *)src1Dims;
-  unsigned int *src2Index = (unsigned int *)src2Dims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  unsigned int *src2Pitch = (unsigned int *)src2Pitches;
 
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrc2Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
 
   for (size_t i = 0; i < dstDimNum; i++) {
     eDims[i] = src1Index[i];
     eDstPitch[i] = dstPitch[i];
     eSrc1Pitch[i] = src1Pitch[i];
-    eSrc2Pitch[i] = src2Pitch[i];
   }
 
   for (size_t x = 0; x < eDims[0]; x++) {
@@ -97,11 +92,9 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *src1Index = (unsigned int *)src1Dims;
-  unsigned int *src2Index = (unsigned int *)src2Dims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  unsigned int *src2Pitch = (unsigned int *)src2Pitches;
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 

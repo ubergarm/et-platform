@@ -46,9 +46,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   long long *indices = (long long *)pindices;
   int32_t *lengths = (int32_t *)plengths;
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
@@ -109,9 +107,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   long long *indices = (long long *)pindices;
   int32_t *lengths = (int32_t *)plengths;
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
@@ -131,7 +127,6 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   for (size_t i = 1; i < pdstDimNum; i++)
     lineSize *= dataIndex[i];
 
-  unsigned int numElemsDst = dstPitch[0] * segments;
   unsigned int cll = 64 / sizeof(float);
   unsigned int rowsperminion = (cll - 1) / dstPitch[0] + 1;
   unsigned int total_rows = rowsperminion * activeMinions;
@@ -172,14 +167,15 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
 	    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   // Get offset of the Minion inside the group of Minions assigned to this Node.
-  int64_t minionId = get_minion_id() - minionOffset;
-
+  uint64_t minionId = get_minion_id();
+  if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.
+  minionId -= minionOffset;
+  
   // Get number of Minions assigned to this Node.
-  int64_t activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  uint64_t activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
-  if ((minionId < 0) || (minionId >= activeMinions))
-    return;
+  if (minionId >= activeMinions) return;
 
   // Set real types for input pointers.
   // For dst we used uint8_t because it can be accessed with different types.

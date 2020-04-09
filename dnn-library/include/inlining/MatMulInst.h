@@ -47,7 +47,6 @@ void fwdLibMatMulInst(void *dstMatrix, void *dstMatrixDims,
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -89,7 +88,6 @@ void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -109,7 +107,7 @@ void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
   getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coordOut[i] * dstPitch[i];
   }
   unsigned int offsetAIn = coordOut[0]*actPitch[0];
@@ -414,7 +412,7 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
 // Additionally, posMax indicates the last position in the dst tensor that should be written by the minion, plus one.
 
   unsigned int offsetOut = 0; // Position in destination tensor.
-  for (int i = 0; i < last_non_zero_coord; i++) {
+  for (unsigned int i = 0; i < last_non_zero_coord; i++) {
     offsetOut += coordOut[i] * dstPitch[i];
   }
   unsigned int offsetAIn = coordOut[0]*actPitch[0]; // Position in activation tensor.
@@ -439,13 +437,13 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
 
   unsigned int firstRowElems, regsPerRow, extraPerRow;
   if (currentRow == lastRow) firstRowElems = posMax - offsetOut;
-  else {
-    firstRowElems = dstIndex[1] - offsetOut%dstPitch[0];
-    regsPerRow = dstIndex[1]/8;
-    extraPerRow = dstIndex[1] - 8*regsPerRow;
-  }
+  else firstRowElems = dstIndex[1] - offsetOut%dstPitch[0];
+  regsPerRow = dstIndex[1]/8;
+  extraPerRow = dstIndex[1] - 8*regsPerRow;
+  
   unsigned int regs = firstRowElems/8;
   unsigned int extra = firstRowElems - 8*regs;
+
   unsigned int length = actIndex[1]; // Length of the dot products that will be performed.
   unsigned int wgtStep = wgtPitch[0]*typeSize;
 
@@ -467,6 +465,7 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
     offsetOut += dstPitch[0] - coordOut[1];
     coordOut[1] = 0;
     // Updating of the number of 8-lane registers and extra lanes in the current dst tensor row.
+
     if (currentRow < lastRow) {
       regs = regsPerRow;
       extra = extraPerRow;
@@ -475,6 +474,7 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
       regs = lastElems/8;
       extra = lastElems - 8*regs;
     }
+
   }
   if (!DO_EVICTS)
     return;

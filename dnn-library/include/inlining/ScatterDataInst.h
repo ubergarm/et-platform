@@ -211,7 +211,6 @@ inline void fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
   unsigned int *slicesIndex = (unsigned int *)slicesDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
   unsigned int *slicesPitch = (unsigned int *)slicesPitches;
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];

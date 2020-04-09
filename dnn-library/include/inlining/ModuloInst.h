@@ -42,7 +42,6 @@ inline void fwdLibModuloInst(void *dstT, void *dstDims, void *dstPitches,
   srcType *tOutput = (srcType *)dstT;
   srcType *tInput = (srcType *)srcT;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -97,7 +96,6 @@ inline void fwdLibModuloInstThreaded(
   Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
   const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

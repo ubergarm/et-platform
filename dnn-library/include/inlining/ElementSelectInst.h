@@ -45,9 +45,7 @@ inline void fwdLibElementSelectInst(
   const Addresser<srcType> ptrSrcT1(srcT1, scale[1], offset[1]);
   const Addresser<srcType> ptrSrcT2(srcT2, scale[2], offset[2]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
-  unsigned int *condIndex = (unsigned int *)condDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *src1Pitch = (unsigned int *)src1Pitches;
@@ -114,9 +112,7 @@ inline void fwdLibElementSelectInstThreaded(
   const Addresser<srcType> ptrSrcT1(srcT1, scale[1], offset[1]);
   const Addresser<srcType> ptrSrcT2(srcT2, scale[2], offset[2]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
-  unsigned int *condIndex = (unsigned int *)condDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *act1Pitch = (unsigned int *)src1Pitches;

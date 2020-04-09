@@ -85,8 +85,6 @@ inline void fwdLibTopKInst(void *dstT, void *dstDims, void *dstPitches,
 
   long long *indT = (long long *)dstT2;
 
-  unsigned int *valuesIndex = (unsigned int *)dstDims;
-  unsigned int *indIndex = (unsigned int *)dst2Dims;
   unsigned int *inputIndex = (unsigned int *)srcDims;
 
   unsigned int *valuesPitch = (unsigned int *)dstPitches;
@@ -160,7 +158,6 @@ inline void fwdLibTopKInstThreaded_all(
   long long *indT = (long long *)dstT2;
 
   unsigned int *valuesIndex = (unsigned int *)dstDims;
-  unsigned int *indIndex = (unsigned int *)dst2Dims;
   unsigned int *inputIndex = (unsigned int *)srcDims;
 
   unsigned int *valuesPitch = (unsigned int *)dstPitches;
@@ -176,7 +173,7 @@ inline void fwdLibTopKInstThreaded_all(
     return;
 
   unsigned int coord[srcDimNum];
-  for (int i = 0; i < srcDimNum; i++)
+  for (unsigned i = 0; i < srcDimNum; i++)
     coord[i] = 0;
   unsigned int l = 0;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, valuesPitch,
@@ -552,7 +549,7 @@ inline void fwdLibTopKInstThreaded_k4(
                          : [ indT ] "r"(indT),
                            [ gather_coord ] "m"( *(const int32_t(*)[8]) gather_coord)
                          : "f0", "f1", "f31", "memory");
-    for (int i = 0; i < k; i++)
+    for (unsigned i = 0; i < k; i++)
       valuesT[batch_offset * valuesPitch[batchDim] + i] = tmpT[i];
   }
 }
@@ -575,8 +572,6 @@ inline void fwdLibTopKInstThreaded_k8(
 
   long long *indT = (long long *)dstT2;
 
-  unsigned int *valuesIndex = (unsigned int *)dstDims;
-  unsigned int *indIndex = (unsigned int *)dst2Dims;
   unsigned int *inputIndex = (unsigned int *)srcDims;
 
   unsigned int *valuesPitch = (unsigned int *)dstPitches;
@@ -762,7 +757,7 @@ inline void fwdLibTopKInstThreaded_k8(
                            [ gather_indices ] "m"( *(const int32_t(*)[8]) gather_indices),
                            [ gather_values ] "r"(gather_values)
                          : "f0", "f1", "f2", "f3", "f31");
-    for (int i = 0; i < k; i++)
+    for (unsigned i = 0; i < k; i++)
       valuesT[batch_offset * valuesPitch[batchDim] + i] = tmpT[i];
   }
 }

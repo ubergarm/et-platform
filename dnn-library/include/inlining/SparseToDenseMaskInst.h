@@ -43,11 +43,7 @@ inline void fwdLibSparseToDenseMaskInst(
   int32_t *lengths = (int32_t *)plengths;
   long long *mask = (long long *)pmask;
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
 
   // First un-processed index-value pair.
   size_t posIn = 0;
@@ -76,7 +72,7 @@ inline void fwdLibSparseToDenseMaskInst(
       }
     }
     // Go through input pairs and find matches.
-    for (size_t i = 0; i < lengths[batch]; i++, posIn++) {
+    for (int32_t i = 0; i < lengths[batch]; i++, posIn++) {
       auto idx = indices[posIn];
       // Search the mask
       for (j = 0; j < pMaskSize; j++) {
@@ -155,7 +151,7 @@ inline void fwdLibSparseToDenseMaskInstThreaded(
   unsigned int pdefDimNum = pdataDimNum - 1;
   unsigned int defPitch[pdefDimNum];
   unsigned int defIndex[pdefDimNum];
-  for (int i = 0; i < pdefDimNum; i++) {
+  for (unsigned int i = 0; i < pdefDimNum; i++) {
     defPitch[i] = dataPitch[i + 1];
     defIndex[i] = dataIndex[i + 1];
   }
@@ -168,7 +164,7 @@ inline void fwdLibSparseToDenseMaskInstThreaded(
   }
 
   unsigned int firstIdx = 0;
-  for (int i = 0; i < batchCount; ++i) firstIdx += lengths[i];
+  for (unsigned int i = 0; i < batchCount; ++i) firstIdx += lengths[i];
   unsigned int lastIdx = firstIdx + lengths[batchCount];
 
   unsigned int idx = mask[semiBatchCount];

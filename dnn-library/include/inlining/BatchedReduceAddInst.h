@@ -44,7 +44,6 @@ inline void fwdLibBatchedReduceAddInst(void *pdst, void *pdstDims,
   Addresser<srcType> tOutput(pdst, scale[1], offset[1]);
   const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *batchIndex = (unsigned int *)pbatchDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
@@ -164,8 +163,6 @@ inline void fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
   }
 
   unsigned int posMax = maxRead + initialAddr;
-  Addresser<srcType> *tOutputPtr;
-  Addresser<srcType> *tSumPtr;
   bool done = false;
   //int sum = 0;
   Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> op;
@@ -204,7 +201,6 @@ inline void fwdLibBatchedReduceAddInstInt8(
 
   float invScale;
   getReciprocal(scale[1], invScale);
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *batchIndex = (unsigned int *)pbatchDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;

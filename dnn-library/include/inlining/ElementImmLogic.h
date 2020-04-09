@@ -63,7 +63,6 @@ inline void fwdLibElementImmLogic(void *dstT, void *dstDims,
   const srcType *imm_ptr = reinterpret_cast<srcType*>(imm);
   const srcType imm_value = *imm_ptr;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

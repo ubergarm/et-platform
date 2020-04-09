@@ -42,7 +42,6 @@ inline void fwdLibTransposeInst(void *dst, void *dstDims, void *dstPitches,
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
   const Addresser<srcType> tAInput(src, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -55,12 +54,12 @@ inline void fwdLibTransposeInst(void *dst, void *dstDims, void *dstPitches,
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
 
   // Iterates through all dimensions, and sets extended Dims, and src Pitches
-  for (int i = 0; i < srcDimNum; i++) {
+  for (unsigned i = 0; i < srcDimNum; i++) {
     // extended Dims matches src dim and zeros for non used dims
     eDims[i] = actIndex[i];
     // extended src Pitches matches src Pitches and zeros for non used dims
     eSrcPitch[i] = actPitch[i];
-    for (int j = 0; j < srcDimNum; j++) {
+    for (unsigned int j = 0; j < srcDimNum; j++) {
       if (shuffle[j] == i) {
         eDstPitch[i] = dstPitch[j];
       }
@@ -106,15 +105,11 @@ inline void fwdLibTransposeInstThreaded(void *dst, void *dstDims,
   const Addresser<srcType> tAInput(src, scale[0], offset[0]);
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *actPitch = (unsigned int *)srcPitches;
 
   unsigned int *shuffle = (unsigned int *)pshuffle;
-
-  uintptr_t dstAddr = (uintptr_t)dst;
-  uintptr_t srcAddr = (uintptr_t)src;
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -204,7 +199,6 @@ inline void fwdLibTransposeInstVectorized(void *dst, void *dstDims,
   uintptr_t srcAddr = (uintptr_t)src;
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *actPitch = (unsigned int *)srcPitches;
@@ -359,7 +353,6 @@ inline void fwdLibTransposeInstAligned32Bytes(void *dst,
   uintptr_t srcAddr = (uintptr_t)src;
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *actPitch = (unsigned int *)srcPitches;

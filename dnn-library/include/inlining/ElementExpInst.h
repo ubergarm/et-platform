@@ -60,7 +60,6 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
   srcType *tOutput = (srcType *)dstT;
   srcType *tInput = (srcType *)srcT;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

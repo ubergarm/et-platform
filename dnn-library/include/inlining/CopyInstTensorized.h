@@ -69,11 +69,9 @@ inline void fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
   if ((minionId >= activeMinions) || (minionId >= activeMinions))
     return;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
 
   size_t typeSize = getsize<srcType>();
   uint64_t numElemsDst = dstPitch[0] * actIndex[0] *

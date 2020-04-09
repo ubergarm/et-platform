@@ -26,7 +26,6 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
-using namespace std;
 
 namespace dnn_lib {
 
@@ -44,7 +43,6 @@ inline void fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float 
   // cast dst parameters to objects we can handle
   sdim_t *argmax = static_cast<sdim_t*> (dst);
   unsigned int *argmaxPitch = static_cast<unsigned int *>(dstPitches);
-  unsigned int *argmaxDims = static_cast<unsigned int *>(dstDims);
 
   // and compute
   dim_t a, b, c, d = 0;

@@ -44,7 +44,6 @@ inline void fwdLibBatchedAddInst(void *pdst, void *pdstDims,
   const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
   const Addresser<srcType> tSlice(pslice, scale[1], offset[1]);
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *batchIndex = (unsigned int *)pbatchDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
@@ -106,7 +105,6 @@ inline void fwdLibBatchedAddInstThreaded(
   const Addresser<srcType> tSlice(pslice, scale[1], offset[1]);
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *batchPitch = (unsigned int *)pbatchPitches;
@@ -169,7 +167,6 @@ inline void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
   int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
   int32_t *tSlice = (int32_t *)pslice; // scale[1]
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *batchIndex = (unsigned int *)pbatchDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
@@ -249,7 +246,6 @@ inline void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
   int32_t *tSlice = (int32_t *)pslice; // scale[1]
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *batchPitch = (unsigned int *)pbatchPitches;
@@ -282,7 +278,7 @@ inline void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
 
   unsigned int eSlicePitch[pbatchDimNum];
   eSlicePitch[0] = 0;
-  for(int i = 1; i < pbatchDimNum; i++) eSlicePitch[i] = slicePitch[i - 1];
+  for(unsigned int i = 1; i < pbatchDimNum; i++) eSlicePitch[i] = slicePitch[i - 1];
 
   for (unsigned int j = 0; j < k; j++) {
     offsetIn2 += eSlicePitch[j] * coord[j];

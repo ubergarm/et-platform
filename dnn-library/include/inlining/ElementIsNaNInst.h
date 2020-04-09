@@ -59,7 +59,6 @@ inline void fwdLibElementIsNaNInst(void *dstT, void *dstDims,
   bool *ptrDstT = (bool *)dstT;
   const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

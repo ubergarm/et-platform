@@ -43,7 +43,6 @@ inline void fwdLibQuantizeInst(void *dstT, void *dstDims, void *dstPitches,
   Addresser<dstType> ptrDstT(dstT, scale, offset);
   float *ptrSrcT = (float *)srcT;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -100,7 +99,6 @@ inline void fwdLibQuantizeInstThreaded(void *dstT, void *dstDims,
   Addresser<dstType> ptrDstT(dstT, scale, offset);
   float *ptrSrcT = (float *)srcT;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

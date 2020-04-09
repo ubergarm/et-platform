@@ -16,9 +16,6 @@
 #include "utils.h"
 #include "Operators.h"
 
-using namespace dnn_lib;
-using namespace std;
-
 #define OPERATION_STEP1   \
            "flw.ps f31, %[gatherValues]\n"               \
            "fgb.ps  f0, f31(%[src1]) \n"                 \
@@ -37,10 +34,12 @@ using namespace std;
            "fmul.ps f0, f0, f29 \n"                      \
            "fcvt.pw.ps f0, f0 \n"
 
+namespace dnn_lib {
+  
 template <typename src1Type, typename src2Type, typename dstType, typename opType> class Operator {
 public:
   template <typename U = opType, typename S = src1Type,
-            typename enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value && !std::is_same<S, Addresser<uint8_t>>::value,
+            typename std::enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value && !std::is_same<S, Addresser<uint8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
 
@@ -48,7 +47,7 @@ public:
   }
 
   template <typename U = opType, typename S = src1Type,
-            typename enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value,
+            typename std::enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
 
@@ -56,7 +55,7 @@ public:
   }
 
   template <typename U = opType, typename S = src1Type,
-            typename enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value,
+            typename std::enable_if<!std::is_same<S, Addresser<float16>>::value && !std::is_same<S, Addresser<float>>::value && !std::is_same<S, Addresser<int8_t>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
 
@@ -1810,4 +1809,5 @@ public:
   }
 };
 
+} //namespace dnn_lib
 #endif /* OPERATOR_H */

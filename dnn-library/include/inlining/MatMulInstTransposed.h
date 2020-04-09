@@ -47,7 +47,6 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(void *dstM
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -87,7 +86,6 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(vo
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -107,7 +105,7 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(vo
   getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coordOut[i] * dstPitch[i];
   }
 
@@ -342,7 +340,6 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;

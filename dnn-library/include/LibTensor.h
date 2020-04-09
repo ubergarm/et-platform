@@ -76,6 +76,10 @@ struct Type final {
     * as in sizes_.
     */
    dim_t strides_[max_tensor_dimensions] = {0,};
+  
+   /*@brief Specifies the element type of the tensor.
+    */
+   dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
 
    /*@brief contains the number of dimensions used by the tensor.
     */
@@ -89,10 +93,6 @@ struct Type final {
     */
    int32_t offset_{0};
  
-   /*@brief Specifies the element type of the tensor.
-    */
-   dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
-
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   Type(dnn_lib::ElemKind elk, dim_t *dims, uint8_t numSizes,
@@ -349,7 +349,7 @@ struct Type final {
      size_t s = getElementSize();
      size_t acc = 0;
      for (unsigned char i = 0; i < numSizes_; i++) {
-       acc += size_t(sizes_[i]) * getElementSize() * strides_[i];
+       acc += size_t(sizes_[i]) * s * strides_[i];
      }
      return acc;
    }
@@ -561,9 +561,7 @@ class LibTensor final {
 //       std::fill(&data[0], &data[0] + size, (int32_t)type_.getOffset());
 //       break;
 //     }
-// #define FUSED_CASE(ELEM_KIND, DATA_TYPE)                                      \
-//     case dnn_lib::ElemKind::ELEM_KIND:                                       \
-//     break;                                                                   \
+// #define FUSED_CASE(ELEM_KIND, DATA_TYPE)  case dnn_lib::ElemKind::ELEM_KIND: break
 //     /* FUSED_CASE(dnn_lib::ElemKind::UInt8FusedQTy, float);       */
 //     /* FUSED_CASE(dnn_lib::ElemKind::UInt8FusedFP16QTy, float16_t); */
 // #undef FUSED_CASE

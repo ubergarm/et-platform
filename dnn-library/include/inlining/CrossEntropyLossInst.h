@@ -107,10 +107,10 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
   }
 
   unsigned int level = 0;
-  for (int k = 1; k < activeMinions; k *= 2)
+  for (unsigned int k = 1; k < activeMinions; k *= 2)
     level++;
 
-  for (int i = 0; i < level; i++)
+  for (unsigned int i = 0; i < level; i++)
     sum = tensor_reduce_float(sum, 0x0, 1, i, 0x3);
   if (minionId == 0)
     tOutput[0] = sum * M_1_LOG2E;

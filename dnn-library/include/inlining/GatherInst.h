@@ -44,9 +44,7 @@ inline void fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
   const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
   const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *indicesIndex = (unsigned int *)indicesDims;
 
   unsigned int *srcPitch = (unsigned int *)srcPitches;
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -158,7 +156,7 @@ inline void fwdLibGatherInstThreaded(
   while (!done && (offsetOut < posMax)) {
     tOutput[offsetOut] = tInput[offsetIn];
     // Coordinates are updated to the next position that must be copied.
-    for (int j = dstDimsNum - 1; j >= 0; j--) {
+    for (unsigned j = dstDimsNum - 1; j >= 0; j--) {
       if (coordOut[j] != (dstIndex[j] - 1)) {
         offsetOut += dstPitch[j];
         coordOut[j]++;

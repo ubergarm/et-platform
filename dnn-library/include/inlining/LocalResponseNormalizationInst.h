@@ -45,8 +45,6 @@ inline void fwdLibLocalResponseNormalizationInst(
   Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
   const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *dst2Index = (unsigned int *)dst2MatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
@@ -131,11 +129,9 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(
   const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *dst2Index = (unsigned int *)dst2MatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
 
   // LRN node does not change the shape of the input.
@@ -226,11 +222,9 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(
   const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *dst2Index = (unsigned int *)dst2MatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
 
   auto windowSize = 2 * halfWindowSize + 1;

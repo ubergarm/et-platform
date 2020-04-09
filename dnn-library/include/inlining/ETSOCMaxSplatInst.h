@@ -44,7 +44,6 @@ inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
   Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
   const Addresser<srcType> ptrSrcT(srcT, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -96,7 +95,6 @@ inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
   srcType *ptrDstT = (srcType *)dstT;
   srcType *ptrSrcT = (srcType *)srcT;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -150,7 +148,6 @@ inline void fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
   Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
   const Addresser<srcType> ptrSrcT(src, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -215,7 +212,6 @@ inline void fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
   srcType *ptrDstT = (srcType *)dst;
   srcType *ptrSrcT = (srcType *)src;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

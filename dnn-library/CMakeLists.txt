@@ -124,6 +124,9 @@ endif()
 
 set(CMAKE_CXX_STANDARD 11)
 
+add_compile_options(-Werror -Wall)
+
+
 message("${PROJECT_NAME}: Clang Build is set to ${CLANG_BUILD}")
 
 add_library(dnn_lib STATIC

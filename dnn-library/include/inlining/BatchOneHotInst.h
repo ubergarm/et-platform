@@ -45,13 +45,10 @@ inline void fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
   const Addresser<srcType> tValues(pvalues, scale[1], offset[1]);
   int32_t *lengths = (int32_t *)plengths;
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *valuesIndex = (unsigned int *)pvaluesDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *valuesPitch = (unsigned int *)pvaluesPitches;
 
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
@@ -97,11 +94,9 @@ inline void fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *valuesIndex = (unsigned int *)pvaluesDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *valuesPitch = (unsigned int *)pvaluesPitches;
 
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
@@ -135,7 +130,7 @@ inline void fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
   }
   unsigned int batchId = offsetOut/dstPitch[0];
   unsigned int i = offsetOut - batchId * dstPitch[0];
-  unsigned int l = i;
+  int32_t l = i;
   unsigned int featureId = 0;
   while (l >= lengths[featureId]) {
     l -= lengths[featureId];

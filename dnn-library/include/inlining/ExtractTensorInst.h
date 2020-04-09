@@ -43,7 +43,6 @@ inline void fwdLibExtractTensorInst(void *dst, void *dstDims,
   const Addresser<srcType> tInput(src, scale[0], offset[0]);
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *srcPitch = (unsigned int *)srcPitches;
@@ -102,7 +101,6 @@ inline void fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
   const Addresser<srcType> tInput(src, scale[0], offset[0]);
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *srcPitch = (unsigned int *)srcPitches;

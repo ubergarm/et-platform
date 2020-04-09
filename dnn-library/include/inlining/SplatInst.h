@@ -43,7 +43,7 @@ inline void fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
   static_assert( (ratio64 & (ratio64 - 1)) == 0, "ratio to 64b word is not power of 2" );
 
 
-  for (size_t i = 0 ; i < static_cast<size_t>(numElems) & (~mask); i++, src64++) 
+  for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i++, src64++) 
     *src64 = *splatVal;
 
   memcpy(src64, splatVal, (numElems & mask) * sizeof(srcType));
@@ -127,7 +127,7 @@ inline void fwdLibSplatInstVectorized(void *dst, void *dstDims,
 
   uint64_t regsperMinion = 2 * CLperMinion;  // A cacheline contains 2 regs
   uint64_t offsetOut = startCL * 64;
-  uint64_t startElem = offsetOut/typeSize;
+
   char *dstPtr = (char *)dst;
   dstPtr += offsetOut;
 

@@ -21,8 +21,6 @@
 #include "utils.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 
-using namespace std;
-
 namespace dnn_lib {
 
 namespace inlining {

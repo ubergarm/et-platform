@@ -43,7 +43,6 @@ inline void fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
   const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
   Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -102,7 +101,6 @@ inline void fwdLibTanhInstThreaded(void *dstT, void *dstDims,
   const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
   Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *actIndex = (unsigned int *)srcDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;

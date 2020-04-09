@@ -58,7 +58,7 @@ inline void fwdLibElementSingleInst(void *dstT, void *dstDims,
     eSrcPitch[i] = srcPitch[i];
   }
 
-  uint64_t addrSrc1, addrSrc2, addrDst;
+  uint64_t addrSrc1, addrDst;
 
   Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
   // We can use this loop for all shapes.
@@ -69,9 +69,6 @@ inline void fwdLibElementSingleInst(void *dstT, void *dstDims,
           for (size_t q = 0; q < eBatchDims[4]; q++) {
             for (size_t r = 0; r < eBatchDims[5]; r++) {
               addrSrc1 = x * eSrcPitch[0] + y * eSrcPitch[1] +
-                         z * eSrcPitch[2] + w * eSrcPitch[3] +
-                         q * eSrcPitch[4] + r * eSrcPitch[5];
-              addrSrc2 = x * eSrcPitch[0] + y * eSrcPitch[1] +
                          z * eSrcPitch[2] + w * eSrcPitch[3] +
                          q * eSrcPitch[4] + r * eSrcPitch[5];
               addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
@@ -190,7 +187,7 @@ inline void fwdLibElementSingleInstVectorized(
   }
 
   unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  unsigned int elementsInRow, registersInRow, res, spareElems, fullLanes;
+  unsigned int elementsInRow, registersInRow, res;
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;

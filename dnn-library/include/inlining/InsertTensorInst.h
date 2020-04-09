@@ -46,7 +46,6 @@ void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
   Addresser<srcType> tOutput(dst, scale[1], offset[1]);
   const Addresser<srcType> tSmallInput(src2, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *smallIndex = (unsigned int *)src2Dims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -233,7 +232,7 @@ void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 template <typename srcType>
 inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
                       const unsigned int& addrIn, const int32_t& typeSize,
-                      pair<int, int> lanes, int32_t *gatherValues, uint64_t flags) 
+                      std::pair<int, int> lanes, int32_t *gatherValues, uint64_t flags) 
 {
   uint8_t *dst8 = (uint8_t *) dst + addrOut * typeSize;
   uint8_t *src8 = (uint8_t *) src + addrIn * typeSize;
@@ -375,7 +374,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
 
   if (axis != lastDim) {
     unsigned int auxNRows = count * actIndex[0];
-    for (int i = 1; i < lastDim; i++)
+    for (unsigned i = 1; i < lastDim; i++)
       auxNRows *= actIndex[i];
     unsigned int mRows = auxNRows / activeMinions;
     unsigned int mod = auxNRows - activeMinions * mRows;
@@ -401,7 +400,6 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       offsetOut[i] += offsetIn[i];
       addrOut += dstPitch[i] * offsetOut[i];
     }
-    bool done = false;
     while (mRows > 0) {
       insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
                          initialAddrIn, typeSize, lanes, gatherValues, flags);
@@ -425,7 +423,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
     }
   } else {
     unsigned int auxNRows = actIndex[0];
-    for (int i = 1; i < dstDimNum - 1; i++)
+    for (unsigned i = 1; i < dstDimNum - 1; i++)
       auxNRows *= actIndex[i];
 
     if (auxNRows > activeMinions) {
@@ -448,8 +446,8 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         offsetOut[i] += offsetIn[i];
         addrOut += dstPitch[i] * offsetOut[i];
       }
-      for (int i = 0; i < mRows; i++) {
-        for (int j = 0; j < count; j++) {
+      for (unsigned i = 0; i < mRows; i++) {
+        for (unsigned j = 0; j < count; j++) {
           insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
                              initialAddrIn, typeSize, lanes, gatherValues, flags);
           addrOut += actIndex[axis] * dstPitch[axis];
@@ -485,7 +483,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         for (int i = dimRow; i > 0; i--)
           falsepitch[i - 1] = falsepitch[i] * actIndex[i];
 
-        for (int i = 0; i < axis; i++) {
+        for (unsigned i = 0; i < axis; i++) {
           unsigned int aux = rowtomin / falsepitch[i];
           offsetOut[i] += aux;
           rowtomin -= aux * falsepitch[i];
@@ -496,7 +494,6 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         addrOut += dstPitch[i] * offsetOut[i];
       }
       unsigned int lastRowElem = addrOut + actIndex[axis] * dstPitch[axis] * count;
-      unsigned int save = addrOut;
       unsigned int cll = 64 / getsize<srcType>();
       unsigned int modulo = addrOut % cll;
       //unsigned int maximalPos = jump * count;

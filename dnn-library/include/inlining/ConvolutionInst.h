@@ -25,7 +25,6 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
-using namespace std;
 
 namespace dnn_lib {
 
@@ -78,7 +77,6 @@ inline void fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -192,7 +190,6 @@ inline void fwdLibConvolutionInstThreaded(
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -228,7 +225,7 @@ inline void fwdLibConvolutionInstThreaded(
   getNonPaddingCoordinates(coord, initialAddr, 5, eDstPitch, eDstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coord[i] * eDstPitch[i];
   }
   if (offsetOut >= numElemsDst)
@@ -311,7 +308,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                     unsigned int *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
-  int dist;
+  int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
   unsigned int *actAddr = (unsigned int *) activations;
@@ -391,10 +388,10 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 
     : [ weightAddr ] "+&r" (weightAddr),
       [ actAddr ] "+&r" (actAddr),
-      [ dist ] "+&r" (dist),
+      [ dist ] "=&r" (dist),
       [ sum ] "+&r" (sum),
-      [ ox ] "+&r" (ox),
-      [ oy ] "+&r" (oy),
+      [ ox ] "=&r" (ox),
+      [ oy ] "=&r" (oy),
       [ fy ] "+&r" (fy),
       [ fx ] "+&r" (fx)
     : [ weightPitch1 ] "r" (weightPitch[1] * 4),
@@ -712,7 +709,6 @@ inline void fwdLibConvolutionInstVectorized(
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *weightIndex = (unsigned int *)weightsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   unsigned int *actPitch = (unsigned int *)activationsPitches;
@@ -748,7 +744,7 @@ inline void fwdLibConvolutionInstVectorized(
   getNonPaddingCoordinates(coord, initialAddr, 5, eDstPitch, eDstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coord[i] * eDstPitch[i];
   }
   if (offsetOut >= numElemsDst)
@@ -764,8 +760,6 @@ inline void fwdLibConvolutionInstVectorized(
     d = coord[3] * outCperG + coord[4];
 
     auto sum = tBias[d];
-    unsigned int *actAddr = (unsigned int *) activations;
-    unsigned int *weightAddr = (unsigned int *) weights;
     convolutionOp <src1Type, src2Type, dstType> (activations, weights, coord, actPitch, weightPitch,
                                                  actIndex, kernels, inCperG, sum, mask, x, y, d,
                                                  scale, offset);

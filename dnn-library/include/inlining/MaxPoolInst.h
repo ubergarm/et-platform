@@ -47,7 +47,6 @@ inline void fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDims,
   int64_t *tOutput2 = (int64_t *)dst2Matrix;
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *dst2Index = (unsigned int *)dst2MatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
@@ -71,7 +70,6 @@ inline void fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDims,
 
           bool first = true;
           auto max_value = tAInput[0];
-          auto first_element =  tAInput[0];
           max_value = 0;
           int64_t argmaxNHWC = 0;
 
@@ -135,7 +133,6 @@ inline void fwdLibMaxPoolInstThreaded(
   int64_t *tOutput2 = (int64_t *)dst2Matrix;
 
   unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *dst2Index = (unsigned int *)dst2MatrixDims;
   unsigned int *actIndex = (unsigned int *)activationsDims;
 
   unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
@@ -160,7 +157,7 @@ inline void fwdLibMaxPoolInstThreaded(
   getNonPaddingCoordinates(coord, initialAddr, 4, dstPitch, dstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned i = 0; i < k; i++) {
     offsetOut += coord[i] * dstPitch[i];
   }
   if (offsetOut >= numElemsDst)
@@ -175,7 +172,6 @@ inline void fwdLibMaxPoolInstThreaded(
 
     bool first = true;
     auto max_value = tAInput[0];
-    auto first_element = tAInput[0];
     max_value = 0;
     int64_t argmaxNHWC = 0;
 

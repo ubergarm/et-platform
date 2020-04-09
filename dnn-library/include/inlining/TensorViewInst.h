@@ -59,7 +59,7 @@ inline void fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcCnt[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
 
-  for (int i = 0; i < MAX_TENSOR_DIMENSIONS; i++) {
+  for (unsigned i = 0; i < MAX_TENSOR_DIMENSIONS; i++) {
     if (i < dstDimNum) {
       eDstDims[i] = dstIndex[i];
       eDstPitch[i] = dstPitch[i];
@@ -173,10 +173,10 @@ inline void fwdLibTensorViewInstThreaded(
   unsigned int posMax = maxRead + initialAddrOut;
 
   bool done = false;
-  bool donein = false;
+  //  bool donein = false;
   while (!done && (addrOut < posMax)) {
     tOutput[addrOut] = tAInput[addrIn];
-    donein = getOffsets(srcDimNum, coordIn, addrIn, actIndex, actPitch);
+    //    donein = getOffsets(srcDimNum, coordIn, addrIn, actIndex, actPitch);
     done = getOffsets(dstDimNum, coordOut, addrOut, dstIndex, dstPitch);
   }
   if (!DO_EVICTS)

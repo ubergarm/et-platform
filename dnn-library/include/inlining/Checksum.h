@@ -88,10 +88,10 @@ inline void fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
 
   // Reduce CheckSum across active minions
   // TODO: make this general for non power of two active shires
-  int level = 4;
-  for (int i = 1; i < ACTIVE_SHIRES; i *= 2)
+  size_t level = 4;
+  for (size_t i = 1; i < ACTIVE_SHIRES; i *= 2)
     ++level;
-  for (int i = 0; i <= level; i++)
+  for (size_t i = 0; i <= level; i++)
     checksum = tensor_reduce_uint32(checksum, TENSOR_REDUCE_OP_IADD, i, 0x3);
 
   // Convert Checksum to ASCII and dump via UART1

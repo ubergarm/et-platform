@@ -25,8 +25,6 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
-using namespace std;
-
 
 namespace dnn_lib {
 
@@ -140,7 +138,7 @@ inline void fwdLibAvgPoolInstThreaded(
   getNonPaddingCoordinates(coord, initialAddr, 4, dstPitch, dstIndex, k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++) {
+  for (unsigned int i = 0; i < k; i++) {
     offsetOut += coord[i] * dstPitch[i];
   }
   if (offsetOut >= numElemsDst)

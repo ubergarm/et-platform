@@ -55,7 +55,7 @@ inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
   unsigned int *srcIndex = (unsigned int *)srcTDims;
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
-  float e, sum, inverseSum;
+  float e, sum, inverseSum = 0;
 
   unsigned int rowstodo = srcIndex[0] / activeMinions;
   unsigned int firstrow = minionId * rowstodo;
@@ -212,7 +212,6 @@ inline void fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
   size_t typeSize = getsize<srcType>();
-  float e, sum, inverseSum;
 
   unsigned int rowstodo = srcIndex[0] / activeMinions;
   unsigned int firstrow = minionId * rowstodo;

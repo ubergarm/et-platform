@@ -46,9 +46,7 @@ inline void fwdLibSparseLengthsWeightedSumInst(
   long long *indices = (long long *)pindices;
   int32_t *lengths = (int32_t *)plengths;
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
@@ -111,8 +109,6 @@ inline void fwdLibSparseLengthsWeightedSumInstThreaded(
   int32_t *lengths = (int32_t *)plengths;
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
@@ -140,7 +136,7 @@ inline void fwdLibSparseLengthsWeightedSumInstThreaded(
                            k);
 
   unsigned int offsetOut = 0;
-  for (int i = 0; i < k; i++)
+  for (unsigned int i = 0; i < k; i++)
     offsetOut += coord[i] * dstPitch[i];
   if (offsetOut >= numElemsDst)
     return;
@@ -152,7 +148,7 @@ inline void fwdLibSparseLengthsWeightedSumInstThreaded(
     size_t segment_end = segment_begin + lengths[coord[0]];
 
     size_t offsetIn = 0;
-    for (int i = 1; i < pdstDimNum; i++)
+    for (unsigned int i = 1; i < pdstDimNum; i++)
       offsetIn += coord[i] * dataPitch[i];
 
     float res = 0;

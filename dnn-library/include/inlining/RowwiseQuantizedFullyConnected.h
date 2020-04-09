@@ -48,7 +48,6 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
@@ -98,7 +97,6 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
@@ -182,7 +180,6 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;
@@ -340,7 +337,6 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
 
   unsigned int *dstIndex = (unsigned int *)pdstDims;
   unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *weightIndex = (unsigned int *)pweightsDims;
 
   unsigned int *dstPitch = (unsigned int *)pdstPitches;
   unsigned int *dataPitch = (unsigned int *)pdataPitches;

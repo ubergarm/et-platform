@@ -46,12 +46,10 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(void *dstT, v
   long long *tIndex = (long long *)indicesT;
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *srcIndex = (unsigned int *)srcDims;
   unsigned int *indIndex = (unsigned int *)indDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *srcPitch = (unsigned int *)srcPitches;
-  unsigned int *indPitch = (unsigned int *)indPitches;
 
   // Convert sparse representation to dense representation by taking
   // slices of output and values and accumulating the value slice into
@@ -131,12 +129,10 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   long long *tIndex = (long long *)indicesT;
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *srcIndex = (unsigned int *)srcDims;
   unsigned int *indIndex = (unsigned int *)indDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *srcPitch = (unsigned int *)srcPitches;
-  unsigned int *indPitch = (unsigned int *)indPitches;
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
@@ -355,12 +351,11 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
   long long *tIndex = (long long *)indicesT;
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *srcIndex = (unsigned int *)srcDims;
   unsigned int *indIndex = (unsigned int *)indDims;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   unsigned int *srcPitch = (unsigned int *)srcPitches;
-  unsigned int *indPitch = (unsigned int *)indPitches;
+
 
   uintptr_t dstAddr = (uintptr_t)dstT;
   uintptr_t srcAddr = (uintptr_t)srcT;
