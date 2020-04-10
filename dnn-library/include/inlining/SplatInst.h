@@ -30,23 +30,29 @@ namespace dnn_lib {
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
-                              const float *scale, const int32_t *offset) {
-
+void fwdLibSplatInst(void *dst, void *dstDims,
+                     void *dstPitches, unsigned int dstDimNum,
+                     uint64_t *splatVal, const float *scale,
+                     const int32_t *offset, uint64_t flags) {
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
-  uint64_t *src64 = static_cast<uint64_t*>(addr);
+  unsigned int *dstIndex = (unsigned int *)dstDims;
+  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  size_t numElems = dstIndex[0] * dstPitch[0];
+  
+  uint64_t *dst64 = static_cast<uint64_t*>(dst);
   // splatVal has the data replicated as many times as to fill a uint64 
   constexpr size_t ratio64 = sizeof(uint64_t) / sizeof(srcType);
   constexpr size_t mask = ratio64 - 1;
   static_assert( (ratio64 & (ratio64 - 1)) == 0, "ratio to 64b word is not power of 2" );
 
 
-  for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i++, src64++) 
-    *src64 = *splatVal;
+  for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i++, dst64++) 
+    *dst64 = *splatVal;
 
-  memcpy(src64, splatVal, (numElems & mask) * sizeof(srcType));
+  memcpy(dst64, splatVal, (numElems & mask) * sizeof(srcType));
 
 }
 

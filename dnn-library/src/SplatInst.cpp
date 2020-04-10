@@ -14,11 +14,15 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibSplatInst(void *addr, int numElems, uint64_t* splatVal,
-                              const float *scale, const int32_t *offset) {
-
-  dnn_lib::inlining::fwdLibSplatInst<srcType>(addr, numElems, splatVal,
-                              scale, offset);
+void fwdLibSplatInst(void *dst, void *dstDims,
+                     void *dstPitches, unsigned int dstDimNum,
+                     uint64_t *splatValPtr, const float *scale,
+                     const int32_t *offset, uint64_t flags) {
+  
+  dnn_lib::inlining::fwdLibSplatInst<srcType>
+    (dst,dstDims, dstPitches, dstDimNum,
+     splatValPtr, scale, offset, flags
+     );
 }
 
 template <typename sourceTy>
@@ -47,8 +51,9 @@ void fwdLibSplatInstVectorized(void *dst, void *dstDims,
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibSplatInst, void *addr, int numElems, uint64_t *splatVal,
-                        const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSplatInst,  void *dst, void *dstDims, void *dstPitches,
+                             unsigned int dstDimNum, uint64_t *splatVal,
+                             const float *scale, const int32_t *offset, uint64_t flags);
 
 GEN_INSTANCES_OP(template, fwdLibSplatInstThreaded, void *dst, void *dstDims, void *dstPitches,
                              unsigned int dstDimNum, uint64_t *splatVal,
