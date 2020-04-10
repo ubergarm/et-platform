@@ -100,41 +100,6 @@ void loadFp32FromMemory(float* addr, float &res) {
 }
 
 inline __attribute__((always_inline))
-void convertFp16ToFp32(float src, float &dst) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fcvt.ps.f16 %[dst], %[src] \n"
-                       : [ dst ] "=f"(dst)
-                       : [ src ] "f"(src));
-}
-
-inline __attribute__((always_inline))
-void convertFp16ToFp32(uint16_t src, float &dst) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fmv.s.x %[dst], %[src]\n"
-                       "fcvt.ps.f16 %[dst], %[dst] \n"
-                       : [ dst ] "=f"(dst)
-                       : [src] "r" (src));
-}
-
-inline __attribute__((always_inline))
-void convertFp32ToFp16(float src, float &dst) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fcvt.f16.ps %[dst], %[src] \n"
-                       : [ dst ] "=f"(dst)
-                       : [ src ] "f"(src));
-}
-
-inline __attribute__((always_inline))
-void convertFp32ToFp16(float src, uint16_t &dst) {
-  float tmp;
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fcvt.f16.ps %[tmp], %[src] \n"
-                       "fmv.x.w %[dst], %[tmp] \n"
-                       : [ dst ] "=r"(dst), [ tmp ] "=f" (tmp)
-                       : [ src ] "f"(src));
-}
-
-inline __attribute__((always_inline))
 void storeFp32ToMemory(float* addr, float val32) {
 #if 0
   // code for simd (mask != 1)

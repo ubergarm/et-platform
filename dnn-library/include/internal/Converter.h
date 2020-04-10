@@ -12,6 +12,8 @@
 #ifndef CONVERTER_H
 #define CONVERTER_H
 
+namespace dnn_lib {
+
 template <typename SRC, typename DST> class Converter {
 public:
   Converter(){};
@@ -224,5 +226,8 @@ public:
                            );
   }
 };
+
+
+} // namespace dnn_lib
 
 #endif /* CONVERTER_H */

@@ -15,6 +15,8 @@
 #include "Float16.h"
 #include "LibCommon.h"
 
+namespace dnn_lib {
+
 template <typename T> class Writer {
 public:
   uint16_t *ptrfp16_;
@@ -58,5 +60,7 @@ public:
     return *this;
   }
 };
+
+} // namespace dnn_lib
 
 #endif /* WRITER_H */

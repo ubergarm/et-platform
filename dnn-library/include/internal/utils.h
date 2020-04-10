@@ -23,6 +23,8 @@
 #include "LibCommon.h"
 #include "Float16.h"
 
+namespace dnn_lib {
+
 #define MAX_TENSOR_DIMENSIONS 6
 
 #define ACTIVE_SHIRES ((flags & 0x1F) + 1)
@@ -572,5 +574,8 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
   }
   return offset;
 }
+
+
+} // namespace dnn_lib
 
 #endif /* UTILS_H */
