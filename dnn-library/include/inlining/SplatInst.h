@@ -63,7 +63,7 @@ inline void fwdLibSplatInstThreaded(void *dst, void *dstDims,
                                       const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -103,7 +103,7 @@ inline void fwdLibSplatInstThreaded(void *dst, void *dstDims,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
@@ -114,14 +114,14 @@ inline void fwdLibSplatInstVectorized(void *dst, void *dstDims,
                                         const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
   unsigned int *dstIndex = (unsigned int *)dstDims;
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   size_t typeSize = getsize<srcType>();
-  size_t bytesperCL = 64;
+  size_t bytesperCL = CACHE_LINE_BYTES;
 
   uint64_t totalBytes = dstPitch[0] * dstIndex[0] * typeSize;
   uint64_t totalCL = (totalBytes - 1)/bytesperCL + 1;
@@ -132,7 +132,7 @@ inline void fwdLibSplatInstVectorized(void *dst, void *dstDims,
   if (startCL + CLperMinion > totalCL) CLperMinion = totalCL - startCL;
 
   uint64_t regsperMinion = 2 * CLperMinion;  // A cacheline contains 2 regs
-  uint64_t offsetOut = startCL * 64;
+  uint64_t offsetOut = startCL * CACHE_LINE_BYTES;
 
   char *dstPtr = (char *)dst;
   dstPtr += offsetOut;

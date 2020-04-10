@@ -82,7 +82,7 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(
     void *src2Pitches, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -125,7 +125,7 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * sizeof(int8_t) / 64;
+  unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
 }
 

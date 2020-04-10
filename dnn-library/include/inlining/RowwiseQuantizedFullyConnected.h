@@ -85,7 +85,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
     int32_t biasoffset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32*ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
   int8_t *tOutput = (int8_t *)pdst;
@@ -156,7 +156,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 }
 
@@ -168,7 +168,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
     int32_t biasoffset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32*ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
   int8_t *tOutput = (int8_t *)pdst;
@@ -311,7 +311,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 
 #undef MATMUL_ITERATION
@@ -325,7 +325,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
     int32_t biasoffset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32*ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
   int8_t *tOutput = (int8_t *)pdst;
@@ -445,7 +445,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 
 #undef MATMUL_ITERATION

@@ -96,7 +96,7 @@ inline void fwdLibBatchedAddInstThreaded(
     void *pslice, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -144,7 +144,7 @@ inline void fwdLibBatchedAddInstThreaded(
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 }
 
@@ -237,7 +237,7 @@ inline void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
                                                 const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -306,7 +306,7 @@ inline void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * sizeof(int8_t) / 64;
+  unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + sizeof(int8_t)*initialAddr, clperminion);
 }
 

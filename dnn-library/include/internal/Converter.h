@@ -216,11 +216,11 @@ public:
                          "fscw.ps  %[f1], %[gv1](%[dstAddr]) \n"
                          : [gv1] "=&f" (gv1), [gv2] "=&f" (gv2),
                            [f0] "=&f" (f0), [f1] "=&f" (f1),
-                           [ dstMem ] "=m" ( *( char(*)[64]) dstAddr)
+                           [ dstMem ] "=m" ( *( char(*)[CACHE_LINE_BYTES]) dstAddr)
                          : [ srcAddr ] "r"(srcAddr), [ dstAddr ] "r"(dstAddr),
                            [ gatherValues1 ] "m"(*(const int32_t(*)[8]) gatherValues1),
                            [ gatherValues2 ] "m"(*(const int32_t(*)[8]) gatherValues2),
-                           [ srcMem ] "m" ( *(const char(*)[64]) srcAddr)
+                           [ srcMem ] "m" ( *(const char(*)[CACHE_LINE_BYTES]) srcAddr)
                            );
   }
 };

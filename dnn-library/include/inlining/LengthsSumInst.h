@@ -114,7 +114,7 @@ inline void fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
                                            const int32_t *offset, uint64_t flags) {
 
   unsigned int minion_id = get_minion_id();
-  unsigned int activeMinions = 32*ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
   if (minion_id >= activeMinions) return;
 
   Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
@@ -241,7 +241,7 @@ inline void fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
   }
 
   if (!DO_EVICTS) return;
-  unsigned int clperminion = maxRead*sizeof(srcType)/64;
+  unsigned int clperminion = maxRead*sizeof(srcType)/CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + sizeof(srcType)*initialAddr, clperminion);
 }
 

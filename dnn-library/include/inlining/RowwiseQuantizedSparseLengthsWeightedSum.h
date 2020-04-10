@@ -95,7 +95,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
     void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -127,7 +127,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   for (size_t i = 1; i < pdstDimNum; i++)
     lineSize *= dataIndex[i];
 
-  unsigned int cll = 64 / sizeof(float);
+  unsigned int cll = CACHE_LINE_BYTES / sizeof(float);
   unsigned int rowsperminion = (cll - 1) / dstPitch[0] + 1;
   unsigned int total_rows = rowsperminion * activeMinions;
   for (unsigned int i = total_rows; i < segments; i += activeMinions)
@@ -172,7 +172,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
   minionId -= minionOffset;
   
   // Get number of Minions assigned to this Node.
-  uint64_t activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  uint64_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
   if (minionId >= activeMinions) return;
@@ -220,13 +220,13 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
     dstElemSize = 4;
 
   // Compute the number of 8-element vectors per output cache line.
-  uintptr_t dstCacheLineVRegs = 64 / (dstElemSize * 8);
+  uintptr_t dstCacheLineVRegs = CACHE_LINE_BYTES / (dstElemSize * 8);
 
   // Compute the number of Cache Line groups per output row (rounded up).
-  uintptr_t dstRowGroups = ((dstRowSize - 1) / 64) + 1;
+  uintptr_t dstRowGroups = ((dstRowSize - 1) / CACHE_LINE_BYTES) + 1;
 
   // Determine if row has a tail.
-  bool dstRowHasTail = ((dstRowSize % 64) != 0);
+  bool dstRowHasTail = ((dstRowSize % CACHE_LINE_BYTES) != 0);
 
   // Compute the number of 8-element vectors in the tail of the row.
   uintptr_t dstRowTailVRegs = (((dstRowSize - 1) / 8) + 1) % dstCacheLineVRegs;

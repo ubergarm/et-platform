@@ -112,7 +112,7 @@ inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
                                      const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -164,7 +164,7 @@ inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
@@ -202,7 +202,7 @@ inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
                                        const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -374,7 +374,7 @@ inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
   __asm__ __volatile__ ("mov.m.x m0, zero, 0xff \n");
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 

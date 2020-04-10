@@ -65,7 +65,7 @@ inline void fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
                                         const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if ((minionId >= activeMinions) || (minionId >= activeMinions))
     return;
 
@@ -76,15 +76,15 @@ inline void fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
   size_t typeSize = getsize<srcType>();
   uint64_t numElemsDst = dstPitch[0] * actIndex[0] *
                              typeSize; // Total number of elements in the tensor
-  uint64_t numCacheLines = (numElemsDst - 1) / 64 + 1; //64 = CacheLineLength
+  uint64_t numCacheLines = (numElemsDst - 1) / CACHE_LINE_BYTES + 1; //64 = CacheLineLength
   uint64_t minionCacheLines = (numCacheLines - 1) / activeMinions + 1;
   uint64_t initialCacheLine = minionCacheLines * minionId;
   uint64_t lastCacheLine = initialCacheLine + minionCacheLines;
   minionCacheLines =
           (lastCacheLine <= numCacheLines) ? minionCacheLines
         : (initialCacheLine < numCacheLines) ? numCacheLines - initialCacheLine : 0;
-  uint64_t srcAddr = (uint64_t)src + initialCacheLine*64;
-  uint64_t dstAddr = (uint64_t)dst + initialCacheLine*64;
+  uint64_t srcAddr = (uint64_t)src + initialCacheLine*CACHE_LINE_BYTES;
+  uint64_t dstAddr = (uint64_t)dst + initialCacheLine*CACHE_LINE_BYTES;
 
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
   while (minionCacheLines >= 16) {

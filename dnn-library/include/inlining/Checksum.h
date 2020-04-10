@@ -47,7 +47,7 @@ inline void fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
   unsigned int *actPitch = (unsigned int *)srcPitches;
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 

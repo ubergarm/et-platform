@@ -50,12 +50,12 @@ constexpr uint64_t fg32h_conf = 0x76543210;
 inline __attribute__((always_inline))
 void evict_va_multi(uint64_t dst, uintptr_t addr, uint64_t num_lines) {
   while (num_lines > 16) {
-    evict_va(0, dst, addr, 15, 64);
-    addr += (64*16);
+    evict_va(0, dst, addr, 15, CACHE_LINE_BYTES);
+    addr += (CACHE_LINE_BYTES*16);
     num_lines -= 16;
   }
   if (num_lines > 0)
-    evict_va(0, dst, addr, num_lines-1, 64);
+    evict_va(0, dst, addr, num_lines-1, CACHE_LINE_BYTES);
 }
 
 inline __attribute__((always_inline))
@@ -164,7 +164,7 @@ void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
                            unsigned int &offset, unsigned int &maxRead,
                            unsigned int minionId, unsigned int activeMinions) {
 
-  unsigned int cll = 64 / elementSize;              // Cacheline length
+  unsigned int cll = CACHE_LINE_BYTES / elementSize;              // Cacheline length
   unsigned int ncl = (numElems - 1) / cll + 1;      // Amount of cache lines
   unsigned int mcl = (ncl - 1) / activeMinions + 1; // Amount of cl for a minion
   unsigned int div = ncl / mcl;
@@ -209,7 +209,7 @@ void getUniformCachelinePartition(unsigned int elementsize, unsigned int numElem
                                   unsigned int activeMinions) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int cll = 64 / elementsize;            // Cacheline lenght
+  unsigned int cll = CACHE_LINE_BYTES / elementsize;            // Cacheline lenght
   unsigned int ncl = (numElems - 1) / cll + 1;    // Amount of cache lines
   unsigned int mcl = ncl / activeMinions;         // Amount of cl for the minion
   unsigned int mod = ncl - activeMinions * mcl;
@@ -253,7 +253,7 @@ void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsD
                                    unsigned int &offset, unsigned int &maxRead,
                                    unsigned int activeMinions) {
   unsigned int minionId = (activeMinions - get_minion_id()) - 1;
-  unsigned int cll = 64 / elementsize;            // Cacheline length
+  unsigned int cll = CACHE_LINE_BYTES / elementsize;            // Cacheline length
   unsigned int ncl = (ElemsDst - 1) / cll + 1;    // Amount of cache lines
   unsigned int mcl = ncl / activeMinions;         // Amount of cl for a minion
   unsigned int mod = ncl - activeMinions * mcl;

@@ -65,7 +65,7 @@ inline void fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
 
   size_t typeSize = getsize<srcType>();
   uint64_t numBytes = Pitch[0] * Index[0] * typeSize + off; // Total number of elements in the tensor
-  uint64_t numCacheLines = (numBytes - 1) / 64 + 1; // 64 = CacheLineLength
+  uint64_t numCacheLines = (numBytes - 1) / CACHE_LINE_BYTES + 1; // 64 = CacheLineLength
   int64_t  minionCacheLines = (numCacheLines - 1) / activeMinions + 1;
   uint64_t initialCacheLine = minionCacheLines * minionId;
   uint64_t lastCacheLine = initialCacheLine + minionCacheLines;
@@ -74,8 +74,8 @@ inline void fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
                    :                                      0;
 
   // Computes source and destination
-  uint64_t srcAddr = ((uint64_t) src & ~0x3FULL) + initialCacheLine * 64; // Aligns to cache line
-  uint64_t dstAddr = (uint64_t) dst + initialCacheLine * 64;
+  uint64_t srcAddr = ((uint64_t) src & ~0x3FULL) + initialCacheLine * CACHE_LINE_BYTES; // Aligns to cache line
+  uint64_t dstAddr = (uint64_t) dst + initialCacheLine * CACHE_LINE_BYTES;
   uint64_t dstAddrOrig = dstAddr;
 
   // Saves minion cache lines for evicts

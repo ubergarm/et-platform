@@ -121,7 +121,7 @@ inline void fwdLibGatherRangesInstThreaded(
     void *prangesPitches, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32*ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
   Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
@@ -227,7 +227,7 @@ inline void fwdLibGatherRangesInstThreaded(
     }
 
     if (!DO_EVICTS) return;
-    unsigned int clperminion = maxRead*sizeof(srcType)/64;
+    unsigned int clperminion = maxRead*sizeof(srcType)/CACHE_LINE_BYTES;
     if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
   }
 
@@ -260,7 +260,7 @@ inline void fwdLibGatherRangesInstThreaded(
 
     // Todo: initialAddr should be the virtual address of the Length tensor.
     if (!DO_EVICTS) return;
-    unsigned int clperminion = lenIndex[0]*lenPitch[0]*sizeof(srcType)/64;
+    unsigned int clperminion = lenIndex[0]*lenPitch[0]*sizeof(srcType)/CACHE_LINE_BYTES;
     if (clperminion > 0) {
       evict_va_multi(DO_EVICTS, (uintptr_t)dst2T + typeSize*initialAddr, clperminion);
     }

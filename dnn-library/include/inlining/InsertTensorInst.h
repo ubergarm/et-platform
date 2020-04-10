@@ -93,7 +93,7 @@ void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                   if ((addr2wr >> 6) != (previous_addr2wr >> 6))  
                   {
                     /* evict current cache line */
-                    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 15, 64);
+                    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 15, CACHE_LINE_BYTES);
                     previous_addr2wr = addr2wr;
                   }
                 }
@@ -107,7 +107,7 @@ void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
   }
 
   if (DO_EVICTS) {
-    evict_va(0, DO_EVICTS, addr2wr, 15, 64);
+    evict_va(0, DO_EVICTS, addr2wr, 15, CACHE_LINE_BYTES);
   }
 
 }
@@ -133,11 +133,11 @@ void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
 //  unsigned int *coord = (unsigned int *)poffsets;
 //
 //  unsigned int minionId = get_minion_id();
-//  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+//  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
 //  if (minionId >= activeMinions)
 //    return;
 //  size_t typeSize = getsize<srcType>();
-//  unsigned int cll = 64/typeSize;
+//  unsigned int cll = CACHE_LINE_BYTES/typeSize;
 //
 //  //Computing initial and last Address for each minion
 //  unsigned int helper = actIndex[axis];
@@ -242,7 +242,7 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
   // Computes bytes to evict (adds the unaligned cache line bytes of the base address
   uint32_t  bytes2evict = ((lanes.first * 4) + (addr2evict & 0x3F));
   // With that computes the cl2evict (0 means 1, 1 means 2, ...)
-  uint32_t  cl2evict = bytes2evict / 64;
+  uint32_t  cl2evict = bytes2evict / CACHE_LINE_BYTES;
 
   while (lanes.first > 8) {
 
@@ -321,13 +321,13 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                              const  uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) :  assignedMinions;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) :  assignedMinions;
   if (minionId >= activeMinions)
     return;
 
   unsigned int *dstPitch = (unsigned int *)dstPitches;
   int32_t typeSize = (int32_t) getsize<srcType>();
-  unsigned int cll = 64/typeSize;
+  unsigned int cll = CACHE_LINE_BYTES/typeSize;
 
   if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
     fwdLibInsertTensorInst<srcType>(dst, dstDims, dstPitches,
@@ -494,7 +494,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
         addrOut += dstPitch[i] * offsetOut[i];
       }
       unsigned int lastRowElem = addrOut + actIndex[axis] * dstPitch[axis] * count;
-      unsigned int cll = 64 / getsize<srcType>();
+      unsigned int cll = CACHE_LINE_BYTES / getsize<srcType>();
       unsigned int modulo = addrOut % cll;
       //unsigned int maximalPos = jump * count;
       unsigned int clperRow = (modulo + (jump * count) - 1) / cll + 1;

@@ -78,7 +78,7 @@ void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
                                        const uint32_t assignedMinions) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -131,7 +131,7 @@ void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
@@ -381,7 +381,7 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
                                          const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -475,7 +475,7 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 

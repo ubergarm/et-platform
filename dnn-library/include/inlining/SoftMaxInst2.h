@@ -86,12 +86,12 @@ inline void fwdLibSoftMaxInstThreaded2 (void *dstT, void *srcT, void *srcTDims,
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
   size_t typeSize = getsize<srcType>();
-  unsigned int cll = 64/typeSize;
+  unsigned int cll = CACHE_LINE_BYTES/typeSize;
   unsigned int rowspercl = (cll - 1)/srcPitch[0] + 1;
   unsigned int rowstodo = rowspercl;
   while(activeMinions*rowstodo < srcIndex[0]) rowstodo += rowspercl;

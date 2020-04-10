@@ -111,7 +111,7 @@ inline void fwdLibTensorViewInstThreaded(
     void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -181,7 +181,7 @@ inline void fwdLibTensorViewInstThreaded(
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddrOut, clperminion);
 }
 
@@ -244,7 +244,7 @@ inline void fwdLibTensorViewInstVectorized(
     void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return; // Minion not working
 
@@ -377,7 +377,7 @@ inline void fwdLibTensorViewInstVectorized(
 
   if (!DO_EVICTS) // Evicting the result
     return;
-  unsigned int clperminion = maxRead * typeSize / 64;
+  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddrOut, clperminion);
 }
 

@@ -70,7 +70,7 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
     uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 

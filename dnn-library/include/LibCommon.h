@@ -23,6 +23,9 @@
 
 #include "LibTensor.h"
 
+#define CACHE_LINE_BYTES 64
+#define MIN_PER_SHIRE 32
+
 namespace dnn_lib {
 
 template <typename T, typename U>

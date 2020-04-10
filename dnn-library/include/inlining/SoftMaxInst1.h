@@ -43,7 +43,7 @@ inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
                                          const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -86,7 +86,7 @@ inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
     }
   }
 
-  unsigned int cll = 64 / getsize<srcType>();
+  unsigned int cll = CACHE_LINE_BYTES / getsize<srcType>();
   unsigned int clperpitch = srcPitch[0] / cll;
   if (DO_EVICTS) {
     unsigned int clperminion = clperpitch * rowstodo;
@@ -98,7 +98,7 @@ inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
   unsigned int remainingrows = srcIndex[0] - doneRows;
 
   if (remainingrows != 0) {
-    //    unsigned int cll = 64/sizeof(srcType);
+    //    unsigned int cll = CACHE_LINE_BYTES/sizeof(srcType);
     unsigned int clperrow = (srcIndex[1] - 1) / cll + 1;
 
     unsigned int minionsperrow = 1;
@@ -200,7 +200,7 @@ inline void fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
                                            const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32 * ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
@@ -381,7 +381,7 @@ inline void fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
 
   if (remainingrows != 0) {
 
-    unsigned int cll = 64 / getsize<srcType>();
+    unsigned int cll = CACHE_LINE_BYTES / getsize<srcType>();
     unsigned int clperrow = (srcIndex[1] - 1) / cll + 1;
 
     unsigned int minionsperrow = 1;

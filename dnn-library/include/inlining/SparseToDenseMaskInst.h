@@ -110,7 +110,7 @@ inline void fwdLibSparseToDenseMaskInstThreaded(
     void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32*ACTIVE_SHIRES;
+  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
   Addresser<srcType> tOutput(pdst, scale[2], offset[2]);

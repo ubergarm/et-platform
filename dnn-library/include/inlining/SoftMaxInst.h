@@ -83,7 +83,7 @@ inline void fwdLibSoftMaxInstThreaded(void *dstT, void *srcT, void *srcTDims,
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
   size_t typeSize = getsize<srcType>();
-  unsigned int cll = 64/typeSize;
+  unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
     dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<srcType>(dstT, srcT, srcTDims,
                                         srcTPitches, scale,
@@ -105,7 +105,7 @@ inline void fwdLibSoftMaxInstVectorized(void *dstT, void *srcT, void *srcTDims,
   unsigned int *srcPitch = (unsigned int *)srcTPitches;
 
   size_t typeSize = getsize<srcType>();
-  unsigned int cll = 64/typeSize;
+  unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
     dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<srcType>(dstT, srcT, srcTDims,
                                         srcTPitches, scale,
