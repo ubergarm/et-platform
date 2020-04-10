@@ -176,10 +176,9 @@ inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uint
     "mov.m.x m0, zero, 0x1\n"
     "fsw.ps f31, 0x0(%[dstAddr])\n"
 
-    :
+    : [actAddr] "+&r" (actAddr),
+      [wgtAddr] "+&r" (wgtAddr)
     : [elemsRow] "r" (elemsRow),
-      [actAddr] "r" (actAddr),
-      [wgtAddr] "r" (wgtAddr),
       [dstAddr] "r" (dstAddr)
     : "t0", "t1", "f0", "f1", "f30", "f31", "memory");
 
