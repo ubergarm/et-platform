@@ -198,18 +198,19 @@ inline void fwdLibGatherRangesInstThreaded(
     unsigned int posMax = maxRead + initialAddr;
     bool done = false;
     //TODO: SW-2650    bool doneIn = false; // useful for skipping padding positions in the source tensor.
+
     while (!done && (offsetOut < posMax)) {
       tOutput[offsetOut] = tInput[offsetIn];
       done = getOffsets(srcDimsNum, coordOut, offsetOut, dstIndex, dstPitch);
       positionInBatch++;
       if (positionInBatch != batchElems) {
-        //TODO: SW-2650 doneIn = getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+        /*TODO: SW-2650 doneIn = */ getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
       }
       else {
         positionInBatch = 0;
         count++;
         if (count != length) {
-          //TODO: SW-2650 doneIn = getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+         /*TODO: SW-2650 doneIn = */getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
         }
         else {
           count = 0;
