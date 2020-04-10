@@ -9,6 +9,7 @@ class Max {};
 class Min {};
 class CmpEQ {};
 class CmpLTE {};
+class CmpLT {};
 class Select {};
 class Pow {};
 class ElementLog {};
