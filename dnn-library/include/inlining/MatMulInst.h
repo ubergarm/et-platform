@@ -192,15 +192,14 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 
     "3:\n"
 
-    :
+    : [wgtAddr] "+&r" (wgtAddr),
+      [dstAddr] "+&r" (dstAddr)
     : [regs]    "r" (regs),
       [extra]   "r" (extra),
       [wgtStep] "r" (wgtStep),
       [length]  "r" (length),
-      [actAddr] "r" (actAddr),
-      [wgtAddr] "r" (wgtAddr),
-      [dstAddr] "r" (dstAddr)
-    : "t0", "t1", "f0", "f1", "f2", "memory");
+      [actAddr] "r" (actAddr)
+    : "t0", "t1", "t2", "t3", "f0", "f1", "f2", "memory");
 
 #undef MATMUL_ITERATION
 
@@ -252,16 +251,15 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 
     "3:\n"
 
-    :
+    : [wgtAddr] "+&r" (wgtAddr),
+      [dstAddr] "+&r" (dstAddr)
     : [regs]    "r" (regs),
       [extra]   "r" (extra),
       [wgtStep] "r" (wgtStep),
       [length]  "r" (length),
       [actAddr] "r" (actAddr),
-      [wgtAddr] "r" (wgtAddr),
-      [dstAddr] "r" (dstAddr),
       [gthVals] "r" (gatherValues)
-    : "t0", "t1", "f0", "f1", "f2", "memory");
+    : "t0", "t1", "t2", "t3", "f0", "f1", "f2", "f31", "memory");
 
 #undef MATMUL_ITERATION
 
@@ -346,18 +344,17 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 
     "3:\n"
 
-    :
+    : [wgtAddr] "+&r" (wgtAddr),
+      [dstAddr] "+&r" (dstAddr)
     : [regs]    "r" (regs),
       [extra]   "r" (extra),
       [wgtStep] "r" (wgtStep),
       [length]  "r" (length),
       [actAddr] "r" (actAddr),
-      [wgtAddr] "r" (wgtAddr),
-      [dstAddr] "r" (dstAddr),
       [gthVals] "r" (gatherValues),
       [scale]   "r" (scale),
       [offset]  "r" (offset)
-    : "t0", "t1", "f0", "f1", "f2", "f3", "f4", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "t2", "t3", "f0", "f1", "f2", "f3", "f4", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 #undef MATMUL_ITERATION
 #undef INT8_TO_FP32
@@ -380,8 +377,8 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
                                          void *activationsPitches, void *weights,
                                          void *weightsDims, void *weightPitches,
                                          const float *scale, const int32_t *offset, uint64_t flags,
-                                         const uint32_t minionOffset,
-                                         const uint32_t assignedMinions) {
+                                         const uint32_t minionOffset = 0,
+                                         const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (32 * ACTIVE_SHIRES) : assignedMinions;
@@ -405,7 +402,7 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
 
   unsigned int dstDimNum = 2;
   unsigned int coordOut[dstDimNum];
-  unsigned int last_non_zero_coord = 0;
+  unsigned int last_non_zero_coord;
   getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
 
 // The vector coordOut now contains the coordinates for the first position in the dst tensor that should be written by the minion.
