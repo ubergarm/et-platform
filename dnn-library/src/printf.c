@@ -857,6 +857,33 @@ static int _vsnprintf(out_fct_type out, char* buffer, const size_t maxlen, const
   return (int)idx;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// functions to avoid minions printing at the same time
+// (and mixing messages in the uart)
+uint32_t _printf_free = 1;
+
+void printf_lock() {
+  uint32_t v;
+  do { // spinlock until the mutex is locked
+    __asm__ __volatile__
+      (
+       "li x31, 1\n"
+       "amocmpswapg.w %[v], x0, (%[lock])\n"
+       : [v] "+r" (v)
+       : [lock] "r" (&_printf_free)
+       : "x31" , "memory"
+       );
+  } while( v == 0);
+}
+
+
+void printf_unlock() {
+  uint32_t v = 1;
+  __asm__ __volatile__ // just set to mutex to 0
+    (
+     "amoswapg.w x0, %[v], (%[lock])\n"
+     : : [lock] "r" (&_printf_free), [v] "r" (v): "memory");
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -865,7 +892,9 @@ int printf(const char* format, ...)
   va_list va;
   va_start(va, format);
   char buffer[1];
+  printf_lock();
   const int ret = _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
+  printf_unlock();
   va_end(va);
   return ret;
 }
@@ -894,7 +923,10 @@ int snprintf(char* buffer, size_t count, const char* format, ...)
 int vprintf(const char* format, va_list va)
 {
   char buffer[1];
-  return _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
+  printf_lock();
+  int ret = _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
+  printf_unlock();
+  return ret;
 }
 
 

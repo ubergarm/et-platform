@@ -68,13 +68,23 @@ int puts(const char *s)
 void abort(void)
 {
   puts("Aborted.\n");
+  // and assembly code to tell sysemu/vcs/zebu to stop the test with a failure
+  __asm__ __volatile__
+    (
+     "fence\n"
+     "slti x0,x0,0x7ff\n"
+     "lui t0, 0x50BAD\n"
+     "csrw validation0, t0\n"
+     "wfi\n"
+     : : : "t0");
+  
   while (1)
     ;
 }
 
 void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
 {
-  printf("assertion \"%s\" failed: file \"%s\", line %d%s%s\n",
-    failedexpr, file, line, func ? ", function: " : "", func ? func : "");
+  printf("Assertion \"%s\" failed: file \"%s\", line %d%s%s\n",
+         failedexpr, file, line, func ? ", function: " : "", func ? func : "");
   abort();
 }
