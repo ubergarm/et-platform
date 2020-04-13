@@ -29,7 +29,8 @@ namespace dnn_lib {
 
 namespace inlining {
 
-inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
+inline __attribute((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
@@ -109,8 +110,8 @@ inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   }
 }
 
-
-inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
+inline __attribute((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
         void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
         void *pweightsDims, void *pweightsPitches, void *pindices,
@@ -234,7 +235,8 @@ inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThread
 // vector f29 should be set to {0, 2, 4, 6, 8, 10, 12, 14}
 //
 template <bool Weighted, bool Float32Dst, bool Float16Dst>
-inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
+inline __attribute((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
     uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
     uintptr_t dataRowSize, uintptr_t dstElemSize,
@@ -359,9 +361,9 @@ inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
   }
 }
 
-
 template<bool Weighted, bool Float32Dst, bool Float16Dst>
-inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+inline __attribute((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
         void *pdst2, void *pdst2Pitches,
         void *pdata, void *pdataDims, void *pdataPitches,
@@ -791,7 +793,7 @@ inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVector
       }
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-        fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
+        dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
           dataPitches[0], dataRowSize, dstElemSize,
           tWInput, dst_ptr, dst2_ptr);
@@ -804,7 +806,7 @@ inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVector
         : [tail_mask] "r" (dstRowTailVRegMask)
       );
 
-      fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
+      dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
         minionCurrIndex, currSegmentLength, tAInput, indices,
         dataPitches[0], dataRowSize, dstElemSize,
         tWInput, dst_ptr, dst2_ptr);
@@ -824,7 +826,8 @@ inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVector
 }
 
 template<typename Type>
-inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+inline __attribute((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
         void *pdata, void *pdataDims, void *pdataPitches,
         void *pweights, void *pweightsDims, void *pweightsPitches,

@@ -31,6 +31,7 @@ namespace dnn_lib {
 namespace inlining {
 
 template <typename srcType>
+inline __attribute__((always_inline))
 void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
                                      unsigned int dstDimNum, void *src2,
                                      void *src2Dims, void *src2Pitches,
@@ -310,6 +311,7 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
 }
 
 template <typename srcType>
+inline __attribute__((always_inline))
 void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                                              void *dstPitches,
                                              unsigned int dstDimNum, void *src2,

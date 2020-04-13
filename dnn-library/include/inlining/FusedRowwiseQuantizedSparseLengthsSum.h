@@ -31,7 +31,8 @@ namespace dnn_lib {
 namespace inlining {
 
 template<typename DstType>
-inline void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
+inline __attribute__((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
         void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
         void *pdata, void *pdataDims, void *pdataPitches,
         void *pindices, void *plengths, unsigned int pLengthsSize,
