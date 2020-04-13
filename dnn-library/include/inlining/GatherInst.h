@@ -156,7 +156,7 @@ inline void fwdLibGatherInstThreaded(
   while (!done && (offsetOut < posMax)) {
     tOutput[offsetOut] = tInput[offsetIn];
     // Coordinates are updated to the next position that must be copied.
-    for (unsigned j = dstDimsNum - 1; j >= 0; j--) {
+    for (unsigned j = dstDimsNum - 1; j < dstDimsNum; j--) { // the loop goes from j=Dims-1 to 0, and the wraps around => j > dstDimsNum and ends
       if (coordOut[j] != (dstIndex[j] - 1)) {
         offsetOut += dstPitch[j];
         coordOut[j]++;
