@@ -58,7 +58,8 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
     return;
 
   srcType *tOutput = (srcType *)dstT;
-  srcType *tInput = (srcType *)srcT;
+
+  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
 
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
@@ -87,8 +88,8 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
                         w * eSrcPitch[3] + q * eSrcPitch[4] + r * eSrcPitch[5];
               addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
                         w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
-              auto val = tInput[addrSrc];
-	      float res = getExp((float)val);
+
+              float res = getExp(tInput[addrSrc]);
               tOutput[addrDst] = res;
             }
           }
