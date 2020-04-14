@@ -77,7 +77,7 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
   }
 
   uint64_t addrSrc, addrDst;
-
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
   for (size_t x = 0; x < eDims[0]; x++) {
     for (size_t y = 0; y < eDims[1]; y++) {
       for (size_t z = 0; z < eDims[2]; z++) {
@@ -89,8 +89,10 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
               addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
                         w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
 
-              float res = getExp(tInput[addrSrc]);
+              float res = static_cast<float>(M_LOG2E) * tInput[addrSrc];
+              __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
               tOutput[addrDst] = res;
+
             }
           }
         }
