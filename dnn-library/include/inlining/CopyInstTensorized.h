@@ -25,6 +25,8 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
+#include "LibTensor.h"
+
 namespace dnn_lib {
 
 namespace inlining {
@@ -57,21 +59,36 @@ namespace inlining {
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-inline void fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
-                                        void *src, void *srcDims, void *srcPitches,
-                                        unsigned int srcDimNum, const float *scale,
-                                        const int32_t *offset, uint64_t flags,
-                                        const uint32_t minionOffset = 0,
-                                        const uint32_t assignedMinions = 0) {
+inline void fwdLibCopyInstTensorized(LibTensor* inT, LibTensor* outT,
+                                     uint64_t flags,
+                                     const uint32_t minionOffset = 0,
+                                     const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if ((minionId >= activeMinions) || (minionId >= activeMinions))
     return;
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  auto srcH = inT->getHandle<srcType>();
+  auto dstH = outT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dst = reinterpret_cast<void*>(dstH.getUnsafePtrdbg());
+ 
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  dstH.cpydims(dstIndex);
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);
+
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] =  {0,};
+  srcH.cpypitchesdbg(actPitch);
 
   size_t typeSize = getsize<srcType>();
   uint64_t numElemsDst = dstPitch[0] * actIndex[0] *

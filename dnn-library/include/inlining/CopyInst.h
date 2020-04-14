@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -47,22 +48,37 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-inline void fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
-                             void *src, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, const float *scale, const int32_t *offset) {
+inline void fwdLibCopyInst(LibTensor* inT, LibTensor* outT) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
   
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  // const Addresser<srcType> tInput(src, scale[0], offset[0]);
+  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  const Addresser<srcType> tInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
+
+  //  unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);
+
+  //  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  //  unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] =  {0,};
+  srcH.cpypitchesdbg(actPitch);
+  
+  //  unsigned int coord[srcDimNum];
+  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
   unsigned int coord[srcDimNum];
   unsigned int offsetIn  = 0;
   unsigned int offsetOut = 0;
@@ -103,27 +119,44 @@ inline void fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
-                                     void *dstPitches, void *src,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, const float *scale,
-                                     const int32_t *offset, uint64_t flags,
-                                     const uint32_t minionOffset = 0,
-                                     const uint32_t assignedMinions = 0) {
+inline void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
+                                   uint64_t flags,
+                                   const uint32_t minionOffset = 0,
+                                   const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg()); //inT->getUnsafePtr());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg()); //outT->getUnsafePtr());
+  
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  const Addresser<srcType> tInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  // uint8_t *dst8 = (uint8_t *)dst;
+  // uint8_t *src8 = (uint8_t *)src;
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  //  unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  destH.cpydims(dstIndex);
+  //  unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);  
+  
+  //  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] =  {0,};
+  destH.cpypitchesdbg(dstPitch);  
+  //  unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
 
   unsigned int numElemsDst =
       dstPitch[0] * dstIndex[0]; // Total number of elements in the tensor
@@ -138,12 +171,14 @@ inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
     return;
 
   // We move the initialAddr to the next non-padding position
-
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH.getNumDimsdbg());
+  
   unsigned int k;                  // Amount of non-zero coordinates
   unsigned int coord[srcDimNum]; // Vector of coordinates
 
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           k);
+  /*use overloading WIP sw2400 sw2429*/
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
+
 
   // We get the actual initialAddr, in the input and output.
   unsigned int offsetIn = 0;
@@ -158,7 +193,8 @@ inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
   // completion.
   bool done = false;
   while (!done && (offsetOut < posMax)) {
-    tOutput[offsetOut] = tAInput[offsetIn];
+    tOutput[offsetOut] = tInput[offsetIn];
+    /*use overloading WIP sw2400 sw2429*/
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
                       actPitch, dstPitch);
   }
@@ -193,31 +229,48 @@ inline void fwdLibCopyInstThreaded(void *dst, void *dstDims,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
-                                       void *dstPitches, void *src,
-                                       void *srcDims, void *srcPitches,
-                                       unsigned int srcDimNum, const float *scale,
-                                       const int32_t *offset, uint64_t flags,
-                                       const uint32_t minionOffset = 0,
-                                       const uint32_t assignedMinions = 0) {
+inline void fwdLibCopyInstVectorized(LibTensor* inT, LibTensor* outT,
+                                     uint64_t flags,
+                                     const uint32_t minionOffset = 0,
+                                     const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg()); //inT->getUnsafePtr());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg()); //outT->getUnsafePtr());
+   
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  const Addresser<srcType> tInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+
+  
+  //  unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  destH.cpydims(dstIndex);
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);  
+  
   uint8_t *dst8 = (uint8_t *)dst;
   uint8_t *src8 = (uint8_t *)src;
   uint8_t *src8Init = src8;
   uint8_t *dst8Init = dst8;
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] =  {0,};
+  destH.cpypitchesdbg(dstPitch);  
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
 
   unsigned int typeSize = getsize<srcType>();
   unsigned int numElemsDst =
@@ -231,13 +284,16 @@ inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
   if (maxRead == 0)
     return;
   // We move the initialAddr to the next non-padding position
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH.getNumDimsdbg());
+  
   unsigned int k = 0;            // Amount of non-zero coordinates
   unsigned int coord[srcDimNum]; // Vector of coordinates
   for (size_t index = 0; index < srcDimNum; ++index) {
     coord[index] = 0;
   }
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           k);
+  
+  /*use overloading WIP sw2400 sw2429*/
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
 
   // We get the actual initialAddr, in the input and output.
   unsigned int offsetIn = 0;
@@ -357,7 +413,7 @@ inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
     unsigned int offsetInAux = (src8 - src8Init) / typeSize;
     unsigned int offsetOutAux = (dst8 - dst8Init) / typeSize;
     for (unsigned int i = 0; i < spareElems; i++) {
-      tOutput[offsetOutAux + i] = tAInput[offsetInAux + i];
+      tOutput[offsetOutAux + i] = tInput[offsetInAux + i];
     }
 
     if (lastRow)
@@ -369,7 +425,9 @@ inline void fwdLibCopyInstVectorized(void *dst, void *dstDims,
     offsetOut -= coord[lastDim] * dstPitch[lastDim];
     coord[lastDim] = 0;
 
-    done = getOffsets(srcDimNum - 1, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
+    /*use overloading WIP sw2400 sw2429*/    
+    done = getOffsets(srcDimNum - 1, coord, offsetIn, offsetOut, actIndex,
+                      actPitch, dstPitch);
   }
   __asm__ __volatile__ ("mov.m.x m0, zero, 0xff \n");
   if (!DO_EVICTS)

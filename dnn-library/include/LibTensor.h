@@ -716,7 +716,10 @@ class LibTensor final {
 
 
   /*debug purpose*/
-  uint8_t pitches(dim_t* cpydims) { return type_.strides(cpydims); }
+  uint8_t dbgcpypitches(dim_t* cpydims) { return type_.strides(cpydims); }
+  float    dbggetscale() { return this->type_.getScale(); }
+  int32_t dbggetoffset() { return this->type_.getOffset(); }
+  unsigned char dbggetnumdims() {return this->type_.getNumDims();}
   
 private:
 
@@ -914,18 +917,6 @@ template <class ElemTy> class Handle final {
       }
    }
 
-   /*@brief get a copy of dims_ internal dimension Tensor.
-    *
-    *@param[inout] dim array pointer to copy the tensor sizes_.
-    *@return the numDims_ value. (the number of dims be copied).
-    */
-   uint8_t cpydims(dim_t* cpydim) {
-     for(uint8_t i = 0; i < numDims_; i++) {
-       cpydim[i] = sizes_[i];
-     }
-     return numDims_;
-   }
-
    /*@brief returns the number of elements in the whole tensor.
     */
    dim_t size() const { return tensor_->size(); }
@@ -968,12 +959,29 @@ template <class ElemTy> class Handle final {
     return data[index];
   }
 
+  /*@brief get a copy of dims_ internal dimension Tensor.
+   *
+   *@param[inout] dim array pointer to copy the tensor sizes_.
+   *@return the numDims_ value. (the number of dims be copied).
+   */
+  uint8_t cpydims(dim_t* cpydim) {
+    for(uint8_t i = 0; i < numDims_; i++) {
+      cpydim[i] = sizes_[i];
+    }
+    return numDims_;
+  }
+
+  
   char* getPtrdbg(void) const {return tensor_->dbgData();}
   dim_t* getSizeIntdbg(void) {return sizeIntegral_;}
   dim_t* getSizesdbg(void) {return sizes_;}
   uint8_t getNumDimsdbg(void) {return numDims_;}
   LibTensor* getTensordbg(void) {return tensor_;}
-  
+  char* getUnsafePtrdbg(void) {return tensor_->getUnsafePtr();}
+  float getScaledbg(void) {return tensor_->dbggetscale();}
+  int32_t getOffsetdbg(void) {return tensor_->dbggetoffset();}
+  uint8_t cpypitchesdbg(dim_t* cpypitch) { return tensor_->dbgcpypitches(cpypitch); }
+  uint8_t cpydimsdbg(dim_t* cpydims) { return tensor_->dims(cpydims); }
 }; //end Handle class
 
   template <class ElemTy> Handle<ElemTy> LibTensor::getHandle() & {

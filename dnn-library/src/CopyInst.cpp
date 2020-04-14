@@ -31,13 +31,9 @@ namespace dnn_lib {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-void fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
-                             void *src, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, const float *scale, const int32_t *offset) {
+void fwdLibCopyInst(LibTensor* inT, LibTensor* outT) {
 
-  dnn_lib::inlining::fwdLibCopyInst<srcType>(dst, dstDims, dstPitches,
-                             src, srcDims, srcPitches,
-                             srcDimNum, scale, offset);
+  dnn_lib::inlining::fwdLibCopyInst<srcType>(inT, outT);
 }
 
 /**
@@ -62,21 +58,13 @@ void fwdLibCopyInst(void *dst, void *dstDims, void *dstPitches,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-void fwdLibCopyInstThreaded(void *dst, void *dstDims,
-                                     void *dstPitches, void *src,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, const float *scale,
-                                     const int32_t *offset, uint64_t flags,
-                                     const uint32_t minionOffset,
-                                     const uint32_t assignedMinions) {
+void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
+                            uint64_t flags,
+                            const uint32_t minionOffset,
+                            const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstThreaded<srcType>(dst, dstDims,
-                                     dstPitches, src,
-                                     srcDims, srcPitches,
-                                     srcDimNum, scale,
-                                     offset, flags,
-                                     minionOffset,
-                                     assignedMinions);
+  dnn_lib::inlining::fwdLibCopyInstThreaded<srcType>(inT, outT, flags, minionOffset,
+                                                     assignedMinions);
 }
 
 /**
@@ -104,36 +92,22 @@ void fwdLibCopyInstThreaded(void *dst, void *dstDims,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-void fwdLibCopyInstVectorized(void *dst, void *dstDims,
-                                       void *dstPitches, void *src,
-                                       void *srcDims, void *srcPitches,
-                                       unsigned int srcDimNum, const float *scale,
-                                       const int32_t *offset, uint64_t flags,
-                                       const uint32_t minionOffset,
-                                       const uint32_t assignedMinions) {
+void fwdLibCopyInstVectorized(LibTensor* inT, LibTensor* outT, uint64_t flags,
+                              const uint32_t minionOffset,
+                              const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstVectorized<srcType>(dst, dstDims,
-                                       dstPitches, src,
-                                       srcDims, srcPitches,
-                                       srcDimNum, scale,
-                                       offset, flags,
-                                       minionOffset,
-                                       assignedMinions);
+  dnn_lib::inlining::fwdLibCopyInstVectorized<srcType>(inT, outT, flags,
+                                                       minionOffset, assignedMinions);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibCopyInst, void *dst, void *dstDims, void *dstPitches,
-                      void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibCopyInst, LibTensor* inT, LibTensor* outT);
 
-GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset, uint64_t flags,
-                                  const uint32_t minionOffset, const uint32_t assignedMinions);
+GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, LibTensor* inT, LibTensor* outT,
+                 uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
-GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset, uint64_t flags,
-                                  const uint32_t minionOffset, const uint32_t assignedMinions);
+GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, LibTensor* inT, LibTensor* outT,
+                 uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+  
 } // namespace dnn_lib

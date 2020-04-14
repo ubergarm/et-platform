@@ -99,6 +99,17 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
   }
 }
 
+/* overloading while sw-2400 and sw-2429 are WIP */
+inline __attribute__((always_inline))
+void getCoordinates(unsigned int *coord, unsigned int offset,
+                    unsigned int dimNum, dnn_lib::dim_t *pitch) {
+  unsigned int rm = offset;
+  for (unsigned int i = 0; i < dimNum; i++) {
+    coord[i] = rm / pitch[i];
+    rm = rm - coord[i] * pitch[i];
+  }
+}
+
 
 
 
@@ -134,6 +145,25 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
   for (unsigned int j = k; j < srcDimNum; j++)
     coord[j] = 0;
 }
+
+/* overloading while sw-2400 and sw-2429 are WIP */
+inline __attribute__((always_inline)) 
+void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
+                              unsigned int srcDimNum, dnn_lib::dim_t *pitch,
+                              dnn_lib::dim_t *dims, unsigned int &k) {
+
+  getCoordinates(coord, offset, srcDimNum, pitch);
+  k = srcDimNum;
+  for (int j = srcDimNum - 1; j > 0; j--) {
+    if (unlikely(coord[j] >= dims[j])) {
+      coord[j - 1]++;
+      k = j;
+    }
+  }
+  for (unsigned int j = k; j < srcDimNum; j++)
+    coord[j] = 0;
+}
+
 
 /**
  * @brief Given a tensor, it divides it in cachelines for the minions.
@@ -305,6 +335,28 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
   return true; 
 }
 
+/* overloading while sw-2400 and sw-2429 are WIP */
+template <typename T>
+inline __attribute__((always_inline)) 
+bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
+                dnn_lib::dim_t *index, dnn_lib::dim_t *pitch) {
+
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (likely(coord[j] != (index[j] - 1))) {
+      offset += pitch[j];
+      coord[j]++;
+      return false;
+    } else if (likely(j != 0)) {
+      offset -= (index[j] - 1) * pitch[j];
+      coord[j] = 0;
+    } else
+      return true;
+  }
+
+  //FIXME: use assertion throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
+  return true; 
+}
 
 /**
  * @brief Updates a position in two tensors into the next non-padding position.
@@ -338,6 +390,33 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
   // To avoid warnings. This point will never be reached.
   return true; 
 }
+
+/* overloading while sw-2400 and sw-2429 are WIP */
+template <typename T>
+inline __attribute__((always_inline)) 
+bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
+                T &offset2, dnn_lib::dim_t *index, dnn_lib::dim_t *pitch1,
+                dnn_lib::dim_t *pitch2) {
+
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (likely(coord[j] != (index[j] - 1))) {
+      offset1 += pitch1[j];
+      offset2 += pitch2[j];
+      coord[j]++;
+      return false;
+    } else if (likely(j != 0)) {
+      offset1 -= (index[j] - 1) * pitch1[j];
+      offset2 -= (index[j] - 1) * pitch2[j];
+      coord[j] = 0;
+    } else
+      return true;
+  }
+
+  //FIXME: use assertion throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
+  return true; 
+}
+
 
 /**
  * @brief Updates a position in three tensors into the next non-padding position.
@@ -565,6 +644,28 @@ bool getNextStep(unsigned int dimNum,
   return false;
 }
 
+/* overloading while sw-2400 and sw-2429 are WIP */
+inline __attribute__((always_inline))
+bool getNextStep(unsigned int dimNum,
+                 unsigned int *coord, dnn_lib::dim_t *dims) {
+  if (coord[0] < dims[0]-1) {
+    coord[0] = coord[0]+1;
+  } else {
+    coord[0] = 0;
+    for (unsigned int i = 1; i < dimNum; i++) {
+      if (coord[i] < dims[i]-1) {
+        coord[i] = coord[i]+1;
+        break;
+      } else {
+        coord[i] = 0;
+        if (i == dimNum-1)
+          return true;
+      }
+    }
+  }
+  return false;
+}
+
 inline __attribute__((always_inline))
 unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
                        unsigned int *pitch) {
@@ -575,6 +676,16 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
   return offset;
 }
 
+/* overloading while sw-2400 and sw-2429 are WIP */
+inline __attribute__((always_inline))
+unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
+                       dnn_lib::dim_t *pitch) {
+  unsigned int offset = 0;
+  for (unsigned int i = 0; i < dimNum; i++) {
+    offset += coord[i] * pitch[i];
+  }
+  return offset;
+}
 
 } // namespace dnn_lib
 

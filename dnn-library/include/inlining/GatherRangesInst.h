@@ -24,33 +24,64 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType, typename indexType>
-inline void fwdLibGatherRangesInst(
-    void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
-    void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-    void *prangesPitches, const float *scale, const int32_t *offset) {
+inline void fwdLibGatherRangesInst(LibTensor* inT, LibTensor* outT,
+                                   LibTensor* out2T, LibTensor* rangesT) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
-  Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *rangesIndex = (unsigned int *)prangesDims;
+  void* srcT = reinterpret_cast<void*>(inT->getUnsafePtr());
+  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
+  void* prangesT = reinterpret_cast<void*>(rangesT->getUnsafePtr());
+  void* dst2T = reinterpret_cast<void*>(out2T->getUnsafePtr());
+  
+  
+  // Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  // Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
+  // Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->dbggetscale(), outT->dbggetoffset());
+  const Addresser<srcType> tInput(srcT, inT->dbggetscale(), inT->dbggetoffset());
+  Addresser<indexType> tRanges(prangesT, rangesT->dbggetscale(), rangesT->dbggetoffset());
+  Addresser<indexType> tLengths(dst2T, out2T->dbggetscale(), out2T->dbggetoffset());
 
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *rangesPitch = (unsigned int *)prangesPitches;
-  unsigned int *lenPitch = (unsigned int *)dst2Pitches;
+  
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  inT->dims(srcIndex);
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  outT->dims(dstIndex); 
+  // unsigned int *rangesIndex = (unsigned int *)prangesDims;
+  dim_t rangesIndex[max_tensor_dimensions] = {0,};
+  rangesT->dims(rangesIndex);  
+  // unsigned int *lenIndex = (unsigned int *)dst2Dims;
+  dim_t lenIndex[max_tensor_dimensions] = {0,};
+  out2T->dims(lenIndex);
 
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  inT->dbgcpypitches(srcPitch);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  outT->dbgcpypitches(dstPitch);  
+  // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
+  dim_t rangesPitch[max_tensor_dimensions] = {0,};
+  rangesT->dbgcpypitches(rangesPitch);  
+  // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
+  dim_t lenPitch[max_tensor_dimensions] = {0,};
+  out2T->dbgcpypitches(lenPitch);
+
+  
   // Offset into the output tensor that keeps track of where to start
   // copying data.
   uint64_t outP = 0;
@@ -114,30 +145,55 @@ inline void fwdLibGatherRangesInst(
 // of batches of the source tensor that will be copied.
 
 template <typename srcType, typename indexType>
-inline void fwdLibGatherRangesInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
-    void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-    void *prangesPitches, const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibGatherRangesInstThreaded(LibTensor* inT, LibTensor* outT,
+                                           LibTensor* out2T, LibTensor* rangesT,
+                                           uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
-  Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
-  Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *rangesIndex = (unsigned int *)prangesDims;
-  unsigned int *lenIndex = (unsigned int *)dst2Dims;
+  void* srcT = reinterpret_cast<void*>(inT->getUnsafePtr());
+  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
+  void* prangesT = reinterpret_cast<void*>(rangesT->getUnsafePtr());
+  void* dst2T = reinterpret_cast<void*>(out2T->getUnsafePtr());
+  
+  // Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  // Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
+  // Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->dbggetscale(), outT->dbggetoffset());
+  const Addresser<srcType> tInput(srcT, inT->dbggetscale(), inT->dbggetoffset());
+  Addresser<indexType> tRanges(prangesT, rangesT->dbggetscale(), rangesT->dbggetoffset());
+  Addresser<indexType> tLengths(dst2T, out2T->dbggetscale(), out2T->dbggetoffset());
 
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *rangesPitch = (unsigned int *)prangesPitches;
-  unsigned int *lenPitch = (unsigned int *)dst2Pitches;
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  inT->dims(srcIndex);   
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  outT->dims(dstIndex);   
+  // unsigned int *rangesIndex = (unsigned int *)prangesDims;
+  dim_t rangesIndex[max_tensor_dimensions] = {0,};
+  rangesT->dims(rangesIndex);    
+  // unsigned int *lenIndex = (unsigned int *)dst2Dims;
+  dim_t lenIndex[max_tensor_dimensions] = {0,};
+  out2T->dims(lenIndex);
+
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  inT->dbgcpypitches(srcPitch);  
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  outT->dbgcpypitches(dstPitch);    
+  // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
+  dim_t rangesPitch[max_tensor_dimensions] = {0,};
+  rangesT->dbgcpypitches(rangesPitch);    
+  // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
+  dim_t lenPitch[max_tensor_dimensions] = {0,};
+  out2T->dbgcpypitches(lenPitch);
 
   unsigned int last_minion = activeMinions - 1;
 
@@ -153,9 +209,12 @@ inline void fwdLibGatherRangesInstThreaded(
       return;
 
     // Assumption: srcDimsNum = dstDimsNum.
+    unsigned int srcDimsNum = static_cast<unsigned int>(inT->dbggetnumdims());
+    
     unsigned int coordOut[srcDimsNum];
     unsigned int last_non_zero_coord;
-    getNonPaddingCoordinates(coordOut, initialAddr, srcDimsNum, dstPitch, dstIndex, last_non_zero_coord);
+    getNonPaddingCoordinates(coordOut, initialAddr, srcDimsNum, dstPitch,
+                             dstIndex, last_non_zero_coord);
 
     uint64_t offsetOut = 0;
     for (unsigned int i = 0; i < last_non_zero_coord; i++) {
@@ -190,7 +249,8 @@ inline void fwdLibGatherRangesInstThreaded(
     unsigned int positionInBatch = offsetOut - (accumLength + count)*dstPitch[0];
     offsetIn += positionInBatch;
     unsigned int coordIn[srcDimsNum];
-    getNonPaddingCoordinates(coordIn, offsetIn, srcDimsNum, srcPitch, srcIndex, last_non_zero_coord); // useless last parameter.
+    getNonPaddingCoordinates(coordIn, offsetIn, srcDimsNum, srcPitch, srcIndex,
+                             last_non_zero_coord); // useless last parameter.
 
     unsigned int batchElems = 1;
     for (unsigned i = 1; i < srcDimsNum; ++i) batchElems *= srcIndex[i]; // avoiding padding elements.

@@ -18,16 +18,13 @@
 #include <cmath>
 #include <cstring>
 
-#include "LibNodes.h"
-#include "LibCommon.h"
-#include "LibTensor.h"
-#include "GenInstances.h"
 #include "Float16.h"
 #include "Writer.h"
 #include "Addresser.h"
 #include "Converter.h"
 #include "Operator.h"
 #include "utils.h"
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -39,8 +36,6 @@ inline void fwdLibFlipInst(LibTensor* inT, LibTensor* outT, unsigned int axis) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
-
-  printf("Mid=%d\n",minionId);  
 
   //@TODO  static_assert(max_tensor_dimensions == 6,"Loops below assume max_tensor_dimensions = 6.");
 

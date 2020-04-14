@@ -14,40 +14,27 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibModuloInst(void *dstT, void *dstDims, void *dstPitches,
-                               void *srcT, void *srcDims, void *srcPitches,
-                               unsigned int srcDimNum, long long divisor,
-                               bool signFollowDivisor, const float *scale,
-                               const int32_t *offset) {
+void fwdLibModuloInst(LibTensor* inT, LibTensor* outT, long long divisor,
+                      bool signFollowDivisor) {
 
-  dnn_lib::inlining::fwdLibModuloInst<srcType>(dstT, dstDims, dstPitches,
-                               srcT, srcDims, srcPitches,
-                               srcDimNum, divisor,
-                               signFollowDivisor, scale,
-                               offset);
+  dnn_lib::inlining::fwdLibModuloInst<srcType>(inT, outT, divisor,
+                                               signFollowDivisor);
 }
 
 template <typename srcType>
-void fwdLibModuloInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, long long divisor,
-    bool signFollowDivisor, const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibModuloInstThreaded(LibTensor* inT, LibTensor* outT, long long divisor,
+                              bool signFollowDivisor, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibModuloInstThreaded<srcType>(
-    dstT, dstDims, dstPitches, srcT, srcDims,
-    srcPitches, srcDimNum, divisor,
-    signFollowDivisor, scale, offset, flags);
+  dnn_lib::inlining::fwdLibModuloInstThreaded<srcType>(inT, outT, divisor,
+                                                       signFollowDivisor, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInst, void *dstT, void *dstDims, void *dstPitches,
-                                 void *srcT, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, long long divisor, bool signFollowDivisor,
-                                 const float * scale, const int32_t * offset);
+GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInst, LibTensor* inT, LibTensor* outT,
+                         long long divisor, bool signFollowDivisor);
 
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                                 void *srcT, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, long long divisor, bool signFollowDivisor,
-                                 const float * scale, const int32_t * offset, uint64_t flags);
+GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInstThreaded, LibTensor* inT,
+                         LibTensor* outT, long long divisor, bool signFollowDivisor,
+                         uint64_t flags);
 } // namespace dnn_lib

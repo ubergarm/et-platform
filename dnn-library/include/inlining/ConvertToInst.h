@@ -25,16 +25,16 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
+#include "LibTensor.h"
+
+using namespace std;
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType, typename dstType>
-inline void fwdLibConvertToInst(void *dstT, void *dstDims, void *dstPitches,
-                                  void *srcT1, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum, const float *scale,
-                                  const int32_t *offset) {
+inline void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
 
   // FIXME: single thread convertto fails when combined with multi-threaded
   // operators
@@ -42,14 +42,33 @@ inline void fwdLibConvertToInst(void *dstT, void *dstDims, void *dstPitches,
   if (minionId != 0)
     return;
 
-  Addresser<dstType> ptrDstT(dstT, scale[1], offset[1]);
-  const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  void* srcT = reinterpret_cast<void*>(inT->getUnsafePtr());
+  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
+  // Addresser<dstType> ptrDstT(dstT, scale[1], offset[1]);
+  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
+  Addresser<dstType> ptrDstT(dstT, outT->dbggetscale(), outT->dbggetoffset());
+  const Addresser<srcType> ptrSrcT1(srcT, inT->dbggetscale(), inT->dbggetoffset());
 
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  outT->dims(dstIndex); 
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  inT->dims(srcIndex);
+  
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  outT->dbgcpypitches(dstPitch);
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  inT->dbgcpypitches(srcPitch);
+
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
+  
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -89,26 +108,39 @@ inline void fwdLibConvertToInst(void *dstT, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType, typename dstType>
-inline void fwdLibConvertToInstThreaded(void *dst, void *dstDims,
-                                          void *dstPitches, void *src,
-                                          void *srcDims, void *srcPitches,
-                                          unsigned int srcDimNum, const float *scale,
-                                          const int32_t *offset, uint64_t flags) {
+inline void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
+  
+  /* maintain compatibility through the new Iface Libtensor */
 
-  Addresser<dstType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  void* src = reinterpret_cast<void*>(inT->getUnsafePtr());
+  void* dst = reinterpret_cast<void*>(outT->getUnsafePtr());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  // Addresser<dstType> tOutput(dst, scale[1], offset[1]);
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  Addresser<dstType> tOutput(dst, outT->dbggetscale(), outT->dbggetoffset());
+  const Addresser<srcType> tAInput(src, inT->dbggetscale(), inT->dbggetoffset());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  uint8_t dstIndexDims = outT->dims(dstIndex); 
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  uint8_t actIndexDims = inT->dims(actIndex);
 
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  uint8_t dstPitchDims = outT->dbgcpypitches(dstPitch);
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  uint8_t actPitchDims = inT->dbgcpypitches(actPitch);
+
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
+  
   Converter<srcType, dstType> converter;
 
   unsigned int numElemsDst =
@@ -156,25 +188,36 @@ inline void fwdLibConvertToInstThreaded(void *dst, void *dstDims,
 
 
 template <typename srcType, typename dstType>
-inline void fwdLibConvertToInstVectorized(void *dst, void *dstDims,
-                                            void *dstPitches, void *src,
-                                            void *srcDims, void *srcPitches,
-                                            unsigned int srcDimNum, const float *scale,
-                                            const int32_t *offset, uint64_t flags) {
+inline void fwdLibConvertToInstVectorized(LibTensor* inT, LibTensor* outT, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
+  /* maintain compatibility through the new Iface Libtensor */
+
+  void* src = reinterpret_cast<void*>(inT->getUnsafePtr());
+  void* dst = reinterpret_cast<void*>(outT->getUnsafePtr());
+
   //Addresser<dstType> tOutput(dst, scale[1], offset[1]);
   //const Addresser<srcType> tAInput(src, scale[0], offset[0]);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  uint8_t dstIndexDims = outT->dims(dstIndex); 
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  uint8_t actIndexDims = inT->dims(actIndex);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  uint8_t dstPitchDims = outT->dbgcpypitches(dstPitch);
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  uint8_t actPitchDims = inT->dbgcpypitches(actPitch);
+
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
 
   uintptr_t srcAddr = (uintptr_t)src;
   uintptr_t dstAddr = (uintptr_t)dst;

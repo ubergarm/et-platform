@@ -14,26 +14,18 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibCopyInstTensorized(void *dst, void *dstDims, void *dstPitches,
-                                        void *src, void *srcDims, void *srcPitches,
-                                        unsigned int srcDimNum, const float *scale,
-                                        const int32_t *offset, uint64_t flags,
-                                        const uint32_t minionOffset,
-                                        const uint32_t assignedMinions) {
+void fwdLibCopyInstTensorized(LibTensor* inT, LibTensor* outT, uint64_t flags,
+                              const uint32_t minionOffset,
+                              const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstTensorized<srcType>(dst, dstDims, dstPitches,
-                                        src, srcDims, srcPitches,
-                                        srcDimNum, scale,
-                                        offset, flags,
-                                        minionOffset,
-                                        assignedMinions);
+  dnn_lib::inlining::fwdLibCopyInstTensorized<srcType>(inT, outT, flags,
+                                                       minionOffset,
+                                                       assignedMinions);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset, uint64_t flags,
-                                  const uint32_t minionOffset, const uint32_t assignedMinions);
+GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, LibTensor* inT, LibTensor* outT, uint64_t flags,
+                 const uint32_t minionOffset, const uint32_t assignedMinions);
+  
 } // namespace dnn_lib

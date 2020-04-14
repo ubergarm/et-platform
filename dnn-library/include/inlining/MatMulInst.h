@@ -24,33 +24,58 @@
 #include "Converter.h"
 #include "Operator.h"
 #include "utils.h"
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-void fwdLibMatMulInst(void *dstMatrix, void *dstMatrixDims,
-                               void *dstMatrixPitches, void *activations,
-                               void *activationsDims, void *activationsPitches,
-                               void *weights, void *weightsDims,
-                               void *weightPitches, const float *scale,
-                               const int32_t *offset) {
+void fwdLibMatMulInst(LibTensor* inT, LibTensor* weightT, LibTensor* outT) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  auto weigH = weightT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* wei = reinterpret_cast<void*>(weigH.getUnsafePtrdbg());
+  
+  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  const Addresser<srcType> tAInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tWInput(wei, weigH.getScaledbg(), weigH.getOffsetdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
+  //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  destH.cpydims(dstIndex);
+  
+  //unsigned int *actIndex = (unsigned int *)activationsDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);
+  
+  //unsigned int *weightIndex = (unsigned int *)weightsDims;
+  dim_t weightIndex[max_tensor_dimensions] = {0,};
+  weigH.cpydims(weightIndex);
+
+  //  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  
+  //unsigned int *actPitch = (unsigned int *)activationsPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+  
+  //unsigned int *weightPitch = (unsigned int *)weightPitches;
+  dim_t weightPitch[max_tensor_dimensions] = {0,};
+  weigH.cpypitchesdbg(weightPitch);
 
   // For each (x,y) in the destination matrix:
   for (unsigned int x = 0; x < dstIndex[0]; x++) {
@@ -67,31 +92,54 @@ void fwdLibMatMulInst(void *dstMatrix, void *dstMatrixDims,
 }
 
 template <typename srcType>
-void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
-                                       void *dstMatrixPitches,
-                                       void *activations, void *activationsDims,
-                                       void *activationsPitches, void *weights,
-                                       void *weightsDims, void *weightPitches,
-                                       const float *scale, const int32_t *offset,
-                                       uint64_t flags,
-                                       const uint32_t minionOffset,
-                                       const uint32_t assignedMinions) {
+void fwdLibMatMulInstThreaded(LibTensor* inT, LibTensor* weightT, LibTensor* outT,
+                              uint64_t flags, const uint32_t minionOffset,
+                              const uint32_t assignedMinions) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
+  
+  /* maintain compatibility through the new Iface Libtensor */
 
-  Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  auto weigH = weightT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* wei = reinterpret_cast<void*>(weigH.getUnsafePtrdbg());
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  const Addresser<srcType> tAInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tWInput(wei, weigH.getScaledbg(), weigH.getOffsetdbg());
+  
+  //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  destH.cpydims(dstIndex);
+  
+  //unsigned int *actIndex = (unsigned int *)activationsDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);
+  
+  //unsigned int *weightIndex = (unsigned int *)weightsDims;
+  dim_t weightIndex[max_tensor_dimensions] = {0,};
+  weigH.cpydims(weightIndex);
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
+  //  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  
+  //unsigned int *actPitch = (unsigned int *)activationsPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+  
+  //unsigned int *weightPitch = (unsigned int *)weightPitches;
+  dim_t weightPitch[max_tensor_dimensions] = {0,};
+  weigH.cpypitchesdbg(weightPitch);
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -104,6 +152,8 @@ void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
   unsigned int dstDimNum = 2;
   unsigned int coordOut[dstDimNum];
   unsigned int k = 0;
+
+  /* use overloading while sw-2400 and sw-2429 are WIP */
   getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, k);
 
   unsigned int offsetOut = 0;
@@ -124,6 +174,7 @@ void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
       weightOffset += weightPitch[0];
     }
     tOutput[offsetOut] = float(sum);
+    /* use overloading while sw-2400 and sw-2429 are WIP */
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] == 0) {
       offsetAIn += actPitch[0];
@@ -132,7 +183,7 @@ void fwdLibMatMulInstThreaded(void *dstMatrix, void *dstMatrixDims,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
 template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
@@ -371,26 +422,46 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 // wgt and dst tensors, so we can use vectorization.
 
 template <typename srcType>
-void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
-                                         void *dstMatrixPitches,
-                                         void *activations, void *activationsDims,
-                                         void *activationsPitches, void *weights,
-                                         void *weightsDims, void *weightPitches,
-                                         const float *scale, const int32_t *offset, uint64_t flags,
-                                         const uint32_t minionOffset = 0,
-                                         const uint32_t assignedMinions = 0) {
+void fwdLibMatMulInstVectorized(LibTensor* inT, LibTensor* weightT,
+                                LibTensor* outT, uint64_t flags,
+                                const uint32_t minionOffset,
+                                const uint32_t assignedMinions) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *wgtPitch = (unsigned int *)weightPitches;
+  /* maintain compatibility through the new Iface Libtensor */
 
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  auto weigH = weightT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* wei = reinterpret_cast<void*>(weigH.getUnsafePtrdbg());
+
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  destH.cpydims(dstIndex);
+
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);
+
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+
+  // unsigned int *wgtPitch = (unsigned int *)weightPitches;
+  dim_t wgtPitch[max_tensor_dimensions] = {0,};
+  weigH.cpypitchesdbg(wgtPitch);
+
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -402,8 +473,11 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
 
   unsigned int dstDimNum = 2;
   unsigned int coordOut[dstDimNum];
-  unsigned int last_non_zero_coord;
-  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
+  unsigned int last_non_zero_coord = 0;
+
+  /* use overloading while sw-2400 and sw-2429 are WIP */
+  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex,
+                           last_non_zero_coord);
 
 // The vector coordOut now contains the coordinates for the first position in the dst tensor that should be written by the minion.
 // Additionally, posMax indicates the last position in the dst tensor that should be written by the minion, plus one.
@@ -447,10 +521,16 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
   int32_t gatherValues[8];
   setGatherValues <srcType>(gatherValues);
 
+  float scale[3] =  {srcH.getScaledbg(), weigH.getScaledbg(), destH.getScaledbg()};
+  int32_t offset[3] = {srcH.getOffsetdbg(), weigH.getOffsetdbg(), destH.getOffsetdbg()};
   while (true) {
-    uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
-    uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
-    uintptr_t wgtAddr = (uintptr_t)weights + typeSize*offsetWIn;
+    // uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
+    // uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
+    // uintptr_t wgtAddr = (uintptr_t)weights + typeSize*offsetWIn;
+    uintptr_t dstAddr = (uintptr_t)dst + typeSize*offsetOut;
+    uintptr_t actAddr = (uintptr_t)src + typeSize*offsetAIn;
+    uintptr_t wgtAddr = (uintptr_t)wei + typeSize*offsetWIn;
+     
     matmulOp <srcType>(dstAddr, actAddr, wgtAddr, regs, extra, length, wgtStep, gatherValues, scale, offset);
 
     ++currentRow;
@@ -476,7 +556,7 @@ void fwdLibMatMulInstVectorized(void *dstMatrix, void *dstMatrixDims,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
 

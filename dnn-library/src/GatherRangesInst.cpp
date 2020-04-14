@@ -14,45 +14,31 @@
 namespace dnn_lib {
 
 template <typename srcType, typename indexType>
-void fwdLibGatherRangesInst(
-    void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
-    void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-    void *prangesPitches, const float *scale, const int32_t *offset) {
+void fwdLibGatherRangesInst(LibTensor* inT, LibTensor* outT, LibTensor* out2T,
+                            LibTensor* rangesT) {
 
-  dnn_lib::inlining::fwdLibGatherRangesInst<srcType, indexType>(
-    dstT, dstDims, dstPitches, dst2T, dst2Dims,
-    dst2Pitches, srcT, srcDims, srcPitches,
-    srcDimsNum, prangesT, prangesDims,
-    prangesPitches, scale, offset);
+  dnn_lib::inlining::fwdLibGatherRangesInst<srcType, indexType>(inT, outT,
+                                                                out2T, rangesT);
 }
 
 
 template <typename srcType, typename indexType>
-void fwdLibGatherRangesInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *dst2T, void *dst2Dims,
-    void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-    void *prangesPitches, const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibGatherRangesInstThreaded(LibTensor* inT, LibTensor* outT, LibTensor*out2T,
+                                    LibTensor* rangesT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibGatherRangesInstThreaded<srcType, indexType>(
-    dstT, dstDims, dstPitches, dst2T, dst2Dims,
-    dst2Pitches, srcT, srcDims, srcPitches,
-    srcDimsNum, prangesT, prangesDims,
-    prangesPitches, scale, offset, flags);
+  dnn_lib::inlining::fwdLibGatherRangesInstThreaded<srcType, indexType>(inT,
+                                                                        outT,
+                                                                        out2T,
+                                                                        rangesT,
+                                                                        flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, void *dstT, void *dstDims, void *dstPitches,
-                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
-                                     void *srcT, void *srcDims, void *srcPitches,
-                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-                                     void *prangesPitches, const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, LibTensor* inT,
+                       LibTensor* outT, LibTensor* out2T, LibTensor* rangesT);
 
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                                     void *dst2T, void *dst2Dims, void *dst2Pitches,
-                                     void *srcT, void *srcDims, void *srcPitches,
-                                     unsigned int srcDimsNum, void *prangesT, void *prangesDims,
-                                     void *prangesPitches, const float *scale, const int32_t *offset, uint64_t flags);
+  GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, LibTensor* inT,
+                         LibTensor* outT, LibTensor* out2T, LibTensor* rangesT,
+                         uint64_t flags);
 } // namespace dnn_lib
