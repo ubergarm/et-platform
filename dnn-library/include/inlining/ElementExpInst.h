@@ -57,7 +57,7 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
   if (minionId != 0)
     return;
 
-  srcType *tOutput = (srcType *)dstT;
+  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
 
   const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
 
