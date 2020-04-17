@@ -1126,35 +1126,23 @@ public:
             typename std::enable_if<std::is_same<U, CmpEQ>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
+    uint32_t scatterValues[]={0,1,2,3,4,5,6,7};
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
+                         "flw.ps f31, %[scatterValues]\n"
                          "fcvt.ps.f16 f1, f1 \n"
                          "feq.ps f0, f0, f1 \n"
                          "fandi.pi f0, f0, 0x1 \n"
-                         "fslli.pi f0, f0, 24 \n"
-                         "fbci.pi f2, 0 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsw f2, 0x0(%[dst]) \n"
-                         "mov.m.x m1, zero, 16 \n"
-                         "maskand m0, m0, m1 \n"
-                         "fsw.ps f2, -12(%[dst]) \n"
+                         "fscb.ps f0, f31(%[dst])\n"
                          :
                          : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
+                           [ scatterValues ] "m"(*(const int32_t (*)[8]) scatterValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
-                         : "f0", "f1", "f2", "f31", "memory");
+                         : "f0", "f1", "f31", "memory");
   }
 
 
@@ -1248,36 +1236,24 @@ public:
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
+    uint32_t scatterValues[]={0,1,2,3,4,5,6,7};
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
+                         "flw.ps f31, %[scatterValues]\n"
                          "fcvt.ps.f16 f1, f1 \n"
                          "fle.ps f0, f0, f1 \n"
                          "fandi.pi f0, f0, 0x1 \n"
-                         "fslli.pi f0, f0, 24 \n"
-                         "fbci.pi f2, 0 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsw.ps f2, 0x0(%[dst]) \n"
-                         "mov.m.x m1, zero, 16 \n"
-                         "mov.m.x m1, zero, 16 \n"
-                         "maskand m0, m0, m1 \n"
-                         "fsw.ps f2, -12(%[dst]) \n"
+                         "fscb.ps f0, f31(%[dst])\n"
                          :
                          : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
+                           [ scatterValues ] "m"(*(const int32_t (*)[8]) scatterValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
-                         : "f0", "f1", "f2", "f31", "memory");
+                         : "f0", "f1", "f31", "memory");
+    
   }
 
   template <typename U = opType, typename S = src1Type,
@@ -1371,36 +1347,23 @@ public:
             typename std::enable_if<std::is_same<U, CmpLT>::value && std::is_same<S, Addresser<float16>>::value,
                                     std::size_t>::type = 0>
   void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, bool *dstAddr, const float *scale, const int32_t *offset) {
+    uint32_t scatterValues[]={0,1,2,3,4,5,6,7};
     __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                          "fgh.ps  f0, f31(%[src1]) \n"
                          "fcvt.ps.f16 f0, f0 \n"
                          "fgh.ps  f1, f31(%[src2]) \n"
+                         "flw.ps f31, %[scatterValues]\n"
                          "fcvt.ps.f16 f1, f1 \n"
                          "flt.ps f0, f0, f1 \n"
                          "fandi.pi f0, f0, 0x1 \n"
-                         "fslli.pi f0, f0, 24 \n"
-                         "fbci.pi f2, 0 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsrli.pi f2, f2, 0x8 \n"
-                         "fswizz.ps f0, f0, 0x39 \n"
-                         "for.pi f2, f0, f2 \n"
-                         "fsw.ps f2, 0x0(%[dst]) \n"
-                         "mov.m.x m1, zero, 16 \n"
-                         "mov.m.x m1, zero, 16 \n"
-                         "maskand m0, m0, m1 \n"
-                         "fsw.ps f2, -12(%[dst]) \n"
+                         "fscb.ps f0, f31(%[dst])\n"
                          :
                          : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
+                           [ scatterValues ] "m"(*(const int32_t (*)[8]) scatterValues),
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
-                         : "f0", "f1", "f2", "f31", "memory");
+                         : "f0", "f1", "f31", "memory");
   }
 
   template <typename U = opType, typename S = src1Type,

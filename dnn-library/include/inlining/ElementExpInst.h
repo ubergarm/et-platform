@@ -57,8 +57,9 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
   if (minionId != 0)
     return;
 
-  srcType *tOutput = (srcType *)dstT;
-  srcType *tInput = (srcType *)srcT;
+  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+
+  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
 
   unsigned int *srcIndex = (unsigned int *)srcDims;
 
@@ -76,7 +77,7 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
   }
 
   uint64_t addrSrc, addrDst;
-
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
   for (size_t x = 0; x < eDims[0]; x++) {
     for (size_t y = 0; y < eDims[1]; y++) {
       for (size_t z = 0; z < eDims[2]; z++) {
@@ -87,9 +88,11 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
                         w * eSrcPitch[3] + q * eSrcPitch[4] + r * eSrcPitch[5];
               addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
                         w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
-              auto val = tInput[addrSrc];
-	      float res = getExp((float)val);
+
+              float res = static_cast<float>(M_LOG2E) * tInput[addrSrc];
+              __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
               tOutput[addrDst] = res;
+
             }
           }
         }
