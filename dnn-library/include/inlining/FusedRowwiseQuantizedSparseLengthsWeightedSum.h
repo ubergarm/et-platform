@@ -568,24 +568,37 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
           "fbc.ps  f27, 0x0(%[offset_ptr])\n"
           "fbc.ps  f28, 0x0(%[scale_ptr])\n"
           :
-          : [offset_ptr] "r"   (offset_ptr),
-             [scale_ptr]  "r"   (scale_ptr)
+          : [offset_ptr] "r" (offset_ptr),
+            [scale_ptr]  "r" (scale_ptr)
           : "f27", "f28"
         );
 
         if (Float16Dst) {
           __asm__ __volatile__ (
+            "fgb.ps      f25, f31, %[data_ptr]\n"
             "fcvt.ps.f16 f27, f27\n"
             "fcvt.ps.f16 f28, f28\n"
             :
-            :
-            : "f27", "f28"
+            : [data_ptr] "r" (data_ptr)
+            : "f25", "f27", "f28"
           );
         }
+	else {
+          __asm__ __volatile__ (
+            "fgb.ps f25, f31, %[data_ptr]\n"
+            :
+            : [data_ptr] "r" (data_ptr)
+            :  "f25"
+          );
+	}
 
         __asm__ __volatile__ (
           // Load a full input cache line (64 elements, 8 vregs)
-          "fgb.ps     f25, f31, %[data_ptr]\n"
+          //
+          // NOTE: Moved first gather of data tensor before the
+          // converts as an optimization.
+          //
+          //"fgb.ps     f25, f31, %[data_ptr]\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
           "fgb.ps     f24, f31, %[data_ptr]\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
