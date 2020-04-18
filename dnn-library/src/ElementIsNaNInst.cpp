@@ -14,40 +14,21 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibElementIsNaNInst(void *dstT, void *dstDims,
-                                     void *dstPitches, void *srcT1,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, const float *scale,
-                                     const int32_t *offset) {
+void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor *inT) {
 
-  dnn_lib::inlining::fwdLibElementIsNaNInst<srcType>(dstT, dstDims,
-                                     dstPitches, srcT1,
-                                     srcDims, srcPitches,
-                                     srcDimNum, scale,
-                                     offset);
+  dnn_lib::inlining::fwdLibElementIsNaNInst<srcType>(outT, inT);
 }
 
 template <typename srcType>
-void fwdLibElementIsNaNInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
+                                    uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibElementIsNaNInstThreaded<srcType>(
-    dstT, dstDims, dstPitches, srcT1, srcDims,
-    srcPitches, srcDimNum, scale, offset,
-    flags);
+  dnn_lib::inlining::fwdLibElementIsNaNInstThreaded<srcType>(outT, inT, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibElementIsNaNInst,void *dstT, void *dstDims, void *dstPitches,
-                                 void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, const float * scale,
-                                 const int32_t * offset);
-GEN_INSTANCES_OP(template, fwdLibElementIsNaNInstThreaded,void *dstT, void *dstDims, void *dstPitches,
-                                 void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, const float * scale,
-                                 const int32_t * offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibElementIsNaNInst, LibTensor* outT, LibTensor* inT);
+GEN_INSTANCES_OP(template, fwdLibElementIsNaNInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
 
 } // namespace dnn_lib

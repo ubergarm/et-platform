@@ -20,30 +20,43 @@
 
 #include "utils.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
-                                void *dstMatrixPitches, void *activations,
-                                void *activationsDims, void *activationsPitches,
-                                const float *scale, const int32_t *offset) {
+inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  dnn_lib::Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  const dnn_lib::Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-
+  srcType* dstT = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
+  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  
+  // dnn_lib::Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
+  // const dnn_lib::Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  destH.cpydimsdbg(dstIndex);
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydimsdbg(actIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+  
 #define START_IND(a, b, c) (a * c) / b
 #define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1
 

@@ -43,9 +43,9 @@ inline void fwdLibModuloInst(LibTensor* inT, LibTensor* outT, long long divisor,
   auto destH = outT->getHandle<srcType>();
 
   //  srcType *tOutput = (srcType *)dstT;
-  srcType *tOutput = (srcType *)destH.getUnsafePtrdbg();
+  srcType *tOutput = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
   //  srcType *tInput = (srcType *)srcT;  
-  srcType *tInput = (srcType *)srcH.getUnsafePtrdbg();
+  srcType *tInput = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
 
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
   dim_t dstIndex[max_tensor_dimensions] = {0,};

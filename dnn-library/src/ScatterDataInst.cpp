@@ -14,47 +14,14 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibScatterDataInst(void *dstT, void *dstDims,
-				    void *dstPitches, unsigned int dstNumDim, void *indexT,
-				    void *indicesDims, void *pindicesPitches,
-				    void *slicesT, void *slicesDims, unsigned int sliceSize,
-				    void *slicesPitches, unsigned int sliceNumDim, const float *scale,
-				    const int32_t *offset) {
+void fwdLibScatterDataInst(LibTensor* inT, LibTensor* outT, LibTensor* sliT) {
 
-  dnn_lib::inlining::fwdLibScatterDataInst<srcType>(dstT, dstDims,
-				    dstPitches, dstNumDim, indexT,
-				    indicesDims, pindicesPitches,
-				    slicesT, slicesDims, sliceSize,
-				    slicesPitches, sliceNumDim, scale,
-				    offset);
+  dnn_lib::inlining::fwdLibScatterDataInst<srcType>(inT, outT, sliT);
 }
 
-template <typename srcType>
-void fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
-                                              void *dstPitches, unsigned int dstDimNum, void *indexT,
-                                              void *indicesDims, void *pindicesPitches,
-                                              void *slicesT, void *slicesDims,
-                                              void *slicesPitches, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibScatterDataInstThreaded<srcType>(dstT, dstDims,
-                                              dstPitches, dstDimNum, indexT,
-                                              indicesDims, pindicesPitches,
-                                              slicesT, slicesDims,
-                                              slicesPitches, scale,
-                                              offset, flags);
-}
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibScatterDataInst, void *dstT, void *dstDims,
-		 void *dstPitches, unsigned int dstNumDim, void *indexT, void *indicesDims, void *pindicesPitches,
-		 void *slicesT, void *slicesDims, unsigned int sliceSize, void *slicesPitches, unsigned int sliceNumDim,
-		 const float *scale, const int32_t *offset);
-
-GEN_INSTANCES_OP(template, fwdLibScatterDataInstThreaded, void *dstT, void *dstDims,
-		 void *dstPitches, unsigned int dstDimNum, void *indexT, void *indicesDims, void *pindicesPitches,
-		 void *slicesT, void *slicesDims, void *slicesPitches ,
-		 const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibScatterDataInst, LibTensor* inT, LibTensor* outT, LibTensor* sliT);
 
 } // namespace dnn_lib

@@ -14,21 +14,12 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
-                                   void *srcT, void *srcDims, void *srcPitches,
-                                   unsigned int srcDimNum, const float *scale,
-                                   const int32_t *offset) {
+void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibElementExpInst<srcType>(dstT, dstDims, dstPitches,
-                                   srcT, srcDims, srcPitches,
-                                   srcDimNum, scale,
-                                   offset);
+  dnn_lib::inlining::fwdLibElementExpInst<srcType>(outT, inT);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibElementExpInst,void *dstT, void *dstDims, void *dstPitches,
-                                 void *srcT1, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, const float * scale,
-                                 const int32_t * offset);
+GEN_INSTANCES_OP(template, fwdLibElementExpInst, LibTensor* outT, LibTensor* inT);
 } // namespace dnn_lib

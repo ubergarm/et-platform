@@ -1,4 +1,4 @@
-/*-------------------------------------------------------------------------
+ /*-------------------------------------------------------------------------
  * Copyright (C) 2019, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -56,33 +57,49 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType, typename opType>
-inline void fwdLibElementInst(void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT1, void *srcDims, void *src1Pitches,
-                                unsigned int srcDimNum, void *srcT2,
-                                void *src2Pitches, const float *scale,
-                                const int32_t *offset) {
+inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
  unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  float scale0 = scale[0];
-  float scale1 = scale[1];
-  float scale2 = scale[2];
-  float offset0 = offset[0];
-  float offset1 = offset[1];
-  float offset2 = offset[2];
+  // float scale0 = scale[0];
+  // float scale1 = scale[1];
+  // float scale2 = scale[2];
+  // float offset0 = offset[0];
+  // float offset1 = offset[1];
+  // float offset2 = offset[2];
 
-  const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
-  const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
-  Addresser<srcType> aDstT(dstT, scale2, offset2);
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH1 = in1T->getHandle<srcType>();
+  auto srcH2 = in2T->getHandle<srcType>();
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT1 = reinterpret_cast<srcType*>(srcH1.getUnsafePtrdbg());
+  srcType* srcT2 = reinterpret_cast<srcType*>(srcH2.getUnsafePtrdbg());
+  
+  // const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
+  const Addresser<srcType> aSrcT1(srcT1, srcH1.getScaledbg(), srcH1.getOffsetdbg());
+  // const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
+  const Addresser<srcType> aSrcT2(srcT2, srcH2.getScaledbg(), srcH2.getOffsetdbg());
+  // Addresser<srcType> aDstT(dstT, scale2, offset2);
+  Addresser<srcType> aDstT(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  unsigned int *act2Pitch = (unsigned int *)src2Pitches;
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  srcH1.cpydims(srcIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);
+  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
+  dim_t act1Pitch[max_tensor_dimensions] = {0,};
+  srcH1.cpypitchesdbg(act1Pitch);
+  // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
+  dim_t act2Pitch[max_tensor_dimensions] = {0,};
+  srcH2.cpypitchesdbg(act2Pitch);
 
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
+  
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -154,25 +171,44 @@ inline void fwdLibElementInst(void *dstT, void *dstDims, void *dstPitches,
  *  should be done at the end of the function.
  */
 template <typename src1Type, typename src2Type, typename dstType, typename opType>
-inline void fwdLibElementInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
-    void *src1Pitches, unsigned int srcDimNum, void *srcT2, void *src2Pitches, const float *scale,
-    const int32_t *offset, uint64_t flags) {
+inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                      LibTensor* in2T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  const Addresser<src1Type> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<src2Type> aSrcT2(srcT2, scale[1], offset[1]);
-  Addresser<dstType> aDstT(dstT, scale[2], offset[2]);
+  /* maintain compatibility through the new Iface Libtensor */
+  auto dstH = outT->getHandle<dstType>();
+  auto srcH1 = in1T->getHandle<src1Type>();
+  auto srcH2 = in2T->getHandle<src2Type>();
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  void* dstT = reinterpret_cast<void*>(dstH.getUnsafePtrdbg());
+  void* srcT1 = reinterpret_cast<void*>(srcH1.getUnsafePtrdbg());
+  void* srcT2 = reinterpret_cast<void*>(srcH2.getUnsafePtrdbg());
+  
+  // const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
+  const Addresser<src1Type> aSrcT1(srcT1, srcH1.getScaledbg(), srcH1.getOffsetdbg());
+  // const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
+  const Addresser<src2Type> aSrcT2(srcT2, srcH2.getScaledbg(), srcH2.getOffsetdbg());
+  // Addresser<srcType> aDstT(dstT, scale2, offset2);
+  Addresser<dstType> aDstT(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH1.cpydims(actIndex);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  unsigned int *act2Pitch = (unsigned int *)src2Pitches;
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);
+  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
+  dim_t act1Pitch[max_tensor_dimensions] = {0,};
+  srcH1.cpypitchesdbg(act1Pitch);
+  // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
+  dim_t act2Pitch[max_tensor_dimensions] = {0,};
+  srcH2.cpypitchesdbg(act2Pitch);
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
 
   Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<dstType>, opType> op;
 
@@ -248,20 +284,37 @@ inline void fwdLibElementInstThreaded(
  *  should be done at the end of the function.
  */
 template <typename src1Type, typename src2Type, typename dstType, typename opType>
-inline void fwdLibElementInstVectorized(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
-    void *src1Pitches, unsigned int srcDimNum, void *srcT2, void *src2Pitches,
-    const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
+                                        LibTensor* in2T, const float* scale,
+                                        const int32_t* offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
+  
+ /* maintain compatibility through the new Iface Libtensor */
+  auto dstH = outT->getHandle<dstType>();
+  auto srcH1 = in1T->getHandle<src1Type>();
+  auto srcH2 = in2T->getHandle<src2Type>();
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  void* dstT = reinterpret_cast<void*>(dstH.getUnsafePtrdbg());
+  void* srcT1 = reinterpret_cast<void*>(srcH1.getUnsafePtrdbg());
+  void* srcT2 = reinterpret_cast<void*>(srcH2.getUnsafePtrdbg());
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH1.cpydims(actIndex);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)src1Pitches;
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);
+  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
+  dim_t act1Pitch[max_tensor_dimensions] = {0,};
+  srcH1.cpypitchesdbg(act1Pitch);
+
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
+
   uintptr_t dstAddr = (uintptr_t)dstT;
   uintptr_t srcAddr1 = (uintptr_t)srcT1;
   uintptr_t srcAddr2 = (uintptr_t)srcT2;
@@ -285,7 +338,7 @@ inline void fwdLibElementInstVectorized(
   uint64_t offsetIn = 0;
   uint64_t offsetOut = 0;
   for (unsigned int j = 0; j < k; j++) {
-    offsetIn += actPitch[j] * coord[j];
+    offsetIn += act1Pitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
   unsigned int posMax = maxRead + initialAddr;
@@ -347,11 +400,11 @@ inline void fwdLibElementInstVectorized(
     dstAddr = (uintptr_t)dstT;
     srcAddr1 = (uintptr_t)srcT1;
     srcAddr2 = (uintptr_t)srcT2;
-    offsetIn -= coord[lastDim] * actPitch[lastDim];
+    offsetIn -= coord[lastDim] * act1Pitch[lastDim];
     offsetOut -= coord[lastDim] * dstPitch[lastDim];
     coord[lastDim] = 0;
     done = getOffsets(lastDim , coord, offsetIn, offsetOut, actIndex,
-                      actPitch, dstPitch);
+                      act1Pitch, dstPitch);
   }
 
   if (!DO_EVICTS)

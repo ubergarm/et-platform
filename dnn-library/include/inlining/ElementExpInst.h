@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -48,23 +49,34 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
-                                   void *srcT, void *srcDims, void *srcPitches,
-                                   unsigned int srcDimNum, const float *scale,
-                                   const int32_t *offset) {
+inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
 
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
+  void* srcT = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dstT = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
+  const Addresser<srcType> tInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);  
+  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydimsdbg(srcIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(srcPitch);
+
+  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
 
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -92,7 +104,6 @@ inline void fwdLibElementExpInst(void *dstT, void *dstDims, void *dstPitches,
               float res = static_cast<float>(M_LOG2E) * tInput[addrSrc];
               __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
               tOutput[addrDst] = res;
-
             }
           }
         }

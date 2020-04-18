@@ -24,80 +24,44 @@ void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
 }
 
 template <typename srcType>
-void fwdLibTopKInst(void *dstT, void *dstDims, void *dstPitches,
-                             void *dstT2, void *dst2Dims, void *dst2Pitches,
-                             void *srcT, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, unsigned int k,
-                             const float *scale, const int32_t *offset) {
+void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
+                    unsigned int k) {
 
-  dnn_lib::inlining::fwdLibTopKInst<srcType>(dstT, dstDims, dstPitches,
-                             dstT2, dst2Dims, dst2Pitches,
-                             srcT, srcDims, srcPitches,
-                             srcDimNum, k,
-                             scale, offset);
+  dnn_lib::inlining::fwdLibTopKInst<srcType>(outT, out2T, inT, k);
 }
 
 template <typename srcType>
-void fwdLibTopKInstThreaded_all(
-    void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
-    void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
+                                LibTensor* inT, unsigned int k, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTopKInstThreaded_all<srcType>(
-    dstT, dstDims, dstPitches, dstT2, dst2Dims,
-    dst2Pitches, srcT, srcDims, srcPitches,
-    srcDimNum, k, scale, offset,
-    flags);
+  dnn_lib::inlining::fwdLibTopKInstThreaded_all<srcType>(outT, out2T, inT, k, flags);
 }
 
 template <typename srcType>
-void fwdLibTopKInstThreaded_k4(
-    void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
-    void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
+                               LibTensor* inT, unsigned int k, uint64_t flags) {
 
-  dnn_lib::fwdLibTopKInstThreaded_k4<srcType>(
-    dstT, dstDims, dstPitches, dstT2, dst2Dims,
-    dst2Pitches, srcT, srcDims, srcPitches,
-    srcDimNum, k, scale, offset,
-    flags);
+  dnn_lib::fwdLibTopKInstThreaded_k4<srcType>(outT, out2T, inT, k, flags);
 }
 
 template <typename srcType>
-void fwdLibTopKInstThreaded_k8(
-    void *dstT, void *dstDims, void *dstPitches, void *dstT2, void *dst2Dims,
-    void *dst2Pitches, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, unsigned int k, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T,
+                               LibTensor* inT, unsigned int k, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTopKInstThreaded_k8<srcType>(
-    dstT, dstDims, dstPitches, dstT2, dst2Dims,
-    dst2Pitches, srcT, srcDims, srcPitches,
-    srcDimNum, k, scale, offset,
-    flags);
+  dnn_lib::inlining::fwdLibTopKInstThreaded_k8<srcType>(outT, out2T, inT, k, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibTopKInst, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibTopKInst, LibTensor* outT, LibTensor* out2T,
+                 LibTensor* inT, unsigned int k);
 
-GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_all, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_all, LibTensor* outT, LibTensor* out2T,
+                 LibTensor* inT, unsigned int k, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k4, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k4, LibTensor* outT, LibTensor* out2T,
+                 LibTensor* inT, unsigned int k, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k8, void *dstT, void *dstDims, void *dstPitches, void *dstT2,
-                              void *dst2Dims, void *dst2Pitches,void *srcT, void *srcDims, void *srcPitches,
-                              unsigned int srcDimNum, unsigned int k,
-                              const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTopKInstThreaded_k8, LibTensor* outT, LibTensor* out2T,
+                 LibTensor* inT, unsigned int k, uint64_t flags);
 } // namespace dnn_lib

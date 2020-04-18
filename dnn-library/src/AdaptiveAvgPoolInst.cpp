@@ -14,21 +14,12 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibAdaptiveAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
-                                void *dstMatrixPitches, void *activations,
-                                void *activationsDims, void *activationsPitches,
-                                const float *scale, const int32_t *offset) {
+void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibAdaptiveAvgPoolInst<srcType>(dstMatrix, dstMatrixDims,
-                                dstMatrixPitches, activations,
-                                activationsDims, activationsPitches,
-                                scale, offset);
+  dnn_lib::inlining::fwdLibAdaptiveAvgPoolInst<srcType>(outT, inT);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibAdaptiveAvgPoolInst,void *dstMatrix, void *dstMatrixDims,
-                 void *dstMatrixPitches, void *activations,
-                 void *activationsDims, void *activationsPitches,
-                 const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibAdaptiveAvgPoolInst, LibTensor* outT, LibTensor* inT);
 } // dnn_lib

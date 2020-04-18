@@ -24,28 +24,39 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
-inline void fwdLibIntLookupTableInstInt8QTy(
-    void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,
-    void *src2Pitches) {
+inline void fwdLibIntLookupTableInstInt8QTy(LibTensor* outT, LibTensor* in1T,
+                                            LibTensor* in2T) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  int8_t *ptrDstT = (int8_t *)dstT;
-  int8_t *ptrSrcT1 = (int8_t *)src1T;
-  int8_t *ptrSrcT2 = (int8_t *)src2T;
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *src1Index = (unsigned int *)src1Dims;
+  // int8_t *ptrDstT = (int8_t *)dstT;
+  int8_t *ptrDstT = reinterpret_cast<int8_t*>(outT->getUnsafePtr());
+  // int8_t *ptrSrcT1 = (int8_t *)src1T;
+  int8_t *ptrSrcT1 = reinterpret_cast<int8_t*>(in1T->getUnsafePtr());  
+  // int8_t *ptrSrcT2 = (int8_t *)src2T;
+  int8_t *ptrSrcT2 = reinterpret_cast<int8_t*>(in2T->getUnsafePtr());
+  
+  // unsigned int *src1Index = (unsigned int *)src1Dims;
+  dim_t src1Index[max_tensor_dimensions] = {0,};
+  in1T->dims(src1Index);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  outT->dbgcpypitches(dstPitch);
+  // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
+  dim_t src1Pitch[max_tensor_dimensions] = {0,};
+  in1T->dbgcpypitches(src1Pitch);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->dbggetnumdims());
+  
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -76,25 +87,38 @@ inline void fwdLibIntLookupTableInstInt8QTy(
   }
 }
 
-inline void fwdLibIntLookupTableInstInt8QTyThreaded(
-    void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,
-    void *src2Pitches, uint64_t flags) {
+inline void fwdLibIntLookupTableInstInt8QTyThreaded(LibTensor* outT,
+                                                    LibTensor* in1T,
+                                                    LibTensor* in2T,
+                                                    uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  int8_t *ptrDstT = (int8_t *)dstT;
-  int8_t *ptrSrcT1 = (int8_t *)src1T;
-  int8_t *ptrSrcT2 = (int8_t *)src2T;
+  /* maintain compatibility through the new Iface Libtensor */
+  // int8_t *ptrDstT = (int8_t *)dstT;
+  int8_t *ptrDstT = reinterpret_cast<int8_t*>(outT->getUnsafePtr());
+  // int8_t *ptrSrcT1 = (int8_t *)src1T;
+  int8_t *ptrSrcT1 = reinterpret_cast<int8_t*>(in1T->getUnsafePtr());
+  // int8_t *ptrSrcT2 = (int8_t *)src2T;
+  int8_t *ptrSrcT2 = reinterpret_cast<int8_t*>(in2T->getUnsafePtr());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  outT->dims(dstIndex);
+  // unsigned int *src1Index = (unsigned int *)src1Dims;
+  dim_t src1Index[max_tensor_dimensions] = {0,};
+  in1T->dims(src1Index);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] =  {0,};
+  outT->dbgcpypitches(dstPitch);
+  // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
+  dim_t src1Pitch[max_tensor_dimensions] = {0,};
+  in1T->dbgcpypitches(src1Pitch);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *src1Index = (unsigned int *)src1Dims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *src1Pitch = (unsigned int *)src1Pitches;
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->dbggetnumdims());
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
@@ -106,8 +130,9 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(
 
   unsigned int coord[dstDimNum];
   unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, dstDimNum, dstPitch, dstIndex,
-                           k);
+  
+  /* overloading while sw-2400 and sw-2429 are WIP */
+  getNonPaddingCoordinates(coord, initialAddr, dstDimNum, dstPitch, dstIndex, k);
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
@@ -126,7 +151,7 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)outT->getUnsafePtr()/*dstT*/ + sizeof(int8_t)*initialAddr, clperminion);
 }
 
 } // namespace inlining

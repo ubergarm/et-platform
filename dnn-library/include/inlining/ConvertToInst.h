@@ -48,8 +48,8 @@ inline void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
   void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
 
   // Addresser<dstType> ptrDstT(dstT, scale[1], offset[1]);
-  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
   Addresser<dstType> ptrDstT(dstT, outT->dbggetscale(), outT->dbggetoffset());
+  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
   const Addresser<srcType> ptrSrcT1(srcT, inT->dbggetscale(), inT->dbggetoffset());
 
   

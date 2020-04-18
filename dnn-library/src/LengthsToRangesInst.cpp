@@ -14,37 +14,21 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibLengthsToRangesInst(void *dstT, void *dstDims,
-                                        void *dstPitches, void *plengths,
-                                        unsigned int lenDim, const float *scale,
-                                        const int32_t *offset) {
+void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibLengthsToRangesInst<srcType>(dstT, dstDims,
-                                        dstPitches, plengths,
-                                        lenDim, scale,
-                                        offset);
+  dnn_lib::inlining::fwdLibLengthsToRangesInst<srcType>(outT, inT);
 }
 
 template <typename srcType>
-void fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
-                                        void *dstPitches, void *plengths,
-                                        unsigned int lenDim, const float *scale,
-                                        const int32_t *offset, uint64_t flags) {
+void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibLengthsToRangesInstThreaded<srcType>(dstT, dstDims,
-                                        dstPitches, plengths,
-                                        lenDim, scale,
-                                        offset, flags);
+  dnn_lib::inlining::fwdLibLengthsToRangesInstThreaded<srcType>(outT, inT, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInst, void *dstT, void *dstDims, void *dstPitches,
-                                  void *plengths, unsigned int lenDim,
-                                  const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInst, LibTensor* outT, LibTensor* inT);
 
-GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                                  void *plengths, unsigned int lenDim,
-                                  const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibLengthsToRangesInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
 
 } // namespace dnn_lib

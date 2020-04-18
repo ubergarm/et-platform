@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -31,23 +32,37 @@ namespace inlining {
 
 // TODO Check corner cases
 template <typename srcType>
-inline void fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
-                             void *srcT1, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, const float *scale,
-                             const int32_t *offset) {
+inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
+  
+  /* maintain compatibility through the new Iface Libtensor */
 
-  const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<srcType> ptrSrcT1(src, srcH.getScaledbg(), srcH.getOffsetdbg());
+  // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
+  Addresser<srcType> ptrDstT(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(srcIndex);
+  
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(srcPitch);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  uint8_t srcDimNum = static_cast<uint8_t>(srcH.getNumDimsdbg());
+  
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -85,26 +100,37 @@ inline void fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType>
-inline void fwdLibTanhInstThreaded(void *dstT, void *dstDims,
-                                     void *dstPitches, void *srcT1,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum,
-                                     const float *scale, const int32_t *offset,
-                                     uint64_t flags) {
-
+inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  // const Addresser<srcType> aSrcT1(src, scale[0], offset[0]);
+  const Addresser<srcType> aSrcT1(src, srcH.getScaledbg(), srcH.getOffsetdbg());  
+  // Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
+  Addresser<srcType> ptrDstT(dst, destH.getScaledbg(), destH.getOffsetdbg());
+ 
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);
+
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);  
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+
+  uint8_t srcDimNum = static_cast<uint8_t>(srcH.getNumDimsdbg());
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
@@ -117,6 +143,8 @@ inline void fwdLibTanhInstThreaded(void *dstT, void *dstDims,
 
   unsigned int coord[srcDimNum];
   unsigned int k;
+
+  /* overloading while sw-2400 and sw-2429 are WIP */  
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
@@ -135,13 +163,15 @@ inline void fwdLibTanhInstThreaded(void *dstT, void *dstDims,
     op2 = getCosh(aSrcT1[offsetIn]);
     fpReciprocalSingleElement(op2, op2);
     ptrDstT[offsetOut] = op1 * op2;
+
+    /* overloading while sw-2400 and sw-2429 are WIP */    
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
                       actPitch, dstPitch);
   }
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
 } // namespace inlining

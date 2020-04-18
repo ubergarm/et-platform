@@ -13,26 +13,18 @@
 
 namespace dnn_lib {
 
-void fwdLibIntLookupTableInstInt8QTy(
-    void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,
-    void *src2Pitches) {
+void fwdLibIntLookupTableInstInt8QTy(LibTensor* outT, LibTensor* in1T,
+                                     LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibIntLookupTableInstInt8QTy(
-    dstT, dstDims, dstPitches, dstDimNum,
-    src1T, src1Dims, src1Pitches, src2T, src2Dims,
-    src2Pitches);
+  dnn_lib::inlining::fwdLibIntLookupTableInstInt8QTy(outT, in1T, in2T);
+
 }
 
-void fwdLibIntLookupTableInstInt8QTyThreaded(
-    void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,
-    void *src2Pitches, uint64_t flags) {
+void fwdLibIntLookupTableInstInt8QTyThreaded(LibTensor* outT, LibTensor* in1T,
+                                             LibTensor* in2T, uint64_t flags) {
+    
+  dnn_lib::inlining::fwdLibIntLookupTableInstInt8QTyThreaded(outT, in1T, in2T, flags);
 
-  dnn_lib::inlining::fwdLibIntLookupTableInstInt8QTyThreaded(
-    dstT, dstDims, dstPitches, dstDimNum,
-    src1T, src1Dims, src1Pitches, src2T, src2Dims,
-    src2Pitches, flags);
 }
 
 } // namespace dnn_lib

@@ -14,38 +14,20 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibSigmoidInstThreaded(void *dstT, void *dstDims,
-                                        void *dstPitches, void *srcT1,
-                                        void *srcDims, void *srcPitches,
-                                        unsigned int srcDimNum, const float *scale,
-                                        const int32_t *offset, uint64_t flags) {
+void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSigmoidInstThreaded<srcType>(dstT, dstDims,
-                                        dstPitches, srcT1,
-                                        srcDims, srcPitches,
-                                        srcDimNum, scale,
-                                        offset, flags);
+  dnn_lib::inlining::fwdLibSigmoidInstThreaded<srcType>(outT, inT, flags);
 }
 
 template <typename srcType>
-void fwdLibSigmoidInst(void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT1, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, const float *scale,
-                                const int32_t *offset) {
+void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibSigmoidInst<srcType>(dstT, dstDims, dstPitches,
-                                srcT1, srcDims, srcPitches,
-                                srcDimNum, scale,
-                                offset);
+  dnn_lib::inlining::fwdLibSigmoidInst<srcType>(outT, inT);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibSigmoidInst, void *dstT, void *dstDims, void *dstPitches,
-                           void *srcT1, void *srcDims, void *srcPitches,
-                           unsigned int srcDimNum, const float * scale, const int32_t * offset);
-GEN_INSTANCES_OP(template, fwdLibSigmoidInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                           void *srcT1, void *srcDims, void *srcPitches,
-                           unsigned int srcDimNum, const float * scale, const int32_t * offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSigmoidInst, LibTensor* outT, LibTensor* inT);
+GEN_INSTANCES_OP(template, fwdLibSigmoidInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
 
 } // namespace dnn_lib

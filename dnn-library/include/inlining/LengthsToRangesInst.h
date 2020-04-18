@@ -24,64 +24,88 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibLengthsToRangesInst(void *dstT, void *dstDims,
-                                        void *dstPitches, void *plengths,
-                                        unsigned int lenDim, const float *scale,
-                                        const int32_t *offset) {
+inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+  /* maintain compatibility through the new Iface Libtensor */
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  
+  void* plengths = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dstT = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  // const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
+  const Addresser<srcType> lengths(plengths, srcH.getScaledbg(), srcH.getOffsetdbg());
+  // // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
 
-  auto toffset = lengths[0];
-  toffset = 0;
-  for (size_t i = 0; i < lenDim; i++) {
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+
+  dim_t lenIndx[max_tensor_dimensions] = {0,};
+  srcH.cpydimsdbg(lenIndx);
+
+  auto offset = lengths[0];
+  offset = 0;
+  for (size_t i = 0; i < lenIndx[0]; i++) {
     auto length = lengths[i];
-    tOutput[i * dstPitch[0]] = toffset;
+    tOutput[i * dstPitch[0]] = offset;
     tOutput[i * dstPitch[0] + 1] = length;
-    toffset += length;
+    offset += length;
   }
 }
 
 template <typename srcType>
-void fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
-                                        void *dstPitches, void *plengths,
-                                        unsigned int lenDim, const float *scale,
-                                        const int32_t *offset, uint64_t flags) {
+void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-
-  unsigned int minionId = get_minion_id();
+   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32;
   if (minionId >= activeMinions) return;
+
+  /* maintain compatibility through the new Iface Libtensor */
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  
+  void* plengths = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
+  void* dstT = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+ 
+  // const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
+  const Addresser<srcType> lengths(plengths, srcH.getScaledbg(), srcH.getOffsetdbg());
+  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
+
   int level = -1;
   for (unsigned int j = 1; j < activeMinions; j*=2)
     level++;
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  //unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+
+  dim_t lenIndx[max_tensor_dimensions] = {0,};
+  srcH.cpydimsdbg(lenIndx);
 
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
-  getReversedCachelinePartition(typeSize, lenDim, initialAddr, maxRead,
+  getReversedCachelinePartition(typeSize, lenIndx[0], initialAddr, maxRead,
                                activeMinions);
 
   unsigned int posMax = maxRead + initialAddr;
 
-  float toffset = lengths[0];
-  toffset = 0;
+  float offset = lengths[0];
+  offset = 0;
   for (size_t i = initialAddr; i < posMax; i++)
-    toffset += lengths[i];
+    offset += lengths[i];
 
 #define tensor_reduce_params(_lvl)                    \
         ((0ULL  & 0x2)        << 62) |                \
@@ -114,7 +138,7 @@ void fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
 
   __asm__ __volatile__(
        "mov.m.x m0, zero, 0x1\n"
-       "fmv.s.x f0, %[toffset]\n"
+       "fmv.s.x f0, %[offset]\n"
        "fand.pi f31, f0, f0\n"
 
        REDUCE_AND_COPY(0, 1)
@@ -129,9 +153,9 @@ void fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
        ADD_AND_BROADCAST(0, 1)
 
        "fsub.ps f0, f0, f31\n"
-       "fmv.x.s %[toffset], f0\n"
+       "fmv.x.s %[offset], f0\n"
 
-     : [toffset] "+r" (toffset)
+     : [offset] "+r" (offset)
      : [csr_red0] "r" (tensor_reduce_params(0)),
        [csr_red1] "r" (tensor_reduce_params(1)),
        [csr_red2] "r" (tensor_reduce_params(2)),
@@ -146,9 +170,9 @@ void fwdLibLengthsToRangesInstThreaded(void *dstT, void *dstDims,
 
   for (size_t i = initialAddr; i < posMax; i++) {
     float length = lengths[i];
-    tOutput[i * dstPitch[0]] = toffset;
+    tOutput[i * dstPitch[0]] = offset;
     tOutput[i * dstPitch[0] + 1] = length;
-    toffset += length;
+    offset += length;
   }
 
 #undef tensor_reduce_params

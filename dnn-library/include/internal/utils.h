@@ -427,7 +427,7 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
  *  (but not necessarily the same pitches).
  */
 template <typename T> 
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
                 T &offset2, T &offset3, unsigned int *index, unsigned int *pitch1,
                 unsigned int *pitch2, unsigned int *pitch3) {
@@ -676,7 +676,7 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
   return offset;
 }
 
-/* overloading while sw-2400 and sw-2429 are WIP */
+/* overloading while sw-2400 and sw-2429 are on WIP */
 inline __attribute__((always_inline))
 unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
                        dnn_lib::dim_t *pitch) {
@@ -686,7 +686,34 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
   }
   return offset;
 }
+/* overloading while sw-2400 and sw-2429 are on WIP */
+template<typename T>
+inline __attribute__((always_inline))
+bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
+           T &offset2, T &offset3, dnn_lib::dim_t *index,
+           dnn_lib::dim_t *pitch1, dnn_lib::dim_t *pitch2,
+           dnn_lib::dim_t *pitch3) {
 
-} // namespace dnn_lib
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (likely(coord[j] != (index[j] - 1))) {
+      offset1 += pitch1[j];
+      offset2 += pitch2[j];
+      offset3 += pitch3[j];
+      coord[j]++;
+      return false;
+    } else if (likely(j != 0)) {
+      offset1 -= (index[j] - 1) * pitch1[j];
+      offset2 -= (index[j] - 1) * pitch2[j];
+      offset3 -= (index[j] - 1) * pitch3[j];
+      coord[j] = 0;
+    } else
+      return true;
+  }
 
+  //FIXME: use assertion throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
+  return true;  
+}
+
+}  // namespace dnn_lib
 #endif /* UTILS_H */

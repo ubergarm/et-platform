@@ -80,11 +80,7 @@ void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
     void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
     int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
     int32_t biasoffset);
-void fwdLibIntLookupTableInstInt8QTy(void *dstT, void *dstDims,
-                                     void *dstPitches, unsigned int dstDimNum,
-                                     void *src1T, void *src1Dims,
-                                     void *src1Pitches, void *src2T,
-                                     void *src2Dims, void *src2Pitches);
+void fwdLibIntLookupTableInstInt8QTy(LibTensor* outT, LibTensor* in1T, LibTensor* in2T);
 void fwdLibFlushL3(uint32_t numShires);
 void fwdLibEmbeddingBagInstFloatTy(void *pdst,
                                    void *pdata, uint64_t dataDim1Pitch,
@@ -105,10 +101,8 @@ void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
     void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
     void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
     void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags);
-void fwdLibIntLookupTableInstInt8QTyThreaded(
-    void *dstT, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src1T, void *src1Dims, void *src1Pitches, void *src2T, void *src2Dims,
-    void *src2Pitches, uint64_t flags);
+void fwdLibIntLookupTableInstInt8QTyThreaded(LibTensor* outT, LibTensor* in1T,
+                                             LibTensor* in2T, uint64_t flags);
 void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims, void *pdstPitches,
                                void *pbatch, void *pbatchDims,
                                void *pbatchPitches, unsigned int pbatchDimNum,

@@ -24,12 +24,11 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
-
-#define MAX_DIM_ALLOWED 6
 
 struct dataToCopyXSliceDim {
 
@@ -45,7 +44,7 @@ struct dataToCopyXSliceDim {
 template <typename ptrT, unsigned int nDim>
 class WriteSliceToDst {
   public:
-  static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[MAX_DIM_ALLOWED],
+  static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions],
 				const ptrT* tSlices, ptrT* tOutput,
 				unsigned int maxDim,
 				unsigned int& sliceAddr, unsigned int& dstAddr) 
@@ -68,7 +67,7 @@ class WriteSliceToDst {
 template <typename ptrT>
 class WriteSliceToDst<ptrT, 0> {
   public:
-  static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[MAX_DIM_ALLOWED],
+  static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions],
 				const ptrT* tSlices, ptrT* tOutput,
 				unsigned int maxDim,
 				unsigned int& sliceAddr, unsigned int& dstAddr) 
@@ -81,32 +80,56 @@ class WriteSliceToDst<ptrT, 0> {
 };
 
 template <typename srcType>
-inline void fwdLibScatterDataInst(void *dstT, void *dstDims,
-				    void *dstPitches, unsigned int dstNumDim, void *indexT,
-				    void *indicesDims, void *pindicesPitches,
-				    void *slicesT, void *slicesDims, unsigned int sliceSize,
-				    void *slicesPitches, unsigned int sliceNumDim, const float *scale,
-				    const int32_t *offset) {
+inline void fwdLibScatterDataInst(LibTensor* inT, LibTensor* outT, LibTensor* sliT) {
+// inline void fwdLibScatterDataInst(void *dstT, void *dstDims,
+// 				    void *dstPitches, unsigned int dstNumDim, void *indexT,
+// 				    void *indicesDims, void *pindicesPitches,
+// 				    void *slicesT, void *slicesDims, unsigned int sliceSize,
+// 				    void *slicesPitches, unsigned int sliceNumDim, const float *scale,
+// 				    const int32_t *offset) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  using ptrType = UintSelector<getsize<srcType>()>;
+  /* maintain compatibility through the new Iface Libtensor */
 
-  ptrType* tSlices = static_cast<ptrType*>(slicesT);
-  ptrType* tOutput = static_cast<ptrType*>(dstT);
+  auto indexH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  auto sliceH = sliT->getHandle<srcType>();
   
-  uint64_t  *tIndices = (uint64_t *)indexT;
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *indicesIndex = (unsigned int *)indicesDims;
-  unsigned int *slicesIndex = (unsigned int *)slicesDims;
+  // using ptrType = UintSelector<getsize<srcType>()>;
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-  unsigned int *slicesPitch = (unsigned int *)slicesPitches;
+  // ptrType* tSlices = static_cast<ptrType*>(slicesT);
+  srcType* tSlices = reinterpret_cast<srcType*>(sliceH.getUnsafePtrdbg());
+  // ptrType* tOutput = static_cast<ptrType*>(dstT);
+  srcType* tOutput = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
+  //uint64_t  *tIndices = (uint64_t *)indexT;
+  uint64_t* tIndices = reinterpret_cast<uint64_t*>(indexH.getUnsafePtrdbg());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  destH.cpydims(dstIndex);
+  // unsigned int *indicesIndex = (unsigned int *)indicesDims;
+  dim_t indicesIndex[max_tensor_dimensions] = {0,};
+  indexH.cpydims(indicesIndex);
+  // unsigned int *slicesIndex = (unsigned int *)slicesDims;
+  dim_t slicesIndex[max_tensor_dimensions] = {0,};
+  sliceH.cpydims(slicesIndex);
 
-  dataToCopyXSliceDim sliceSteps[MAX_DIM_ALLOWED];
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
+  dim_t indicesPitch[max_tensor_dimensions] = {0,};
+  indexH.cpypitchesdbg(indicesPitch);
+  // unsigned int *slicesPitch = (unsigned int *)slicesPitches;
+  dim_t slicesPitch[max_tensor_dimensions] = {0,};
+  sliceH.cpypitchesdbg(slicesPitch);
+
+  unsigned int sliceNumDim = sliceH.getNumDimsdbg();
+  
+  dataToCopyXSliceDim sliceSteps[max_tensor_dimensions];
   int push_ptr = 0;
 
   //assert(sliceNumDim>1);
@@ -182,106 +205,36 @@ inline void fwdLibScatterDataInst(void *dstT, void *dstDims,
     //   dstAddr += sliceSteps[5].dstAddr;
     // }
 
-    WriteSliceToDst<ptrType, (MAX_DIM_ALLOWED-1)>::cpyIt(sliceSteps, tSlices, tOutput, sliceNumDim-1, sliceAddr, dstAddr);
+    WriteSliceToDst<srcType, (max_tensor_dimensions-1)>::cpyIt(sliceSteps, tSlices, tOutput, sliceNumDim-1, sliceAddr, dstAddr);
   }
 }
 
-
-template <typename srcType>
-inline void fwdLibScatterDataInstThreaded(void *dstT, void *dstDims,
-                                              void *dstPitches, unsigned int dstDimNum, void *indexT,
-                                              void *indicesDims, void *pindicesPitches,
-                                              void *slicesT, void *slicesDims,
-                                              void *slicesPitches, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
-
-
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
-
-  const Addresser<srcType> tSlices(slicesT, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-
-  long long *tIndices = (long long *)indexT;
-
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *indicesIndex = (unsigned int *)indicesDims;
-  unsigned int *slicesIndex = (unsigned int *)slicesDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *slicesPitch = (unsigned int *)slicesPitches;
-
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
-  if (maxRead == 0)
-    return;
-
-  unsigned int coord[dstDimNum];
-  for (unsigned int i = 0; i < dstDimNum; i++)
-    coord[i] = 0;
-  unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, dstDimNum, dstPitch, dstIndex,
-                           k);
-  
-  unsigned int offsetIn = 0; // Doesn't include slicesPitch[0]. offsetIn doesn't
-                             // have the conventional meaning
-  unsigned int offsetOut = dstPitch[0] * coord[0];
-
-  unsigned int slicesPitch_0 = slicesPitch[0];
-  slicesPitch[0] = 0;
-
-  
-  for (unsigned int j = 1; j < k; j++) {
-    offsetOut += dstPitch[j] * coord[j];
-    offsetIn += slicesPitch[j] * coord[j];
-  }
  
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
-  bool change = true;
-  int offset0 = 0;
+// template <typename ElemTy>
+// void BoundInterpreterFunction::fwdScatterDataInstCopyImpl() {
+//   Tensor *dataT = getTensor(I->getData());
+//   Tensor *indicesT = getTensor(I->getIndices());
+//   Tensor *slicesT = getTensor(I->getSlices());
 
-  while (!done && (offsetOut < posMax)) {
-    if (change){
-      offset0 = indicesIndex[0] - 1;
-      while(offset0 >= 0){
-        if (tIndices[offset0] == coord[0]) break;
-        offset0--;
-      }
-      change = false;
-    }
+//   assert(indicesT->dims().size() == 2 &&
+//          "Index should be stored in 2D tensor!");
+//   const dim_t dataSliceSize = slicesT->size() / slicesT->dims()[0] *
+//                               slicesT->getType().getElementSize();
 
-    if (offset0 >= 0) tOutput[offsetOut] = tSlices[offsetIn + offset0*slicesPitch_0];
-
-    for (int j = dstDimNum - 1; j >= 0; j--) {
-      if (coord[j] != (dstIndex[j] - 1)) {
-        offsetOut += dstPitch[j];
-        offsetIn += slicesPitch[j];
-        coord[j]++;
-        if (j == 0) change = true;
-        break;
-      } else if (j != 0) {
-        offsetOut -= (dstIndex[j] - 1) * dstPitch[j];
-        offsetIn -= (slicesIndex[j] - 1) * slicesPitch[j];
-        coord[j] = 0;
-      } else {
-        done = true;
-        break;
-        }
-    }
-  }
-
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
-}
+//   auto IH = indicesT->getHandle<int64_t>();
+//   // For each index, copy from the slice at that index into the location in data
+//   // given the offset from the indices tensor.
+//   for (dim_t i = 0, end = indicesT->dims()[0]; i < end; i++) {
+//     dim_t destDataIdx = 0;
+//     for (dim_t j = 0, e = indicesT->dims()[1]; j < e; j++) {
+//       destDataIdx *= dataT->dims()[j];
+//       destDataIdx += IH.at({i, j});
+//     }
+//     std::copy(&slicesT->getUnsafePtr()[i * dataSliceSize],
+//               &slicesT->getUnsafePtr()[(i + 1) * dataSliceSize],
+//               &dataT->getUnsafePtr()[dataSliceSize * destDataIdx]);
+//   }
+// } 
 
 } // namespace inlining
 

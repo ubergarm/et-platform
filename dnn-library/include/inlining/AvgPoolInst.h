@@ -24,7 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
-
+#include "LibTensor.h"
 
 namespace dnn_lib {
 

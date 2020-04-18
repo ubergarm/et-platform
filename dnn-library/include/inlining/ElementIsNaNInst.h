@@ -47,23 +47,34 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-inline void fwdLibElementIsNaNInst(void *dstT, void *dstDims,
-                                     void *dstPitches, void *srcT1,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, const float *scale,
-                                     const int32_t *offset) {
+inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  bool *ptrDstT = (bool *)dstT;
-  const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
+  auto srcH =  inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  //using storage_t = elKind2Storage<elk>::type;
+  //  using elktype_t = elemKind2elemTy<destH.getElementType()>::type;
+  bool* ptrDstT = reinterpret_cast<bool*>(destH.getUnsafePtrdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
+  srcType* srcT1 = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  // bool *ptrDstT = (bool *)dstT;
+  // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<srcType> aSrcT1(srcT1, srcH.getScaledbg(), srcH.getOffsetdbg());
 
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydimsdbg(srcIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(srcPitch);
+  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
+  
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -118,23 +129,38 @@ inline void fwdLibElementIsNaNInst(void *dstT, void *dstDims,
  *  should be done at the end of the function.
  */
 template <typename srcType>
-inline void fwdLibElementIsNaNInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT1, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
+                                           uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  bool *aDstT = (bool *)dstT;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  auto srcH = inT->getHandle<srcType>();
+  auto destH = outT->getHandle<srcType>();
+  
+  // srcType *tOutput = (srcType *)dstT;
+  //srcType* aDstT = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
+  srcType* srcT1 = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
+  // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<srcType> aSrcT1(srcT1, srcH.getScaledbg(), srcH.getOffsetdbg());
+  // bool *aDstT = (bool *)dstT;
+  bool* aDstT = reinterpret_cast<bool*>(destH.getUnsafePtrdbg());
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydimsdbg(actIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  destH.cpypitchesdbg(dstPitch);
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+ 
+  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
+  
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
   unsigned int initialAddr, maxRead;
@@ -165,7 +191,7 @@ inline void fwdLibElementIsNaNInstThreaded(
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)aDstT + typeSize*initialAddr, clperminion);
 }
 
 } // namespace inlining

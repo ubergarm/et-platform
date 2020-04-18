@@ -14,41 +14,21 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibTanhInst(void *dstT, void *dstDims, void *dstPitches,
-                             void *srcT1, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, const float *scale,
-                             const int32_t *offset) {
+void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibTanhInst<srcType>(dstT, dstDims, dstPitches,
-                             srcT1, srcDims, srcPitches,
-                             srcDimNum, scale,
-                             offset);
+  dnn_lib::inlining::fwdLibTanhInst<srcType>(outT, inT);
 }
 
 template <typename srcType>
-void fwdLibTanhInstThreaded(void *dstT, void *dstDims,
-                                     void *dstPitches, void *srcT1,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum,
-                                     const float *scale, const int32_t *offset,
-                                     uint64_t flags) {
+void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTanhInstThreaded<srcType>(dstT, dstDims,
-                                     dstPitches, srcT1,
-                                     srcDims, srcPitches,
-                                     srcDimNum,
-                                     scale, offset,
-                                     flags);
+  dnn_lib::inlining::fwdLibTanhInstThreaded<srcType>(outT, inT, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibTanhInst, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
-                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibTanhInst, LibTensor* outT, LibTensor* inT);
 
-GEN_INSTANCES_OP(template, fwdLibTanhInstThreaded, void *dstT, void *dstDims, void *dstPitches, void *srcT1,
-                       void *srcDims, void *srcPitches, unsigned int srcDimNum,
-                       const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTanhInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
 
 } // namespace dnn_lib
