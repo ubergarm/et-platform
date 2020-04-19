@@ -30,28 +30,49 @@ namespace dnn_lib {
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibElementSelectInst(
-    void *dstT, void *dstDims, void *dstPitches, void *condT, void *condDims,
-    void *condPitches, void *srcT1, void *srcDims, void *src1Pitches,
-    unsigned int srcDimNum, void *srcT2, void *src2Pitches,
-    const float *scale, const int32_t *offset) {
+inline void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT,
+                                    LibTensor* in1T, LibTensor* in2T) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> ptrDstT(dstT, scale[3], offset[3]);
-  bool *ptrCondT = (bool *)condT;
-  const Addresser<srcType> ptrSrcT1(srcT1, scale[1], offset[1]);
-  const Addresser<srcType> ptrSrcT2(srcT2, scale[2], offset[2]);
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH1 = in1T->getHandle<srcType>();
+  auto srcH2 = in2T->getHandle<srcType>();
+  
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT1 = reinterpret_cast<srcType*>(srcH1.getUnsafePtrdbg());
+  srcType* srcT2 = reinterpret_cast<srcType*>(srcH2.getUnsafePtrdbg());
+  
+  // Addresser<srcType> ptrDstT(dstT, scale[3], offset[3]);
+  Addresser<srcType> ptrDstT(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // bool *ptrCondT = (bool *)condT;
+  bool* ptrCondT = reinterpret_cast<bool*>(condT->dbgData());  
+  // const Addresser<srcType> ptrSrcT1(srcT1, scale[1], offset[1]);
+  const Addresser<srcType> ptrSrcT1(srcT1, srcH1.getScaledbg(), srcH1.getOffsetdbg());
+  // const Addresser<srcType> ptrSrcT2(srcT2, scale[2], offset[2]);
+  const Addresser<srcType> ptrSrcT2(srcT2, srcH2.getScaledbg(), srcH2.getOffsetdbg());
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  srcH1.cpydims(srcIndex);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  unsigned int *src2Pitch = (unsigned int *)src2Pitches;
-  unsigned int *condPitch = (unsigned int *)condPitches;
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);
+  // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
+  dim_t src1Pitch[max_tensor_dimensions] = {0,};
+  srcH1.cpypitchesdbg(src1Pitch);
+  // unsigned int *src2Pitch = (unsigned int *)src2Pitches;
+  dim_t src2Pitch[max_tensor_dimensions] = {0,};
+  srcH2.cpypitchesdbg(src2Pitch);
+  // unsigned int *condPitch = (unsigned int *)condPitches;
+  dim_t condPitch[max_tensor_dimensions] = {0,};
+  condT->dbgcpypitches(condPitch);
 
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
+  
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -96,28 +117,49 @@ inline void fwdLibElementSelectInst(
 }
 
 template <typename srcType>
-inline void fwdLibElementSelectInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *condT, void *condDims,
-    void *condPitches, void *srcT1, void *srcDims, void *src1Pitches,
-    unsigned int srcDimNum, void *srcT2, void *src2Pitches, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+inline void fwdLibElementSelectInstThreaded(LibTensor* outT, LibTensor* condT,
+                                            LibTensor* in1T, LibTensor* in2T,
+                                            uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> ptrDstT(dstT, scale[3], offset[3]);
-  bool *ptrCondT = (bool *)condT;
-  const Addresser<srcType> ptrSrcT1(srcT1, scale[1], offset[1]);
-  const Addresser<srcType> ptrSrcT2(srcT2, scale[2], offset[2]);
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH1 = in1T->getHandle<srcType>();
+  auto srcH2 = in2T->getHandle<srcType>();
+  
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT1 = reinterpret_cast<srcType*>(srcH1.getUnsafePtrdbg());
+  srcType* srcT2 = reinterpret_cast<srcType*>(srcH2.getUnsafePtrdbg());
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  // Addresser<srcType> ptrDstT(dstT, scale[3], offset[3]);
+  Addresser<srcType> ptrDstT(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // bool *ptrCondT = (bool *)condT;
+  bool* ptrCondT = reinterpret_cast<bool*>(condT->dbgData());
+  // const Addresser<srcType> ptrSrcT1(srcT1, scale[1], offset[1]);
+  const Addresser<srcType> ptrSrcT1(srcT1, srcH1.getScaledbg(), srcH1.getOffsetdbg());
+  // const Addresser<srcType> ptrSrcT2(srcT2, scale[2], offset[2]);
+  const Addresser<srcType> ptrSrcT2(srcT2, srcH2.getScaledbg(), srcH2.getOffsetdbg());
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH1.cpydims(actIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);
+  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
+  dim_t act1Pitch[max_tensor_dimensions] = {0,};
+  srcH1.cpypitchesdbg(act1Pitch);
+  // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
+  dim_t act2Pitch[max_tensor_dimensions] = {0,};
+  srcH2.cpypitchesdbg(act2Pitch);
+  // unsigned int *condPitch = (unsigned int *)condPitches;
+  dim_t condPitch[max_tensor_dimensions] = {0,};
+  condT->dbgcpypitches(condPitch);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  unsigned int *act2Pitch = (unsigned int *)src2Pitches;
-  unsigned int *condPitch = (unsigned int *)condPitches;
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 

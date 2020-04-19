@@ -24,31 +24,44 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibTransposeInst(void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum, void *pshuffle,
-                                  const float *scale, const int32_t *offset) {
+inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH = inT->getHandle<srcType>();
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());  
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  dim_t actIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(actIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch); 
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+  // unsigned int *shuffle = (unsigned int *)pshuffle;
+  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
-  unsigned int *shuffle = (unsigned int *)pshuffle;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH.getNumDimsdbg());
+  
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -89,27 +102,38 @@ inline void fwdLibTransposeInst(void *dst, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType>
-inline void fwdLibTransposeInstThreaded(void *dst, void *dstDims,
-                                          void *dstPitches, void *src,
-                                          void *srcDims, void *srcPitches,
-                                          unsigned int srcDimNum,
-                                          void *pshuffle, const float *scale,
-                                          const int32_t *offset, uint64_t flags) {
+inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
+                                        void *pshuffle, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH = inT->getHandle<srcType>();
+  
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  dstH.cpydims(dstIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);   
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(actPitch);
+  // unsigned int *shuffle = (unsigned int *)pshuffle;
+  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
-  unsigned int *shuffle = (unsigned int *)pshuffle;
+  unsigned int srcDimNum = static_cast<unsigned int>(srcH.getNumDimsdbg());
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -145,7 +169,7 @@ inline void fwdLibTransposeInstThreaded(void *dst, void *dstDims,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
 template <typename srcType, typename std::enable_if< (getsize<srcType>() <=4), int>::type = 0>
@@ -184,27 +208,33 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t
 
 
 template <typename srcType>
-inline void fwdLibTransposeInstVectorized(void *dst, void *dstDims,
-                                            void *dstPitches, void *src,
-                                            void *srcDims, void *srcPitches,
-                                            unsigned int srcDimNum,
-                                            void *pshuffle, const float *scale,
-                                            const int32_t *offset, uint64_t flags) {
+inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
+                                          void *pshuffle, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  uintptr_t dstAddr = (uintptr_t)dst;
-  uintptr_t srcAddr = (uintptr_t)src;
+  
+  // uintptr_t dstAddr = (uintptr_t)dst;
+  uintptr_t dstAddr = reinterpret_cast<uintptr_t>(outT->dbgData());
+  // uintptr_t srcAddr = (uintptr_t)src;
+  uintptr_t srcAddr = reinterpret_cast<uintptr_t>(inT->dbgData());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  outT->dims(dstIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  outT->dbgcpypitches(dstPitch);
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  inT->dbgcpypitches(actPitch);
+  // unsigned int *shuffle = (unsigned int *)pshuffle;
+  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
-  unsigned int *shuffle = (unsigned int *)pshuffle;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -286,8 +316,11 @@ inline void fwdLibTransposeInstVectorized(void *dst, void *dstDims,
     if (lastRow)
       return;
 
-    dstAddr = (uintptr_t)dst;
-    srcAddr = (uintptr_t)src;
+    // dstAddr = (uintptr_t)dst;
+    dstAddr =  reinterpret_cast<uintptr_t>(outT->dbgData());
+    // srcAddr = (uintptr_t)src;
+    srcAddr = reinterpret_cast<uintptr_t>(inT->dbgData());
+    
     offsetIn -= coord[lastDim] * newPitch[lastDim];
     offsetOut -= coord[lastDim] * dstPitch[lastDim];
     coord[lastDim] = 0;
@@ -297,7 +330,9 @@ inline void fwdLibTransposeInstVectorized(void *dst, void *dstDims,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, /*(uintptr_t)dst*/
+                                      reinterpret_cast<uintptr_t>(outT->dbgData()) + typeSize*initialAddr,
+                                      clperminion);
 }
 
 
@@ -337,28 +372,32 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
 
 
 template <typename srcType>
-inline void fwdLibTransposeInstAligned32Bytes(void *dst,
-                                          void *dstDims,
-                                          void *dstPitches, void *src,
-                                          void *srcDims, void *srcPitches,
-                                          unsigned int srcDimNum,
-                                          void *pshuffle, const float *scale,
-                                          const int32_t *offset, uint64_t flags) {
+inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
+                                              void *pshuffle, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  uintptr_t dstAddr = (uintptr_t)dst;
-  uintptr_t srcAddr = (uintptr_t)src;
+  // uintptr_t dstAddr = (uintptr_t)dst;
+  uintptr_t dstAddr = reinterpret_cast<uintptr_t>(outT->dbgData());
+  // uintptr_t srcAddr = (uintptr_t)src;
+  uintptr_t srcAddr = reinterpret_cast<uintptr_t>(inT->dbgData());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  outT->dims(dstIndex);
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  outT->dbgcpypitches(dstPitch);   
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  dim_t actPitch[max_tensor_dimensions] = {0,};
+  inT->dbgcpypitches(actPitch);
+  // unsigned int *shuffle = (unsigned int *)pshuffle;
+  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
-  unsigned int *shuffle = (unsigned int *)pshuffle;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -400,8 +439,10 @@ inline void fwdLibTransposeInstAligned32Bytes(void *dst,
   unsigned int mask = ((1 << res) - 1);
 
   while (!done && (offsetOut < posMax)) {
-    dstAddr = (uintptr_t)dst + offsetOut*typeSize;
-    srcAddr = (uintptr_t)src + offsetIn*typeSize;
+    // dstAddr = (uintptr_t)dst + offsetOut*typeSize;
+    dstAddr = reinterpret_cast<uintptr_t>(outT->dbgData()) + offsetOut*typeSize;
+    // srcAddr = (uintptr_t)src + offsetIn*typeSize;
+    srcAddr = reinterpret_cast<uintptr_t>(inT->dbgData()) + offsetIn*typeSize;
 
     //When the minion reaches the end of the lastDim, we use a mask
     //that is always the same because the dst Tensor is aligned to 32 Bytes.

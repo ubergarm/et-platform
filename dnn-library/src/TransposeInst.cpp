@@ -14,86 +14,47 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibTransposeInst(void *dst, void *dstDims, void *dstPitches,
-                                  void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum, void *pshuffle,
-                                  const float *scale, const int32_t *offset) {
+void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void* pshuffle) {
 
-  dnn_lib::inlining::fwdLibTransposeInst<srcType>(dst, dstDims, dstPitches,
-                                  src, srcDims, srcPitches,
-                                  srcDimNum, pshuffle,
-                                  scale, offset);
+  dnn_lib::inlining::fwdLibTransposeInst<srcType>(outT, inT, pshuffle);
 }
 
 template <typename srcType>
-void fwdLibTransposeInstThreaded(void *dst, void *dstDims,
-                                          void *dstPitches, void *src,
-                                          void *srcDims, void *srcPitches,
-                                          unsigned int srcDimNum,
-                                          void *pshuffle, const float *scale,
-                                          const int32_t *offset, uint64_t flags) {
+void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
+                                 void* pshuffle, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTransposeInstThreaded<srcType>(dst, dstDims,
-                                          dstPitches, src,
-                                          srcDims, srcPitches,
-                                          srcDimNum,
-                                          pshuffle, scale,
-                                          offset, flags);
+  dnn_lib::inlining::fwdLibTransposeInstThreaded<srcType>(outT, inT, pshuffle,
+                                                          flags);
 }
 
 template <typename srcType>
-void fwdLibTransposeInstVectorized(void *dst, void *dstDims,
-                                            void *dstPitches, void *src,
-                                            void *srcDims, void *srcPitches,
-                                            unsigned int srcDimNum,
-                                            void *pshuffle, const float *scale,
-                                            const int32_t *offset, uint64_t flags) {
+void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
+                                   void* pshuffle, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTransposeInstVectorized<srcType>(dst, dstDims,
-                                            dstPitches, src,
-                                            srcDims, srcPitches,
-                                            srcDimNum,
-                                            pshuffle, scale,
-                                            offset, flags);
+  dnn_lib::inlining::fwdLibTransposeInstVectorized<srcType>(outT, inT,
+                                                            pshuffle, flags);
 }
 
 template <typename srcType>
-void fwdLibTransposeInstAligned32Bytes(void *dst,
-                                          void *dstDims,
-                                          void *dstPitches, void *src,
-                                          void *srcDims, void *srcPitches,
-                                          unsigned int srcDimNum,
-                                          void *pshuffle, const float *scale,
-                                          const int32_t *offset, uint64_t flags) {
+void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
+                                          void* pshuffle, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTransposeInstAligned32Bytes<srcType>(dst,
-                                          dstDims,
-                                          dstPitches, src,
-                                          srcDims, srcPitches,
-                                          srcDimNum,
-                                          pshuffle, scale,
-                                          offset, flags);
+  dnn_lib::inlining::fwdLibTransposeInstAligned32Bytes<srcType>(outT, inT,
+                                                                pshuffle, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibTransposeInst, void *dst, void *dstDims, void *dstPitches,
-                            void *src, void *srcDims, void *srcPitches,
-                            unsigned int srcDimNum, void *pshuffle,
-                            const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibTransposeInst, LibTensor* outT,
+                 LibTensor* inT, void* pshuffle);
 
-GEN_INSTANCES_OP(template, fwdLibTransposeInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                            void *src, void *srcDims, void *srcPitches,
-                            unsigned int srcDimNum, void *pshuffle,
-                            const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTransposeInstThreaded, LibTensor* outT,
+                 LibTensor* inT, void* pshuffle, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibTransposeInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                            void *src, void *srcDims, void *srcPitches,
-                            unsigned int srcDimNum, void *pshuffle,
-                            const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTransposeInstVectorized, LibTensor* outT,
+                   LibTensor* inT, void* pshuffle, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibTransposeInstAligned32Bytes, void *dst, void *dstDims, void *dstPitches,
-                            void *src, void *srcDims, void *srcPitches,
-                            unsigned int srcDimNum, void *pshuffle,
-                            const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibTransposeInstAligned32Bytes, LibTensor* outT,
+                 LibTensor* inT, void* pshuffle, uint64_t flags);
+  
 } // namespace dnn_lib

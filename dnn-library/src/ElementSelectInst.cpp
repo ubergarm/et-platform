@@ -14,50 +14,28 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibElementSelectInst(
-    void *dstT, void *dstDims, void *dstPitches, void *condT, void *condDims,
-    void *condPitches, void *srcT1, void *srcDims, void *src1Pitches,
-    unsigned int srcDimNum, void *srcT2, void *src2Pitches,
-    const float *scale, const int32_t *offset) {
+void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT, LibTensor* in1T,
+                             LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibElementSelectInst<srcType>(
-    dstT, dstDims, dstPitches, condT, condDims,
-    condPitches, srcT1, srcDims, src1Pitches,
-    srcDimNum, srcT2, src2Pitches,
-    scale, offset);
+  dnn_lib::inlining::fwdLibElementSelectInst<srcType>(outT, condT, in1T, in2T);
 }
 
 template <typename srcType>
-void fwdLibElementSelectInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *condT, void *condDims,
-    void *condPitches, void *srcT1, void *srcDims, void *src1Pitches,
-    unsigned int srcDimNum, void *srcT2, void *src2Pitches, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+void fwdLibElementSelectInstThreaded(LibTensor* outT, LibTensor* condT,
+                                     LibTensor* in1T, LibTensor* in2T,
+                                     uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibElementSelectInstThreaded<srcType>(
-    dstT, dstDims, dstPitches, condT, condDims,
-    condPitches, srcT1, srcDims, src1Pitches,
-    srcDimNum, srcT2, src2Pitches, scale, offset,
-    flags);
+  dnn_lib::inlining::fwdLibElementSelectInstThreaded<srcType>(outT, condT, in1T,
+                                                              in2T, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibElementSelectInst,void *dstT, void *dstDims,
-                                 void *dstPitches, void *condT,
-                                 void *condDims, void *condPitches,
-                                 void *srcT1, void *srcDims,
-                                 void *src1Pitches,unsigned int srcDimNum,
-                                 void *srcT2, void *src2Pitches, const float * scale,
-                                 const int32_t * offset);
+GEN_INSTANCES_OP(template, fwdLibElementSelectInst, LibTensor* outT, LibTensor* condT,
+                 LibTensor* in1T, LibTensor* in2T);
 
-GEN_INSTANCES_OP(template, fwdLibElementSelectInstThreaded,void *dstT, void *dstDims,
-                                        void *dstPitches, void *condT,
-                                        void *condDims, void *condPitches,
-                                        void *srcT1, void *srcDims,
-                                        void *src1Pitches,unsigned int srcDimNum,
-                                        void *srcT2, void *src2Pitches, const float * scale,
-                                        const int32_t * offset, uint64_t flags);
+  GEN_INSTANCES_OP(template, fwdLibElementSelectInstThreaded, LibTensor* outT, LibTensor* condT,
+                   LibTensor* in1T, LibTensor* in2T, uint64_t flags);
 
 
 } // namespace dnn_lib
