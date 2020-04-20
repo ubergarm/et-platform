@@ -454,6 +454,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
 
   if ((totalWorkUnits % activeMinions) == 0) {
     minionWorkUnits = totalWorkUnits / activeMinions;
+    minionFirstWorkUnit = minionId * minionWorkUnits;
   } else {
     minionWorkUnits = totalWorkUnits / activeMinions;
     uintptr_t remainingWorkUnits = totalWorkUnits % activeMinions;
@@ -501,7 +502,6 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
 
     if (dstGroupNotInRowTail) {
       // Not in tail
-
       volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
       // Initialize vector mask
@@ -583,14 +583,14 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
             : "f25", "f27", "f28"
           );
         }
-	else {
+        else {
           __asm__ __volatile__ (
             "fgb.ps f25, f31, %[data_ptr]\n"
             :
             : [data_ptr] "r" (data_ptr)
             :  "f25"
           );
-	}
+        }
 
         __asm__ __volatile__ (
           // Load a full input cache line (64 elements, 8 vregs)
