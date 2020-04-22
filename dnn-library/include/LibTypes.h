@@ -13,6 +13,7 @@
 #define LIB_TYPES_H
 
 #include <stdint.h>
+#include <array>
 
 #define INLINE_ATTR __attribute__((always_inline)) inline
 
@@ -25,7 +26,7 @@ using sdim_t = int32_t;
 using dim_t = uint64_t;
 using sdim_t = int64_t;
 #endif
-  
+ 
 
   //@WARNING this enumerate is not the same as jitter defines ....!!
   //
@@ -114,6 +115,7 @@ enum ElemKind : unsigned char {
             elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
             elk == dnn_lib::ElemKind::UInt4FusedFP16QTy);
   }
+
 
   
 }

@@ -91,7 +91,7 @@ constexpr std::size_t getsize<float16>() {
  */
 inline __attribute__((always_inline))
 void getCoordinates(unsigned int *coord, unsigned int offset,
-                    unsigned int dimNum, unsigned int *pitch) {
+                    unsigned int dimNum, const unsigned int *pitch) {
   unsigned int rm = offset;
   for (unsigned int i = 0; i < dimNum; i++) {
     coord[i] = rm / pitch[i];
@@ -102,7 +102,7 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
 /* overloading while sw-2400 and sw-2429 are WIP */
 inline __attribute__((always_inline))
 void getCoordinates(unsigned int *coord, unsigned int offset,
-                    unsigned int dimNum, dnn_lib::dim_t *pitch) {
+                    unsigned int dimNum, const dnn_lib::dim_t *pitch) {
   unsigned int rm = offset;
   for (unsigned int i = 0; i < dimNum; i++) {
     coord[i] = rm / pitch[i];
@@ -131,8 +131,8 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
  */
 inline __attribute__((always_inline)) 
 void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
-                              unsigned int srcDimNum, unsigned int *pitch,
-                              unsigned int *dims, unsigned int &k) {
+                              unsigned int srcDimNum, const unsigned int *pitch,
+                              const unsigned int *dims, unsigned int &k) {
 
   getCoordinates(coord, offset, srcDimNum, pitch);
   k = srcDimNum;
@@ -149,8 +149,8 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
 /* overloading while sw-2400 and sw-2429 are WIP */
 inline __attribute__((always_inline)) 
 void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
-                              unsigned int srcDimNum, dnn_lib::dim_t *pitch,
-                              dnn_lib::dim_t *dims, unsigned int &k) {
+                              unsigned int srcDimNum, const dnn_lib::dim_t *pitch,
+                              const dnn_lib::dim_t *dims, unsigned int &k) {
 
   getCoordinates(coord, offset, srcDimNum, pitch);
   k = srcDimNum;
@@ -316,7 +316,7 @@ void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsD
 template <typename T>
 inline __attribute__((always_inline)) 
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
-                unsigned int *index, unsigned int *pitch) {
+                const unsigned int *index, const unsigned int *pitch) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -339,7 +339,7 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
 template <typename T>
 inline __attribute__((always_inline)) 
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
-                dnn_lib::dim_t *index, dnn_lib::dim_t *pitch) {
+                const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -369,8 +369,8 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
 template <typename T>
 inline __attribute__((always_inline)) 
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, unsigned int *index, unsigned int *pitch1,
-                unsigned int *pitch2) {
+                T &offset2, const unsigned int *index, const unsigned int *pitch1,
+                const unsigned int *pitch2) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -395,8 +395,8 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 template <typename T>
 inline __attribute__((always_inline)) 
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, dnn_lib::dim_t *index, dnn_lib::dim_t *pitch1,
-                dnn_lib::dim_t *pitch2) {
+                T &offset2, const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch1,
+                const dnn_lib::dim_t *pitch2) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -422,8 +422,8 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 template <typename T>
 inline __attribute__((always_inline)) 
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, dnn_lib::dim_t *index, dnn_lib::dim_t *pitch1,
-                unsigned int* pitch2) {
+                T &offset2, const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch1,
+                const unsigned int* pitch2) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -456,8 +456,8 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 template <typename T> 
 inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, unsigned int *index, unsigned int *pitch1,
-                unsigned int *pitch2, unsigned int *pitch3) {
+                T &offset2, T &offset3, const unsigned int *index, const unsigned int *pitch1,
+                const unsigned int *pitch2, const unsigned int *pitch3) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -491,9 +491,9 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 template <typename T> 
 inline __attribute__((always_inline)) 
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, T &offset4, unsigned int *index, 
-                unsigned int *pitch1, unsigned int *pitch2,
-                unsigned int *pitch3, unsigned int *pitch4) {
+                T &offset2, T &offset3, T &offset4, const unsigned int *index, 
+                const unsigned int *pitch1, const unsigned int *pitch2,
+                const unsigned int *pitch3, const unsigned int *pitch4) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (coord[j] != (index[j] - 1)) {
@@ -522,9 +522,9 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 template <typename T> 
 inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, T &offset4, dim_t *index, 
-                dim_t *pitch1, dim_t *pitch2,
-                dim_t *pitch3, dim_t *pitch4) {
+                T &offset2, T &offset3, T &offset4, const dim_t *index, 
+                const dim_t *pitch1, const dim_t *pitch2,
+                const dim_t *pitch3, const dim_t *pitch4) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (coord[j] != (index[j] - 1)) {
@@ -726,7 +726,7 @@ bool getNextStep(unsigned int dimNum,
 
 inline __attribute__((always_inline))
 unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
-                       unsigned int *pitch) {
+                       const unsigned int *pitch) {
   unsigned int offset = 0;
   for (unsigned int i = 0; i < dimNum; i++) {
     offset += coord[i] * pitch[i];
@@ -737,7 +737,7 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
 /* overloading while sw-2400 and sw-2429 are on WIP */
 inline __attribute__((always_inline))
 unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
-                       dnn_lib::dim_t *pitch) {
+                       const dnn_lib::dim_t *pitch) {
   unsigned int offset = 0;
   for (unsigned int i = 0; i < dimNum; i++) {
     offset += coord[i] * pitch[i];
@@ -749,9 +749,9 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
 template<typename T>
 inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-           T &offset2, T &offset3, dnn_lib::dim_t *index,
-           dnn_lib::dim_t *pitch1, dnn_lib::dim_t *pitch2,
-           dnn_lib::dim_t *pitch3) {
+                T &offset2, T &offset3, const dnn_lib::dim_t *index,
+                const dnn_lib::dim_t *pitch1, const dnn_lib::dim_t *pitch2,
+                const dnn_lib::dim_t *pitch3) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {

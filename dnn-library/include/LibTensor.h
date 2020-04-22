@@ -12,50 +12,15 @@
 #ifndef LIB_TENSOR_H
 #define LIB_TENSOR_H
 
-#include <array>
+#include <numeric>
 #include <cassert>
+#include <cstring>
 
 #include "LibTypes.h"
-#include "Float16.h"
+#include "LibUtils.h"
 
 namespace dnn_lib {
 
-constexpr unsigned max_tensor_dimensions = 6;
-constexpr unsigned max_scale_dimensions = 2;
-
-constexpr ElemKind IndexElemKind =
-    (sizeof(dim_t) == 4) ? ElemKind::Int32ITy : ElemKind::Int64ITy;
-  
- struct Type;
-
- using TypeRef = const Type *;
-
- using float16_t = float16;
-
-  
-template<ElemKind elK>
-struct elemKind2elemTy {
-  using type =
-    typename std::conditional<elK == ElemKind::FloatTy, float,
-     typename std::conditional<elK == ElemKind::Float16Ty, float16,
-      typename std::conditional<elK == ElemKind::Int8QTy, int8_t,
-       typename std::conditional<elK == ElemKind::UInt8QTy, uint8_t,
-        typename std::conditional<elK == ElemKind::Int16QTy, int16_t,
-         typename std::conditional<elK == ElemKind::Int32QTy, int32_t,
-          typename std::conditional<elK == ElemKind::Int32ITy, int32_t,
-           typename std::conditional<elK == ElemKind::Int64ITy, int64_t,
-            typename std::conditional<elK == ElemKind::UInt8FusedQTy, uint8_t,
-             typename std::conditional<elK == ElemKind::UInt8FusedFP16QTy, uint8_t,
-              typename std::conditional<elK == ElemKind::UInt4FusedFP16QTy, uint8_t,
-               typename std::conditional<elK == ElemKind::BoolTy, bool,
-                    void // void is the default value, if no elKind matches
-          >::type >::type >::type >::type >::type> ::type
-    >::type >::type >::type >::type >::type>::type;
-    
-  //@TODO static_assert(!std::is_same<type, void>::value);
-};
- 
-template <class ElemTy> class Handle;
 
 /*@brief return whether \p e is a quantized ElemKind.
   */
@@ -70,107 +35,105 @@ struct Type final {
    
    /*@brief contains the dimensions (sizes) of the tensor.
     */
-   dim_t sizes_[max_tensor_dimensions] = {0,};
+   const dim_array_t sizes_;
 
    /*@brief contains the strides for each dimension (in elements) same order
     * as in sizes_.
     */
-   dim_t strides_[max_tensor_dimensions] = {0,};
+   const dim_array_t strides_;
   
    /*@brief Specifies the element type of the tensor.
     */
-   dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
+   const dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
 
    /*@brief contains the number of dimensions used by the tensor.
     */
-   unsigned char numSizes_{0};
+   const dim_t numSizes_;
 
    /*@brief On quantized tensors, this represents the scale of the values.
     */
-   float scale_{0};
+  const float scale_ {};
 
    /*@brief On quantized tensors, this represents the offset of the values.
     */
-   int32_t offset_{0};
+  const int32_t offset_ {};
  
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  Type(dnn_lib::ElemKind elk, dim_t *dims, uint8_t numSizes,
-       float scale, int32_t offset) : elementType_(elk), numSizes_(numSizes),
-                                      scale_(scale), offset_(offset) { initDims(dims); }
-
+  template<size_t numSizes>
+  Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims,  float scale, int32_t offset) :
+    sizes_(make_dims(dims)),
+    elementType_(elk), numSizes_(numSizes),
+    scale_(scale), offset_(offset)
+  {
+    assert( isQuantizedElemKind(elk));
+  }
+  
   /*@brief Initialize a new non-quantized type.
    */
-  Type(dnn_lib::ElemKind elk, dim_t *dims, uint8_t numSizes)
-    : elementType_(elk), numSizes_(numSizes) { initDims(dims); }
+  template<size_t numSizes>
+  Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims) :
+    sizes_(make_dims(dims)),
+    elementType_(elk), numSizes_(numSizes)
+  {
+    assert( !isQuantizedElemKind(elk));
+  }
   
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  Type(dnn_lib::ElemKind elk, dim_t* dims, uint8_t numSizes,
-       dim_t* pitches, float scale, int32_t offset)
-    : elementType_(elk), numSizes_(numSizes), scale_(scale), offset_(offset) {
-    initDims(dims, pitches);
+  template<size_t numSizes>
+  Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides,
+       float scale, int32_t offset) :
+    sizes_(make_dims(dims)),
+    strides_(make_strides(strides)),
+    elementType_(elk),
+    numSizes_(numSizes),
+    scale_(scale), offset_(offset)
+  {
+    assert(isQuantizedElemKind(elk));
   } 
   
   /*@brief Initialize a new non-quantized type.
    */
-  Type(dnn_lib::ElemKind elk, dim_t *dims, uint8_t numSizes,
-       uint64_t *pitches) : elementType_(elk), numSizes_(numSizes) {
-    initDims(dims, pitches);
+  template<size_t numSizes>
+  Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides) :
+    sizes_(make_dims(dims)),
+    strides_(make_strides(strides)),
+    elementType_(elk),
+    numSizes_(numSizes)
+  {
+    assert(  !isQuantizedElemKind(elk));
   }
 
   /*@brief Reshape existing type this takes care of quantized types.
    */
-  static Type newShape(const Type &T, dim_t *dims, uint8_t numDims) {
-    if(T.isQuantizedType()) {
-      return Type(T.getElementType(), dims, numDims, T.getScale(),
-                  T.getOffset());
-    }
-     else {
-         return Type(T.getElementType(), dims, numDims);
-     }
-   }
+  template<size_t numSizes>
+  static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims) {
+    if(T.isQuantizedType()) return Type(T.elementType_, dims, T.scale_, T.offset_);
+    else return Type(T.elementType_, dims);
+  }
  
    /*@brief Reshape existing type and change alignments.
     */
-   static Type newShape(const Type &T, dim_t* dims, uint8_t numDims,
-                        dim_t* pitches) {
-     if (T.isQuantizedType()) {
-       return Type(T.getElementType(), dims, numDims, pitches, T.getScale(),
-                   T.getOffset());
-     }
-     else {
-       return Type(T.getElementType(), dims, numDims, pitches);
-     }
-   }
+  template<size_t numSizes>
+  static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &pitches){
+    if (T.isQuantizedType()) return Type(T.elementType_, dims, pitches, T.scale_, T.offset_);
+    else return Type(T.elementType_, dims, pitches);
+  }
 
    /*@brief Reshape existing type by taking shapes and strides of \p shapeType.
     */
-   static Type newShape(const Type &T, TypeRef shapeType) {
+   static Type newShape(const Type &kindType, const Type shapeType) {
      //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
-     Type ty;
-     dim_t shapeTypeDims[max_tensor_dimensions];
-     uint8_t shapeNumDims = shapeType->dims(shapeTypeDims);
-     
-     if (T.isQuantizedType()) {
-       ty = Type(T.getElementType(), shapeTypeDims, shapeNumDims, T.getScale(),
-                 T.getOffset());
-     }
-     else {
-       ty = Type(T.getElementType(), shapeTypeDims, shapeNumDims);
-     }
+     if (kindType.isQuantizedType())
+       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
+     else 
+       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
 
-     for (uint8_t i = 0; i < ty.numSizes_; i++) {
-       ty.strides_[i] = shapeType->strides_[i];
-     }
-     
-     return ty;
+     //TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate extended
+     // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
    }
    
-  /*brief an empty type.
-   */
-  Type() = default;
-
   /* brief returns true if \p other is the same type.
    */
   // bool isEqual(TypeRef other) const { return isEqual(*other); }
@@ -193,84 +156,16 @@ struct Type final {
     */
    unsigned char getNumDims() const { return numSizes_;}
 
-   
-   // /*@brief returns true if \p other is the same type. If \p allowDifferentShape
-   //  * then shapes will not be considered as part of the equal. comparision.
-   //  */
-   // bool isEqual(const Type &other, bool allowDifferentShape = false,
-   //              bool allowDifferentStrides = false) const  {
-
-   //  // Element type must be the same
-   //   if (elementType_ != other.elementType_) {
-   //     return false;
-   //   }
-   //   // Must have the same number of sizes.
-   //   if (numSizes_ != other.numSizes_) {
-   //     return false;
-   //   }
-   //   // Sizes must be the same.
-   //   if (!allowDifferentShape) {
-   //     for (size_t i = 0; i < numSizes_; i++) {
-   //       if (sizes_[i] != other.sizes_[i]) {
-   //         return false;
-   //       }
-   //     }
-   //   }
-   //   if (!allowDifferentStrides) {
-   //     // Strides must be the same.
-   //     for (size_t i = 0; i < numSizes_; i++) {
-   //       if(strides_[i] != other.strides_[i]) {
-   //         return false;
-   //       }
-   //     }
-   //   }
-
-   //   // check the scale an offset
-   //   if (isQuantizedType()) {
-   //     if (scale_ != other.scale_ || offset_ != other.offset_) {
-   //       return false;
-   //     }
-   //   }
-
-   //   return true;
-   // }
 
    /*@brief returns the elemet type
     */
    ElemKind getElementType() const { return elementType_; }
 
-   /*@brief Copy the shape of the tensor in the given \p array.
-    *
-    *@param[inout] cpydims pointer array where left the copy.
-    *@return the numdims copied.
-    */
-   uint8_t dims(dim_t* cpydims) const {
-     for (unsigned int i = 0; i < numSizes_; i++) {
-       cpydims[i] = sizes_[i];
-     }
-     return numSizes_;
-   }
-
-   /*@brief Copy the strides of the tensor in the given \p array.
-    *
-    *@param[inout] cpystrides pointer array where left the copy.
-    *@return the numSizes_.
-    */ 
-   uint8_t strides(dim_t* cpystrides) const {
-     for (unsigned int i = 0; i < numSizes_; i++) {
-       cpystrides[i] = strides_[i];
-     }
-
-     return getNumDims();
-   }
-
    /*@brief return the number of elements in the tensor.
     */
-   dim_t size() const {
+   const dim_t size() const {
      dim_t acum = 1;
-     for (unsigned char i = 0; i < numSizes_; i++) {
-       acum *= dim_t(sizes_[i]);
-     }
+     for(auto i: sizes_) acum*=i;
      return acum;
    }
    
@@ -346,12 +241,7 @@ struct Type final {
    /*@brief returns the size in bytes for this Tensor.
     */
    size_t getSizeInBytes() const {
-     size_t s = getElementSize();
-     size_t acc = 0;
-     for (unsigned char i = 0; i < numSizes_; i++) {
-       acc += size_t(sizes_[i]) * s * strides_[i];
-     }
-     return acc;
+     return sizes_[0] * strides_[0] * getElementSize();
    }
 
    /*@brief the actual number of elements in the tensor taking striding into
@@ -392,20 +282,6 @@ struct Type final {
      return sizeof(bool);
    }
 
-   // /// \return the textual name of the element.
-   // string getElementName() const {
-   //   return getElementName(elementType_);
-   // }
-
-   // /// \return the textual name of the element \p elk.
-   // static string getElementName(dnn_lib::ElemKind elk) {
-   //   static const char *names[] = {
-   //      "float",    "float16",      "i8",           "ui8",
-   //      "i16",      "i32",          "index32",      "index64",
-   //      "ui8fused", "ui8fusedfp16", "ui4fusedfp16", "bool",
-   //   };
-   //   return names[(int)elk];
-   // }
 
    // /// Given a string \p str containing the name of an ElemKind from
    // /// Type::getElementName, returns the corresponding ElemKind or Error if a
@@ -440,30 +316,14 @@ struct Type final {
    //     return dnn_lib::ElemKind::FloatTy;
    //   }
    // }
-  dim_t dbgDims(unsigned int ndx) const {
-    return sizes_[ndx];
-  }
-  
-  dim_t dbgSize(unsigned int ndx) const {
-    return strides_[ndx];
-  }
+//TODO: REMOVE if not used  dim_t dbgDims(unsigned int ndx) const {
+//TODO: REMOVE if not used    return sizes_[ndx];
+//TODO: REMOVE if not used  }
+//TODO: REMOVE if not used  
+//TODO: REMOVE if not used  dim_t dbgSize(unsigned int ndx) const {
+//TODO: REMOVE if not used    return strides_[ndx];
+//TODO: REMOVE if not used  }
 
-private:
-
-   void initDims(dim_t* dims) {
-     //@TODO assert(numSizes_ <= max_tensor_dimensions && "Too many dimensions.");
-     for (unsigned char i = 0; i < numSizes_; i++) {
-       sizes_[i] = dims[i];
-     }
-   }
-   
-   void initDims(dim_t* dims, dim_t* pitches) {
-     //@TODO assert(numSizes_ <= max_tensor_dimensions && "Too many dimensions.");     
-     for (unsigned int i = 0; i < numSizes_; i++) {
-       sizes_[i] = dims[i];
-       strides_[i] = pitches[i];
-     }
-   }
  }; //class Type
   
 
@@ -472,13 +332,13 @@ class LibTensor final {
 
  private:
   
-  char* ptrData_{nullptr};
+  char* const ptrData_;
 
-  Type type_;
+  const Type type_;
 
-  bool isUnowned_ {false};
-  
-  size_t unpaddedSize_{0};
+//TODO: REMOVE if not used  bool isUnowned_ {false};
+//TODO: REMOVE if not used  
+//TODO: REMOVE if not used  size_t unpaddedSize_{0};
   
   /* std::array<uint64_t, max_tensor_dimensions> dims_; */
   /* std::array<uint64_t, max_tensor_dimensions> pitches_; */
@@ -489,18 +349,15 @@ class LibTensor final {
   //add more info if it is need....
   
   template <class ElemTy> friend class Handle;
-  
-
-  /* @brief returns a pointer to the tensor data buffer.
-   */
-  char* getData() const { return ptrData_; }
 
  public:
-  char* dbgData()  {return ptrData_;}
-
-  /*@brief returns true if it is an unowned.
+  /* @brief returns a pointer to the tensor data buffer.
    */
-  bool isUnowned() const { return isUnowned_; }
+  const char* dbgData() const { return ptrData_; }
+
+//TODO: REMOVE if unused  /*@brief returns true if it is an unowned.
+//TODO: REMOVE if unused   */
+//TODO: REMOVE if unused  bool isUnowned() const { return isUnowned_; }
   
   /* @brief returns the type of the tensor.
    */
@@ -508,18 +365,18 @@ class LibTensor final {
 
   /* @brief set type of the Tensor to \p t.
    */
-  void setType(const TypeRef t) {
-    //@TODO assert(type_.dims() == t->dims() && "New type must retain the same shape.");
-    //@TOODassert(((type_.getElementType() == t->getElementType() &&
-           //   type_.size() == t->size()) ||
-           //  type_.getSizeInBytes() == t->getSizeInBytes()) &&
-           // "New type must retain the same size in bytes.");
-    type_ = *t;
-  }
+//TODO: REMOVE if unused => assuming type does not change  void setType(const TypeRef t) {
+//TODO: REMOVE if unused => assuming type does not change    //@TODO assert(type_.dims() == t->dims() && "New type must retain the same shape.");
+//TODO: REMOVE if unused => assuming type does not change    //@TOODassert(((type_.getElementType() == t->getElementType() &&
+//TODO: REMOVE if unused => assuming type does not change           //   type_.size() == t->size()) ||
+//TODO: REMOVE if unused => assuming type does not change           //  type_.getSizeInBytes() == t->getSizeInBytes()) &&
+//TODO: REMOVE if unused => assuming type does not change           // "New type must retain the same size in bytes.");
+//TODO: REMOVE if unused => assuming type does not change    type_ = *t;
+//TODO: REMOVE if unused => assuming type does not change  }
 
   /*@brief returns the element type of the tensor.
    */
-  ElemKind getElementType() const { return type_.getElementType(); }
+  const ElemKind getElementType() const { return type_.getElementType(); }
 
   /*@brief returns True if the coordinate is within the array.
    */
@@ -576,12 +433,14 @@ class LibTensor final {
 
 //   }
 
-  /*@brief Get a copy of the shape of tensor.
-   *
-   *@param[inout] cpydims to make a copy at.
-   *@return the number of dimensions copied.
+  /*@brief Get number of dimensions the tensor has
    */
-  uint8_t dims(dim_t* cpydims) { return type_.dims(cpydims); }
+  const dim_t ndims() const { return type_.numSizes_; }
+  
+  /*@brief returns the dimensions (padded with 1 until max_tensor_dimensions)
+   */
+  const dim_array_t & dims() const { return type_.sizes_;}
+  
 
   /*@brief returns the number of real menaingful elements in the tensor. Does
    *not take strides into account.
@@ -599,12 +458,11 @@ class LibTensor final {
    */
   uint64_t getSizeInBytes() const { return type_.getSizeInBytes(); }
 
-  LibTensor() = default;
-  
-  LibTensor(dnn_lib::ElemKind elk, void* rawdata, dim_t* dims,
-            dim_t* pitches, unsigned int numDims, float scale, int offset)
-            : ptrData_(reinterpret_cast<char*>(rawdata)),
-              type_(elk, dims, numDims, pitches, scale, offset) {}
+  template<size_t numSizes>
+  LibTensor(dnn_lib::ElemKind elk, void* rawdata, std::array<dim_t, numSizes> &dims,
+            std::array<dim_t, numSizes> &pitches, float scale, int offset)
+    : ptrData_(reinterpret_cast<char*>(rawdata)),
+      type_(elk, dims, pitches, scale, offset) {}
 
   // LibTensor(const LibTensor &other) = delete;
   // LibTensor &operator=(const LibTensor &other) = delete;
@@ -618,69 +476,69 @@ class LibTensor final {
 
   template <class ElemTy = float> Handle<ElemTy> getHandle() && = delete;
 
-  /*@brief returns an unowned tensor with the exact same dimensions as this.
-   */
-  LibTensor getUnowned() const {
-    dim_t cpydims[max_tensor_dimensions] = {0,};
-    uint8_t numdim = this->type_.dims(cpydims);
-    return getUnowned(cpydims, numdim);
-  }
-    
-  /*@brief Create a Tensor using the data buffer in \p dims as the current tensor
-   *but having different dimensions \p dims. \p offsets represents an optional
-   *offset into the tensor representing th elocation of the first element to start
-   *a subview from. The returned tensor is essentially a different view or subview
-   *on the same data.
-   *
-   *@param[in] dims keep the current tensor size.
-   *@param[in] optional indices It keeps the position subview.
-   *@return a Tensor.
-   */
-  LibTensor getUnowned(dim_t *dims, uint8_t numDims, bool useSameStrides = false,
-                       dim_t *indices = {nullptr}, uint8_t indNumDims = 0) const {
-
-    LibTensor unownedTensor;
-    auto* ptrToData = getData();
-
-    if (indNumDims) {
-      //@TODO check indNumDims == numDims
-      dim_t strides[max_tensor_dimensions] = {0,};
-      uint8_t numSize = type_.strides(strides);
-      size_t index = 0 ;
-      
-      for (size_t i = 0; i < numSize; i++) {
-        index += strides[i] * indices[i];
-      }
-      ptrToData = &ptrToData[index * type_.getElementSize()];
-    }
-
-    unownedTensor.ptrData_ = ptrToData;
-    unownedTensor.isUnowned_ = true;
-
-    unownedTensor.type_ = Type::newShape(getType(), dims, numDims);
-
-    if(useSameStrides) {
-      dim_t strides[max_tensor_dimensions] = {0,};
-      uint8_t numStrides = this->type_.strides(strides);
-
-      for (unsigned int i = 0; i < numStrides; i++) {
-        unownedTensor.type_.strides_[i] = strides[i];
-      }
-    }
-
-
-    if(indNumDims) {
-      unownedTensor.unpaddedSize_ = unpaddedSize_;
-      //@TODO check actualSize() == unownedTensor.actualSize()
-    }
-    else {
-      unownedTensor.unpaddedSize_ = unownedTensor.type_.getSizeInBytes();
-      //@TODO check getSizeInBytes() == getUnpaddedSizeInBytes()
-      //@TODO check actualSize() >= unownedensor.actualSize()
-    }
-
-    return unownedTensor;
-  }
+//TODO: REMOVE if not used  /*@brief returns an unowned tensor with the exact same dimensions as this.
+//TODO: REMOVE if not used   */
+//TODO: REMOVE if not used  LibTensor getUnowned() const {
+//TODO: REMOVE if not used    dim_t cpydims[max_tensor_dimensions] = {0,};
+//TODO: REMOVE if not used    uint8_t numdim = this->type_.dims(cpydims);
+//TODO: REMOVE if not used    return getUnowned(cpydims, numdim);
+//TODO: REMOVE if not used  }
+//TODO: REMOVE if not used    
+//TODO: REMOVE if not used  /*@brief Create a Tensor using the data buffer in \p dims as the current tensor
+//TODO: REMOVE if not used   *but having different dimensions \p dims. \p offsets represents an optional
+//TODO: REMOVE if not used   *offset into the tensor representing th elocation of the first element to start
+//TODO: REMOVE if not used   *a subview from. The returned tensor is essentially a different view or subview
+//TODO: REMOVE if not used   *on the same data.
+//TODO: REMOVE if not used   *
+//TODO: REMOVE if not used   *@param[in] dims keep the current tensor size.
+//TODO: REMOVE if not used   *@param[in] optional indices It keeps the position subview.
+//TODO: REMOVE if not used   *@return a Tensor.
+//TODO: REMOVE if not used   */
+//TODO: REMOVE if not used  LibTensor getUnowned(dim_t *dims, uint8_t numDims, bool useSameStrides = false,
+//TODO: REMOVE if not used                       dim_t *indices = {nullptr}, uint8_t indNumDims = 0) const {
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used    LibTensor unownedTensor;
+//TODO: REMOVE if not used    auto* ptrToData = getData();
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used    if (indNumDims) {
+//TODO: REMOVE if not used      //@TODO check indNumDims == numDims
+//TODO: REMOVE if not used      dim_t strides[max_tensor_dimensions] = {0,};
+//TODO: REMOVE if not used      uint8_t numSize = type_.strides(strides);
+//TODO: REMOVE if not used      size_t index = 0 ;
+//TODO: REMOVE if not used      
+//TODO: REMOVE if not used      for (size_t i = 0; i < numSize; i++) {
+//TODO: REMOVE if not used        index += strides[i] * indices[i];
+//TODO: REMOVE if not used      }
+//TODO: REMOVE if not used      ptrToData = &ptrToData[index * type_.getElementSize()];
+//TODO: REMOVE if not used    }
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used    unownedTensor.ptrData_ = ptrToData;
+//TODO: REMOVE if not used    unownedTensor.isUnowned_ = true;
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used    unownedTensor.type_ = Type::newShape(getType(), dims, numDims);
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used    if(useSameStrides) {
+//TODO: REMOVE if not used      dim_t strides[max_tensor_dimensions] = {0,};
+//TODO: REMOVE if not used      uint8_t numStrides = this->type_.strides(strides);
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used      for (unsigned int i = 0; i < numStrides; i++) {
+//TODO: REMOVE if not used        unownedTensor.type_.strides_[i] = strides[i];
+//TODO: REMOVE if not used      }
+//TODO: REMOVE if not used    }
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used    if(indNumDims) {
+//TODO: REMOVE if not used      unownedTensor.unpaddedSize_ = unpaddedSize_;
+//TODO: REMOVE if not used      //@TODO check actualSize() == unownedTensor.actualSize()
+//TODO: REMOVE if not used    }
+//TODO: REMOVE if not used    else {
+//TODO: REMOVE if not used      unownedTensor.unpaddedSize_ = unownedTensor.type_.getSizeInBytes();
+//TODO: REMOVE if not used      //@TODO check getSizeInBytes() == getUnpaddedSizeInBytes()
+//TODO: REMOVE if not used      //@TODO check actualSize() >= unownedensor.actualSize()
+//TODO: REMOVE if not used    }
+//TODO: REMOVE if not used
+//TODO: REMOVE if not used    return unownedTensor;
+//TODO: REMOVE if not used  }
   
   /* @brief copy raw data value at ptrData_ buffer tensor given at \p inTensor
    * to the other ptrData_ buffer at (this).
@@ -689,12 +547,7 @@ class LibTensor final {
    */
   void copyRawFrom(LibTensor* inT) {
     //@TODO check both tensor has the same shape!!
-    char* dstBuff = this->getData();
-    char* startBuff = inT->getData();
-    //std::copy(&inTensor->ptrdata_[0], &inTensor->ptrdata_[bufferSize], this->getHandleData());    
-    for (unsigned long int i = 0; i <= inT->getSizeInBytes(); i++) {
-      *(dstBuff++)= *(startBuff++);
-    }
+    memcpy(ptrData_, inT->ptrData_, inT->getSizeInBytes());
   }
 
   // /*@brief create a new copy of the current tensor.
@@ -707,21 +560,15 @@ class LibTensor final {
 
   /*@brief return the raw unsafe pointer to the tensor payload.
    */
-  char* getUnsafePtr() const { return getData(); }
-
-  /*@brief Updates contents of a deice resident Tensor with the data from \p t
-   *without copying its contents.
-   */
-  void copyRawToDevice(const LibTensor *t);
+  //TODO: REMOVE if not used  char* getUnsafePtr() const { return getData(); }
 
 
   /*debug purpose*/
-  uint8_t dbgcpypitches(dim_t* cpydims) { return type_.strides(cpydims); }
-  float    dbggetscale() { return this->type_.getScale(); }
-  int32_t dbggetoffset() { return this->type_.getOffset(); }
-  unsigned char dbggetnumdims() {return this->type_.getNumDims();}
+  const dim_array_t &strides() const { return type_.strides_;}
+  float    dbggetscale() { return type_.getScale(); }
+  int32_t dbggetoffset() { return type_.getOffset(); }
   
-private:
+public:
 
   /*@brief returns a pointer to the raw data, of type \p ElemTy.
    */
@@ -747,15 +594,12 @@ private:
  *@param[inout] indices keeps the coords of the element 
  *@return
  */
-  INLINE_ATTR size_t getFlattenedOffset(dim_t* indices, uint8_t indDim,
-                                        dim_t* sizeIntegral, uint8_t numDims) {
+  template<size_t N>
+  INLINE_ATTR size_t getFlattenedOffset(std::array<dim_t, N> &indices, dim_array_t &sizeIntegral) {
     /*@TODO check indices size isn't bigger than strides*/
-    size_t ndx = 0;
-    for (size_t i = 0; i < indDim; i++) {
-      ndx += size_t(sizeIntegral[i]) * size_t(indices[i]);
-    }
-    
-    return ndx;
+    //assert(indices.size() <= sizeIntegral.size());
+    return  static_cast<size_t>(std::inner_product(indices.cbegin(), indices.cend(), sizeIntegral.cbegin(), 0));
+
   }
 
 
@@ -767,17 +611,18 @@ class HandleIterator
   using ElemTyRef =
     typename dnn_lib::conditional_t<IsConst, const ElemTy &, ElemTy &>;
 
-  HandleTy handle_;
-  dim_t sizes_[max_tensor_dimensions] = {0,};
-  uint8_t nSizes_;
+  HandleTy const handle_;
+  const dim_array_t &sizes_;
+  const dim_t nSizes_;
+  const bool isAligned_;
   dim_t idx_;
-  bool isAligned_;
 
-  HandleIterator() = default;
-
-  HandleIterator(HandleTy handle) : handle_(handle) {
-    nSizes_ = handle->dims(sizes_);
-    isAligned_ = handle->size() < handle->actualSize();
+  HandleIterator(HandleTy handle) :
+    handle_(handle),
+    sizes_(handle->sizes_),
+    nSizes_(handle->numDims_),
+    isAligned_(handle->size() < handle->actualSize())
+  {
   }
 
   static HandleIterator begin(HandleTy handle) {
@@ -823,9 +668,12 @@ public:
     if(!isAligned_) {
       return handle_->raw(idx_);
     }
-    dim_t indices[nSizes_] = {0,};
+
+    dim_array_t indices{};
     size_t rem = idx_;
-    for (int i = static_cast<int>(nSizes_) - 1; i >= 0; i--) {
+    size_t idx = nSizes_ -1;
+
+    for (int64_t i = nSizes_ -1; i >= 0; i--) {
       indices[i] = rem % sizes_[i];
       rem /= sizes_[i];
     }
@@ -849,36 +697,42 @@ template <class ElemTy> class Handle final {
 
    /*@brief It has the mult of the sizes for each position to end.
     */
-   dim_t sizeIntegral_[max_tensor_dimensions] = { 0, };
+  const dim_array_t &sizeIntegral_;
 
-   dim_t sizes_[max_tensor_dimensions] = { 0, };
+  const dim_array_t &sizes_;
 
   /*@brief the number of dimensions ussed in the tensor.
    */
-   uint8_t numDims_{0};
-
- 
-   Handle() = default;
-
- public:
+  const dim_t numDims_;
 
 
-   /*@brief Allocate anew invalid handle.
-    */
-   static Handle createInvalidHandle() { return Handle(); }
+  // TODO: REMOVE => assuming we won't use invalid Handles , always from a tensor
+  // Handle() = default;
+  //TODO: END REMOVE
+public:
   
-   /*@brief returns true if this Handle points to a valid tensor.
-    */
-   bool isValid() const { return tensor_; }
+  
+  // TODO: REMOVE => assuming we won't use invalid Handles , always from a tensor
+  //   /*@brief Allocate anew invalid handle.
+  //    */
+  //   static Handle createInvalidHandle() { return Handle(); }
+  //
+  //
+  ///*@brief returns true if this Handle points to a valid tensor.
+  // */
+  //bool isValid() const { return tensor_; }
 
+  //TODO: END REMOVE
+  
    /*@brief Calculate the index for a specific element in the tensor.
     *
     *@param[inout] coords indices to access element. It has to have the same
     * dimensions as tensor to be acessed.
     *@return flattened 1D element position.
     */
-  size_t getElementPtr(dim_t *indices, uint8_t indDims) {
-    return getFlattenedOffset(indices, indDims, sizeIntegral_, numDims_);
+  template<size_t N>
+  size_t getElementPtr(std::array<dim_t, N> &indices) {
+    return getFlattenedOffset(indices, sizeIntegral_);
   }
 
   /*@brief returns the value of the n'th dimension \p dim, for the index \p idx.
@@ -905,17 +759,13 @@ template <class ElemTy> class Handle final {
 
    /*@brief Construct a Tensor handle.
     */
-   explicit Handle(LibTensor* tensor) : tensor_(tensor) {
-      numDims_ = tensor->dims(sizes_);
-
-      if (numDims_) {
-        for(uint8_t i = 0; i < tensor_->type_.getNumDims(); i++) {
-          sizes_[i] = tensor_->type_.sizes_[i];
-          sizeIntegral_[i] = tensor_->type_.strides_[i];
-        }
-        //@TODO check numDims_ <= max_tensor_dimesnions
-      }
-   }
+   explicit Handle(LibTensor* tensor) :
+     tensor_(tensor),
+     sizeIntegral_(tensor->strides()),
+     sizes_(tensor->dims()),
+     numDims_ (tensor->ndims())
+  {
+  }
 
    /*@brief returns the number of elements in the whole tensor.
     */
@@ -947,41 +797,44 @@ template <class ElemTy> class Handle final {
   /*@brief return reference to a meaningful data element. This method skip
    *padding elements.
    */
-  ElemTy &at(dim_t *indices, uint8_t indDims) {
-    size_t index = getElementPtr(indices, indDims);   
+  template<size_t N>
+  ElemTy &at(std::array<dim_t, N> indices) {
+    size_t index = getElementPtr(indices);   
     auto *data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
 
-  const ElemTy &at(dim_t *indices, uint8_t indDims) const {
-    size_t index = getElementPtr(indices, indDims);
+  template<size_t N>
+  const ElemTy &at(std::array<dim_t, N> indices) const {
+    size_t index = getElementPtr(indices);
     auto *data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
-
-  /*@brief get a copy of dims_ internal dimension Tensor.
-   *
-   *@param[inout] dim array pointer to copy the tensor sizes_.
-   *@return the numDims_ value. (the number of dims be copied).
-   */
-  uint8_t cpydims(dim_t* cpydim) {
-    for(uint8_t i = 0; i < numDims_; i++) {
-      cpydim[i] = sizes_[i];
-    }
-    return numDims_;
-  }
-
+//TODO: remove if unused 
+//TODO: remove if unused /*@brief get a copy of dims_ internal dimension Tensor.
+//TODO: remove if unused   *
+//TODO: remove if unused   *@param[inout] dim array pointer to copy the tensor sizes_.
+//TODO: remove if unused   *@return the numDims_ value. (the number of dims be copied).
+//TODO: remove if unused   */
+//TODO: remove if unused  uint8_t cpydims(dim_t* cpydim) {
+//TODO: remove if unused    for(uint8_t i = 0; i < numDims_; i++) {
+//TODO: remove if unused      cpydim[i] = sizes_[i];
+//TODO: remove if unused    }
+//TODO: remove if unused    return numDims_;
+//TODO: remove if unused  }
+//TODO: remove if unused
+//TODO: remove if unused
   
   char* getPtrdbg(void) const {return tensor_->dbgData();}
-  dim_t* getSizeIntdbg(void) {return sizeIntegral_;}
-  dim_t* getSizesdbg(void) {return sizes_;}
-  uint8_t getNumDimsdbg(void) {return numDims_;}
+  const dim_array_t & getSizeIntdbg(void) {return sizeIntegral_;}
+  const dim_array_t & getSizesdbg(void) {return sizes_;}
+  dim_t getNumDimsdbg(void) {return numDims_;}
   LibTensor* getTensordbg(void) {return tensor_;}
-  char* getUnsafePtrdbg(void) {return tensor_->getUnsafePtr();}
+  //TODO: REMOVE if not used  char* getUnsafePtrdbg(void) {return tensor_->getUnsafePtr();}
   float getScaledbg(void) {return tensor_->dbggetscale();}
   int32_t getOffsetdbg(void) {return tensor_->dbggetoffset();}
-  uint8_t cpypitchesdbg(dim_t* cpypitch) { return tensor_->dbgcpypitches(cpypitch); }
-  uint8_t cpydimsdbg(dim_t* cpydims) { return tensor_->dims(cpydims); }
+//TODO: remove if unused  uint8_t cpypitchesdbg(dim_t* cpypitch) { return tensor_->dbgcpypitches(cpypitch); }
+//TODO: remove if unused  uint8_t cpydimsdbg(dim_t* cpydims) { return tensor_->dims(cpydims); }
 }; //end Handle class
 
   template <class ElemTy> Handle<ElemTy> LibTensor::getHandle() & {
