@@ -150,14 +150,9 @@ GEN_OP(fwdLibExtractTensorInstThreaded, void *dst, void *dstDims,
                                 void *dstPitches, unsigned int dstDimNum, 
                                 void *src, void *srcDims, void *srcPitches, 
                                 void * poffsets, const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibBatchOneHotInst, void *pdst, void *pdstDims, void *pdstPitches, 
-                              void *pdata, void *pdataDims, void *pdataPitches, 
-                              void *pvalues, void *pvaluesDims, void *pvaluesPitches, 
-                              void *plengths, const float *scale, const int32_t *offset);  
-GEN_OP(fwdLibBatchOneHotInstThreaded, void *pdst, void *pdstDims, void *pdstPitches, 
-                                      void *pdata, void *pdataDims, void *pdataPitches, 
-                                      void *pvalues, void *pvaluesDims, void *pvaluesPitches, 
-                                      void *plengths, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibBatchOneHotInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3);  
+GEN_OP(fwdLibBatchOneHotInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                LibTensor* in3, uint64_t flags);
 GEN_OP(fwdLibChecksum, void *src, void *srcDims, void *srcPitches,
                                   unsigned int srcDimNum,
                                   const float *scale, const int32_t *offset,
@@ -237,20 +232,13 @@ GEN_OP(fwdLibMatMulInstVectorizedTransposed, void *dstMatrix, void *dstMatrixDim
                          void *activations, void *activationsDims, void *activationsPitches,
                          void *weights, void *weightsDims, void *weightPitches,
                          const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSoftMaxInst, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset);
-GEN_OP(fwdLibSoftMaxInst2, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset);
-GEN_OP(fwdLibSoftMaxInstThreaded, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSoftMaxInstVectorized, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSoftMaxInstThreaded1, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSoftMaxInstThreaded2, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSoftMaxInstVectorized1, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInst, LibTensor* outT, LibTensor* inT);
+GEN_OP(fwdLibSoftMaxInst2, LibTensor* outT, LibTensor* inT);
+GEN_OP(fwdLibSoftMaxInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstVectorized, LibTensor* outT, LibTensor* inT, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstThreaded1, LibTensor* outT, LibTensor* inT, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstThreaded2, LibTensor* outT, LibTensor* inT, uint64_t flags);
+GEN_OP(fwdLibSoftMaxInstVectorized1, LibTensor* outT, LibTensor* inT, uint64_t flags);
 GEN_OP(fwdLibSparseToDenseInst, void *dstT, void *dstDims, void *dstPitches,
                                 void *srcT, void *srcDims, void *srcPitches,
                                 unsigned int srcDimNum, void* indicesT, void *indDims,

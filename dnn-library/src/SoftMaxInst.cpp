@@ -14,44 +14,26 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibSoftMaxInst(void *dstT, void *srcT, void *srcTDims,
-                                void *srcTPitches, const float *scale,
-                                const int32_t *offset) {
-
-  dnn_lib::inlining::fwdLibSoftMaxInst<srcType>(dstT, srcT, srcTDims,
-                                srcTPitches, scale,
-                                offset);
+void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT) {
+  dnn_lib::inlining::fwdLibSoftMaxInst<srcType>(outT, inT);
 }
 
 template <typename srcType>
-void fwdLibSoftMaxInstThreaded(void *dstT, void *srcT, void *srcTDims,
-                                        void *srcTPitches, const float *scale,
-                                        const int32_t *offset, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibSoftMaxInstThreaded<srcType>(dstT, srcT, srcTDims,
-                                        srcTPitches, scale,
-                                        offset, flags);
+void fwdLibSoftMaxInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  dnn_lib::inlining::fwdLibSoftMaxInstThreaded<srcType>(outT, inT, flags);
 }
 
 template <typename srcType>
-void fwdLibSoftMaxInstVectorized(void *dstT, void *srcT, void *srcTDims,
-                                          void *srcTPitches, const float *scale,
-                                          const int32_t *offset, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibSoftMaxInstVectorized<srcType>(dstT, srcT, srcTDims,
-                                          srcTPitches, scale,
-                                          offset, flags);
+void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  dnn_lib::inlining::fwdLibSoftMaxInstVectorized<srcType>(outT, inT, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibSoftMaxInst, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInst, LibTensor* outT, LibTensor* inT);
 
-GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibSoftMaxInstVectorized, void *dstT, void *srcT, void *srcTDims,
-                          void *srcTPitches, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSoftMaxInstVectorized, LibTensor* outT, LibTensor* inT, uint64_t flags);
 
 } // namespace dnn_lib

@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -38,23 +39,34 @@ namespace inlining {
   // line.
 
 template <typename srcType>
-inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
-                                         void *srcTPitches, const float *scale,
-                                         const int32_t *offset, uint64_t flags) {
+inline void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
-
-  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH = inT->getHandle<srcType>();
+  
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  
+  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
+  const Addresser<srcType> acumInt(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcType> tInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
   size_t typeSize = getsize<srcType>();
 
-  unsigned int *srcIndex = (unsigned int *)srcTDims;
-  unsigned int *srcPitch = (unsigned int *)srcTPitches;
-
+  // unsigned int *srcIndex = (unsigned int *)srcTDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  dstH.cpydims(srcIndex);
+  // unsigned int *srcPitch = (unsigned int *)srcTPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(srcPitch);
+ 
   float e, sum, inverseSum = 0;
 
   unsigned int rowstodo = srcIndex[0] / activeMinions;
@@ -195,22 +207,33 @@ inline void fwdLibSoftMaxInstThreaded1(void *dstT, void *srcT, void *srcTDims,
 // difference is in the GATHER_FLOAT and SCATTER_FLOAT functions).
 
 template <typename srcType>
-inline void fwdLibSoftMaxInstVectorized1(void *dstT, void *srcT, void *srcTDims,
-                                           void *srcTPitches, const float *scale,
-                                           const int32_t *offset, uint64_t flags) {
+inline void fwdLibSoftMaxInstVectorized1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH = inT->getHandle<srcType>();
+  
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
 
-  unsigned int *srcIndex = (unsigned int *)srcTDims;
-  unsigned int *srcPitch = (unsigned int *)srcTPitches;
-
+  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
+  const Addresser<srcType> acumInt(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcType> tInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  
+  // unsigned int *srcIndex = (unsigned int *)srcTDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  dstH.cpydims(srcIndex);
+  // unsigned int *srcPitch = (unsigned int *)srcTPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(srcPitch);
+  
   size_t typeSize = getsize<srcType>();
 
   unsigned int rowstodo = srcIndex[0] / activeMinions;

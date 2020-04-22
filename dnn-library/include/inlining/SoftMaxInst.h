@@ -26,26 +26,39 @@
 #include "utils.h" // From include/internal path
 #include "SoftMaxInst1.h" // From include/inlining path
 #include "SoftMaxInst2.h" // From include/inlining path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibSoftMaxInst(void *dstT, void *srcT, void *srcTDims,
-                                void *srcTPitches, const float *scale,
-                                const int32_t *offset) {
+inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT) {
+    
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-
-  unsigned int *srcIndex = (unsigned int *)srcTDims;
-  unsigned int *srcPitch = (unsigned int *)srcTPitches;
-
+  auto dstH = outT->getHandle<srcType>();
+  auto srcH = inT->getHandle<srcType>();
+  
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  
+  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
+  const Addresser<srcType> acumInt(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcType> tInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  
+  // unsigned int *srcIndex = (unsigned int *)srcTDims;
+  dim_t srcIndex[max_tensor_dimensions] = {0,};
+  srcH.cpydims(srcIndex);  
+  // unsigned int *srcPitch = (unsigned int *)srcTPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  srcH.cpypitchesdbg(srcPitch);
+ 
   float e, sum, inverseSum;
 
   for (unsigned int n = 0; n < srcIndex[0]; n++) {
@@ -76,47 +89,39 @@ inline void fwdLibSoftMaxInst(void *dstT, void *srcT, void *srcTDims,
 }
 
 template <typename srcType>
-inline void fwdLibSoftMaxInstThreaded(void *dstT, void *srcT, void *srcTDims,
-                                        void *srcTPitches, const float *scale,
-                                        const int32_t *offset, uint64_t flags) {
+inline void fwdLibSoftMaxInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  unsigned int *srcPitch = (unsigned int *)srcTPitches;
+  // unsigned int *srcPitch = (unsigned int *)srcTPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  inT->dbgcpypitches(srcPitch);
+
 
   size_t typeSize = getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<srcType>(dstT, srcT, srcTDims,
-                                        srcTPitches, scale,
-                                        offset, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<srcType>(outT, inT, flags);
   else if (cll%srcPitch[0] == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(dstT, srcT, srcTDims,
-                                        srcTPitches, scale,
-                                        offset, flags);
-  else dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(dstT, srcT, srcTDims,
-                                        srcTPitches, scale,
-                                        offset);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(outT, inT, flags);
+  else
+    dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(outT, inT);
+
 }
 
 template <typename srcType>
-inline void fwdLibSoftMaxInstVectorized(void *dstT, void *srcT, void *srcTDims,
-                                          void *srcTPitches, const float *scale,
-                                          const int32_t *offset, uint64_t flags) {
+inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  unsigned int *srcPitch = (unsigned int *)srcTPitches;
-
+  // unsigned int *srcPitch = (unsigned int *)srcTPitches;
+  dim_t srcPitch[max_tensor_dimensions] = {0,};
+  inT->dbgcpypitches(srcPitch);
+ 
   size_t typeSize = getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<srcType>(dstT, srcT, srcTDims,
-                                        srcTPitches, scale,
-                                        offset, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<srcType>(outT, inT, flags);
   else if (cll%srcPitch[0] == 0) // TODO: vectorize v2.
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(dstT, srcT, srcTDims,
-                                        srcTPitches, scale,
-                                        offset, flags);
-  else dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(dstT, srcT, srcTDims,
-                                        srcTPitches, scale,
-                                        offset);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(outT, inT, flags);
+  else
+    dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(outT, inT); 
 }
 
 } // namespace inlining

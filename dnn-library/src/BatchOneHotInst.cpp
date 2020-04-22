@@ -14,46 +14,28 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
-                                    void *pdstPitches, void *pdata,
-                                    void *pdataDims, void *pdataPitches,
-                                    void *pvalues, void *pvaluesDims,
-                                    void *pvaluesPitches, void *plengths,
-                                    const float *scale, const int32_t *offset) {
+void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
+                           LibTensor* in2T, LibTensor* in3T) {
 
-  dnn_lib::inlining::fwdLibBatchOneHotInst<srcType>(pdst, pdstDims,
-                                    pdstPitches, pdata,
-                                    pdataDims, pdataPitches,
-                                    pvalues, pvaluesDims,
-                                    pvaluesPitches, plengths,
-                                    scale, offset);
+  dnn_lib::inlining::fwdLibBatchOneHotInst<srcType>(outT, in1T, in2T, in3T);
 }
 
 template <typename srcType>
-void fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
-                                            void *pdstPitches, void *pdata,
-                                            void *pdataDims, void *pdataPitches,
-                                            void *pvalues, void *pvaluesDims,
-                                            void *pvaluesPitches, void *plengths,
-                                            const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                   LibTensor* in2T, LibTensor* in3T,
+                                   uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibBatchOneHotInstThreaded<srcType>(pdst, pdstDims,
-                                            pdstPitches, pdata,
-                                            pdataDims, pdataPitches,
-                                            pvalues, pvaluesDims,
-                                            pvaluesPitches, plengths,
-                                            scale, offset, flags);
+  dnn_lib::inlining::fwdLibBatchOneHotInstThreaded<srcType>(outT, in1T,
+                                                            in2T, in3T,
+                                                             flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibBatchOneHotInst, void *pdst, void *pdstDims, void *pdstPitches,
-                              void *pdata, void *pdataDims, void *pdataPitches,
-                              void *pvalues, void *pvaluesDims, void *pvaluesPitches,
-                              void *plengths, const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibBatchOneHotInst, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T);
 
-GEN_INSTANCES_OP(template, fwdLibBatchOneHotInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
-                                      void *pdata, void *pdataDims, void *pdataPitches,
-                                      void *pvalues, void *pvaluesDims, void *pvaluesPitches,
-                                      void *plengths, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibBatchOneHotInstThreaded, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                 uint64_t flags);
 }

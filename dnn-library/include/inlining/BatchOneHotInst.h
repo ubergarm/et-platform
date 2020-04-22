@@ -24,32 +24,47 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
-                                    void *pdstPitches, void *pdata,
-                                    void *pdataDims, void *pdataPitches,
-                                    void *pvalues, void *pvaluesDims,
-                                    void *pvaluesPitches, void *plengths,
-                                    const float *scale, const int32_t *offset) {
+inline void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
+                                  LibTensor* in2T, LibTensor* in3T) {
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tValues(pvalues, scale[1], offset[1]);
-  int32_t *lengths = (int32_t *)plengths;
+ auto dstH = outT->getHandle<srcType>();
+  auto dataH = in1T->getHandle<srcType>();
+  auto valuesH = in2T->getHandle<srcType>();
 
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* dataT = reinterpret_cast<srcType*>(dataH.getUnsafePtrdbg());
+  srcType* valuesT = reinterpret_cast<srcType*>(valuesH.getUnsafePtrdbg());
+ 
+  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(dataT, dataH.getScaledbg(), dataH.getOffsetdbg());
+  // const Addresser<srcType> tValues(pvalues, scale[1], offset[1]);
+  const Addresser<srcType> tValues(valuesT, valuesH.getScaledbg(), valuesH.getOffsetdbg());
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t* lengths = reinterpret_cast<int32_t*>(in3T->dbgData());
+  
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  dim_t dataIndex[max_tensor_dimensions] = {0,};
+  dataH.cpydims(dataIndex);  
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch);  
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  dim_t dataPitch[max_tensor_dimensions] = {0,};
+  dataH.cpypitchesdbg(dataPitch);
+ 
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
 
@@ -74,12 +89,9 @@ inline void fwdLibBatchOneHotInst(void *pdst, void *pdstDims,
 }
 
 template <typename srcType>
-inline void fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
-                                            void *pdstPitches, void *pdata,
-                                            void *pdataDims, void *pdataPitches,
-                                            void *pvalues, void *pvaluesDims,
-                                            void *pvaluesPitches, void *plengths,
-                                            const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                          LibTensor* in2T, LibTensor* in3T,
+                                          uint64_t flags) {
 
 
   unsigned int minionId = get_minion_id();
@@ -87,17 +99,36 @@ inline void fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tValues(pvalues, scale[1], offset[1]);
-  int32_t *lengths = (int32_t *)plengths;
+  auto dstH = outT->getHandle<srcType>();
+  auto dataH = in1T->getHandle<srcType>();
+  auto valuesH = in2T->getHandle<srcType>();
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-
+  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
+  srcType* dataT = reinterpret_cast<srcType*>(dataH.getUnsafePtrdbg());
+  srcType* valuesT = reinterpret_cast<srcType*>(valuesH.getUnsafePtrdbg());
+  
+  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(dataT, dataH.getScaledbg(), dataH.getOffsetdbg());
+  // const Addresser<srcType> tValues(pvalues, scale[1], offset[1]);
+  const Addresser<srcType> tValues(valuesT, valuesH.getScaledbg(), valuesH.getOffsetdbg());
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t* lengths = reinterpret_cast<int32_t*>(in3T->dbgData());
+  
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  dim_t dstIndex[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstIndex);  
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  dim_t dataIndex[max_tensor_dimensions] = {0,};
+  dataH.cpydims(dataIndex);
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  dim_t dstPitch[max_tensor_dimensions] = {0,};
+  dstH.cpypitchesdbg(dstPitch); 
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  dim_t dataPitch[max_tensor_dimensions] = {0,};
+  dataH.cpypitchesdbg(dataPitch);
+ 
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
 
@@ -191,7 +222,7 @@ inline void fwdLibBatchOneHotInstThreaded(void *pdst, void *pdstDims,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*dstAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*dstAddr, clperminion);
 }
 
 } // namespace inlining
