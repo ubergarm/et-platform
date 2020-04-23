@@ -41,8 +41,9 @@ inline void fwdLibFlipInst(LibTensor* inT, LibTensor* outT, unsigned int axis) {
 
   dim_t newDims[max_tensor_dimensions] = {0,};
   dim_t currDims[max_tensor_dimensions] = {0,};
-  uint8_t numDims =  inT->dims(currDims);
-  
+  //  uint8_t numDims =  inT->dims(currDims);
+  uint8_t *numDims = inT->dims().data();
+    
   expandDimsToMax(newDims, currDims, numDims);
   
   LibTensor eSrc = inT->getUnowned(newDims, numDims, true);

@@ -14,45 +14,25 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibLengthsSumInst(void *pdst, void *pdstDims,
-                                   void *pdstPitches, void *pdata,
-                                   void *pdataDims, void *pdataPitches,
-                                   unsigned int pdataDimNum, void *plengths,
-                                   unsigned int pLengthsSize, const float *scale,
-                                   const int32_t *offset) {
+void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                          unsigned int pLengthsSize) {
 
-  dnn_lib::inlining::fwdLibLengthsSumInst<srcType>(pdst, pdstDims,
-                                   pdstPitches, pdata,
-                                   pdataDims, pdataPitches,
-                                   pdataDimNum, plengths,
-                                   pLengthsSize, scale,
-                                   offset);
+  dnn_lib::inlining::fwdLibLengthsSumInst<srcType>(outT, in1T, in2T, pLengthsSize);
 }
 
 template <typename srcType>
-void fwdLibLengthsSumInstThreaded(void *pdst, void *pdstDims,
-                                           void *pdstPitches, void *pdata,
-                                           void *pdataDims, void *pdataPitches,
-                                           unsigned int pdataDimNum, void *plengths,
-                                           unsigned int pLengthsSize, const float *scale,
-                                           const int32_t *offset, uint64_t flags) {
+void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                  LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibLengthsSumInstThreaded<srcType>(pdst, pdstDims,
-                                           pdstPitches, pdata,
-                                           pdataDims, pdataPitches,
-                                           pdataDimNum, plengths,
-                                           pLengthsSize, scale,
-                                           offset, flags);
+  dnn_lib::inlining::fwdLibLengthsSumInstThreaded<srcType>(outT, in1T, in2T, flags);
 
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibLengthsSumInst, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
-                             void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
-                             void *plengths, unsigned int pLengthsSize, const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibLengthsSumInst, LibTensor* outT, LibTensor* in1T,
+                 LibTensor* in2T, unsigned int pLengthsSize);
 
-GEN_INSTANCES_OP(template, fwdLibLengthsSumInstThreaded, void *pdst, void *pdstDims, void *pdstPitches, void *pdata,
-                                     void *pdataDims, void *pdataPitches, unsigned int pdataDimNum,
-                                     void *plengths, unsigned int pLengthsSize, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibLengthsSumInstThreaded, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T, uint64_t flags);
 } // namespace dnn_lib

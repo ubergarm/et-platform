@@ -14,42 +14,23 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibRescaleQuantizedInst(void *dstT, void *dstDims,
-                                         void *dstPitches, void *srcT,
-                                         void *srcDims, void *srcPitches,
-                                         unsigned int srcDimNum, float srcScale,
-                                         int32_t srcOffset, float dstScale,
-                                         int32_t dstOffset) {
+void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibRescaleQuantizedInst<srcType>(dstT, dstDims,
-                                         dstPitches, srcT,
-                                         srcDims, srcPitches,
-                                         srcDimNum, srcScale,
-                                         srcOffset, dstScale,
-                                         dstOffset);
+  dnn_lib::inlining::fwdLibRescaleQuantizedInst<srcType>(outT, inT);
 }
 
 template <typename srcType>
-void fwdLibRescaleQuantizedInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, float srcScale, int32_t srcOffset,
-    float dstScale, int32_t dstOffset, uint64_t flags) {
+void fwdLibRescaleQuantizedInstThreaded(LibTensor* outT, LibTensor* inT,
+                                        uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibRescaleQuantizedInstThreaded<srcType>(
-    dstT, dstDims, dstPitches, srcT, srcDims,
-    srcPitches, srcDimNum, srcScale, srcOffset,
-    dstScale, dstOffset, flags);
+  dnn_lib::inlining::fwdLibRescaleQuantizedInstThreaded<srcType>(outT, inT,
+                                                                 flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_QUANT(template, fwdLibRescaleQuantizedInst, void *dstT, void *dstDims, void *dstPitches,
-                                      void *srcT, void *srcDims, void *srcPitches,
-                                      unsigned int srcDimNum, float srcScale,
-                                      int32_t srcOffset, float dstScale, int32_t dstOffset);
+GEN_INSTANCES_QUANT(template, fwdLibRescaleQuantizedInst, LibTensor* outT, LibTensor* inT);
 
-GEN_INSTANCES_QUANT(template, fwdLibRescaleQuantizedInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                                      void *srcT, void *srcDims, void *srcPitches,
-                                      unsigned int srcDimNum, float srcScale, int32_t srcOffset,
-                                      float dstScale, int32_t dstOffset, uint64_t flags);
+GEN_INSTANCES_QUANT(template, fwdLibRescaleQuantizedInstThreaded,  LibTensor* outT,
+                    LibTensor* inT, uint64_t flags);
 } // namespace dnn_lib

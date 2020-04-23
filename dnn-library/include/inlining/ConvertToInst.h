@@ -47,10 +47,10 @@ inline void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  // Addresser<dstType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<dstType> ptrDstT(dstT, outT->dbggetscale(), outT->dbggetoffset());
+  // Addresser<dstType> ptrDstT(dstT, scalexo[1], offset[1]);
+  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(srcT, inT->dbggetscale(), inT->dbggetoffset());
+  const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
 
 
   assert(inT->dims() == outT->dims());
@@ -84,8 +84,8 @@ inline void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_
 
   // Addresser<dstType> tOutput(dst, scale[1], offset[1]);
   // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  Addresser<dstType> tOutput(dst, outT->dbggetscale(), outT->dbggetoffset());
-  const Addresser<srcType> tAInput(src, inT->dbggetscale(), inT->dbggetoffset());
+  Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
+  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   

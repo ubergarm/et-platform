@@ -25,6 +25,7 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 #include "cacheops.h"
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -32,26 +33,31 @@ namespace inlining {
 
 template <typename srcType>
 inline __attribute__((always_inline))
-void fwdLibInsertTensorInst(void *dst, void *dstDims, void *dstPitches,
-                                     unsigned int dstDimNum, void *src2,
-                                     void *src2Dims, void *src2Pitches,
-                                     void *pcoord, unsigned int count,
-                                     unsigned int axis, const float *scale,
-                                     const int32_t *offset, uint64_t flags,
-                                     const uint32_t minionOffset = 0) {
+void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
+                            unsigned int count, unsigned int axis,
+                            uint64_t flags, const uint32_t minionOffset = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tSmallInput(src2, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer<void>();
 
-  unsigned int *smallIndex = (unsigned int *)src2Dims;
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tSmallInput(src2, scale[0], offset[0]);
+  const Addresser<srcType> tSmallInput(src, inT->getScale(), inT->getOffset());
+  // unsigned int *smallIndex = (unsigned int *)src2Dims;
+  const size_t *smallIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *smallPitch = (unsigned int *)src2Pitches;
+  const size_t *smallPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *smallPitch = (unsigned int *)src2Pitches;
-
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   unsigned int *coord = (unsigned int *)pcoord;
 
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
@@ -312,40 +318,47 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
 
 template <typename srcType>
 inline __attribute__((always_inline))
-void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
-                                             void *dstPitches,
-                                             unsigned int dstDimNum, void *src2,
-                                             void *src2Dims, void *src2Pitches,
-                                             void *poffsets, unsigned int count,
-                                             unsigned int axis, const float *scale,
-                                             const int32_t *offset, uint64_t flags,
-                                             const uint32_t minionOffset = 0,
-                                             const  uint32_t assignedMinions = 0) {
+void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
+                                    void *poffsets, unsigned int count,
+                                    unsigned int axis, uint64_t flags,
+                                    const uint32_t minionOffset = 0,
+                                    const  uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) :  assignedMinions;
   if (minionId >= activeMinions)
     return;
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer<void>();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
+   
   int32_t typeSize = (int32_t) getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
 
   if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
-    fwdLibInsertTensorInst<srcType>(dst, dstDims, dstPitches,
-                                    dstDimNum, src2, src2Dims, src2Pitches,
-                                    poffsets, count, axis, scale, offset, 
+    fwdLibInsertTensorInst<srcType>(outT, inT, poffsets, count, axis,
                                     flags, minionOffset);
     return;
   }
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src2, scale[0], offset[0]);
+  
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(src2, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)src2Dims;
-
-  unsigned int *actPitch = (unsigned int *)src2Pitches;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)src2Dims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *actPitch = (unsigned int *)src2Pitches;
+  const size_t *actPitch = inT->strides().data();
+ 
   unsigned int *coord = (unsigned int *)poffsets;
 
   // We compute the offset address
@@ -403,7 +416,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       addrOut += dstPitch[i] * offsetOut[i];
     }
     while (mRows > 0) {
-      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
+      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src, addrOut,
                          initialAddrIn, typeSize, lanes, gatherValues, flags);
       for (int j = dimRow; j >= 0; j--) {
         if (likely(offsetIn[j] != (actIndex[j] - 1))) {
@@ -450,7 +463,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       }
       for (unsigned i = 0; i < mRows; i++) {
         for (unsigned j = 0; j < count; j++) {
-          insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
+          insertRow<srcType>((uint8_t *) dst, (uint8_t *) src, addrOut,
                              initialAddrIn, typeSize, lanes, gatherValues, flags);
           addrOut += actIndex[axis] * dstPitch[axis];
         }
@@ -554,7 +567,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                             :
                             : [ mask ] "r" (mask));
 
-      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
+      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src, addrOut,
                          initialAddrIn, typeSize, auxlanes, gatherValues, flags);
       addrOut += length * dstPitch[axis];
       initialAddrIn -= offsetIn[axis] * actPitch[axis];
@@ -568,7 +581,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
                             :
                             : [ mask ] "r" (mask));
       while (maxRead > actIndex[axis]) {
-        insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
+        insertRow<srcType>((uint8_t *) dst, (uint8_t *) src, addrOut,
                            initialAddrIn, typeSize, lanes, gatherValues,flags);
         maxRead -= actIndex[axis];
         addrOut += actIndex[axis] * dstPitch[axis];
@@ -584,7 +597,7 @@ void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
       __asm__ __volatile__ ("mov.m.x m2, %[mask], 0x0 \n"
                             :
                             : [ mask ] "r" (mask));
-      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src2, addrOut,
+      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src, addrOut,
                          initialAddrIn, typeSize, auxlanes, gatherValues, flags);
     }
   }

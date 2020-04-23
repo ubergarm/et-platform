@@ -39,29 +39,22 @@ inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
     return;
   
   /* maintain compatibility through the new Iface Libtensor */
-
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
 
   // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(src, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> ptrSrcT1(src, inT->getScale(), inT->getOffset());
   // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(srcIndex);
-  
+  const size_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t * dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(srcPitch);
-
-  uint8_t srcDimNum = static_cast<uint8_t>(srcH.getNumDimsdbg());
+  const size_t *srcPitch = inT->strides().data();
+  
+  uint8_t srcDimNum = static_cast<uint8_t>(inT->ndims());
   
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -108,29 +101,22 @@ inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t fla
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
 
   // const Addresser<srcType> aSrcT1(src, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(src, srcH.getScaledbg(), srcH.getOffsetdbg());  
+  const Addresser<srcType> aSrcT1(src, inT->getScale(), inT->getOffset());
   // Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dst, destH.getScaledbg(), destH.getOffsetdbg());
+  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
  
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);
-
+  const size_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);  
+  const size_t * dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
+  const size_t *actPitch = inT->strides().data();
 
-  uint8_t srcDimNum = static_cast<uint8_t>(srcH.getNumDimsdbg());
+  uint8_t srcDimNum = static_cast<uint8_t>(inT->ndims());
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 

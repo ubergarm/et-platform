@@ -24,31 +24,39 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibExtractTensorInst(void *dst, void *dstDims,
-                                      void *dstPitches, unsigned int dstDimNum,
-                                      void *src, void *srcDims,
-                                      void *srcPitches, void *pcoord,
-                                      const float *scale, const int32_t *offset) {
+inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
+                                    void *pcoord) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tInput(src, scale[0], offset[0]);
+  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
+  
   unsigned int *coord = (unsigned int *)pcoord;
 
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eOffsets[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -85,28 +93,34 @@ inline void fwdLibExtractTensorInst(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-inline void fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
-                                              void *dstPitches,
-                                              unsigned int dstDimNum, void *src,
-                                              void *srcDims, void *srcPitches,
-                                              void *pcoord, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
+inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
+                                            void *pcoord, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer<void>();
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tInput(src, scale[0], offset[0]);
+  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
+  
   unsigned int *coord = (unsigned int *)pcoord;
 
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialaddrOut, maxRead;
   size_t typeSize = getsize<srcType>();

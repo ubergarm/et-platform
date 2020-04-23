@@ -38,27 +38,23 @@ inline void fwdLibSoftMaxInst2(LibTensor* outT, LibTensor* inT) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
-  
-  auto dstH = outT->getHandle<srcType>();
-  auto srcH = inT->getHandle<srcType>();
-  
-  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
-  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
- 
+
+  /* maintain compatibility through the new Iface Libtensor */  
+  srcType* dstT = outT->getRawDataPointer<srcType>();
+  srcType* srcT = inT->getRawDataPointer<srcType>();
+
   // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
-  const Addresser<srcType> acumInt(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  const Addresser<srcType> acumInt(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcTDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  dstH.cpydims(srcIndex);
+  const size_t *srcIndex = inT->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(srcPitch);
- 
+  const size_t *srcPitch = inT->strides().data();
+  
   float e, sum, inverseSum;
 
   for (unsigned int n = 0; n < srcIndex[0]; n++) {
@@ -95,25 +91,21 @@ inline void fwdLibSoftMaxInstThreaded2(LibTensor* outT, LibTensor* inT, uint64_t
   if (minionId >= activeMinions)
     return;
 
- auto dstH = outT->getHandle<srcType>();
-  auto srcH = inT->getHandle<srcType>();
-  
-  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
-  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
-  
+  /* maintain compatibility through the new Iface Libtensor */
+  srcType* dstT = outT->getRawDataPointer<srcType>();
+  srcType* srcT = inT->getRawDataPointer<srcType>();
+   
   // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
-  const Addresser<srcType> acumInt(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  const Addresser<srcType> acumInt(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
  
   // unsigned int *srcIndex = (unsigned int *)srcTDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  dstH.cpydims(srcIndex);
+  const size_t *srcIndex = inT->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(srcPitch);
+  const size_t *srcPitch = inT->strides().data();
   
   size_t typeSize = getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;

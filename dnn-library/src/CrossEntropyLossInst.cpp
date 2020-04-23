@@ -14,36 +14,24 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibCrossEntropyLossInst(void *dstT, void *srcT, void *srcDims,
-                                         void *srcPitches,
-                                         unsigned int srcDimNum, void *labelsT,
-                                         const float *scale, const int32_t *offset) {
+void fwdLibCrossEntropyLossInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibCrossEntropyLossInst<srcType>(dstT, srcT, srcDims,
-                                         srcPitches,
-                                         srcDimNum, labelsT,
-                                         scale, offset);
+  dnn_lib::inlining::fwdLibCrossEntropyLossInst<srcType>(outT, in1T, in2T);
 }
 
 template <typename srcType>
-void fwdLibCrossEntropyLossInstThreaded(
-    void *dstT, void *srcT, void *srcDims, void *srcPitches,
-    unsigned int srcDimNum, void *labelsT, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+void fwdLibCrossEntropyLossInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                        LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibCrossEntropyLossInstThreaded<srcType>(
-    dstT, srcT, srcDims, srcPitches,
-    srcDimNum, labelsT, scale, offset,
-    flags);
+  dnn_lib::inlining::fwdLibCrossEntropyLossInstThreaded<srcType>(outT, in1T, in2T,
+                                                                 flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInst, void *dstT, void *srcT, void *srcDims,
-                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
-                                   const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInst, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T );
 
-GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInstThreaded, void *dstT, void *srcT, void *srcDims,
-                                   void *srcPitches, unsigned int srcDimNum, void* labelsT,
-                                   const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInstThreaded, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T , uint64_t flags);
 } // namespace dnn_lib

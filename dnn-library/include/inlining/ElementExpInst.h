@@ -39,14 +39,8 @@ namespace inlining {
  * @tparam srcType The type of the elements in the input tensors.
  * @tparam opType An operator that takes two srcType elements and returns a 
     bool.
- * @param[out] dstT Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] srcT Pointer to the first input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the first input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] scale, offset Parameters for the quantization.
+ * @param[out] outT LibTensor pointer to the destination matrix
+ * @param[in]  inT LibTensor pointer to the input Matrix
  */
 template <typename srcType>
 inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT) {
@@ -55,28 +49,23 @@ inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT) {
   if (minionId != 0)
     return;
 
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-
-  void* srcT = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dstT = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
-
+  /* maintain compatibility through the new Iface Libtensor */    
+  void* srcT = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
+ 
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
-  const Addresser<srcType> tInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
   // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);  
-  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydimsdbg(srcIndex);
+  const size_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(srcPitch);
-
-  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
+  const size_t *srcPitch = inT->strides().data();
+  
+  unsigned int srcDimNum =  static_cast<unsigned int>(inT->ndims());
 
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};

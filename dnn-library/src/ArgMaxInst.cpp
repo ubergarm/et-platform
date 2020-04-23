@@ -14,19 +14,14 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float srcScale, int32_t srcOffset,
-                                void *dst, void *dstDims, void *dstPitches,
-                                size_t axis, bool keepDim){
+void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim){
 
-  dnn_lib::inlining::fwdLibArgMaxInst<srcType>(src, srcDims, srcPitches, srcScale, srcOffset,
-                                dst, dstDims, dstPitches,
-                                axis, keepDim);
+  dnn_lib::inlining::fwdLibArgMaxInst<srcType>(outT, inT, axis, keepDim);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibArgMaxInst,
-                 void *src, void *srcDims, void *srcPitches, float srcScale, int32_t srcOffset,
-                 void *dst, void *dstDims, void *dstPitches,
+GEN_INSTANCES_OP(template, fwdLibArgMaxInst, LibTensor* outT, LibTensor* inT,
                  size_t axis, bool keepDim);
+  
 } // dnn_lib

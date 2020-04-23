@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -37,14 +38,18 @@ inline void uint32_to_ascii_hex(char *s, uint32_t value) {
 }
 
 template <typename srcType>
-inline void fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, const float *scale,
-                             const int32_t *offset, uint64_t flags) {
+inline void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
   // The checksum is the u32 addition of all the non-padding bytes of the tensor
   uint32_t checksum = 0;
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  void* src = inT->getRawDataPointer<void>();
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
+
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

@@ -392,11 +392,11 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 }
 
 /* overloading while sw-2400 and sw-2429 are WIP */
-template <typename T>
+  template <typename T, typename U, typename S>
 inline __attribute__((always_inline)) 
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch1,
-                const dnn_lib::dim_t *pitch2) {
+                T &offset2, U *index, S *pitch1,
+                U *pitch2) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -418,31 +418,31 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 }
   
 
-/* overloading while sw-2400 and sw-2429 are WIP */
-template <typename T>
-inline __attribute__((always_inline)) 
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch1,
-                const unsigned int* pitch2) {
+// /* overloading while sw-2400 and sw-2429 are WIP */
+// template <typename T>
+// inline __attribute__((always_inline)) 
+// bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
+//                 T &offset2, const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch1,
+//                 const unsigned int* pitch2) {
 
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset1 += pitch1[j];
-      offset2 += pitch2[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset1 -= (index[j] - 1) * pitch1[j];
-      offset2 -= (index[j] - 1) * pitch2[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
+//   for (int j = dimNum - 1; j >= 0; j--) {
+//     if (likely(coord[j] != (index[j] - 1))) {
+//       offset1 += pitch1[j];
+//       offset2 += pitch2[j];
+//       coord[j]++;
+//       return false;
+//     } else if (likely(j != 0)) {
+//       offset1 -= (index[j] - 1) * pitch1[j];
+//       offset2 -= (index[j] - 1) * pitch2[j];
+//       coord[j] = 0;
+//     } else
+//       return true;
+//   }
 
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true; 
-}
+//   //FIXME: use assertion throw "getOffsets Malfunction";
+//   // To avoid warnings. This point will never be reached.
+//   return true; 
+// }
 
   
 /**
@@ -453,11 +453,11 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
  * @warning The tensors in which we are moving should have the same dimensions
  *  (but not necessarily the same pitches).
  */
-template <typename T> 
+  template <typename T, typename U, typename S> 
 inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, const unsigned int *index, const unsigned int *pitch1,
-                const unsigned int *pitch2, const unsigned int *pitch3) {
+                T &offset2, T &offset3, U *index, U *pitch1,
+                U *pitch2, S *pitch3) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -681,31 +681,11 @@ std::pair<int,int>  getLanesResFromNElements(unsigned int numofelements)
   return std::make_pair(lanes, res);
 }
 
+//@TODO: REPLACE template by const size_t once all operands are using LibTensor
+template <typename T> 
 inline __attribute__((always_inline))
 bool getNextStep(unsigned int dimNum,
-                 unsigned int *coord, unsigned int *dims) {
-  if (coord[0] < dims[0]-1) {
-    coord[0] = coord[0]+1;
-  } else {
-    coord[0] = 0;
-    for (unsigned int i = 1; i < dimNum; i++) {
-      if (coord[i] < dims[i]-1) {
-        coord[i] = coord[i]+1;
-        break;
-      } else {
-        coord[i] = 0;
-        if (i == dimNum-1)
-          return true;
-      }
-    }
-  }
-  return false;
-}
-
-/* overloading while sw-2400 and sw-2429 are WIP */
-inline __attribute__((always_inline))
-bool getNextStep(unsigned int dimNum,
-                 unsigned int *coord, dnn_lib::dim_t *dims) {
+                 unsigned int *coord, T *dims) {
   if (coord[0] < dims[0]-1) {
     coord[0] = coord[0]+1;
   } else {
@@ -745,34 +725,34 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
   return offset;
 }
   
-/* overloading while sw-2400 and sw-2429 are on WIP */
-template<typename T>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, const dnn_lib::dim_t *index,
-                const dnn_lib::dim_t *pitch1, const dnn_lib::dim_t *pitch2,
-                const dnn_lib::dim_t *pitch3) {
+// /* overloading while sw-2400 and sw-2429 are on WIP */
+// template<typename T>
+// inline __attribute__((always_inline))
+// bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
+//                 T &offset2, T &offset3, const dnn_lib::dim_t *index,
+//                 const dnn_lib::dim_t *pitch1, const dnn_lib::dim_t *pitch2,
+//                 const dnn_lib::dim_t *pitch3) {
 
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset1 += pitch1[j];
-      offset2 += pitch2[j];
-      offset3 += pitch3[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset1 -= (index[j] - 1) * pitch1[j];
-      offset2 -= (index[j] - 1) * pitch2[j];
-      offset3 -= (index[j] - 1) * pitch3[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
+//   for (int j = dimNum - 1; j >= 0; j--) {
+//     if (likely(coord[j] != (index[j] - 1))) {
+//       offset1 += pitch1[j];
+//       offset2 += pitch2[j];
+//       offset3 += pitch3[j];
+//       coord[j]++;
+//       return false;
+//     } else if (likely(j != 0)) {
+//       offset1 -= (index[j] - 1) * pitch1[j];
+//       offset2 -= (index[j] - 1) * pitch2[j];
+//       offset3 -= (index[j] - 1) * pitch3[j];
+//       coord[j] = 0;
+//     } else
+//       return true;
+//   }
 
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;  
-}
+//   //FIXME: use assertion throw "getOffsets Malfunction";
+//   // To avoid warnings. This point will never be reached.
+//   return true;  
+// }
 
 }  // namespace dnn_lib
 #endif /* UTILS_H */

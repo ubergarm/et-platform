@@ -14,27 +14,27 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibModuloInst(LibTensor* inT, LibTensor* outT, long long divisor,
+void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
                       bool signFollowDivisor) {
 
-  dnn_lib::inlining::fwdLibModuloInst<srcType>(inT, outT, divisor,
+  dnn_lib::inlining::fwdLibModuloInst<srcType>(outT, inT, divisor,
                                                signFollowDivisor);
 }
 
 template <typename srcType>
-void fwdLibModuloInstThreaded(LibTensor* inT, LibTensor* outT, long long divisor,
+void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT, long long divisor,
                               bool signFollowDivisor, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibModuloInstThreaded<srcType>(inT, outT, divisor,
+  dnn_lib::inlining::fwdLibModuloInstThreaded<srcType>(outT, inT, divisor,
                                                        signFollowDivisor, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInst, LibTensor* inT, LibTensor* outT,
+GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInst, LibTensor* outT, LibTensor* inT,
                          long long divisor, bool signFollowDivisor);
 
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInstThreaded, LibTensor* inT,
-                         LibTensor* outT, long long divisor, bool signFollowDivisor,
+GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInstThreaded, LibTensor* outT,
+                         LibTensor* inT, long long divisor, bool signFollowDivisor,
                          uint64_t flags);
 } // namespace dnn_lib

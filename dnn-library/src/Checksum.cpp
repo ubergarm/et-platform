@@ -14,13 +14,9 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibChecksum(void *src, void *srcDims, void *srcPitches,
-                             unsigned int srcDimNum, const float *scale,
-                             const int32_t *offset, uint64_t flags) {
+void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibChecksum<srcType>(src, srcDims, srcPitches,
-                             srcDimNum, scale,
-                             offset, flags);
+  dnn_lib::inlining::fwdLibChecksum<srcType>(inT, flags);
 }
 
 void fwdLibFlushL3(uint32_t numShires) {
@@ -29,8 +25,5 @@ void fwdLibFlushL3(uint32_t numShires) {
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibChecksum, void *src, void *srcDims, void *srcPitches,
-                                  unsigned int srcDimNum,
-                                  const float *scale, const int32_t *offset,
-                                  uint64_t flags);
+  GEN_INSTANCES_OP(template, fwdLibChecksum, LibTensor* inT, uint64_t flags);
 }

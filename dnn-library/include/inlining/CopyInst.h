@@ -48,7 +48,7 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-inline void fwdLibCopyInst(LibTensor* inT, LibTensor* outT) {
+inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -56,29 +56,23 @@ inline void fwdLibCopyInst(LibTensor* inT, LibTensor* outT) {
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
   
   // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(src, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
-  const Addresser<srcType> tInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
 
   //  unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);
-
+  const size_t *actIndex = inT->dims().data();
   //  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t *dstPitch = outT->strides().data();
   //  unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] =  {0,};
-  srcH.cpypitchesdbg(actPitch);
+  const size_t *actPitch = inT->strides().data();
   
-  //  unsigned int coord[srcDimNum];
-  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
+  uint8_t srcDimNum =  static_cast<unsigned int>(inT->ndims());
+  
   unsigned int coord[srcDimNum];
   unsigned int offsetIn  = 0;
   unsigned int offsetOut = 0;
@@ -119,7 +113,7 @@ inline void fwdLibCopyInst(LibTensor* inT, LibTensor* outT) {
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-inline void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
+inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
                                    uint64_t flags,
                                    const uint32_t minionOffset = 0,
                                    const uint32_t assignedMinions = 0) {
@@ -131,32 +125,26 @@ inline void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
 
   /* maintain compatibility through the new Iface Libtensor */
   
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg()); //inT->getUnsafePtr());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg()); //outT->getUnsafePtr());
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
   
   // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
-  const Addresser<srcType> tInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
 
   // uint8_t *dst8 = (uint8_t *)dst;
   // uint8_t *src8 = (uint8_t *)src;
 
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydims(dstIndex);
+  const size_t *dstIndex = outT->dims().data();
   //  unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);  
+  const size_t *actIndex = inT->dims().data();
   
   //  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] =  {0,};
-  destH.cpypitchesdbg(dstPitch);  
+  const size_t *dstPitch = outT->strides().data();
   //  unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
+  const size_t *actPitch = inT->strides().data();
 
   unsigned int numElemsDst =
       dstPitch[0] * dstIndex[0]; // Total number of elements in the tensor
@@ -171,7 +159,7 @@ inline void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
     return;
 
   // We move the initialAddr to the next non-padding position
-  unsigned int srcDimNum = static_cast<unsigned int>(srcH.getNumDimsdbg());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int k;                  // Amount of non-zero coordinates
   unsigned int coord[srcDimNum]; // Vector of coordinates
@@ -229,7 +217,7 @@ inline void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-inline void fwdLibCopyInstVectorized(LibTensor* inT, LibTensor* outT,
+inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
                                      uint64_t flags,
                                      const uint32_t minionOffset = 0,
                                      const uint32_t assignedMinions = 0) {
@@ -240,25 +228,19 @@ inline void fwdLibCopyInstVectorized(LibTensor* inT, LibTensor* outT,
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg()); //inT->getUnsafePtr());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg()); //outT->getUnsafePtr());
-   
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
+ 
   // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
-  const Addresser<srcType> tInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
-
-
+  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
   
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydims(dstIndex);
+  const size_t *dstIndex = outT->dims().data();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);  
+  const size_t *actIndex = inT->dims().data();
   
   uint8_t *dst8 = (uint8_t *)dst;
   uint8_t *src8 = (uint8_t *)src;
@@ -266,12 +248,10 @@ inline void fwdLibCopyInstVectorized(LibTensor* inT, LibTensor* outT,
   uint8_t *dst8Init = dst8;
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] =  {0,};
-  destH.cpypitchesdbg(dstPitch);  
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
-
+  const size_t *actPitch = inT->strides().data();
+  
   unsigned int typeSize = getsize<srcType>();
   unsigned int numElemsDst =
       dstPitch[0] * actIndex[0]; // Total number of elements in the tensor
@@ -284,7 +264,7 @@ inline void fwdLibCopyInstVectorized(LibTensor* inT, LibTensor* outT,
   if (maxRead == 0)
     return;
   // We move the initialAddr to the next non-padding position
-  unsigned int srcDimNum = static_cast<unsigned int>(srcH.getNumDimsdbg());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int k = 0;            // Amount of non-zero coordinates
   unsigned int coord[srcDimNum]; // Vector of coordinates

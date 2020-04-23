@@ -31,9 +31,9 @@ namespace dnn_lib {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <typename srcType>
-void fwdLibCopyInst(LibTensor* inT, LibTensor* outT) {
+void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibCopyInst<srcType>(inT, outT);
+  dnn_lib::inlining::fwdLibCopyInst<srcType>(outT, inT);
 }
 
 /**
@@ -58,12 +58,12 @@ void fwdLibCopyInst(LibTensor* inT, LibTensor* outT) {
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
+void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
                             uint64_t flags,
                             const uint32_t minionOffset,
                             const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstThreaded<srcType>(inT, outT, flags, minionOffset,
+  dnn_lib::inlining::fwdLibCopyInstThreaded<srcType>(outT, inT, flags, minionOffset,
                                                      assignedMinions);
 }
 
@@ -92,22 +92,22 @@ void fwdLibCopyInstThreaded(LibTensor* inT, LibTensor* outT,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-void fwdLibCopyInstVectorized(LibTensor* inT, LibTensor* outT, uint64_t flags,
+void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                               const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstVectorized<srcType>(inT, outT, flags,
+  dnn_lib::inlining::fwdLibCopyInstVectorized<srcType>(outT, inT, flags,
                                                        minionOffset, assignedMinions);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibCopyInst, LibTensor* inT, LibTensor* outT);
+GEN_INSTANCES_OP(template, fwdLibCopyInst, LibTensor* outT, LibTensor* inT);
 
-GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, LibTensor* inT, LibTensor* outT,
+GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, LibTensor* outT, LibTensor* inT,
                  uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
-GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, LibTensor* inT, LibTensor* outT,
+GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, LibTensor* outT, LibTensor* inT,
                  uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
   
 } // namespace dnn_lib

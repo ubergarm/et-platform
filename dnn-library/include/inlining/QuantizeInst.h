@@ -32,22 +32,28 @@ namespace inlining {
 /// Quantize floating point tensor. Scale and Offset are based on return type
 /// of the instruction \p I.
 template <typename dstType>
-inline void fwdLibQuantizeInst(void *dstT, void *dstDims, void *dstPitches,
-                                 void *srcT, void *srcDims, void *srcPitches,
-                                 unsigned int srcDimNum, float scale,
-                                 int32_t offset) {
+inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<dstType> ptrDstT(dstT, scale, offset);
-  float *ptrSrcT = (float *)srcT;
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  
+  // Addresser<dstType> ptrDstT(dstT, scale, offset);
+  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // float *ptrSrcT = (float *)srcT;
+  float *ptrSrcT = inT->getRawDataPointer<float>();
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
+  
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -74,7 +80,7 @@ inline void fwdLibQuantizeInst(void *dstT, void *dstDims, void *dstPitches,
               // TODO check if we can use Addresser without breaking all the
               // other tests that uses int32_t as non quantized type
               if (std::is_same<dstType, int32_t>::value) {
-                ptrDstT[dstAddr] = quantize<int32_t>(val, scale, offset);
+                ptrDstT[dstAddr] = quantize<int32_t>(val, outT->getScale(), outT->getOffset());
               } else {
                 ptrDstT[dstAddr] = val;
               }
@@ -86,24 +92,31 @@ inline void fwdLibQuantizeInst(void *dstT, void *dstDims, void *dstPitches,
   }
 }
 template <typename dstType>
-inline void fwdLibQuantizeInstThreaded(void *dstT, void *dstDims,
-                                         void *dstPitches, void *srcT,
-                                         void *srcDims, void *srcPitches,
-                                         unsigned int srcDimNum, float scale,
-                                         int32_t offset, uint64_t flags) {
+inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<dstType> ptrDstT(dstT, scale, offset);
-  float *ptrSrcT = (float *)srcT;
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+    
+  // Addresser<dstType> ptrDstT(dstT, scale, offset);
+  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // float *ptrSrcT = (float *)srcT;
+  float *ptrSrcT = inT->getRawDataPointer<float>();
+  
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
+  
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  
   unsigned int numElemsDst =
       dstPitch[0] * srcIndex[0]; // Total number of elements in the tensor
 
@@ -141,7 +154,7 @@ inline void fwdLibQuantizeInstThreaded(void *dstT, void *dstDims,
     // TODO check if we can use Addresser without breaking all the
     // other tests that uses int32_t as non quantized type
     if (std::is_same<dstType, int32_t>::value) {
-      ptrDstT[offsetOut] = quantize<int32_t>(val, scale, offset);
+      ptrDstT[offsetOut] = quantize<int32_t>(val, outT->getScale(), outT->getOffset());
     } else {
       ptrDstT[offsetOut] = val;
     }

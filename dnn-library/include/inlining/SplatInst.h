@@ -24,22 +24,27 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-void fwdLibSplatInst(void *dst, void *dstDims,
-                     void *dstPitches, unsigned int dstDimNum,
-                     uint64_t *splatVal, const float *scale,
-                     const int32_t *offset, uint64_t flags) {
+void fwdLibSplatInst(LibTensor *outT, uint64_t *splatVal) {
   
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
+
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+
   size_t numElems = dstIndex[0] * dstPitch[0];
   
   uint64_t *dst64 = static_cast<uint64_t*>(dst);
@@ -57,10 +62,8 @@ void fwdLibSplatInst(void *dst, void *dstDims,
 }
 
 template <typename sourceTy>
-inline void fwdLibSplatInstThreaded(void *dst, void *dstDims,
-                                      void *dstPitches, unsigned int dstDimNum,
-                                      uint64_t *splatValPtr, const float *scale,
-                                      const int32_t *offset, uint64_t flags) {
+inline void fwdLibSplatInstThreaded(LibTensor* outT, uint64_t *splatValPtr,
+                                    uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -69,11 +72,20 @@ inline void fwdLibSplatInstThreaded(void *dst, void *dstDims,
 
   using srcType = typename std::conditional< std::is_same<sourceTy, float16>::value, uint16_t, sourceTy>::type;
 
-  srcType *tOutput = (srcType *)dst;
+  /* maintain compatibility through the new Iface Libtensor */
+  void *dst = outT->getRawDataPointer<void>();
+  
+  // srcType *tOutput = (srcType *)dst;
+  srcType *tOutput = outT->getRawDataPointer<srcType>();
+  
   srcType splatVal = bitwise_lsb_copy<srcType> (*splatValPtr);
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
@@ -108,18 +120,22 @@ inline void fwdLibSplatInstThreaded(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-inline void fwdLibSplatInstVectorized(void *dst, void *dstDims,
-                                        void *dstPitches, unsigned int dstDimNum,
-                                        uint64_t *splatVal, const float *scale,
-                                        const int32_t *offset, uint64_t flags) {
+inline void fwdLibSplatInstVectorized(LibTensor* outT, uint64_t *splatVal, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+
+  
   size_t typeSize = getsize<srcType>();
   size_t bytesperCL = CACHE_LINE_BYTES;
 

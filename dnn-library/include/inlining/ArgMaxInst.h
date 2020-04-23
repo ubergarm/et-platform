@@ -25,24 +25,31 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
-
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float srcScale, int32_t srcOffset,
-                                void *dst, void *dstDims, void *dstPitches,
-                                size_t axis, bool keepDim){
+inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim){
+
+  /* maintain compatibility through the new Iface Libtensor */
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
+  
   // cast src parameters to objects we can handle
-  const Addresser<srcType> in(src, srcScale, srcOffset);
-  unsigned int *inPitch = static_cast<unsigned int *>(srcPitches);
-  unsigned int *inDims = static_cast<unsigned int *>(srcDims);
+  // const Addresser<srcType> in(src, srcScale, srcOffset);
+  const Addresser<srcType> in(src, inT->getScale(), inT->getOffset());
+  // unsigned int *inPitch = static_cast<unsigned int *>(srcPitches);
+  const size_t *inPitch = inT->strides().data();
+  // unsigned int *inDims = static_cast<unsigned int *>(srcDims);
+  const size_t *inDims = inT->dims().data();
 
   // cast dst parameters to objects we can handle
   sdim_t *argmax = static_cast<sdim_t*> (dst);
-  unsigned int *argmaxPitch = static_cast<unsigned int *>(dstPitches);
+  // unsigned int *argmaxPitch = static_cast<unsigned int *>(dstPitches);
+  size_t *argmaxPitch = const_cast<size_t*>(reinterpret_cast<const size_t*>(outT->strides().data()));
 
   // and compute
   dim_t a, b, c, d = 0;
@@ -54,12 +61,13 @@ inline void fwdLibArgMaxInst( void *src, void *srcDims, void *srcPitches, float 
   dim[axis] = &d;
 
   // if keepDim == false, pitches and dimensions are 4 => select output pitch setting 0 in the reduced dimension
-  unsigned outPitch[4];
+  //unsigned outPitch[4];
+  std::array<size_t,4> outPitch = {0,};
   if (!keepDim) {
     for(unsigned i = 0 ; i < axis; i++) outPitch[i] = argmaxPitch[i];
     outPitch[axis] = 0;
     for(unsigned i = axis+1 ; i < 4; i++) outPitch[i] = argmaxPitch[i-1];
-    argmaxPitch = outPitch;
+    argmaxPitch = reinterpret_cast<size_t*>(outPitch.data());
   }
 
   

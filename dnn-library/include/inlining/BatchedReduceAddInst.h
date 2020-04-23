@@ -24,31 +24,36 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibBatchedReduceAddInst(void *pdst, void *pdstDims,
-                                         void *pdstPitches, void *pbatch,
-                                         void *pbatchDims, void *pbatchPitches,
-                                         unsigned int pbatchDimNum,
-                                         unsigned int axis, const float *scale,
-                                         const int32_t *offset) {
+inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(pdst, scale[1], offset[1]);
-  const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  void* batchT = inT->getRawDataPointer<void>();
 
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  // Addresser<srcType> tOutput(pdst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
+  const Addresser<srcType> tBatch(batchT, inT->getScale(), inT->getOffset());
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-
+  // unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  const size_t *batchIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = inT->strides().data();
+  
+  unsigned int pbatchDimNum = inT->ndims();
   // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
 
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
@@ -107,26 +112,32 @@ inline void fwdLibBatchedReduceAddInst(void *pdst, void *pdstDims,
 }
 
 template <typename srcType>
-inline void fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
-                                                 void *pdstPitches, void *pbatch,
-                                                 void *pbatchDims, void *pbatchPitches,
-                                                 unsigned int pbatchDimNum,
-                                                 unsigned int axis, const float *scale,
-                                                 const int32_t *offset, uint64_t flags) {
+inline void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
+                                               unsigned int axis,  uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
+  
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  void* batchT = inT->getRawDataPointer<void>();
 
-  Addresser<srcType> tOutput(pdst, scale[1], offset[1]);
-  const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
+  // Addresser<srcType> tOutput(pdst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
+  const Addresser<srcType> tBatch(batchT, inT->getScale(), inT->getOffset());
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  const size_t *batchIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-
+  unsigned int pbatchDimNum = static_cast<unsigned int>(inT->ndims());
   unsigned int numElemsDst;
 
   numElemsDst = dstPitch[0] * dstIndex[0];
@@ -184,28 +195,33 @@ inline void fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-inline void fwdLibBatchedReduceAddInstInt8(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
-    void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    unsigned int axis, const float *scale, const int32_t *offset) {
+inline void fwdLibBatchedReduceAddInstInt8(LibTensor* outT, LibTensor* inT,
+                                           unsigned int axis) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tBatch = (int8_t *)pbatch;
+  
+  /* maintain compatibility through the new Iface Libtensor */
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  // int8_t *tBatch = (int8_t *)pbatch;
+  int8_t *tBatch = inT->getRawDataPointer<int8_t>();
 
   float invScale;
-  getReciprocal(scale[1], invScale);
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  getReciprocal(outT->getScale(), invScale);
+  // unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  const size_t *batchIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-
+  unsigned int pbatchDimNum = static_cast<unsigned int>(inT->ndims());
   // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
 
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
@@ -233,10 +249,11 @@ inline void fwdLibBatchedReduceAddInstInt8(
               uint64_t srcAddr = i0 * eBatchPitch[0] + i1 * eBatchPitch[1] +   \
                                  i2 * eBatchPitch[2] + i3 * eBatchPitch[3] +   \
                                  i4 * eBatchPitch[4] + i5 * eBatchPitch[5];    \
-              sum += tBatch[srcAddr] - offset[0];                              \
+              sum += tBatch[srcAddr] - inT->getOffset();                       \
             }                                                                  \
             size_t i##_D5_AXIS = 0;                                            \
-            int32_t res = nearbyintf(sum * scale[0] * invScale) + offset[1];   \
+            int32_t res = nearbyintf(sum * inT->getScale() * invScale) +       \
+                          outT->getOffset();                                   \
             uint64_t dstAddr = i0 * eDstPitch[0] + i1 * eDstPitch[1] +         \
                                i2 * eDstPitch[2] + i3 * eDstPitch[3] +         \
                                i4 * eDstPitch[4] + i5 * eDstPitch[5];          \
@@ -269,27 +286,35 @@ inline void fwdLibBatchedReduceAddInstInt8(
 }
 
 
-inline void fwdLibBatchedReduceAddInstInt8Threaded(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
-    void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    unsigned int axis, const float *scale, const int32_t *offset, uint64_t flags) {
-
+inline void fwdLibBatchedReduceAddInstInt8Threaded(LibTensor* outT,
+                                                   LibTensor* inT,
+                                                   unsigned int axis,
+                                                   uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tBatch = (int8_t *)pbatch;
-
+  void *dstT = outT->getRawDataPointer<void>();
+  
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  // int8_t *tBatch = (int8_t *)pbatch;
+  int8_t *tBatch = inT->getRawDataPointer<int8_t>();
+  
   float invScale;
-  getReciprocal(scale[1], invScale);
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  getReciprocal(outT->getScale(), invScale);
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  const size_t *batchIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  unsigned int pbatchDimNum = static_cast<unsigned int>(inT->ndims());
 
   unsigned int numElemsDst;
 
@@ -331,11 +356,11 @@ inline void fwdLibBatchedReduceAddInstInt8Threaded(
     float sum = 0.0;
     for (size_t i = 0; i < batchIndex[axis]; i++) {
       // print(__PRETTY_FUNCTION__);
-      sum += tBatch[offsetIn] - offset[0];
+      sum += tBatch[offsetIn] - inT->getOffset();
       offsetIn += batchPitch[axis];
     }
     offsetIn -= batchIndex[axis] * batchPitch[axis];
-    int32_t res = nearbyintf(sum * scale[0] * invScale) + offset[1];
+    int32_t res = nearbyintf(sum * inT->getScale() * invScale) + outT->getOffset();
     tOutput[offsetOut] = clip<int32_t, int8_t>(res);
 
     done = getOffsets(pbatchDimNum - 1, offsets, offsetIn, offsetOut, dstIndex,
@@ -344,7 +369,7 @@ inline void fwdLibBatchedReduceAddInstInt8Threaded(
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + sizeof(int8_t)*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
 }
 
 } // namespace inlining

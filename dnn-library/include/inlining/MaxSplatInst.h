@@ -9,8 +9,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef _ETSOC_MAX_SPLAT_INST_H_
-#define _ETSOC_MAX_SPLAT_INST_H_
+#ifndef __MAX_SPLAT_INST_H_
+#define __MAX_SPLAT_INST_H_
 
 #include <assert.h>
 #include <fenv.h>
@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -32,23 +33,29 @@ namespace inlining {
 // This function copies a matrix replacing all the elements which are < splatVal
 // and replaces them with splatVal
 template <typename srcType>
-inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
-                                      void *dstPitches, void *srcT,
-                                      void *srcDims, void *srcPitches,
-                                      unsigned int srcDimNum, float splatVal,
-                                      const float *scale, const int32_t *offset) {
+inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  const Addresser<srcType> ptrSrcT(srcT, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  void* srcT = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
+  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> ptrSrcT(srcT, scale[0], offset[0]);
+  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
+  
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -83,23 +90,25 @@ inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
 }
 
 template <typename srcType>
-inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
-                                      void *dstPitches, void *srcT,
-                                      void *srcDims, void *srcPitches,
-                                      unsigned int srcDimNum, int64_t splatVal,
-                                      const float *scale, const int32_t *offset) {
+inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  srcType *ptrDstT = (srcType *)dstT;
-  srcType *ptrSrcT = (srcType *)srcT;
+  // srcType *ptrDstT = (srcType *)dstT;
+  srcType *ptrDstT = outT->getRawDataPointer<srcType>();
+  // srcType *ptrSrcT = (srcType *)srcT;
+  srcType *ptrSrcT = outT->getRawDataPointer<srcType>();
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+ 
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -134,25 +143,31 @@ inline void fwdLibETSOCMaxSplatInst(void *dstT, void *dstDims,
 }
 
 template <typename srcType>
-inline void fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
-                                              void *dstPitches, void *src,
-                                              void *srcDims, void *srcPitches,
-                                              unsigned int srcDimNum,
-                                              float splatVal, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
+inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
+                                            float splatVal, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
-  const Addresser<srcType> ptrSrcT(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
+  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> ptrSrcT(src, scale[0], offset[0]);
+  const Addresser<srcType> ptrSrcT(src, inT->getScale(), inT->getOffset());
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
 
-  unsigned int *actIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+    
   unsigned int numElemsDst =
       dstPitch[0] * actIndex[0]; // Total number of elements in the tensor
 
@@ -197,26 +212,31 @@ inline void fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-inline void fwdLibETSOCMaxSplatInstThreaded(void *dst, void *dstDims,
-                                              void *dstPitches, void *src,
-                                              void *srcDims, void *srcPitches,
-                                              unsigned int srcDimNum,
-                                              int64_t splatVal, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
+inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
+                                       int64_t splatVal, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  srcType *ptrDstT = (srcType *)dst;
-  srcType *ptrSrcT = (srcType *)src;
-
-  unsigned int *actIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
+  /* maintain compatibility through the new Iface Libtensor */
+  void *dst = outT->getRawDataPointer<void>();
+  
+  // srcType *ptrDstT = (srcType *)dst;
+  srcType *ptrDstT = outT->getRawDataPointer<srcType>();
+  // srcType *ptrSrcT = (srcType *)src;
+  srcType *ptrSrcT = inT->getRawDataPointer<srcType>();
+  
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
+  
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  
   unsigned int numElemsDst =
       dstPitch[0] * actIndex[0]; // Total number of elements in the tensor
 
@@ -372,26 +392,32 @@ inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const floa
 }
 
 template <typename srcType>
-inline void fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
-                                              void *dstPitches, void *src,
-                                              void *srcDims, void *srcPitches,
-                                              unsigned int srcDimNum,
-                                              float splatVal, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
+inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
+                                         float splatVal, uint64_t flags) {
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer<void>();
+
   uintptr_t dstAddr = (uintptr_t)dst;
   uintptr_t srcAddr = (uintptr_t)src;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
+ 
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -445,7 +471,8 @@ inline void fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
     dstAddr += offsetOut * typeSize;
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-
+    const float scale[2] = {inT->getScale(), outT->getScale()};
+    const int32_t offset[2] = {inT->getOffset(), outT->getOffset()}; 
     for (unsigned int i = 0; i < registersInRow; i++) {
       maxSplatOp <srcType>(dstAddr, srcAddr, splatVal, scale, offset);
       srcAddr += 8 * typeSize;
@@ -477,12 +504,8 @@ inline void fwdLibETSOCMaxSplatInstVectorized(void *dst, void *dstDims,
 }
 
 template <typename srcType>
-inline void fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
-                                              void *dstPitches, void *src,
-                                              void *srcDims, void *srcPitches,
-                                              unsigned int srcDimNum,
-                                              float splatVal, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
+inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
+                                             float splatVal, uint64_t flags) {
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -491,14 +514,24 @@ inline void fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
   uintptr_t dstAddr;
   uintptr_t srcAddr;
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  /* maintain compatibility through the new Iface Libtensor */
+  void *dst = outT->getRawDataPointer<void>();
+  void *src = inT->getRawDataPointer<void>();
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
   unsigned int initialAddr, maxRead;
+  
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
@@ -521,12 +554,27 @@ inline void fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
 
+  unsigned int n_dstPitch[outT->ndims()];
+  unsigned int n_dstIndex[outT->ndims()];
+  unsigned int n_actIndex[inT->ndims()];
+  unsigned int n_actPitch[inT->ndims()];
+  
+  for(size_t i = 0; i < inT->ndims(); i++) {
+    n_actPitch[i] = actPitch[i];
+    n_actIndex[i] = actIndex[i];
+    n_dstPitch[i] = dstPitch[i];
+    n_dstIndex[i] = dstIndex[i];    
+  }
+
   unsigned int lastDim = srcDimNum - 1;
-  unsigned int res = ((dstIndex[lastDim] - 1)%8) +1;
-  actPitch[lastDim] *= 8;
-  dstPitch[lastDim] *= 8;
-  dstIndex[lastDim] = (dstIndex[lastDim] - 1)/8 + 1;
+  unsigned int res = ((n_dstIndex[lastDim] - 1)%8) +1;
+  n_actPitch[lastDim] *= 8;
+  n_dstPitch[lastDim] *= 8;
+  n_dstIndex[lastDim] = (n_dstIndex[lastDim] - 1)/8 + 1;
   unsigned int mask = ((1 << res) - 1);
+
+  const float scale[2] = {inT->getScale(), outT->getScale()};
+  const int32_t offset[2] = {inT->getOffset(), outT->getOffset()}; 
 
   while (!done && (offsetOut < posMax)) {
     dstAddr = (uintptr_t)dst + offsetOut*typeSize;
@@ -538,8 +586,8 @@ inline void fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
 
     maxSplatOp <srcType, true>(dstAddr, srcAddr, splatVal, scale, offset);
 
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
-                      actPitch, dstPitch);
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, n_actIndex,
+                      n_actPitch, n_dstPitch);
   }
   if (!DO_EVICTS)
     return;
@@ -552,4 +600,4 @@ inline void fwdLibETSOCMaxSplatInstAligned32Bytes(void *dst, void *dstDims,
 
 } // namespace dnn_lib
 
-#endif // _ETSOC_MAX_SPLAT_INST_H_
+#endif // __MAX_SPLAT_INST_H_

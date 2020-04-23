@@ -14,45 +14,25 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibExtractTensorInst(void *dst, void *dstDims,
-                                      void *dstPitches, unsigned int dstDimNum,
-                                      void *src, void *srcDims,
-                                      void *srcPitches, void *pcoord,
-                                      const float *scale, const int32_t *offset) {
+void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
 
-  dnn_lib::inlining::fwdLibExtractTensorInst<srcType>(dst, dstDims,
-                                      dstPitches, dstDimNum,
-                                      src, srcDims,
-                                      srcPitches, pcoord,
-                                      scale, offset);
+  dnn_lib::inlining::fwdLibExtractTensorInst<srcType>(outT, inT, pcoord);
 }
 
 template <typename srcType>
-void fwdLibExtractTensorInstThreaded(void *dst, void *dstDims,
-                                              void *dstPitches,
-                                              unsigned int dstDimNum, void *src,
-                                              void *srcDims, void *srcPitches,
-                                              void *pcoord, const float *scale,
-                                              const int32_t *offset, uint64_t flags) {
+void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
+                                     void *pcoord, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibExtractTensorInstThreaded<srcType>(dst, dstDims,
-                                              dstPitches,
-                                              dstDimNum, src,
-                                              srcDims, srcPitches,
-                                              pcoord, scale,
-                                              offset, flags);
+  dnn_lib::inlining::fwdLibExtractTensorInstThreaded<srcType>(outT, inT,
+                                                              pcoord, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibExtractTensorInst, void *dst, void *dstDims,
-                                void *dstPitches, unsigned int dstDimNum,
-                                void *src2, void *src2Dims, void *src2Pitches,
-                                void * poffsets, const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibExtractTensorInst, LibTensor* outT,
+                 LibTensor* inT, void * poffsets);
 
-GEN_INSTANCES_OP(template, fwdLibExtractTensorInstThreaded, void *dst, void *dstDims,
-                                void *dstPitches, unsigned int dstDimNum,
-                                void *src, void *srcDims, void *srcPitches,
-                                void * poffsets, const float *scale, const int32_t *offset, uint64_t flags);
+  GEN_INSTANCES_OP(template, fwdLibExtractTensorInstThreaded, LibTensor* outT,
+                   LibTensor* inT, void * poffsets, uint64_t flags);
 
 } // namespace dnn_lib

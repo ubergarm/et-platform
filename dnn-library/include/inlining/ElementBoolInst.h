@@ -42,49 +42,36 @@ namespace inlining {
  * @tparam srcType The type of the elements in the input tensors.
  * @tparam opType An operator that takes two srcType elements and returns a 
     bool (>, \geq, =, etc).
- * @param[out] dstT Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] srcT1 Pointer to the first input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] src1Pitches Vector of pitches of the first input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] srcT2 Pointer to the second input matrix.
- * @param[in] src2Pitches Vector of pitches of the second input tensor.
- * @param[in] scale, offset Parameters for the quantization.
+ * @param[out] outT pointer to the output LibTensor.
+ * @param[in] in1T pointer to first source LibTensor
+ * @param[in] in2T pointer to second source LibTensor
  */
 template <typename srcType, typename opType>
 inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
                                   LibTensor* in2T) {
 
-  auto dstH = outT->getHandle<srcType>();
-  auto srcH1 = in1T->getHandle<srcType>();
-  auto srcH2 = in2T->getHandle<srcType>();
-
-  bool* aDstT = reinterpret_cast<bool*>(dstH.getUnsafePtrdbg());
-  srcType* srcT1 = reinterpret_cast<srcType*>(srcH1.getUnsafePtrdbg());
-  srcType* srcT2 = reinterpret_cast<srcType*>(srcH2.getUnsafePtrdbg());
+  /* maintain compatibility through the new Iface Libtensor */    
+  void* srcT1 = in1T->getRawDataPointer<void>();
+  void* srcT2 = in2T->getRawDataPointer<void>();
   
   // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, srcH1.getScaledbg(), srcH1.getOffsetdbg());
+  const Addresser<srcType> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> aSrcT2(srcT2, scale[1], offset[1]);
-  const Addresser<srcType> aSrcT2(srcT2, srcH2.getScaledbg(), srcH2.getOffsetdbg());
+  const Addresser<srcType> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   // bool *aDstT = (bool *)dstT;
-
+  bool* aDstT = outT->getRawDataPointer<bool>();
+  
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  srcH1.cpydims(srcIndex);
+  const size_t *srcIndex = in1T->dims().data();
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  dstH.cpypitchesdbg(dstPitch); 
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  dim_t src1Pitch[max_tensor_dimensions] = {0,};
-  srcH1.cpypitchesdbg(src1Pitch); 
+  const size_t *src1Pitch = in1T->strides().data();
   // unsigned int *src2Pitch = (unsigned int *)src2Pitches;
-  dim_t src2Pitch[max_tensor_dimensions] = {0,};
-  srcH1.cpypitchesdbg(src2Pitch);
-  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
+  const size_t *src2Pitch = in2T->strides().data();
+
+  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -141,15 +128,8 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
  * @tparam opType An operator that takes two srcType elements and returns a 
     bool.
  * @param[out] dstT Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] srcT1 Pointer to the first input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] src1Pitches Vector of pitches of the first input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] srcT2 Pointer to the second input matrix.
- * @param[in] src2Pitches Vector of pitches of the second input tensor.
- * @param[in] scale, offset Parameters for the quantization.
+ * @param[in] in1T pointer to first source LibTensor
+ * @param[in] in2T pointer to second source LibTensor
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
@@ -162,34 +142,27 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   if (minionId >= activeMinions)
     return;
 
-  auto dstH = outT->getHandle<srcType>();
-  auto srcH1 = in1T->getHandle<srcType>();
-  auto srcH2 = in2T->getHandle<srcType>();
-
-  void* dstT = reinterpret_cast<void*>(dstH.getUnsafePtrdbg());
-  srcType* srcT1 = reinterpret_cast<srcType*>(srcH1.getUnsafePtrdbg());
-  srcType* srcT2 = reinterpret_cast<srcType*>(srcH2.getUnsafePtrdbg());
- 
+  /* maintain compatibility through the new Iface Libtensor */    
+  void* srcT1 = in1T->getRawDataPointer<void>();
+  void* srcT2 = in2T->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
+  
   // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, srcH1.getScaledbg(), srcH1.getOffsetdbg());
+  const Addresser<srcType> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> aSrcT2(srcT2, scale[1], offset[1]);
-  const Addresser<srcType> aSrcT2(srcT2, srcH2.getScaledbg(), srcH2.getOffsetdbg());
-  bool *aDstT = reinterpret_cast<bool*>(dstT);
+  const Addresser<srcType> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
+  bool *aDstT = outT->getRawDataPointer<bool>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH1.cpydims(actIndex);
-
+  const size_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  dstH.cpypitchesdbg(dstPitch);
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  dim_t act1Pitch[max_tensor_dimensions] = {0,};
-  srcH1.cpypitchesdbg(act1Pitch); 
+  const size_t *act1Pitch = in1T->strides().data();
   // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
-  dim_t act2Pitch[max_tensor_dimensions] = {0,};
-  srcH2.cpypitchesdbg(act2Pitch);
-  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
+  const size_t *act2Pitch = in2T->strides().data();
+  
+  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
   Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
 
@@ -267,30 +240,25 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   if (minionId >= activeMinions)
     return;
 
-  auto srcH1 = in1T->getHandle<src1Type>();
-  auto srcH2 = in2T->getHandle<src2Type>();
-
-  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
-  src1Type* srcT1 = reinterpret_cast<src1Type*>(srcH1.getUnsafePtrdbg());
-  src2Type* srcT2 = reinterpret_cast<src2Type*>(srcH2.getUnsafePtrdbg());
-
+  /* maintain compatibility through the new Iface Libtensor */
+  
+  void* dstT = outT->getRawDataPointer<void>();
+  void* srcT1 = in1T->getRawDataPointer<void>();
+  void* srcT2 = in2T->getRawDataPointer<void>();
+  
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH1.cpydims(actIndex);
-
+  const size_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  outT->dbgcpypitches(dstPitch); 
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)src1Pitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH1.cpypitchesdbg(actPitch); 
+  const size_t *actPitch = in1T->strides().data();
   // bool *dstAddr = (bool *)dstT;
-  bool* dstAddr = reinterpret_cast<bool*>(dstT);
+  bool* dstAddr = outT->getRawDataPointer<bool>();
   
   uintptr_t srcAddr1 = (uintptr_t)srcT1;
   uintptr_t srcAddr2 = (uintptr_t)srcT2;
 
-  unsigned int srcDimNum = static_cast<unsigned int>(srcH1.getNumDimsdbg());
+  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
   Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<src2Type>, opType> op;
 

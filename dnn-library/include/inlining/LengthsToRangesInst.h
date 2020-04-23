@@ -37,23 +37,18 @@ inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  
-  void* plengths = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dstT = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* dstT = outT->getRawDataPointer<void>();
+  void* plengths = inT->getRawDataPointer<void>();
 
   // const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
-  const Addresser<srcType> lengths(plengths, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> lengths(plengths, inT->getScale(), inT->getOffset());
   // // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
-
-  dim_t lenIndx[max_tensor_dimensions] = {0,};
-  srcH.cpydimsdbg(lenIndx);
+  const size_t *dstPitch = outT->strides().data();
+  
+  const size_t *lenIndx = inT->dims().data();
 
   auto offset = lengths[0];
   offset = 0;
@@ -73,28 +68,23 @@ void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  
-  void* plengths = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dstT = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
+  void* dstT = outT->getRawDataPointer<void>();  
+  void* plengths = inT->getRawDataPointer<void>();
  
   // const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
-  const Addresser<srcType> lengths(plengths, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> lengths(plengths, inT->getScale(), inT->getOffset());
   // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
 
   int level = -1;
   for (unsigned int j = 1; j < activeMinions; j*=2)
     level++;
 
   //unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
-
-  dim_t lenIndx[max_tensor_dimensions] = {0,};
-  srcH.cpydimsdbg(lenIndx);
-
+  const size_t *dstPitch = outT->strides().data();
+  
+  const size_t *lenIndx = inT->dims().data();
+  
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getReversedCachelinePartition(typeSize, lenIndx[0], initialAddr, maxRead,

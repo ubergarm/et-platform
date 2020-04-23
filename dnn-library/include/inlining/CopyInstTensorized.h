@@ -59,7 +59,7 @@ namespace inlining {
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <typename srcType>
-inline void fwdLibCopyInstTensorized(LibTensor* inT, LibTensor* outT,
+inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
                                      uint64_t flags,
                                      const uint32_t minionOffset = 0,
                                      const uint32_t assignedMinions = 0) {
@@ -71,25 +71,14 @@ inline void fwdLibCopyInstTensorized(LibTensor* inT, LibTensor* outT,
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  auto srcH = inT->getHandle<srcType>();
-  auto dstH = outT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dst = reinterpret_cast<void*>(dstH.getUnsafePtrdbg());
- 
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  dstH.cpydims(dstIndex);
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
+  
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);
-
+  const size_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  dstH.cpypitchesdbg(dstPitch);
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] =  {0,};
-  srcH.cpypitchesdbg(actPitch);
-
+  const size_t *dstPitch = outT->strides().data();
+   
   size_t typeSize = getsize<srcType>();
   uint64_t numElemsDst = dstPitch[0] * actIndex[0] *
                              typeSize; // Total number of elements in the tensor

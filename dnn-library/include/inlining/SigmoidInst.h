@@ -40,25 +40,22 @@ inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t 
  
   /* maintain compatibility through the new Iface Libtensor */
 
-  void* srcT1 = reinterpret_cast<void*>(inT->getUnsafePtr());
-  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
+  void* srcT1 = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
 
   // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dstT, outT->dbggetscale(), outT->dbggetoffset());
+  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(srcT1, inT->dbggetscale(), inT->dbggetoffset());
+  const Addresser<srcType> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
 
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  outT->dims(actIndex);
+  const size_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  outT->dbgcpypitches(dstPitch);
+  const size_t * dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  inT->dbgcpypitches(actPitch);
+  const size_t *actPitch = inT->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
@@ -105,26 +102,22 @@ inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-
-  void* srcT1 = reinterpret_cast<void*>(inT->getUnsafePtr());
-  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
+  void* srcT1 = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
   
   // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dstT, outT->dbggetscale(), outT->dbggetoffset());  
+  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());  
   // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(srcT1, inT->dbggetscale(), inT->dbggetoffset());
+  const Addresser<srcType> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  inT->dims(srcIndex); 
+  const size_t * srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  outT->dbgcpypitches(dstPitch);
+  const size_t * dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  dim_t srcPitch[max_tensor_dimensions] =  {0,};
-  inT->dbgcpypitches(srcPitch);
+  const size_t * srcPitch = inT->strides().data();
   
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};

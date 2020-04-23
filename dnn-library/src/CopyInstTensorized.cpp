@@ -14,18 +14,18 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibCopyInstTensorized(LibTensor* inT, LibTensor* outT, uint64_t flags,
+void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                               const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstTensorized<srcType>(inT, outT, flags,
+  dnn_lib::inlining::fwdLibCopyInstTensorized<srcType>(outT, inT, flags,
                                                        minionOffset,
                                                        assignedMinions);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, LibTensor* inT, LibTensor* outT, uint64_t flags,
+GEN_INSTANCES_OP(template, fwdLibCopyInstTensorized, LibTensor* ouT, LibTensor* inT, uint64_t flags,
                  const uint32_t minionOffset, const uint32_t assignedMinions);
   
 } // namespace dnn_lib

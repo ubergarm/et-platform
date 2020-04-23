@@ -14,31 +14,29 @@
 namespace dnn_lib {
 
 template <typename srcType, typename indexType>
-void fwdLibGatherRangesInst(LibTensor* inT, LibTensor* outT, LibTensor* out2T,
-                            LibTensor* rangesT) {
+void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
+                            LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibGatherRangesInst<srcType, indexType>(inT, outT,
-                                                                out2T, rangesT);
+  dnn_lib::inlining::fwdLibGatherRangesInst<srcType, indexType>(outT, out2T,
+                                                                in1T, in2T);
 }
 
 
 template <typename srcType, typename indexType>
-void fwdLibGatherRangesInstThreaded(LibTensor* inT, LibTensor* outT, LibTensor*out2T,
-                                    LibTensor* rangesT, uint64_t flags) {
+void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor*out2T,
+                                    LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibGatherRangesInstThreaded<srcType, indexType>(inT,
-                                                                        outT,
-                                                                        out2T,
-                                                                        rangesT,
+  dnn_lib::inlining::fwdLibGatherRangesInstThreaded<srcType, indexType>(outT, out2T,
+                                                                        in1T, in2T,
                                                                         flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, LibTensor* inT,
-                       LibTensor* outT, LibTensor* out2T, LibTensor* rangesT);
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, LibTensor* outT,
+                       LibTensor* out2T, LibTensor* in1T, LibTensor* in2T);
 
-  GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, LibTensor* inT,
-                         LibTensor* outT, LibTensor* out2T, LibTensor* rangesT,
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, LibTensor* outT,
+                         LibTensor* out2T, LibTensor* in1T, LibTensor* in2T,
                          uint64_t flags);
 } // namespace dnn_lib

@@ -24,33 +24,47 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(void *dstT, void *dstDims,
-                                      void *dstPitches, void *srcT,
-                                      void *srcDims, void *srcPitches,
-                                      unsigned int srcDimNum, void *indicesT,
-                                      void *indDims, void *indPitches,
-                                      const float *scale, const int32_t *offset) {
+inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* outT,
+                                                                   LibTensor* in1T,
+                                                                   LibTensor* in2T) {
   unsigned int minionId = get_minion_id();
   if (minionId > 0)
     return;
 
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  long long *tIndex = (long long *)indicesT;
+  /* outT --> dst  in1T--> src   in2T--> indices */
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *indIndex = (unsigned int *)indDims;
+  void* dstT = outT->getRawDataPointer<void>();
+  void* srcT = in1T->getRawDataPointer<void>();
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<srcType> tTmp(dstT, outT->getScale(), outT->getOffset());
+  // long long *tIndex = (long long *)indicesT;
+  long long *tIndex = in2T->getRawDataPointer<long long>();
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *indIndex = (unsigned int *)indDims;
+  const size_t *indIndex = in2T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = in1T->strides().data();
 
+  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  
   // Convert sparse representation to dense representation by taking
   // slices of output and values and accumulating the value slice into
   // the output slice.
@@ -115,25 +129,38 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(void *dstT, v
 
 template <typename srcType>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
-    void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
+            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  long long *tIndex = (long long *)indicesT;
+  /* outT --> dst  in1T--> src   in2T--> indices */
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *indIndex = (unsigned int *)indDims;
+  void* dstT = outT->getRawDataPointer<void>();
+  void* srcT = in1T->getRawDataPointer<void>();
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // long long *tIndex = (long long *)indicesT;
+  long long *tIndex = in2T->getRawDataPointer<long long>();
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *indIndex = (unsigned int *)indDims;
+  const size_t *indIndex = in2T->dims().data();  
 
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = in1T->strides().data();
+
+  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
@@ -155,11 +182,17 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   unsigned int offsetOut = 0;
 
   unsigned int srcPitch_0 = srcPitch[0];
-  srcPitch[0] = 0;
-
+  // @TODO srcpidtch It is a cnst pointer!!!!. Re-do in other way
+  // it is not allowed modify tensor properties. It needs a cpy of it.
+  size_t cpySrcPitch[srcDimNum] = {0,};
+  for (size_t i = 0; i < srcDimNum; i++)
+    cpySrcPitch[i] = srcPitch[i];
+  // srcPitch[0] = 0;
+  cpySrcPitch[0] = 0;
+  
   for (unsigned int j = 0; j < k; j++) {
     offsetOut += dstPitch[j] * coord[j];
-    offsetIn += srcPitch[j] * coord[j];
+    offsetIn += cpySrcPitch[j] * coord[j];
   }
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
@@ -172,7 +205,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
     }
     tOutput[offsetOut] = sum;
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, dstIndex,
-                      srcPitch, dstPitch);
+                      cpySrcPitch, dstPitch);
   }
   if (!DO_EVICTS)
     return;
@@ -339,25 +372,35 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 template <typename srcType>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
-    void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
+           LibTensor* outT, LibTensor* in1T, LibTensor* in2T, const float* scale,
+           const int32_t* offset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  long long *tIndex = (long long *)indicesT;
+  /* outT --> dst  in1T--> src   in2T--> indices */
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *indIndex = (unsigned int *)indDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
-
-  uintptr_t dstAddr = (uintptr_t)dstT;
+  void* dstT = outT->getRawDataPointer<void>();
+  void* srcT = in1T->getRawDataPointer<void>();
+  // long long *tIndex = (long long *)indicesT;
+  long long *tIndex = in2T->getRawDataPointer<long long>();
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *indIndex = (unsigned int *)indDims;
+  const size_t *indIndex = in2T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = in1T->strides().data();
+  
+  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  
+  uintptr_t dstAddr = (uintptr_t)dstT;    
   uintptr_t srcAddr = (uintptr_t)srcT;
 
 
@@ -381,11 +424,18 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
   unsigned int offsetOut = 0;
 
   unsigned int batchPitch = srcPitch[0];
-  srcPitch[0] = 0;
+  // @TODO srcpitch It is a cnst pointer!!!!. Re-do in other way
+  // it is not allowed modify tensor properties. It needs a cpy of it.
+  size_t cpySrcPitch[srcDimNum] = {0,};
+  for (size_t i = 0; i < srcDimNum; i++)
+    cpySrcPitch[i] = srcPitch[i];
+  //srcPitch[0] = 0;
+  cpySrcPitch[0] = 0;
 
+  
   for (unsigned int j = 0; j < k; j++) {
     offsetOut += dstPitch[j] * coord[j];
-    offsetIn += srcPitch[j] * coord[j];
+    offsetIn += cpySrcPitch[j] * coord[j];
   }
 
   unsigned int posMax = maxRead + initialAddr;
@@ -437,12 +487,14 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
 
     dstAddr = (uintptr_t)dstT;
     srcAddr = (uintptr_t)srcT;
-    offsetIn -= coord[lastDim] * srcPitch[lastDim];
+
+
+    offsetIn -= coord[lastDim] * cpySrcPitch[lastDim];    
     offsetOut -= coord[lastDim] * dstPitch[lastDim];
     coord[lastDim] = 0;
 
     done = getOffsets(lastDim , coord, offsetIn, offsetOut, dstIndex,
-                      srcPitch, dstPitch);
+                      cpySrcPitch, dstPitch);
   }
   if (!DO_EVICTS)
     return;

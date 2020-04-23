@@ -33,29 +33,23 @@ inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
   if (minionId != 0)
     return;
 
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-
-  srcType* dstT = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
-  srcType* srcT = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  /* maintain compatibility through the new Iface Libtensor */
+  void* srcT = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
   
   // dnn_lib::Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, destH.getScaledbg(), destH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const dnn_lib::Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(srcT, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> tAInput(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydimsdbg(dstIndex);
+  const size_t *dstIndex = outT->dims().data();  
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydimsdbg(actIndex);
+  const size_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
+  const size_t *actPitch = inT->strides().data();
   
 #define START_IND(a, b, c) (a * c) / b
 #define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1

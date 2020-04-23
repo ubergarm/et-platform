@@ -31,24 +31,31 @@ namespace dnn_lib {
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
-                                void *dstMatrixPitches, void *activations,
-                                void *activationsDims, void *activationsPitches,
-                                void *pkernels, void *pstrides, void *ppads,
-                                const float *scale, const int32_t *offset) {
+inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
+                              void *pkernels, void *pstrides, void *ppads) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
+  
+  /* maintain compatibility through the new Iface Libtensor */
 
-  Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = inT->strides().data();
 
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;
@@ -97,26 +104,32 @@ inline void fwdLibAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
 }
 
 template <typename srcType, typename dstType>
-inline void fwdLibAvgPoolInstThreaded(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *pkernels, void *pstrides, void *ppads, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
+                                      void *pkernels, void *pstrides,
+                                      void *ppads, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
+  
+  // Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(src, inT->getScale(), outT->getOffset());
+ 
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = inT->strides().data();
+  
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;
   unsigned int *pads = (unsigned int *)ppads;
@@ -180,7 +193,7 @@ inline void fwdLibAvgPoolInstThreaded(
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
 } // namespace inlining

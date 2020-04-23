@@ -80,54 +80,38 @@ class WriteSliceToDst<ptrT, 0> {
 };
 
 template <typename srcType>
-inline void fwdLibScatterDataInst(LibTensor* inT, LibTensor* outT, LibTensor* sliT) {
-// inline void fwdLibScatterDataInst(void *dstT, void *dstDims,
-// 				    void *dstPitches, unsigned int dstNumDim, void *indexT,
-// 				    void *indicesDims, void *pindicesPitches,
-// 				    void *slicesT, void *slicesDims, unsigned int sliceSize,
-// 				    void *slicesPitches, unsigned int sliceNumDim, const float *scale,
-// 				    const int32_t *offset) {
+inline void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-
-  auto indexH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  auto sliceH = sliT->getHandle<srcType>();
+  /* outT --> dst  in1T--> src in2T--> slice*/
   
-  // using ptrType = UintSelector<getsize<srcType>()>;
-
+ 
   // ptrType* tSlices = static_cast<ptrType*>(slicesT);
-  srcType* tSlices = reinterpret_cast<srcType*>(sliceH.getUnsafePtrdbg());
+  srcType* tSlices = in2T->getRawDataPointer<srcType>();
   // ptrType* tOutput = static_cast<ptrType*>(dstT);
-  srcType* tOutput = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
+  srcType* tOutput = outT->getRawDataPointer<srcType>();
   //uint64_t  *tIndices = (uint64_t *)indexT;
-  uint64_t* tIndices = reinterpret_cast<uint64_t*>(indexH.getUnsafePtrdbg());
+  uint64_t* tIndices = in1T->getRawDataPointer<uint64_t>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydims(dstIndex);
+  const size_t *dstIndex = outT->dims().data();
   // unsigned int *indicesIndex = (unsigned int *)indicesDims;
-  dim_t indicesIndex[max_tensor_dimensions] = {0,};
-  indexH.cpydims(indicesIndex);
+  const size_t *indicesIndex = in1T->dims().data();
   // unsigned int *slicesIndex = (unsigned int *)slicesDims;
-  dim_t slicesIndex[max_tensor_dimensions] = {0,};
-  sliceH.cpydims(slicesIndex);
+  const size_t *slicesIndex = in2T->dims().data();
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-  dim_t indicesPitch[max_tensor_dimensions] = {0,};
-  indexH.cpypitchesdbg(indicesPitch);
+  const size_t *indicesPitch = in1T->strides().data();
   // unsigned int *slicesPitch = (unsigned int *)slicesPitches;
-  dim_t slicesPitch[max_tensor_dimensions] = {0,};
-  sliceH.cpypitchesdbg(slicesPitch);
+  const size_t * slicesPitch = in2T->strides().data();
 
-  unsigned int sliceNumDim = sliceH.getNumDimsdbg();
+  unsigned int sliceNumDim = static_cast<unsigned int>(in2T->ndims());
   
   dataToCopyXSliceDim sliceSteps[max_tensor_dimensions];
   int push_ptr = 0;

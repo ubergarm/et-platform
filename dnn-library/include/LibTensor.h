@@ -563,11 +563,11 @@ class LibTensor final {
   //TODO: REMOVE if not used  char* getUnsafePtr() const { return getData(); }
 
 
-  /*debug purpose*/
+  /*TODO: After re-do sw-2429 (refact operands) are the getters necessary? if not remove them. */
   const dim_array_t &strides() const { return type_.strides_;}
-  float    dbggetscale() { return type_.getScale(); }
-  int32_t dbggetoffset() { return type_.getOffset(); }
-  
+  float   getScale() { return type_.getScale(); }
+  int32_t getOffset() { return type_.getOffset(); }
+  size_t getElementSize() { return type_.getElementSize(); }  
 public:
 
   /*@brief returns a pointer to the raw data, of type \p ElemTy.
@@ -831,8 +831,8 @@ public:
   dim_t getNumDimsdbg(void) {return numDims_;}
   LibTensor* getTensordbg(void) {return tensor_;}
   //TODO: REMOVE if not used  char* getUnsafePtrdbg(void) {return tensor_->getUnsafePtr();}
-  float getScaledbg(void) {return tensor_->dbggetscale();}
-  int32_t getOffsetdbg(void) {return tensor_->dbggetoffset();}
+  float getScale(void) {return tensor_->getScale();}
+  int32_t getOffset(void) {return tensor_->getOffset();}
 //TODO: remove if unused  uint8_t cpypitchesdbg(dim_t* cpypitch) { return tensor_->dbgcpypitches(cpypitch); }
 //TODO: remove if unused  uint8_t cpydimsdbg(dim_t* cpydims) { return tensor_->dims(cpydims); }
 }; //end Handle class

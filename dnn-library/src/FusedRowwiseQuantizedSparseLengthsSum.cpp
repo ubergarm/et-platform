@@ -15,27 +15,18 @@ namespace dnn_lib {
 
 template<typename DstType>
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
-        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdata, void *pdataDims, void *pdataPitches,
-        void *pindices, void *plengths, unsigned int pLengthsSize,
-        uint64_t flags,
-        const uint32_t minionOffset, const uint32_t assignedMinions) {
+             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+             uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions) {
 
   dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized<DstType>(
-        pdst, pdstDims, pdstPitches, pdstDimNum,
-        pdata, pdataDims, pdataPitches,
-        pindices, plengths, pLengthsSize,
-        flags,
-        minionOffset, assignedMinions);
+             outT, in1T, in2T, in3T, flags,
+             minionOffset, assignedMinions);
 }
 
 #include "GenInstances.h"
 
 GEN_INSTANCES_1TYPEFP(template, fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized,
-            void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-            void *pdata, void *pdataDims, void *pdataPitches,
-            void *pindices, void *plengths, unsigned int pLengthsSize,
-            uint64_t flags,
-            const uint32_t minionOffset, const uint32_t numShires);
+                      LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,                      
+                      uint64_t flags, const uint32_t minionOffset, const uint32_t numShires);
 
 } // namespace dnn_lib

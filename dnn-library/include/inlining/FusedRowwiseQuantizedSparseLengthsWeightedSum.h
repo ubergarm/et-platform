@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -364,13 +365,8 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
 template<bool Weighted, bool Float32Dst, bool Float16Dst>
 inline __attribute((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
-        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdst2, void *pdst2Pitches,
-        void *pdata, void *pdataDims, void *pdataPitches,
-        void *pweights, void *pweightsDims, void *pweightsPitches,
-        void *pindices, void *plengths, unsigned int pLengthsSize,
-        uint64_t flags,
-        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+        LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,                                                              
+        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   // Get offset of the Minion inside the group of Minions assigned to this Node.
 
@@ -383,19 +379,33 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
   // If Minion is outside the group assigned to this Node get out.
   if (minionId >= activeMinions) return;
 
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT--> dest out2T --> dest2 in1T--> data in2T-->weight in3T-->indices in4T-->length*/
+  
   // Set real types for input pointers.
   // For dst we used uint8_t because it can be accessed with different types.
-  uint8_t *tOutput = (uint8_t *) pdst;
-  uint8_t *tAInput = (uint8_t *) pdata;
-  uint8_t *tWInput = (uint8_t *) pweights;
-  int64_t *indices = (int64_t *) pindices;
-  int32_t *lengths = (int32_t *) plengths;
+  // uint8_t *tOutput = (uint8_t *) pdst;
+  uint8_t *tOutput = outT->getRawDataPointer<uint8_t>();
+  // uint8_t *tAInput = (uint8_t *) pdata;
+  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  // uint8_t *tWInput = (uint8_t *) pweights;
+  uint8_t *tWInput = in2T->getRawDataPointer<uint8_t>();
+  // int64_t *indices = (int64_t *) pindices;
+  int64_t *indices = in3T->getRawDataPointer<int64_t>();
+  // int32_t *lengths = (int32_t *) plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
 
-  uint32_t *dstDims     = (uint32_t *) pdstDims;
-  uint32_t *dataDims    = (uint32_t *) pdataDims;
-  uint32_t *dstPitches  = (uint32_t *) pdstPitches;
-  uint32_t *dataPitches = (uint32_t *) pdataPitches;
+  // uint32_t *dstDims     = (uint32_t *) pdstDims;
+  const size_t *dstDims = outT->dims().data();
+  // uint32_t *dataDims    = (uint32_t *) pdataDims;
+  const size_t *dataDims = in1T->dims().data();
+  // uint32_t *dstPitches  = (uint32_t *) pdstPitches;
+  const size_t *dstPitches = outT->strides().data();
+  // uint32_t *dataPitches = (uint32_t *) pdataPitches;
+  const size_t *dataPitches = in1T->strides().data();
 
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   // TODO : Add assert checking segments is equal to the number of output rows.
 
   // TODO : Add assert checking that totalLength is smaller than the size of
@@ -841,23 +851,15 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
 template<typename Type>
 inline __attribute((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
-        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdata, void *pdataDims, void *pdataPitches,
-        void *pweights, void *pweightsDims, void *pweightsPitches,
-        void *pindices, void *plengths, unsigned int pLengthsSize,
-        uint64_t flags,
-        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+       LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   const bool float32Dst = (std::is_same<Type, float>::value);
   const bool float16Dst = (std::is_same<Type, float16>::value);
 
+  LibTensor* out2T = nullptr;
   fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<true, float32Dst, float16Dst>(
-    pdst, pdstDims, pdstPitches, pdstDimNum,
-    nullptr, nullptr,
-    pdata, pdataDims, pdataPitches,
-    pweights, pweightsDims, pweightsPitches,
-    pindices, plengths, pLengthsSize, flags,
-    minionOffset, assignedMinions);
+              outT, out2T, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining

@@ -14,37 +14,20 @@
 namespace dnn_lib {
 
 template <typename srcType, typename opType>
-void fwdLibElementImmLogic(void *dstT, void *dstDims,
-                                     void *dstPitches, void *srcT1,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, void *imm,
-                                     const float *scale, const int32_t *offset) {
+void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, void *imm) {
 
-  dnn_lib::inlining::fwdLibElementImmLogic<srcType, opType>(dstT, dstDims,
-                                     dstPitches, srcT1,
-                                     srcDims, srcPitches,
-                                     srcDimNum, imm,
-                                     scale, offset);
+  dnn_lib::inlining::fwdLibElementImmLogic<srcType, opType>(outT, inT, imm);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, And, void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *imm, 
-                                 const float * scale, const int32_t * offset);
+GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, And, LibTensor* outT,
+                              LibTensor* inT, void *imm);
 
-GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, Or, void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *imm, 
-                                 const float * scale, const int32_t * offset);
+GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, Or, LibTensor* outT,
+                              LibTensor* inT, void *imm);
 
-GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, Xor, void *dstT, void *dstDims,
-                                 void *dstPitches, void *srcT1,
-                                 void *srcDims, void *src1Pitches,
-                                 unsigned int srcDimNum, void *imm, 
-                                 const float * scale, const int32_t * offset);
+GEN_INSTANCES_INSTANCES_LOGIC(template, fwdLibElementImmLogic, Xor, LibTensor* outT,
+                              LibTensor* inT, void *imm);
 
 } // namespace dnn_lib

@@ -39,23 +39,20 @@ inline void fwdLibIntLookupTableInstInt8QTy(LibTensor* outT, LibTensor* in1T,
   /* maintain compatibility through the new Iface Libtensor */
 
   // int8_t *ptrDstT = (int8_t *)dstT;
-  int8_t *ptrDstT = reinterpret_cast<int8_t*>(outT->getUnsafePtr());
+  int8_t *ptrDstT = outT->getRawDataPointer<int8_t>();
   // int8_t *ptrSrcT1 = (int8_t *)src1T;
-  int8_t *ptrSrcT1 = reinterpret_cast<int8_t*>(in1T->getUnsafePtr());  
+  int8_t *ptrSrcT1 = in1T->getRawDataPointer<int8_t>();
   // int8_t *ptrSrcT2 = (int8_t *)src2T;
-  int8_t *ptrSrcT2 = reinterpret_cast<int8_t*>(in2T->getUnsafePtr());
+  int8_t *ptrSrcT2 = in2T->getRawDataPointer<int8_t>();
   
   // unsigned int *src1Index = (unsigned int *)src1Dims;
-  dim_t src1Index[max_tensor_dimensions] = {0,};
-  in1T->dims(src1Index);
+  const size_t* src1Index =  in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  outT->dbgcpypitches(dstPitch);
+  const size_t* dstPitch = outT->strides().data();
   // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  dim_t src1Pitch[max_tensor_dimensions] = {0,};
-  in1T->dbgcpypitches(src1Pitch);
+  const size_t* src1Pitch = in1T->strides().data();
 
-  unsigned int dstDimNum = static_cast<unsigned int>(outT->dbggetnumdims());
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -98,27 +95,25 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(LibTensor* outT,
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
+  void *dst = outT->getRawDataPointer<void>();
+  
   // int8_t *ptrDstT = (int8_t *)dstT;
-  int8_t *ptrDstT = reinterpret_cast<int8_t*>(outT->getUnsafePtr());
+  int8_t *ptrDstT = outT->getRawDataPointer<int8_t>();
   // int8_t *ptrSrcT1 = (int8_t *)src1T;
-  int8_t *ptrSrcT1 = reinterpret_cast<int8_t*>(in1T->getUnsafePtr());
+  int8_t *ptrSrcT1 = in1T->getRawDataPointer<int8_t>();
   // int8_t *ptrSrcT2 = (int8_t *)src2T;
-  int8_t *ptrSrcT2 = reinterpret_cast<int8_t*>(in2T->getUnsafePtr());
+  int8_t *ptrSrcT2 = in2T->getRawDataPointer<int8_t>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  outT->dims(dstIndex);
+  const size_t* dstIndex =  outT->dims().data();
   // unsigned int *src1Index = (unsigned int *)src1Dims;
-  dim_t src1Index[max_tensor_dimensions] = {0,};
-  in1T->dims(src1Index);
+  const size_t* src1Index =  in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] =  {0,};
-  outT->dbgcpypitches(dstPitch);
+  const size_t* dstPitch = outT->strides().data();
   // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  dim_t src1Pitch[max_tensor_dimensions] = {0,};
-  in1T->dbgcpypitches(src1Pitch);
+  const size_t* src1Pitch = in1T->strides().data();
 
-  unsigned int dstDimNum = static_cast<unsigned int>(outT->dbggetnumdims());
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
@@ -151,7 +146,7 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(LibTensor* outT,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)outT->getUnsafePtr()/*dstT*/ + sizeof(int8_t)*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + sizeof(int8_t)*initialAddr, clperminion);
 }
 
 } // namespace inlining

@@ -31,52 +31,39 @@ namespace dnn_lib {
 namespace inlining {
 
 template <typename srcType>
-void fwdLibMatMulInst(LibTensor* inT, LibTensor* weightT, LibTensor* outT) {
+void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  auto weigH = weightT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
-  void* wei = reinterpret_cast<void*>(weigH.getUnsafePtrdbg());
+  /* outT --> dst  in1--> act in2-> weight*/
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = in1T->getRawDataPointer<void>();
+  void* wei = in2T->getRawDataPointer<void>();
   
   // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
-  const Addresser<srcType> tAInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
-  const Addresser<srcType> tWInput(wei, weigH.getScaledbg(), weigH.getOffsetdbg());
+  const Addresser<srcType> tWInput(wei, in2T->getScale(), in2T->getOffset());
 
   //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydims(dstIndex);
-  
+  const size_t *dstIndex = outT->dims().data();
   //unsigned int *actIndex = (unsigned int *)activationsDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);
-  
+  const size_t *actIndex = in1T->dims().data();
   //unsigned int *weightIndex = (unsigned int *)weightsDims;
-  dim_t weightIndex[max_tensor_dimensions] = {0,};
-  weigH.cpydims(weightIndex);
+  // const size_t * weightIndex = in2T->dims().data();
 
   //  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
-  
+  const size_t *dstPitch = outT->strides().data();
   //unsigned int *actPitch = (unsigned int *)activationsPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
-  
+  const size_t *actPitch = in1T->strides().data();
   //unsigned int *weightPitch = (unsigned int *)weightPitches;
-  dim_t weightPitch[max_tensor_dimensions] = {0,};
-  weigH.cpypitchesdbg(weightPitch);
-
+  const size_t *weightPitch = in2T->strides().data();
+  
   // For each (x,y) in the destination matrix:
   for (unsigned int x = 0; x < dstIndex[0]; x++) {
     for (unsigned int y = 0; y < dstIndex[1]; y++) {
@@ -92,7 +79,7 @@ void fwdLibMatMulInst(LibTensor* inT, LibTensor* weightT, LibTensor* outT) {
 }
 
 template <typename srcType>
-void fwdLibMatMulInstThreaded(LibTensor* inT, LibTensor* weightT, LibTensor* outT,
+void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
                               uint64_t flags, const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
 
@@ -102,45 +89,32 @@ void fwdLibMatMulInstThreaded(LibTensor* inT, LibTensor* weightT, LibTensor* out
     return;
   
   /* maintain compatibility through the new Iface Libtensor */
-
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  auto weigH = weightT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
-  void* wei = reinterpret_cast<void*>(weigH.getUnsafePtrdbg());
+  /* outT --> dst  in1--> act in2-> weight*/
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = in1T->getRawDataPointer<void>();
+  void* wei = in2T->getRawDataPointer<void>();
 
   // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, destH.getScaledbg(), destH.getOffsetdbg());
-  const Addresser<srcType> tAInput(src, srcH.getScaledbg(), srcH.getOffsetdbg());
-  const Addresser<srcType> tWInput(wei, weigH.getScaledbg(), weigH.getOffsetdbg());
+  const Addresser<srcType> tWInput(wei, in2T->getScale(), in2T->getOffset());
   
   //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydims(dstIndex);
-  
+  const size_t *dstIndex = outT->dims().data();
   //unsigned int *actIndex = (unsigned int *)activationsDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);
-  
+  const size_t *actIndex = in1T->dims().data();
   //unsigned int *weightIndex = (unsigned int *)weightsDims;
-  dim_t weightIndex[max_tensor_dimensions] = {0,};
-  weigH.cpydims(weightIndex);
+  // const size_t * weightIndex = in2T->dims().data();
 
   //  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
-  
+  const size_t *dstPitch = outT->strides().data();
   //unsigned int *actPitch = (unsigned int *)activationsPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
-  
+  const size_t *actPitch = in1T->strides().data();
   //unsigned int *weightPitch = (unsigned int *)weightPitches;
-  dim_t weightPitch[max_tensor_dimensions] = {0,};
-  weigH.cpypitchesdbg(weightPitch);
-
+  const size_t *weightPitch = in2T->strides().data();
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -422,8 +396,8 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 // wgt and dst tensors, so we can use vectorization.
 
 template <typename srcType>
-void fwdLibMatMulInstVectorized(LibTensor* inT, LibTensor* weightT,
-                                LibTensor* outT, uint64_t flags,
+void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
+                                LibTensor* in2T, uint64_t flags,
                                 const uint32_t minionOffset,
                                 const uint32_t assignedMinions) {
 
@@ -433,34 +407,21 @@ void fwdLibMatMulInstVectorized(LibTensor* inT, LibTensor* weightT,
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  auto weigH = weightT->getHandle<srcType>();
-  void* src = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dst = reinterpret_cast<void*>(destH.getUnsafePtrdbg());
-  void* wei = reinterpret_cast<void*>(weigH.getUnsafePtrdbg());
+  /* outT --> dst  in1--> act in2-> weight*/
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = in1T->getRawDataPointer<void>();
+  void* wei = in2T->getRawDataPointer<void>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydims(dstIndex);
-
+  const size_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);
-
+  const size_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
-
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
-
+  const size_t *actPitch = in1T->strides().data();
   // unsigned int *wgtPitch = (unsigned int *)weightPitches;
-  dim_t wgtPitch[max_tensor_dimensions] = {0,};
-  weigH.cpypitchesdbg(wgtPitch);
-
+  const size_t *wgtPitch = in2T->strides().data();
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -521,8 +482,8 @@ void fwdLibMatMulInstVectorized(LibTensor* inT, LibTensor* weightT,
   int32_t gatherValues[8];
   setGatherValues <srcType>(gatherValues);
 
-  float scale[3] =  {srcH.getScaledbg(), weigH.getScaledbg(), destH.getScaledbg()};
-  int32_t offset[3] = {srcH.getOffsetdbg(), weigH.getOffsetdbg(), destH.getOffsetdbg()};
+  float scale[3] =  {in1T->getScale(), in2T->getScale(), outT->getScale()};
+  int32_t offset[3] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
   while (true) {
     // uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
     // uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;

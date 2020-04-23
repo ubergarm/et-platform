@@ -14,60 +14,34 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibSparseToDenseInst(void *dstT, void *dstDims,
-                                      void *dstPitches, void *srcT,
-                                      void *srcDims, void *srcPitches,
-                                      unsigned int srcDimNum, void *indicesT,
-                                      void *indDims, void *indPitches,
-                                      const float *scale, const int32_t *offset) {
+void fwdLibSparseToDenseInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseInst<srcType>(dstT, dstDims,
-                                      dstPitches, srcT,
-                                      srcDims, srcPitches,
-                                      srcDimNum, indicesT,
-                                      indDims, indPitches,
-                                      scale, offset);
+  dnn_lib::inlining::fwdLibSparseToDenseInst<srcType>(outT, in1T, in2T);
 }
 
 template <typename srcType>
-void fwdLibSparseToDenseInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
-    void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibSparseToDenseInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                     LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<srcType>(
-    dstT, dstDims, dstPitches, srcT, srcDims,
-    srcPitches, srcDimNum, indicesT, indDims,
-    indPitches, scale, offset, flags);
+  dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<srcType>(outT, in1T, in2T, flags);
 }
 
 template <typename srcType>
-void fwdLibSparseToDenseInstVectorized(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, void *indicesT, void *indDims,
-    void *indPitches, const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibSparseToDenseInstVectorized(LibTensor* outT, LibTensor* in1T,
+                                       LibTensor* in2T, const float* scale,
+                                       const int32_t* offset, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<srcType>(
-    dstT, dstDims, dstPitches, srcT, srcDims,
-    srcPitches, srcDimNum, indicesT, indDims,
-    indPitches, scale, offset, flags);
+  dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<srcType>(outT, in1T, in2T, scale, offset, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseInst, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibSparseToDenseInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T);
 
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstThreaded, LibTensor* outT, LibTensor* in1T,
+                 LibTensor* in2T, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstVectorized, void *dstT, void *dstDims, void *dstPitches,
-                                void *srcT, void *srcDims, void *srcPitches,
-                                unsigned int srcDimNum, void* indicesT, void *indDims,
-                                void *indPitches, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibSparseToDenseInstVectorized, LibTensor* outT, LibTensor* in1T,
+                 LibTensor* in2T, const float* scale, const int32_t* offset, uint64_t flags);
 
 } // namespace dnn_lib

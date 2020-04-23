@@ -13,17 +13,11 @@
 
 namespace dnn_lib {
 
-void fwdLibEmbeddingBagInstFloatTy(void *pdst,
-  void *pdata, uint64_t dataDim1Pitch,
-  void *pweights,
-  void *pindices, uint64_t indicesSize,
-  void *poffsets, uint64_t offsetsSize) {
+  void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
+                                     LibTensor* in2T, LibTensor* in3T,
+                                     LibTensor* in4T) {
 
-  dnn_lib::inlining::fwdLibEmbeddingBagInstFloatTy(pdst,
-    pdata, dataDim1Pitch,
-    pweights,
-    pindices, indicesSize,
-    poffsets, offsetsSize);
+  dnn_lib::inlining::fwdLibEmbeddingBagInstFloatTy(outT, in1T, in2T, in3T, in4T);
 }
 
 } // namespace dnn_lib

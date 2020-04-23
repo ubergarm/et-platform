@@ -14,69 +14,35 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibBatchedReduceAddInst(void *pdst, void *pdstDims,
-                                         void *pdstPitches, void *pbatch,
-                                         void *pbatchDims, void *pbatchPitches,
-                                         unsigned int pbatchDimNum,
-                                         unsigned int axis, const float *scale,
-                                         const int32_t *offset) {
+void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
 
-  dnn_lib::inlining::fwdLibBatchedReduceAddInst<srcType>(pdst, pdstDims,
-                                         pdstPitches, pbatch,
-                                         pbatchDims, pbatchPitches,
-                                         pbatchDimNum,
-                                         axis, scale,
-                                         offset);
+  dnn_lib::inlining::fwdLibBatchedReduceAddInst<srcType>(outT, inT, axis);
 }
 
 template <typename srcType>
-void fwdLibBatchedReduceAddInstThreaded(void *pdst, void *pdstDims,
-                                                 void *pdstPitches, void *pbatch,
-                                                 void *pbatchDims, void *pbatchPitches,
-                                                 unsigned int pbatchDimNum,
-                                                 unsigned int axis, const float *scale,
-                                                 const int32_t *offset, uint64_t flags) {
+void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
+                                        unsigned int axis, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibBatchedReduceAddInstThreaded<srcType>(pdst, pdstDims,
-                                                 pdstPitches, pbatch,
-                                                 pbatchDims, pbatchPitches,
-                                                 pbatchDimNum,
-                                                 axis, scale,
-                                                 offset, flags);
+  dnn_lib::inlining::fwdLibBatchedReduceAddInstThreaded<srcType>(outT, inT, axis, flags);
 }
 
-void fwdLibBatchedReduceAddInstInt8(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
-    void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    unsigned int axis, const float *scale, const int32_t *offset) {
+void fwdLibBatchedReduceAddInstInt8(LibTensor* outT, LibTensor* inT, unsigned int axis) {
 
-  dnn_lib::inlining::fwdLibBatchedReduceAddInstInt8(
-    pdst, pdstDims, pdstPitches, pbatch,
-    pbatchDims, pbatchPitches, pbatchDimNum,
-    axis, scale, offset);
+  dnn_lib::inlining::fwdLibBatchedReduceAddInstInt8(outT, inT, axis);
 }
 
 
-void fwdLibBatchedReduceAddInstInt8Threaded(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
-    void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    unsigned int axis, const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibBatchedReduceAddInstInt8Threaded(LibTensor* outT, LibTensor* inT,
+                                            unsigned int axis, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibBatchedReduceAddInstInt8Threaded(
-    pdst, pdstDims, pdstPitches, pbatch,
-    pbatchDims, pbatchPitches, pbatchDimNum,
-    axis, scale, offset, flags);
+  dnn_lib::inlining::fwdLibBatchedReduceAddInstInt8Threaded(outT, inT, axis, flags);
+
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInst, void *pdst, void *pdstDims, void *pdstPitches,
-                                   void *pbatch, void *pbatchDims, void *pbatchPitches,
-                                   unsigned int pbatchDimNum, unsigned int axis,
-                                   const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInst, LibTensor* outT, LibTensor* inT, unsigned int axis);
 
-GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
-                                   void *pbatch, void *pbatchDims, void *pbatchPitches,
-                                   unsigned int pbatchDimNum, unsigned int axis,
-                                   const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInstThreaded, LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags);
+  
 } // namespace dnn_lib

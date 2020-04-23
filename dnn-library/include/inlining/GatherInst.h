@@ -24,32 +24,44 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType, typename indexType>
-inline void fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
-                               void *srcT, void *srcDims, void *srcPitches,
-                               unsigned int srcDimsNum, void *indexT,
-                               void *indicesDims, void *pindicesPitches,
-                               unsigned int batchedDims, const float *scale,
-                               const int32_t *offset) {
+inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                             unsigned int batchedDims) {
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dst  in1T--> src  in2T--> index*/
+  void* dstT = outT->getRawDataPointer<void>();
+  void* srcT = in1T->getRawDataPointer<void>();
+  void* indexT = in2T->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
+  const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = in1T->strides().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
+  const size_t *indicesPitch = in2T->strides().data();
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-
+  unsigned int srcDimsNum = static_cast<unsigned int>(in1T->ndims());
+   
   size_t index;
   uint64_t srcAddr;
   uint64_t srcAddrUp;
@@ -94,31 +106,43 @@ inline void fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
 // index values for the i-th dimension of the source tensor tInput.
 
 template <typename srcType, typename indexType>
-inline void fwdLibGatherInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimsNum, void *indexT, void *indicesDims,
-    void *pindicesPitches, unsigned int indicesDimsNum,
-    unsigned int batchedDims, // indicesDimsNum is an new parameter for the
-                              // threaded version.
-    const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                     
+                                     unsigned int batchedDims, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dst  in1T--> src  in2T--> index*/
+  void* dstT = outT->getRawDataPointer<void>();
+  void* srcT = in1T->getRawDataPointer<void>();
+  void* indexT = in2T->getRawDataPointer<void>();
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *indicesIndex = (unsigned int *)indicesDims;
-
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-
+  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
+  const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
+  
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = in1T->dims().data();
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *indicesIndex = (unsigned int *)indicesDims;
+  const size_t *indicesIndex = in2T->dims().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = in1T->strides().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
+  const size_t *indicesPitch = in2T->strides().data();
+  
+  unsigned int srcDimsNum = static_cast<unsigned int>(in1T->ndims());
+  unsigned int indicesDimsNum = static_cast<unsigned int>(in2T->ndims());
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();

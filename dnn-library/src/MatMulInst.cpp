@@ -14,27 +14,27 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibMatMulInst(LibTensor* inT, LibTensor* weighT, LibTensor* outT) {
+void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibMatMulInst<srcType>(inT, weighT, outT);
+  dnn_lib::inlining::fwdLibMatMulInst<srcType>(outT, in1T, in2T);
 }
 
 template <typename srcType>
-void fwdLibMatMulInstThreaded(LibTensor* inT, LibTensor* weighT, LibTensor* outT,
+void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
                               uint64_t flags, const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibMatMulInstThreaded<srcType>(inT, weighT, outT, flags,
+  dnn_lib::inlining::fwdLibMatMulInstThreaded<srcType>(outT, in1T, in2T,  flags,
                                                        minionOffset, assignedMinions);
 }
 
 
 template <typename srcType>
-void fwdLibMatMulInstVectorized(LibTensor* inT, LibTensor* weighT, LibTensor* outT,
+void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
                                 uint64_t flags, const uint32_t minionOffset,
                                 const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibMatMulInstVectorized<srcType>(inT, weighT, outT,flags,
+  dnn_lib::inlining::fwdLibMatMulInstVectorized<srcType>(outT, in1T, in2T, flags,
                                                          minionOffset, assignedMinions);
 }
 
@@ -43,12 +43,12 @@ void fwdLibMatMulInstVectorized(LibTensor* inT, LibTensor* weighT, LibTensor* ou
 GEN_INSTANCES_OP(template, fwdLibMatMulInst, LibTensor* inT, LibTensor* weighT,
                  LibTensor* outT);
 
-GEN_INSTANCES_OP(template, fwdLibMatMulInstThreaded, LibTensor* inT,
-                 LibTensor* weighT, LibTensor* outT,  uint64_t flags,
+GEN_INSTANCES_OP(template, fwdLibMatMulInstThreaded, LibTensor* outT, LibTensor* in1T,
+                 LibTensor* in2T,  uint64_t flags,
                  const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 
-GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorized,  LibTensor* inT,
-                 LibTensor* weighT, LibTensor* outT, uint64_t flags,
+GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorized, LibTensor* outT, LibTensor* in1T,
+                 LibTensor* in2T, uint64_t flags,
                  const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 
 } // namespace dnn_lib

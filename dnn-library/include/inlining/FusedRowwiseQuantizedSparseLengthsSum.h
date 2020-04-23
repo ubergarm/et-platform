@@ -33,22 +33,15 @@ namespace inlining {
 template<typename DstType>
 inline __attribute__((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
-        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdata, void *pdataDims, void *pdataPitches,
-        void *pindices, void *plengths, unsigned int pLengthsSize,
-        uint64_t flags,
-        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,                                                              
+        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   const bool float32Dst = (std::is_same<DstType, float>::value);
   const bool float16Dst = (std::is_same<DstType, float16>::value);
 
+  LibTensor* out2T = nullptr;
   dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<false, float32Dst, float16Dst>(
-    pdst, pdstDims, pdstPitches, pdstDimNum,
-    nullptr, nullptr,
-    pdata, pdataDims, pdataPitches,
-    nullptr, nullptr, nullptr,
-    pindices, plengths, pLengthsSize, flags,
-    minionOffset, assignedMinions);
+    outT, out2T, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining

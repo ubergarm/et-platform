@@ -14,45 +14,29 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibAvgPoolInst(void *dstMatrix, void *dstMatrixDims,
-                                void *dstMatrixPitches, void *activations,
-                                void *activationsDims, void *activationsPitches,
-                                void *pkernels, void *pstrides, void *ppads,
-                                const float *scale, const int32_t *offset) {
+void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, void *pkernels,
+                       void *pstrides, void *ppads) {
 
-  dnn_lib::inlining::fwdLibAvgPoolInst<srcType>(dstMatrix, dstMatrixDims,
-                                dstMatrixPitches, activations,
-                                activationsDims, activationsPitches,
-                                pkernels, pstrides, ppads,
-                                scale, offset);
+  dnn_lib::inlining::fwdLibAvgPoolInst<srcType>(outT, inT, pkernels, pstrides,
+                                                ppads);
 }
 
 template <typename srcType, typename dstType>
-void fwdLibAvgPoolInstThreaded(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *pkernels, void *pstrides, void *ppads, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
+                               void *pkernels, void *pstrides, void *ppads,
+                               uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibAvgPoolInstThreaded<srcType, dstType>(
-    dstMatrix, dstMatrixDims, dstMatrixPitches,
-    activations, activationsDims, activationsPitches,
-    pkernels, pstrides, ppads, scale, offset,
-    flags);
+  dnn_lib::inlining::fwdLibAvgPoolInstThreaded<srcType, dstType>(outT, inT,
+                                              pkernels, pstrides, ppads, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibAvgPoolInst,void *dstMatrix, void *dstMatrixDims,
-                 void *dstMatrixPitches, void *activations,
-                 void *activationsDims, void *activationsPitches,
-                 void *pkernels, void *pstrides, void *ppads,
-                 const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibAvgPoolInst, LibTensor* outT, LibTensor* inT,
+                 void *pkernels, void *pstrides, void *ppads);
 
-GEN_INSTANCES_2TYPE_OP(template, fwdLibAvgPoolInstThreaded,void *dstMatrix, void *dstMatrixDims,
-                         void *dstMatrixPitches, void *activations,
-                         void *activationsDims, void *activationsPitches,
-                         void *pkernels, void *pstrides, void *ppads,
-                         const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_2TYPE_OP(template, fwdLibAvgPoolInstThreaded, LibTensor* outT,
+                       LibTensor* inT, void *pkernels, void *pstrides,
+                       void *ppads, uint64_t flags);
 
 } // namespace dnn_lib

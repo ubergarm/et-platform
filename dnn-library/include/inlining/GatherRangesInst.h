@@ -31,56 +31,45 @@ namespace dnn_lib {
 namespace inlining {
 
 template <typename srcType, typename indexType>
-inline void fwdLibGatherRangesInst(LibTensor* inT, LibTensor* outT,
-                                   LibTensor* out2T, LibTensor* rangesT) {
+inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
+                                   LibTensor* in1T, LibTensor* in2T) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
+  /* out-> dst out2T--> dest2(lengths) in1T--> src in2T--> rangesT*/
+  void* dstT = outT->getRawDataPointer<void>();
+  void* dst2T = out2T->getRawDataPointer<void>();
+  void* srcT = in1T->getRawDataPointer<void>();
+  void* prangesT = in2T->getRawDataPointer<void>();
 
-  void* srcT = reinterpret_cast<void*>(inT->getUnsafePtr());
-  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
-  void* prangesT = reinterpret_cast<void*>(rangesT->getUnsafePtr());
-  void* dst2T = reinterpret_cast<void*>(out2T->getUnsafePtr());
-  
-  
   // Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
   // Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
+  Addresser<indexType> tRanges(prangesT, in2T->getScale(), in2T->getOffset());  
   // Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->dbggetscale(), outT->dbggetoffset());
-  const Addresser<srcType> tInput(srcT, inT->dbggetscale(), inT->dbggetoffset());
-  Addresser<indexType> tRanges(prangesT, rangesT->dbggetscale(), rangesT->dbggetoffset());
-  Addresser<indexType> tLengths(dst2T, out2T->dbggetscale(), out2T->dbggetoffset());
-
+  Addresser<indexType> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  inT->dims(srcIndex);
+  //  const size_t *srcIndex = in1T->dims().data();
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  outT->dims(dstIndex); 
+  //const size_t *dstIndex = outT->dims().data();
   // unsigned int *rangesIndex = (unsigned int *)prangesDims;
-  dim_t rangesIndex[max_tensor_dimensions] = {0,};
-  rangesT->dims(rangesIndex);  
+  const size_t *rangesIndex = in2T->dims().data();
   // unsigned int *lenIndex = (unsigned int *)dst2Dims;
-  dim_t lenIndex[max_tensor_dimensions] = {0,};
-  out2T->dims(lenIndex);
+  //const size_t *lenIndex = out2T->dims().data();
 
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  inT->dbgcpypitches(srcPitch);
+  const size_t *srcPitch = in1T->strides().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  outT->dbgcpypitches(dstPitch);  
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
-  dim_t rangesPitch[max_tensor_dimensions] = {0,};
-  rangesT->dbgcpypitches(rangesPitch);  
+  const size_t *rangesPitch = in2T->strides().data();
   // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
-  dim_t lenPitch[max_tensor_dimensions] = {0,};
-  out2T->dbgcpypitches(lenPitch);
-
+  const size_t *lenPitch = out2T->strides().data();
   
   // Offset into the output tensor that keeps track of where to start
   // copying data.
@@ -145,8 +134,8 @@ inline void fwdLibGatherRangesInst(LibTensor* inT, LibTensor* outT,
 // of batches of the source tensor that will be copied.
 
 template <typename srcType, typename indexType>
-inline void fwdLibGatherRangesInstThreaded(LibTensor* inT, LibTensor* outT,
-                                           LibTensor* out2T, LibTensor* rangesT,
+inline void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor* out2T,
+                                           LibTensor* in1T, LibTensor* in2T,
                                            uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -154,47 +143,39 @@ inline void fwdLibGatherRangesInstThreaded(LibTensor* inT, LibTensor* outT,
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-
-  void* srcT = reinterpret_cast<void*>(inT->getUnsafePtr());
-  void* dstT = reinterpret_cast<void*>(outT->getUnsafePtr());
-  void* prangesT = reinterpret_cast<void*>(rangesT->getUnsafePtr());
-  void* dst2T = reinterpret_cast<void*>(out2T->getUnsafePtr());
+  void* dstT = outT->getRawDataPointer<void>();
+  void* dst2T = out2T->getRawDataPointer<void>();
+  void* srcT = in1T->getRawDataPointer<void>();
+  void* prangesT = in2T->getRawDataPointer<void>();
   
   // Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
   // Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
+  Addresser<indexType> tRanges(prangesT, in2T->getScale(), in2T->getOffset());
   // Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->dbggetscale(), outT->dbggetoffset());
-  const Addresser<srcType> tInput(srcT, inT->dbggetscale(), inT->dbggetoffset());
-  Addresser<indexType> tRanges(prangesT, rangesT->dbggetscale(), rangesT->dbggetoffset());
-  Addresser<indexType> tLengths(dst2T, out2T->dbggetscale(), out2T->dbggetoffset());
+  Addresser<indexType> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  inT->dims(srcIndex);   
+  const size_t *srcIndex = in1T->dims().data();
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  outT->dims(dstIndex);   
+  const size_t *dstIndex = outT->dims().data();
   // unsigned int *rangesIndex = (unsigned int *)prangesDims;
-  dim_t rangesIndex[max_tensor_dimensions] = {0,};
-  rangesT->dims(rangesIndex);    
+  const size_t *rangesIndex = in2T->dims().data();
   // unsigned int *lenIndex = (unsigned int *)dst2Dims;
-  dim_t lenIndex[max_tensor_dimensions] = {0,};
-  out2T->dims(lenIndex);
-
+  const size_t *lenIndex = out2T->dims().data();
+  
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  inT->dbgcpypitches(srcPitch);  
+  const size_t *srcPitch = in1T->strides().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  outT->dbgcpypitches(dstPitch);    
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
-  dim_t rangesPitch[max_tensor_dimensions] = {0,};
-  rangesT->dbgcpypitches(rangesPitch);    
+  const size_t *rangesPitch = in2T->strides().data();
   // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
-  dim_t lenPitch[max_tensor_dimensions] = {0,};
-  out2T->dbgcpypitches(lenPitch);
+  const size_t *lenPitch = out2T->strides().data();
 
+  
   unsigned int last_minion = activeMinions - 1;
 
   size_t typeSize = getsize<srcType>();
@@ -209,7 +190,7 @@ inline void fwdLibGatherRangesInstThreaded(LibTensor* inT, LibTensor* outT,
       return;
 
     // Assumption: srcDimsNum = dstDimsNum.
-    unsigned int srcDimsNum = static_cast<unsigned int>(inT->dbggetnumdims());
+    unsigned int srcDimsNum = static_cast<unsigned int>(in1T->ndims());
     
     unsigned int coordOut[srcDimsNum];
     unsigned int last_non_zero_coord;

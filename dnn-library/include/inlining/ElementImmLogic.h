@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -39,34 +40,34 @@ namespace inlining {
  * @tparam srcType The type of the elements in the input tensor and immediate
  * @tparam opType An operator that takes one srcType and one immediate value 
  *  and returns a srcType (&, |, ^, etc).
- * @param[out] dstT Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] srcT1 Pointer to the first input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the first input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] scale, offset Parameters for the quantization.
+ * @param[out] outT LibTensor pointer to the output matrix.
+ * @param[in] inT LibTensor pointer to the input matrix
+ * @param[in] imm.
  */
 template <typename srcType, typename opType>
-inline void fwdLibElementImmLogic(void *dstT, void *dstDims,
-                                     void *dstPitches, void *srcT1,
-                                     void *srcDims, void *srcPitches,
-                                     unsigned int srcDimNum, void *imm,
-                                     const float *scale, const int32_t *offset) {
+inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, void *imm) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  const srcType *aSrcT1 = reinterpret_cast<srcType*>(srcT1);
-  srcType *aDstT = reinterpret_cast<srcType*>(dstT);
+  /* maintain compatibility through the new Iface Libtensor */    
+
+  // const srcType *aSrcT1 = reinterpret_cast<srcType*>(srcT1);
+  const srcType *aSrcT1 = inT->getRawDataPointer<srcType>();
+  // srcType *aDstT = reinterpret_cast<srcType*>(dstT);
+  srcType *aDstT = outT->getRawDataPointer<srcType>();
+  
   const srcType *imm_ptr = reinterpret_cast<srcType*>(imm);
   const srcType imm_value = *imm_ptr;
 
-  unsigned int *srcIndex = (unsigned int *)srcDims;
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
+   unsigned int srcDimNum =  static_cast<unsigned int>(inT->ndims());
 
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};

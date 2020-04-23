@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -37,14 +38,8 @@ namespace inlining {
  * the same minion.
  * 
  * @tparam srcType The type of the elements in the input tensors.
- * @param[out] dstT Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] srcT1 Pointer to the first input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the first input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] scale, offset Parameters for the quantization.
+ * @param[out] outT LibTensor pointer to the output matrix.
+ * @param[in] inT LibTensor pointer to the input matrix.
  */
 template <typename srcType>
 inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT) {
@@ -52,28 +47,20 @@ inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT) {
   if (minionId != 0)
     return;
 
-  auto srcH =  inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-
-  //using storage_t = elKind2Storage<elk>::type;
-  //  using elktype_t = elemKind2elemTy<destH.getElementType()>::type;
-  bool* ptrDstT = reinterpret_cast<bool*>(destH.getUnsafePtrdbg());
-
-  srcType* srcT1 = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
-  // bool *ptrDstT = (bool *)dstT;
+  /* maintain compatibility through the new Iface Libtensor */  
+  bool* ptrDstT = outT->getRawDataPointer<bool>();  
+  void* srcT1 = inT->getRawDataPointer<void>();
+  // bool *ptrDstT = (bool *)dstT;  
   // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, srcH.getScaledbg(), srcH.getOffsetdbg());
-
+  const Addresser<srcType> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydimsdbg(srcIndex);
+  const size_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(srcPitch);
-  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
+  const size_t *srcPitch = inT->strides().data();
+
+  uint8_t srcDimNum =  static_cast<unsigned int>(inT->ndims());
   
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -117,14 +104,8 @@ inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT) {
  *  code is more explained.
  *
  * @tparam srcType The type of the elements in the input tensors.
- * @param[out] dstT Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] srcT1 Pointer to the first input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the first input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] scale, offset Parameters for the quantization.
+ * @param[out] outT LibTensor pointer to the output matrix.
+ * @param[in] inT LibTensor pointer to the input matrix.
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
@@ -137,29 +118,24 @@ inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
   if (minionId >= activeMinions)
     return;
 
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-  
-  // srcType *tOutput = (srcType *)dstT;
-  //srcType* aDstT = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
-  srcType* srcT1 = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  /* maintain compatibility through the new Iface Libtensor */
 
+  void* srcT1 = inT->getRawDataPointer<void>();
+  
   // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, srcH.getScaledbg(), srcH.getOffsetdbg());
+  const Addresser<srcType> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
+
   // bool *aDstT = (bool *)dstT;
-  bool* aDstT = reinterpret_cast<bool*>(destH.getUnsafePtrdbg());
+  bool* aDstT = outT->getRawDataPointer<bool>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydimsdbg(actIndex);
+  const size_t* actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t* dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
+  const size_t* actPitch = outT->strides().data();
  
-  uint8_t srcDimNum =  static_cast<unsigned int>(srcH.getNumDimsdbg());
+  uint8_t srcDimNum =  static_cast<unsigned int>(inT->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 

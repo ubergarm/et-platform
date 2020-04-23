@@ -14,48 +14,26 @@
 namespace dnn_lib {
 
 template <typename srcType, typename indexType>
-void fwdLibGatherInst(void *dstT, void *dstDims, void *dstPitches,
-                               void *srcT, void *srcDims, void *srcPitches,
-                               unsigned int srcDimsNum, void *indexT,
-                               void *indicesDims, void *pindicesPitches,
-                               unsigned int batchedDims, const float *scale,
-                               const int32_t *offset) {
+void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                      unsigned int batchedDims) {
 
-  dnn_lib::inlining::fwdLibGatherInst<srcType, indexType>(dstT, dstDims, dstPitches,
-                               srcT, srcDims, srcPitches,
-                               srcDimsNum, indexT,
-                               indicesDims, pindicesPitches,
-                               batchedDims, scale,
-                               offset);
+  dnn_lib::inlining::fwdLibGatherInst<srcType, indexType>(outT, in1T, in2T,
+                                                          batchedDims);
 }
 
 template <typename srcType, typename indexType>
-void fwdLibGatherInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimsNum, void *indexT, void *indicesDims,
-    void *pindicesPitches, unsigned int indicesDimsNum,
-    unsigned int batchedDims, // indicesDimsNum is an new parameter for the threaded version.
-    const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                              unsigned int batchedDims, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibGatherInstThreaded<srcType, indexType>(
-    dstT, dstDims, dstPitches, srcT, srcDims,
-    srcPitches, srcDimsNum, indexT, indicesDims,
-    pindicesPitches, indicesDimsNum,
-    batchedDims,
-    scale, offset, flags);
+  dnn_lib::inlining::fwdLibGatherInstThreaded<srcType, indexType>(outT, in1T, in2T,
+                                                                  batchedDims, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInst, void *dstT, void *dstDims, void *dstPitches,
-                               void *srcT, void *srcDims, void *srcPitches,
-                               unsigned int srcDimsNum, void *indexT, void *indicesDims,
-                               void *pindicesPitches, unsigned int batchedDims,
-                               const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInst, LibTensor* outT, LibTensor* in1T,
+                       LibTensor* in2T, unsigned int batchedDims);
 
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInstThreaded, void *dstT, void *dstDims, void *dstPitches,
-                               void *srcT, void *srcDims, void *srcPitches,
-                               unsigned int srcDimsNum, void *indexT, void *indicesDims,
-                               void *pindicesPitches, unsigned int indicesDimsNum,
-                               unsigned int batchedDims, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInstThreaded, LibTensor* outT, LibTensor* in1T,
+                       LibTensor* in2T, unsigned int batchedDims,  uint64_t flags);
 } // namespce dnn_lib

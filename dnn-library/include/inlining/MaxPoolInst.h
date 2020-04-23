@@ -24,34 +24,46 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDims,
-                                void *dstMatrixPitches, void *dst2Matrix,
-                                void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
-                                void *activations, void *activationsDims,
-                                void *activationsPitches, void *pkernels,
-                                void *pstrides, void *ppads, const float *scale,
-                                const int32_t *offset) {
+inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,                              
+                              LibTensor* inT, 
+                              void *srcMatrixPitchesNoPadding,
+                              void *pkernels, void *pstrides, void *ppads) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  int64_t *tOutput2 = (int64_t *)dst2Matrix;
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = inT->getRawDataPointer<void>();
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // int64_t *tOutput2 = (int64_t *)dst2Matrix;
+  int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
+
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = inT->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
+  const size_t *dst2Pitch = out2T->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = inT->strides().data();
+  
   unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
 
   unsigned int *kernels = (unsigned int *)pkernels;
@@ -116,28 +128,41 @@ inline void fwdLibMaxPoolInst(bool argMax, void *dstMatrix, void *dstMatrixDims,
 }
 
 template <typename srcType, typename dstType>
-inline void fwdLibMaxPoolInstThreaded(
-    bool argMax, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches, void *srcMatrixPitchesNoPadding,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *pkernels, void *pstrides, void *ppads, const float *scale, const int32_t *offset,
-    uint64_t flags) {
+inline void fwdLibMaxPoolInstThreaded(bool argMax, LibTensor* outT,
+                                      LibTensor* out2T, LibTensor* inT,
+                                      void *srcMatrixPitchesNoPadding,
+                                      void *pkernels, void *pstrides,
+                                      void *ppads, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  int64_t *tOutput2 = (int64_t *)dst2Matrix;
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = inT->getRawDataPointer<void>();
+  
+  // Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // int64_t *tOutput2 = (int64_t *)dst2Matrix;  
+  int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = inT->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
+  const size_t *dst2Pitch = out2T->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = inT->strides().data(); 
+
   unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
 
   unsigned int *kernels = (unsigned int *)pkernels;

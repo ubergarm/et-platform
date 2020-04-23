@@ -24,32 +24,43 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibBatchedAddInst(void *pdst, void *pdstDims,
-                                   void *pdstPitches, void *pbatch,
-                                   void *pbatchDims, void *pbatchPitches,
-                                   unsigned int pbatchDimNum, void *pslice,
-                                   const float *scale, const int32_t *offset) {
+inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
+                                 LibTensor* in2T) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
-  const Addresser<srcType> tSlice(pslice, scale[1], offset[1]);
+  /* outT --> dst  in1T--> batched  in2T--> slice*/
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  void* batchT = in1T->getRawDataPointer<void>();
+  void* sliceT = in2T->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
+  const Addresser<srcType> tBatch(batchT, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tSlice(sliceT, scale[1], offset[1]);
+  const Addresser<srcType> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
 
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  // unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  const size_t *batchIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = in1T->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-
-  // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
+  unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
+  //  assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
+  assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
 
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -90,25 +101,36 @@ inline void fwdLibBatchedAddInst(void *pdst, void *pdstDims,
 
 
 template <typename srcType>
-inline void fwdLibBatchedAddInstThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pbatch,
-    void *pbatchDims, void *pbatchPitches, unsigned int pbatchDimNum,
-    void *pslice, const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                         LibTensor* in2T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
-  const Addresser<srcType> tSlice(pslice, scale[1], offset[1]);
+  /* outT --> dst  in1T--> batched  in2T--> slice*/
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  void* batchT = in1T->getRawDataPointer<void>();
+  void* sliceT = in2T->getRawDataPointer<void>();
+   
+  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
+  const Addresser<srcType> tBatch(batchT, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tSlice(pslice, scale[1], offset[1]);
+  const Addresser<srcType> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
+  
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = in1T->strides().data();
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-
+  unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
+  
   unsigned int numElemsDst =
       dstPitch[0] * dstIndex[0];
 
@@ -145,35 +167,41 @@ inline void fwdLibBatchedAddInstThreaded(
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
 // TODO: Special implementation to support int8_t + int32_t sum, as a quick fix
 // we implement this function to support it, the correct way is extend the
 // BatchedAdd templatized op and the Operator class in order to support 2
 // different templates
-inline void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
-                                        void *pdstPitches, void *pbatch,
-                                        void *pbatchDims, void *pbatchPitches,
-                                        unsigned int pbatchDimNum, void *pslice,
-                                        void *pslicePitches, const float *scale,
-                                        const int32_t *offset) {
+inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
+                                      LibTensor* in2T) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
-  int32_t *tSlice = (int32_t *)pslice; // scale[1]
+  /* outT --> dst  in1T--> batched  in2T--> slice*/
+  /* maintain compatibility through the new Iface Libtensor */
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  // int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
+  int8_t *tBatch = in1T->getRawDataPointer<int8_t>();
+  // int32_t *tSlice = (int32_t *)pslice; // scale[1]
+  int32_t *tSlice = outT->getRawDataPointer<int32_t>();
+  
+  // unsigned int *batchIndex = (unsigned int *)pbatchDims;
+  const size_t *batchIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = in1T->strides().data();
+  // unsigned int *slicePitch = (unsigned int *)pslicePitches;
+  const size_t *slicePitch = in2T->strides().data();
 
-  unsigned int *batchIndex = (unsigned int *)pbatchDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-  unsigned int *slicePitch = (unsigned int *)pslicePitches;
-
+  unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
   // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
+  assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
 
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -187,7 +215,7 @@ inline void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
     eSlicePitch[i] = slicePitch[i];
   }
   float invDstScale;
-  getReciprocal(scale[2], invDstScale);
+  getReciprocal(outT->getScale(), invDstScale);
 
   float invLargeScale = (1 << 15);
   float largeScale;
@@ -213,13 +241,13 @@ inline void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
               int32_t batchVal = tBatch[srcAddr1];
               int32_t sliceVal = tSlice[srcAddr2];
 
-              int32_t B = nearbyintf(float(batchVal - offset[0]) *
-                                     (scale[0] * invLargeScale));
-              int32_t S = nearbyintf(float(sliceVal - offset[1]) *
-                                     (scale[1] * invLargeScale));
+              int32_t B = nearbyintf(float(batchVal - in1T->getOffset()) *
+                                     (in1T->getScale() * invLargeScale));
+              int32_t S = nearbyintf(float(sliceVal - in2T->getOffset()) *
+                                     (in2T->getScale() * invLargeScale));
               int32_t R = B + S;
-              tOutput[dstAddr] = clip<int32_t, int8_t>(nearbyintf(
-                  float(R) * (largeScale * invDstScale) + offset[2]));
+              tOutput[dstAddr] = clip<int32_t, int8_t>(nearbyintf(float(R) *
+                                                                  (largeScale * invDstScale) + outT->getOffset()));
             }
           }
         }
@@ -229,30 +257,38 @@ inline void fwdLibBatchedAddInsti8i32(void *pdst, void *pdstDims,
 }
 
 
-inline void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
-                                                void *pdstPitches, void *pbatch,
-                                                void *pbatchDims, void *pbatchPitches,
-                                                unsigned int pbatchDimNum, void *pslice,
-                                                void *pslicePitches, const float *scale,
-                                                const int32_t *offset, uint64_t flags) {
+inline void fwdLibBatchedAddInsti8i32Threaded(LibTensor* outT, LibTensor* in1T,
+                                              LibTensor* in2T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
- int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
-  int32_t *tSlice = (int32_t *)pslice; // scale[1]
+  /* outT --> dst  in1T--> batched  in2T--> slice*/
+  /* maintain compatibility through the new Iface Libtensor */
+  void *dstT = outT->getRawDataPointer<void>();
+  
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  //  int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
+  int8_t *tBatch = in1T->getRawDataPointer<int8_t>();
+  //  int32_t *tSlice = (int32_t *)pslice; // scale[1]
+  int32_t *tSlice = outT->getRawDataPointer<int32_t>();
+  //  unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  //  unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  //  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
+  const size_t *batchPitch = in1T->strides().data();
+  //  unsigned int *slicePitch = (unsigned int *)pslicePitches;
+  const size_t *slicePitch = in2T->strides().data();
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
+  unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-  unsigned int *slicePitch = (unsigned int *)pslicePitches;
-
+  
   float invDstScale;
-  getReciprocal(scale[2], invDstScale);
+  getReciprocal(outT->getScale(), invDstScale);
 
   float invLargeScale = (1 << 15);
   float largeScale;
@@ -294,20 +330,20 @@ inline void fwdLibBatchedAddInsti8i32Threaded(void *pdst, void *pdstDims,
     int32_t batchVal = tBatch[offsetIn];
     int32_t sliceVal = tSlice[offsetIn2];
 
-    int32_t B = nearbyintf(float(batchVal - offset[0]) *
-                                     (scale[0] * invLargeScale));
-    int32_t S = nearbyintf(float(sliceVal - offset[1]) *
-                                     (scale[1] * invLargeScale));
+    int32_t B = nearbyintf(float(batchVal - in1T->getOffset()) *
+                           (in1T->getScale() * invLargeScale));
+    int32_t S = nearbyintf(float(sliceVal - in2T->getOffset()) *
+                           (in2T->getScale() * invLargeScale));
     int32_t R = B + S;
-    tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
-    float(R) * (largeScale * invDstScale) + offset[2]));
+    tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(float(R) *
+                                                          (largeScale * invDstScale) + outT->getOffset()));
 
     done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, offsetIn2, dstIndex, dstPitch, batchPitch, eSlicePitch);
   }
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + sizeof(int8_t)*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
 }
 
 } // namespace inlining

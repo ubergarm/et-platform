@@ -38,32 +38,26 @@ inline void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
   if (minionId != 0)
     return;
 
- auto dstH = outT->getHandle<srcType>();
-  auto dataH = in1T->getHandle<srcType>();
-  auto valuesH = in2T->getHandle<srcType>();
-
-  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
-  srcType* dataT = reinterpret_cast<srcType*>(dataH.getUnsafePtrdbg());
-  srcType* valuesT = reinterpret_cast<srcType*>(valuesH.getUnsafePtrdbg());
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  void* dataT = in1T->getRawDataPointer<void>();
+  void* valuesT = in2T->getRawDataPointer<void>();
  
   // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(dataT, dataH.getScaledbg(), dataH.getOffsetdbg());
+  const Addresser<srcType> tAInput(dataT, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> tValues(pvalues, scale[1], offset[1]);
-  const Addresser<srcType> tValues(valuesT, valuesH.getScaledbg(), valuesH.getOffsetdbg());
+  const Addresser<srcType> tValues(valuesT, in2T->getScale(), in2T->getOffset());
   // int32_t *lengths = (int32_t *)plengths;
-  int32_t* lengths = reinterpret_cast<int32_t*>(in3T->dbgData());
+  int32_t* lengths = in3T->getRawDataPointer<int32_t>();
   
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  dim_t dataIndex[max_tensor_dimensions] = {0,};
-  dataH.cpydims(dataIndex);  
+  const size_t *dataIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  dstH.cpypitchesdbg(dstPitch);  
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  dim_t dataPitch[max_tensor_dimensions] = {0,};
-  dataH.cpypitchesdbg(dataPitch);
+  const size_t *dataPitch = in1T->strides().data();
  
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
@@ -99,41 +93,33 @@ inline void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
   if (minionId >= activeMinions)
     return;
 
-  auto dstH = outT->getHandle<srcType>();
-  auto dataH = in1T->getHandle<srcType>();
-  auto valuesH = in2T->getHandle<srcType>();
-
-  srcType* dstT = reinterpret_cast<srcType*>(dstH.getUnsafePtrdbg());
-  srcType* dataT = reinterpret_cast<srcType*>(dataH.getUnsafePtrdbg());
-  srcType* valuesT = reinterpret_cast<srcType*>(valuesH.getUnsafePtrdbg());
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer<void>();
+  void* dataT = in1T->getRawDataPointer<void>();
+  void* valuesT = in2T->getRawDataPointer<void>();
   
   // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, dstH.getScaledbg(), dstH.getOffsetdbg());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(dataT, dataH.getScaledbg(), dataH.getOffsetdbg());
+  const Addresser<srcType> tAInput(dataT, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> tValues(pvalues, scale[1], offset[1]);
-  const Addresser<srcType> tValues(valuesT, valuesH.getScaledbg(), valuesH.getOffsetdbg());
+  const Addresser<srcType> tValues(valuesT, in2T->getScale(), in2T->getOffset());
   // int32_t *lengths = (int32_t *)plengths;
-  int32_t* lengths = reinterpret_cast<int32_t*>(in3T->dbgData());
+  int32_t *lengths = in3T->getRawDataPointer<int32_t>();
   
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  dstH.cpypitchesdbg(dstIndex);  
+  const size_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  dim_t dataIndex[max_tensor_dimensions] = {0,};
-  dataH.cpydims(dataIndex);
+  const size_t *dataIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  dstH.cpypitchesdbg(dstPitch); 
+  const size_t *dstPitch  = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  dim_t dataPitch[max_tensor_dimensions] = {0,};
-  dataH.cpypitchesdbg(dataPitch);
+  const size_t *dataPitch = in1T->strides().data();
  
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
 
   unsigned int numElemsDst = batchSize * dstPitch[0]; // Total number of elements in the tensor
-
 
 
   unsigned int dstAddr, maxRead;

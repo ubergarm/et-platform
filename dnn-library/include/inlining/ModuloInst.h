@@ -31,35 +31,28 @@ namespace dnn_lib {
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibModuloInst(LibTensor* inT, LibTensor* outT, long long divisor,
-                               bool signFollowDivisor) {
+inline void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
+                             bool signFollowDivisor) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-
-  auto srcH = inT->getHandle<srcType>();
-  auto destH = outT->getHandle<srcType>();
-
+ 
   //  srcType *tOutput = (srcType *)dstT;
-  srcType *tOutput = reinterpret_cast<srcType*>(destH.getUnsafePtrdbg());
+  srcType *tOutput = outT->getRawDataPointer<srcType>();
   //  srcType *tInput = (srcType *)srcT;  
-  srcType *tInput = reinterpret_cast<srcType*>(srcH.getUnsafePtrdbg());
+  srcType *tInput = inT->getRawDataPointer<srcType>();
 
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  destH.cpydims(dstIndex);
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  dim_t srcIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(srcIndex);
 
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = inT->dims().data();
+  
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  destH.cpypitchesdbg(dstPitch);
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  dim_t srcPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(srcPitch);
+  const size_t *srcPitch = inT->strides().data();
   
   // unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   // unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -68,7 +61,7 @@ inline void fwdLibModuloInst(LibTensor* inT, LibTensor* outT, long long divisor,
   dim_t eDstPitch[MAX_TENSOR_DIMENSIONS] = {0,};
   dim_t eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0,};
   
-  unsigned int srcDimNum = static_cast<unsigned int>(srcH.getNumDimsdbg());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   for (size_t i = 0; i < srcDimNum; i++) {
     eDims[i] = srcIndex[i];
@@ -102,7 +95,7 @@ inline void fwdLibModuloInst(LibTensor* inT, LibTensor* outT, long long divisor,
 }
 
 template <typename srcType>
-inline void fwdLibModuloInstThreaded(LibTensor* inT, LibTensor* outT,long long divisor,
+inline void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT,long long divisor,
                                      bool signFollowDivisor, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
@@ -111,32 +104,24 @@ inline void fwdLibModuloInstThreaded(LibTensor* inT, LibTensor* outT,long long d
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcH = inT->getHandle<srcType>();
-  auto dstH = outT->getHandle<srcType>();
 
-  void* srcT = reinterpret_cast<void*>(srcH.getUnsafePtrdbg());
-  void* dstT = reinterpret_cast<void*>(dstH.getUnsafePtrdbg());
+  void* srcT = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
    
   // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  Addresser<srcType> tOutput(dstT, outT->dbggetscale(), outT->dbggetoffset());
-  const Addresser<srcType> tInput(srcT, inT->dbggetscale(), inT->dbggetoffset());
+  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
+  const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
  
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  dim_t dstIndex[max_tensor_dimensions] = {0,};
-  dstH.cpydims(dstIndex);
+
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  dim_t actIndex[max_tensor_dimensions] = {0,};
-  srcH.cpydims(actIndex);
-
+  const size_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  dim_t dstPitch[max_tensor_dimensions] = {0,};
-  dstH.cpypitchesdbg(dstPitch);
-
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  dim_t actPitch[max_tensor_dimensions] = {0,};
-  srcH.cpypitchesdbg(actPitch);
-
+  const size_t *actPitch = inT->strides().data();
+  
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -145,7 +130,7 @@ inline void fwdLibModuloInstThreaded(LibTensor* inT, LibTensor* outT,long long d
   if (maxRead == 0)
     return;
 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->dbggetnumdims());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int coord[srcDimNum];
   unsigned int k;

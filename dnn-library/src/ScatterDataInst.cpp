@@ -14,14 +14,14 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibScatterDataInst(LibTensor* inT, LibTensor* outT, LibTensor* sliT) {
+void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibScatterDataInst<srcType>(inT, outT, sliT);
+  dnn_lib::inlining::fwdLibScatterDataInst<srcType>(outT, in1T, in2T);
 }
 
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibScatterDataInst, LibTensor* inT, LibTensor* outT, LibTensor* sliT);
+  GEN_INSTANCES_OP(template, fwdLibScatterDataInst, LibTensor* outT, LibTensor* in1T,  LibTensor* in2T);
 
 } // namespace dnn_lib

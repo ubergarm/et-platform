@@ -24,30 +24,33 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibRescaleQuantizedInst(void *dstT, void *dstDims,
-                                         void *dstPitches, void *srcT,
-                                         void *srcDims, void *srcPitches,
-                                         unsigned int srcDimNum, float srcScale,
-                                         int32_t srcOffset, float dstScale,
-                                         int32_t dstOffset) {
+inline void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  srcType *ptrDstT = (srcType *)dstT;
-  srcType *ptrSrcT = (srcType *)srcT;
-
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  /* maintain compatibility through the new Iface Libtensor */
+  // srcType *ptrDstT = (srcType *)dstT;
+  // srcType *ptrSrcT = (srcType *)srcT;
+  srcType *ptrDstT = outT->getRawDataPointer<srcType>();
+  srcType *ptrSrcT = inT->getRawDataPointer<srcType>();
+  
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
+  
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+ 
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -70,8 +73,8 @@ inline void fwdLibRescaleQuantizedInst(void *dstT, void *dstDims,
               addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
                         w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
               float val =
-                  dequantize<srcType>(ptrSrcT[addrSrc], srcScale, srcOffset);
-              ptrDstT[addrDst] = quantize<srcType>(val, dstScale, dstOffset);
+                dequantize<srcType>(ptrSrcT[addrSrc], inT->getScale(), inT->getOffset());
+              ptrDstT[addrDst] = quantize<srcType>(val, outT->getScale(), outT->getOffset());
             }
           }
         }
@@ -81,24 +84,30 @@ inline void fwdLibRescaleQuantizedInst(void *dstT, void *dstDims,
 }
 
 template <typename srcType>
-inline void fwdLibRescaleQuantizedInstThreaded(
-    void *dstT, void *dstDims, void *dstPitches, void *srcT, void *srcDims,
-    void *srcPitches, unsigned int srcDimNum, float srcScale, int32_t srcOffset,
-    float dstScale, int32_t dstOffset, uint64_t flags) {
+inline void fwdLibRescaleQuantizedInstThreaded(LibTensor* outT, LibTensor* inT,
+                                               uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  srcType *ptrDstT = (srcType *)dstT;
-  srcType *ptrSrcT = (srcType *)srcT;
-
-  unsigned int *srcIndex = (unsigned int *)srcDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *srcPitch = (unsigned int *)srcPitches;
-
+  /* maintain compatibility through the new Iface Libtensor */  
+  // srcType *ptrDstT = (srcType *)dstT;
+  // srcType *ptrSrcT = (srcType *)srcT;
+  void* dstT = outT->getRawDataPointer<void>();
+  srcType *ptrDstT = outT->getRawDataPointer<srcType>();
+  srcType *ptrSrcT = inT->getRawDataPointer<srcType>();
+  
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const size_t *srcIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const size_t *srcPitch = inT->strides().data();
+  
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  
   unsigned int numElemsDst =
       dstPitch[0] * srcIndex[0]; // Total number of elements in the tensor
 
@@ -128,8 +137,8 @@ inline void fwdLibRescaleQuantizedInstThreaded(
   // completion.
   bool done = false;
   while (!done) {
-    float val = dequantize<srcType>(ptrSrcT[offsetIn], srcScale, srcOffset);
-    ptrDstT[offsetOut] = quantize<srcType>(val, dstScale, dstOffset);
+    float val = dequantize<srcType>(ptrSrcT[offsetIn], inT->getScale(), inT->getOffset());
+    ptrDstT[offsetOut] = quantize<srcType>(val, outT->getScale(), outT->getOffset());
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, srcIndex,
                       srcPitch, dstPitch);
     if (offsetOut >= posMax)
