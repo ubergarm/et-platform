@@ -58,7 +58,7 @@ public:
   template <typename U = T,
             typename std::enable_if<std::is_same<U, float16>::value,
                                     std::size_t>::type = 0>
-  float operator[](const int index) const {
+  float operator[](const size_t index) const {
     float f;
     dnn_lib::convertFp16ToFp32(ptrfp16_[index], f);
     return f;
@@ -67,40 +67,40 @@ public:
   template <typename U = T,
             typename std::enable_if<std::is_same<U, float>::value,
                                     std::size_t>::type = 0>
-  const T &operator[](const int index) const {
+  const T &operator[](const size_t index) const {
     return ptrT_[index];
   }
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int8_t>::value,
                                     std::size_t>::type = 0>
-  float operator[](const int index) const {
+  float operator[](const size_t index) const {
     float i32 = dnn_lib::dequantize<int8_t>(ptrT_[index], scale_, offset_);
     return i32;
   }
   template <typename U = T,
             typename std::enable_if<std::is_same<U, uint8_t>::value,
                                     std::size_t>::type = 0>
-  float operator[](const int index) const {
+  float operator[](const size_t index) const {
     float i32 = dnn_lib::dequantize<uint8_t>(ptrT_[index], scale_, offset_);
     return i32;
   }
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int16_t>::value,
                                     std::size_t>::type = 0>
-  float operator[](const int index) const {
+  float operator[](const size_t index) const {
     float i32 = dnn_lib::dequantize<int16_t>(ptrT_[index], scale_, offset_);
     return i32;
   }
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int64_t>::value,
                                     std::size_t>::type = 0>
-  const T &operator[](const int index) const {
+  const T &operator[](const size_t index) const {
     return ptrT_[index];
   }
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int32_t>::value,
                                     std::size_t>::type = 0>
-  const T &operator[](const int index) const {
+  const T &operator[](const size_t index) const {
     return ptrT_[index];
   }
 
@@ -108,7 +108,7 @@ public:
   template <typename U = T,
             typename std::enable_if<std::is_same<U, float16>::value,
                                     std::size_t>::type = 0>
-  Writer<T> &operator[](const int index) {
+  Writer<T> &operator[](const size_t index) {
     writer.ptrfp16_ = &ptrfp16_[index];
     return writer;
   }
@@ -116,14 +116,14 @@ public:
   template <typename U = T,
             typename std::enable_if<std::is_same<U, float>::value,
                                     std::size_t>::type = 0>
-  T &operator[](const int index) {
+  T &operator[](const size_t index) {
     return ptrT_[index];
   }
 
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int8_t>::value,
                                     std::size_t>::type = 0>
-  Writer<T> &operator[](const int index) {
+  Writer<T> &operator[](const size_t index) {
     writer.ptri8_ = &ptrT_[index];
     return writer;
   }
@@ -131,7 +131,7 @@ public:
   template <typename U = T,
             typename std::enable_if<std::is_same<U, uint8_t>::value,
                                     std::size_t>::type = 0>
-  Writer<T> &operator[](const int index) {
+  Writer<T> &operator[](const size_t index) {
     writer.ptrui8_ = &ptrT_[index];
     return writer;
   }
@@ -139,7 +139,7 @@ public:
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int16_t>::value,
                                     std::size_t>::type = 0>
-  Writer<T> &operator[](const int index) {
+  Writer<T> &operator[](const size_t index) {
     writer.ptri16_ = &ptrT_[index];
     return writer;
   }
@@ -147,13 +147,13 @@ public:
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int64_t>::value,
                                     std::size_t>::type = 0>
-  T &operator[](const int index) {
+  T &operator[](const size_t index) {
     return ptrT_[index];
   }
   template <typename U = T,
             typename std::enable_if<std::is_same<U, int32_t>::value,
                                     std::size_t>::type = 0>
-  T &operator[](const int index) {
+  T &operator[](const size_t index) {
     return ptrT_[index];
   }
 };

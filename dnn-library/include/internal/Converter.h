@@ -79,12 +79,12 @@ public:
                          "fcvt.f16.ps %[op0], %[op0] \n"
                          "fsch.ps %[op0], %[op1](%[dstAddr]) \n"
                          : [op0] "=&f" (op0),
-                           [op1] "=&f" (op1)
+                           [op1] "=&f" (op1),
+                           "=m"  ( * (char (*)[16]) dstAddr)
                          : [ dstAddr ] "r"(dstAddr),
                            [ srcAddr ] "m"  ( *(const char (*)[32]) srcAddr),
                            [ scatterValues ] "m"( *(const int32_t (*)[8])scatterValues)
-                         :
-                           "memory");  //TODO: replace memory clobber with output memory operand if scatter max offset is known
+                         );
   }
 
   template <typename S = SRC, typename D = DST,
@@ -133,8 +133,9 @@ public:
                            [op0] "=&f" (op0),
                            [op1] "=&f" (op1)
                          : [ srcAddr ] "r"(srcAddr),
-                           [ gatherValues ] "m" (* (const int32_t (*)[8]) gatherValues)
-                         : "memory"); //TODO: replace memory clobber with input memory operand if gather max offset is known
+                           [ gatherValues ] "m" (* (const int32_t (*)[8]) gatherValues),
+                           "m"  ( * (char (*)[16]) srcAddr)
+                         );
   }
 
   template <typename S = SRC, typename D = DST,

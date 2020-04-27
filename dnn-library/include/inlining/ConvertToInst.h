@@ -27,20 +27,25 @@
 
 #include "LibTensor.h"
 
-using namespace std;
+
+// if defined, it is OK to write in padding (faster if we can ignore setting masks)
+#define CONVERTTO_OK_TO_WRITE_PADDING
+
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType, typename dstType>
-inline void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
-
+inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
   // FIXME: single thread convertto fails when combined with multi-threaded
   // operators
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
+
+  assert(inT->dims() == outT->dims());
+  
 
   /* maintain compatibility through the new Iface Libtensor */
 
@@ -52,10 +57,8 @@ inline void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
   // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
   const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
 
-
-  assert(inT->dims() == outT->dims());
-
   Converter<srcType, dstType> converter;
+
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    [&](size_t addrDst, size_t addrSrc) {
                      auto src = ptrSrcT1[addrSrc];
@@ -66,238 +69,200 @@ inline void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
                        ptrDstT[addrDst] = dst;
                      }
                    } );
+
 }
 
 template <typename srcType, typename dstType>
-inline void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags) {
+inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+  size_t activeMinions =  MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // partition work between minions in multiples of CL
+  ////////////////////////////////////////////////////////////////////////////////  
+  size_t first; // first element in raw array to process
+  size_t count; // nr  elements in to process (will be in multiples of CL)
+
+  outT->partitionCL(minionId, activeMinions, first, count);
+
+  if (unlikely(count == 0)) return; // minion has no work to do
   
   /* maintain compatibility through the new Iface Libtensor */
 
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-
-  // Addresser<dstType> tOutput(dst, scale[1], offset[1]);
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
   Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
   const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
-
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  
-  const dim_t *dstIndex = outT->dims().data();
-  size_t dstIndexDims = outT->ndims();
-  // unsigned int *actIndex = (unsigned int *)srcDims;
-  const dim_t *actIndex = inT->dims().data();
-  size_t actIndexDims = inT->ndims();
-
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const dim_t *actPitch = inT->strides().data();
-
-  size_t srcDimNum = inT->ndims();
-  
   Converter<srcType, dstType> converter;
-
-  unsigned int numElemsDst =
-      dstPitch[0] * actIndex[0]; // Total number of elements in the tensor
-
-  // We give to each minion an initial address the number of positions that it
-  // must work on (maxRead).
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<dstType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
-  if (maxRead == 0)
-    return;
-
-  // We move the initialAddr to the next non-padding position
-  unsigned int coord[srcDimNum]; // Vector of coordinates
-  unsigned int k;                  // Amount of non-zero coordinates
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           k);
-
-  // We get the actual initialAddr, in the input and output.
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn += actPitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
+  
+  // and loop
+#if 0
+  auto out = outT->getHandle<dstType>().getIterator(first);
+  auto in = inT->getHandle<srcType>().getIterator(out.coords());
+  
+  for(; out.offset() < first + count;++out, ++in) {
+    auto inD = tAInput[in.offset()];
+    auto outD = converter.convert(inD);
+    tOutput[out.offset()] = outD;
   }
+#else
 
-  unsigned int posMax = maxRead + initialAddr;
-  // In each iteration we copy a position and switch to the next one, until
-  // completion.
-  bool done = false;
-  while (!done && (offsetOut < posMax)) {
-    auto input = tAInput[offsetIn];
-    auto output = converter.convert(input);
-    tOutput[offsetOut] = output;
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
-                      actPitch, dstPitch);
-  }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
-
+  auto begin = outT->offset2Coord(first);
+  //  auto end = outT->offset2Coord(first + count);
+  dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
+                   begin, first + count, 
+                   [&](size_t addrDst, size_t addrSrc) {
+                     auto inD = tAInput[addrSrc];
+                     auto outD = converter.convert(inD);
+                     tOutput[addrDst] = outD;
+                   } );
+#endif
+  outT->evict(DO_EVICTS, first, count);
+  
 }
 
-
+  
 template <typename srcType, typename dstType>
-inline void fwdLibConvertToInstVectorized(LibTensor* inT, LibTensor* outT, uint64_t flags) {
-
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTensor* inT,  LibTensor*outT, uint64_t flags){
+  const unsigned int minionId = get_minion_id();
+  const unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+  assume(activeMinions<=1024);
   if (minionId >= activeMinions)
     return;
 
-  /* maintain compatibility through the new Iface Libtensor */
+  ////////////////////////////////////////////////////////////////////////////////
+  // partition work between minions in multiples of CL
+  ////////////////////////////////////////////////////////////////////////////////  
+  size_t first; // first element in raw array to process
+  size_t count; // nr  elements in to process (will be in multiples of CL)
 
-  void* src = inT->getRawDataPointer<void>();
-  void* dst = outT->getRawDataPointer<void>();
-
-  //Addresser<dstType> tOutput(dst, scale[1], offset[1]);
-  //const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-
-
-  const dim_t *dstIndex = outT->dims().data();
-  size_t dstIndexDims = outT->ndims();
-  // unsigned int *actIndex = (unsigned int *)srcDims;
-  const dim_t *actIndex = inT->dims().data();
-  size_t actIndexDims = inT->ndims();
-
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const dim_t *actPitch = inT->strides().data();
-
-  size_t srcDimNum = inT->ndims();
-
-  uintptr_t srcAddr = (uintptr_t)src;
-  uintptr_t dstAddr = (uintptr_t)dst;
+  outT->partitionCL(minionId, activeMinions, first, count);
+  if (unlikely(count == 0)) return; // minion has no work to do
 
   Converter<srcType, dstType> converter;
-
-  unsigned int numElemsDst =
-      dstPitch[0] * dstIndex[0]; // Total number of elements in the tensor
-
-  // We give to each minion an initial address the number of positions that it
-  // must work on (maxRead).
-  unsigned int initialAddr, maxRead;
-  size_t typeSizeSrc = getsize<srcType>();
-  size_t typeSizeDst = getsize<dstType>();
-  getCachelinePartition(typeSizeDst, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
-  if (unlikely(maxRead == 0))
-    return;
-
-  // We move the initialAddr to the next non-padding position
-  unsigned int coord[srcDimNum]; // Vector of coordinates
-  unsigned int k;                  // Amount of non-zero coordinates
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
-                           k);
-
-  // We get the actual initialAddr, in the input and output.
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn += actPitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
-  }
-
-  unsigned int posMax = maxRead + initialAddr;
-  // In each iteration we copy a position and switch to the next one, until
-  // completion.
-  bool done = false;
-
-  unsigned int lastDim = srcDimNum - 1;
-
-  int32_t gatherValues[] = {0, 0, 0, 0, 0, 0, 0, 0};
-  int32_t scatterValues[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  int32_t gatherValues[8], scatterValues[8];
   for (unsigned int i = 0; i < 8; i++) {
-      gatherValues[i] = i * typeSizeSrc;
-      scatterValues[i] = i * typeSizeDst;
+    gatherValues[i] = i * getsize<srcType>();
+    scatterValues[i] = i * getsize<dstType>();
   }
+  // and loop
 
-  unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  unsigned int elementsInRow, registersInRow, res, spareElems, fullLanes;
-  uint8_t mask;
-  bool firstRow = true;
-  bool midRow = false;
-  bool lastRow = false;
-  unsigned int elementsInRegister =  8 * (typeSizeDst != 8) + 4 * (typeSizeDst == 8);
-  lastDim += (srcDimNum == 1);
-  coord[0] *= (srcDimNum != 1);
+  //  srcType* srcP = inT->getRawDataPointer<srcType>();
+  //  dstType* dstP = outT->getRawDataPointer<dstType>();
+  //FIXME:  dstType=float16? cannot use as pointers to storage! should be uint16_, this is just a temporary fix
+  
+  using srcStorage_t = typename std::conditional<std::is_same<srcType, float16>::value,
+                                                 uint16_t, srcType>::type;
+  using dstStorage_t = typename std::conditional<std::is_same<dstType, float16>::value,
+                                                 uint16_t, dstType>::type;
 
-  while (!done && (offsetOut < posMax)) {
-    if (firstRow && coord[lastDim - 1] != maxRow) {
-      elementsInRow = dstIndex[lastDim] - coord[lastDim];
-    } else if (coord[lastDim - 1] == maxRow) {
-      lastRow = true;
-      elementsInRow = posMax - offsetOut;
-    } else {
-      elementsInRow = dstIndex[lastDim];
-    }
-    if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
-      registersInRow = elementsInRow / elementsInRegister;
-      res = elementsInRow - registersInRow * elementsInRegister;
-      if (elementsInRegister != 4) {
-        mask = ((1 << res) - 1);
-      } else {
-        mask = ((1 << 2*res) - 1);
-      }
-      if (!firstRow) midRow = true;
-    }
-    firstRow = false;
-    srcAddr += offsetIn * typeSizeSrc;
-    dstAddr += offsetOut * typeSizeDst;
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
+  srcStorage_t * const  srcP = inT->getRawDataPointer<srcStorage_t>();
+  dstStorage_t * const  dstP = outT->getRawDataPointer<dstStorage_t>();
+  
+  const size_t ndims = outT->ndims();
+  const size_t lastDim = outT->dims()[ndims-1];
+  constexpr size_t step=8; // ConvertVect works with 8 elements at a time
 
-    unsigned int cnt = 0;
-    while(cnt < registersInRow) {
-      converter.convertVect(srcAddr, dstAddr, gatherValues, scatterValues);
-      cnt++;
-      srcAddr += typeSizeSrc * elementsInRegister;
-      dstAddr += typeSizeDst * elementsInRegister;
-    }
-    if (res > 0) {
-      if (elementsInRegister != 4) {
-        __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      } else {
-        __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n"
-                             "mov.m.x    m1, zero, 0x55 \n"
-                             "maskand m0, m0, m1 \n"
-                             : : [ mask ] "r"(mask) :);
-      }
-      converter.convertVect(srcAddr, dstAddr, gatherValues, scatterValues);
-    }
-
-
-    if (lastRow)
-      return;
-
-    srcAddr = (uintptr_t)src;
-    dstAddr = (uintptr_t)dst;
-    offsetIn -= coord[lastDim] * actPitch[lastDim];
-    offsetOut -= coord[lastDim] * dstPitch[lastDim];
-    coord[lastDim] = 0;
-    done = getOffsets(lastDim , coord, offsetIn, offsetOut, actIndex,
-                      actPitch, dstPitch);
+  // get iterators to loop through all the dimensions except the last one
+  auto out = outT->getHandle<dstStorage_t>().getIterator(first);
+  auto in = inT->getHandle<srcStorage_t>().getIterator(out.coords());
+  
+#if 0
+  __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
+  for(; out.offset() < first + count; out+=step, in+=step) {
+    size_t valid = lastDim - out.coords()[ndims-1];
+    
+    // set and restore the mask if we are in the boundary before and after the conversion
+    if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
+    
+    //conversion
+    converter.convertVect( reinterpret_cast<uintptr_t>(srcP + in.offset() ),
+                           reinterpret_cast<uintptr_t>(dstP + out.offset() ),
+                           gatherValues, scatterValues);
+    // and restore mask
+    if ( valid < step)  __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
+    
   }
+#else
+  __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
+  size_t endOffset = first + count;
+  size_t oOffset = out.offset();
+  size_t iOffset = in.offset();
+  
+  ////////////////////////////////////////////////////////////////////////////////
+  // simpler loop if there is just one dimension
+  ////////////////////////////////////////////////////////////////////////////////
+  if (ndims == 1) {
+    for( ; oOffset < endOffset; oOffset+=step, iOffset+=step){
+#ifndef  CONVERTTO_OK_TO_WRITE_PADDING
+      size_t valid = lastDim - out.coords()[ndims-1];
+      // set and restore the mask if we are in the boundary before and after the conversion
+      if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
+#endif
+      //conversion
+      converter.convertVect( reinterpret_cast<uintptr_t>(srcP + iOffset),
+                             reinterpret_cast<uintptr_t>(dstP + oOffset),
+                             gatherValues, scatterValues);
+      
+    }
+    
+  }
+  else {
+    ////////////////////////////////////////////////////////////////////////////////
+    // Loops for more than 1 dim
+    ////////////////////////////////////////////////////////////////////////////////
+    
+    //// First iterate until completing the first feature dimension (in case initial coordinates are in the middle)
+    for(; ( out.coords()[ndims-1] != 0 ||  ndims == 1) && out.offset() < endOffset; out+=step, in+=step) {
+    size_t valid = lastDim - out.coords()[ndims-1];
+#ifndef  CONVERTTO_OK_TO_WRITE_PADDING
+    // set and restore the mask if we are in the boundary before and after the conversion
+    if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
+#endif
+    
+    //conversion
+    converter.convertVect( reinterpret_cast<uintptr_t>(srcP + iOffset),
+                           reinterpret_cast<uintptr_t>(dstP + oOffset),
+                           gatherValues, scatterValues);
+    iOffset+=step; oOffset+=step;
+    }
+    
+    //// Then, complete the remaining iterators
+    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
+    for( ;out.offset() < endOffset ; out.step(ndims-2), in.step(ndims-2) ){ // step 2n outer dimension
+      assume(out.coords()[ndims-1] == 0 && in.coords()[ndims-1] == 0);
+      for ( size_t i = 0 ; i < lastDim && oOffset + i < endOffset; i+=step) { // step outer dimension
+#ifndef  CONVERTTO_OK_TO_WRITE_PADDING        
+        size_t valid = lastDim - i;
+        // set and restore the mask if we are in the boundary before and after the conversion
+        if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
+#endif
+        
+        //conversion
+        converter.convertVect( reinterpret_cast<uintptr_t>(srcP + in.offset()  + i),
+                               reinterpret_cast<uintptr_t>(dstP + out.offset() + i ),
+                               gatherValues, scatterValues);
+#ifndef CONVERTTO_OK_TO_WRITE_PADDING        
+        // and restore mask
+        if ( valid < step)  __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
+#endif
+      }
+    }
+  }
+  
+#endif
 
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSizeDst / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSizeDst*initialAddr, clperminion);
 
+  
+  // and evict if need be
+  outT->evict(DO_EVICTS, first, count);
+  
 }
-
+  
 } // namespace inlining
 
 } // namespace dnn_lib

@@ -39,6 +39,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTypes.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibUtils.h"  
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTensor.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTensorIterator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/AdaptiveAvgPoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ArgMaxInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/AvgPoolInst.h"

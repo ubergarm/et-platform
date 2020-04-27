@@ -24,7 +24,7 @@ public:
   uint8_t *ptrui8_;
   int16_t *ptri16_;
   float scale_;
-  int offset_;
+  int32_t offset_;
 
   template <typename U = T,
             typename std::enable_if<std::is_same<U, float16>::value,

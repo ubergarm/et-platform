@@ -17,6 +17,10 @@
 
 #define INLINE_ATTR __attribute__((always_inline)) inline
 
+#define CACHE_LINE_BYTES 64
+#define MIN_PER_SHIRE 32
+
+
 namespace dnn_lib {
 
 #ifdef DIM_T_32
