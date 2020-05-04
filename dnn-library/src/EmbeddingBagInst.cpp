@@ -15,9 +15,9 @@ namespace dnn_lib {
 
   void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
                                      LibTensor* in2T, LibTensor* in3T,
-                                     LibTensor* in4T) {
+                                     LibTensor* in4T, uint64_t dataDim1Pitch) {
 
-  dnn_lib::inlining::fwdLibEmbeddingBagInstFloatTy(outT, in1T, in2T, in3T, in4T);
+    dnn_lib::inlining::fwdLibEmbeddingBagInstFloatTy(outT, in1T, in2T, in3T, in4T, dataDim1Pitch);
 }
 
 } // namespace dnn_lib
