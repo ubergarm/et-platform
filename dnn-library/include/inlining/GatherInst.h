@@ -47,7 +47,7 @@ inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
   Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
   // const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
   const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
   
@@ -123,7 +123,7 @@ inline void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor
   // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
   Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
   // const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
   const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
   
