@@ -26,6 +26,7 @@
 #include "utils.h" // From include/internal path
 #include "shire.h"
 #include "barriers.h"
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -48,10 +49,8 @@ namespace inlining {
  * @param[in] off offset applied to ensure tensor starting at CL
  */
 template <typename srcType>
-inline void fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
-                                           void *src, unsigned int DimNum,
-                                           const float *scale, const int32_t *offset,
-                                           unsigned int off) {
+inline void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT,
+                                        unsigned int off) {
 
   uint32_t hart = get_hart_id();
   uint32_t threadId = hart & 1;
@@ -60,9 +59,17 @@ inline void fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
   // Disable second thread from now on, as they don't have tensor extensions
   if (threadId != 0) { return; }
 
-  unsigned int *Index = (unsigned int *) Dims;
-  unsigned int *Pitch = (unsigned int *) Pitches;
+  
+  /* maintain compatibility through the new Iface Libtensor */
 
+  void *dst = outT->getRawDataPointer<void>();
+  void *src = inT->getRawDataPointer<void>();
+  
+  // unsigned int *Index = (unsigned int *) Dims;
+  const size_t *Index = inT->dims().data();
+  // unsigned int *Pitch = (unsigned int *) Pitches;
+  const size_t *Pitch = inT->strides().data();
+  
   size_t typeSize = getsize<srcType>();
   uint64_t numBytes = Pitch[0] * Index[0] * typeSize + off; // Total number of elements in the tensor
   uint64_t numCacheLines = (numBytes - 1) / CACHE_LINE_BYTES + 1; // 64 = CacheLineLength

@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -31,25 +32,37 @@ namespace inlining {
 
 template <typename srcType>
 inline void fwdLibLocalResponseNormalizationInst(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
-    const int32_t *offset) {
+    LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+    unsigned int halfWindowSize, float alpha, float beta, float k) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  /* out1T --> dst  out2T--> dst2  inT--> data */
 
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  void *dstMatrix = out1T->getRawDataPointer<void>();
+  void *dst2Matrix = out2T->getRawDataPointer<void>();
+  void *activations = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());  
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = inT->dims().data();  
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = out1T->strides().data();
+  // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
+  const size_t *dst2Pitch = out2T->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = inT->strides().data();
+
+  
 
   // LRN node does not change the shape of the input.
   // assert((dstIndex[0] == actIndex[0]) && (dstIndex[1] == actIndex[1]) &&
@@ -112,28 +125,37 @@ inline void fwdLibLocalResponseNormalizationInst(
 // pass, i.e. ETSOC won't be using it. Actually, we could skip generating it.
 
 template <typename srcType>
-inline void fwdLibLocalResponseNormalizationInstThreaded(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
-    const int32_t *offset, uint64_t flags) {
+inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
+          LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize,
+          float alpha, float beta, float k, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  /* out1T --> dst  out2T--> dst2  inT--> data */
+  void *dstMatrix = out1T->getRawDataPointer<void>();
+  void *dst2Matrix = out2T->getRawDataPointer<void>();
+  void *activations = inT->getRawDataPointer<void>();
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-
+  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = out1T->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = inT->dims().data(); 
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = out1T->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = inT->strides().data();
+  
   // LRN node does not change the shape of the input.
   // assert((dstIndex[0] == actIndex[0]) && (dstIndex[1] == actIndex[1]) &&
   // (dstIndex[2] == actIndex[2]) && (dstIndex[3] == actIndex[3]) && "Output of
@@ -204,28 +226,39 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(
 }
 
 template <typename srcType>
-inline void fwdLibLocalResponseNormalizationInstVectorized(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
-    const int32_t *offset, uint64_t flags) {
+inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
+    LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
+    float beta, float k, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  uintptr_t srcAddr = (uintptr_t)activations;
-  Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
+  /* out1T --> dst  out2T--> dst2  inT--> data */
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  void *dstMatrix = out1T->getRawDataPointer<void>();
+  void *dst2Matrix = out2T->getRawDataPointer<void>();
+  void *activations = inT->getRawDataPointer<void>();
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
+  // uintptr_t srcAddr = (uintptr_t)activations;
+  uintptr_t srcAddr = reinterpret_cast<uintptr_t>(activations);
+  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = out1T->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = out1T->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = inT->dims().data();
 
   auto windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;

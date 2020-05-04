@@ -13,64 +13,36 @@
 
 namespace dnn_lib {
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset) {
+void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(LibTensor* outT,
+      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+      LibTensor* in5T) {
 
   dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
-    pdst, pdstDims, pdstPitches, pdata, pdataDims,
-    pdataPitches, pscale, poffset, pweights,
-    pweightsDims, pweightsPitches, pbias, srcscale,
-    srcoffset, dstscale, dstoffset, biasscale,
-    biasoffset);
+                                     outT, in1T, in2T, in3T, in4T, in5T);
 }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset, uint64_t flags) {
+void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(LibTensor* outT,
+      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+      LibTensor* in5T, uint64_t flags) {
 
   dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
-    pdst, pdstDims, pdstPitches, pdata, pdataDims,
-    pdataPitches, pscale, poffset, pweights,
-    pweightsDims, pweightsPitches, pbias, srcscale,
-    srcoffset, dstscale, dstoffset, biasscale,
-    biasoffset, flags);
+                                     outT, in1T, in2T, in3T, in4T, in5T, flags);
 }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset, uint64_t flags) {
+void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(LibTensor* outT,
+      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+      LibTensor* in5T, uint64_t flags) {
 
   dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
-    pdst, pdstDims, pdstPitches, pdata, pdataDims,
-    pdataPitches, pscale, poffset, pweights,
-    pweightsDims, pweightsPitches, pbias, srcscale,
-    srcoffset, dstscale, dstoffset, biasscale,
-    biasoffset, flags);
+                                     outT, in1T, in2T, in3T, in4T, in5T, flags);
 }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset, uint64_t flags) {
+void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(LibTensor* outT,
+      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+      LibTensor* in5T, uint64_t flags) {
 
   dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
-    pdst, pdstDims, pdstPitches, pdata, pdataDims,
-    pdataPitches, pscale, poffset, pweights,
-    pweightsDims, pweightsPitches, pbias, srcscale,
-    srcoffset, dstscale, dstoffset, biasscale,
-    biasoffset, flags);
+                                     outT, in1T, in2T, in3T, in4T, in5T, flags);
 }
 
 } // namespace dnn_lib

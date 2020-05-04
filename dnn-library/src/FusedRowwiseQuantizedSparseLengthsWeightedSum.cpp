@@ -12,31 +12,20 @@
 #include "FusedRowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining
 
 namespace dnn_lib {
-
+     
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize) {
+         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T) {
 
   dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-    pdst, pdstDims, pdstPitches, pdstDimNum,
-    pdata, pdataDims, pdataPitches, pweights,
-    pweightsDims, pweightsPitches, pindices, plengths,
-    pLengthsSize);
+                        outT, in1T, in2T, in3T, in4T);
 }
 
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
-        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-        void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-        void *pweightsDims, void *pweightsPitches, void *pindices,
-        void *plengths, unsigned int pLengthsSize, uint64_t flags) {
+               LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+               LibTensor* in4T, uint64_t flags) {
 
   dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
-        pdst, pdstDims, pdstPitches, pdstDimNum,
-        pdata, pdataDims, pdataPitches, pweights,
-        pweightsDims, pweightsPitches, pindices,
-        plengths, pLengthsSize, flags);
+               outT, in1T, in2T, in3T, in4T, flags);
 }
 
 template <bool Weighted, bool Float32Dst, bool Float16Dst>

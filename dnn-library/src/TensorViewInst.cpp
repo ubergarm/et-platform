@@ -14,57 +14,36 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
-                                   unsigned int dstDimNum, void *src,
-                                   void *srcDims, void *srcPitches,
-                                   unsigned int srcDimNum, void *pcoord,
-                                   const float *scale, const int32_t *offset) {
+void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
 
-  dnn_lib::inlining::fwdLibTensorViewInst<srcType>(dst, dstDims, dstPitches,
-                                   dstDimNum, src,
-                                   srcDims, srcPitches,
-                                   srcDimNum, pcoord,
-                                   scale, offset);
+  dnn_lib::inlining::fwdLibTensorViewInst<srcType>(outT, inT, pcoord);
 }
 
 template <typename srcType>
-void fwdLibTensorViewInstThreaded(
-    void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-    void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
+                                  void *pcoord, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTensorViewInstThreaded<srcType>(
-    dst, dstDims, dstPitches, dstDimNum,
-    src, srcDims, srcPitches, srcDimNum,
-    pcoord, scale, offset, flags);
+  dnn_lib::inlining::fwdLibTensorViewInstThreaded<srcType>(outT, inT,
+                                                           pcoord, flags);
 }
 
 template <typename srcType>
-void fwdLibTensorViewInstVectorized(
-    void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-    void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
+                                    void *pcoord, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTensorViewInstVectorized<srcType>(
-    dst, dstDims, dstPitches, dstDimNum,
-    src, srcDims, srcPitches, srcDimNum,
-    pcoord, scale, offset, flags);
+  dnn_lib::inlining::fwdLibTensorViewInstVectorized<srcType>(outT, inT,
+                                                             pcoord, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibTensorViewInst, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibTensorViewInst, LibTensor* outT,
+                 LibTensor* inT, void *poffsets);
 
-GEN_INSTANCES_OP(template, fwdLibTensorViewInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset, uint64_t flags );
+GEN_INSTANCES_OP(template, fwdLibTensorViewInstThreaded, LibTensor* outT,
+                LibTensor* inT, void *poffsets, uint64_t flags );
 
-GEN_INSTANCES_OP(template, fwdLibTensorViewInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset, uint64_t flags );
+GEN_INSTANCES_OP(template, fwdLibTensorViewInstVectorized, LibTensor* outT,
+                 LibTensor* inT, void *poffsets, uint64_t flags );
+  
 } // namespace dnn_lib

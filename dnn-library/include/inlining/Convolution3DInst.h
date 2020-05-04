@@ -24,35 +24,49 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibConvolution3DInst(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *weights, void *weightsDims, void *weightPitches, void *bias,
-    void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    const float *scale, const int32_t *offset) {
+inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
+                                    LibTensor* in2T, LibTensor* in3T,
+                                    void *pkernels, void *pstrides,
+                                    void *ppads, unsigned int group) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  float *tBias = (float *)bias;
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dest in1T->activations in2T-> weight in3T->bias */
+  void *dstMatrix = outT->getRawDataPointer<void>();
+  void *activations = in1T->getRawDataPointer<void>();
+  void *weights = in2T->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // float *tBias = (float *)bias;
+  float* tBias = in3T->getRawDataPointer<float>();
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
-
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size_t *weightPitch = in2T->strides().data();
+  
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;
   unsigned int *pads = (unsigned int *)ppads;
@@ -126,30 +140,44 @@ inline void fwdLibConvolution3DInst(
 }
 
 template <typename srcType>
-inline void fwdLibConvolution3DInstThreaded(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *weights, void *weightsDims, void *weightPitches, void *bias,
-    void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                            LibTensor* in2T, LibTensor* in3T,
+                                            void *pkernels, void *pstrides,
+                                            void *ppads, unsigned int group,
+                                            uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  float *tBias = (float *)bias;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dest in1T->activations in2T-> weight in3T->bias */
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
-
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
-
+  void *dstMatrix = outT->getRawDataPointer<void>();
+  void *activations = in1T->getRawDataPointer<void>();
+  void *weights = in2T->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // float *tBias = (float *)bias;
+  float* tBias = in3T->getRawDataPointer<float>();
+ 
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size_t *weightPitch = in2T->strides().data();
+  
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;
   unsigned int *pads = (unsigned int *)ppads;
@@ -168,9 +196,13 @@ inline void fwdLibConvolution3DInstThreaded(
   unsigned int inCperG = actIndex[4] / group;
   unsigned int outCperG = dstIndex[4] / group;
 
-  unsigned int eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2],
+  // unsigned int eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2],
+  //                              dstPitch[3], outCperG,    1};
+  // unsigned int eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2],
+  //                              dstIndex[3], group,       outCperG};
+  size_t eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2],
                                dstPitch[3], outCperG,    1};
-  unsigned int eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2],
+  size_t eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2],
                                dstIndex[3], group,       outCperG};
 
   unsigned int coord[6] = {0, 0, 0, 0, 0, 0};

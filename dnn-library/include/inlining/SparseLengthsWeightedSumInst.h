@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -31,26 +32,40 @@ namespace inlining {
 
 // This version does NOT support Tensors of more than 2 dimensions with padding
 template <typename srcType>
-inline void fwdLibSparseLengthsWeightedSumInst(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, const float *scale, const int32_t *offset) {
+inline void fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T,
+                                               LibTensor* in2T, LibTensor* in3T,
+                                               LibTensor* in4T,
+                                               unsigned int pLengthsSize) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(pdst, scale[4], offset[4]);
-  const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(pweights, scale[1], offset[1]);
-  long long *indices = (long long *)pindices;
-  int32_t *lengths = (int32_t *)plengths;
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* data = in1T->getRawDataPointer<void>();
+  void* weight = in2T->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(pdst, scale[4], offset[4]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(data, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tWInput(pweights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weight, in2T->getScale(), in2T->getOffset());
+  // long long *indices = (long long *)pindices;
+  long long *indices = in3T->getRawDataPointer<long long>();
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
 
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in2T->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
 
   size_t segments = pLengthsSize;
   size_t totalLength = 0;
@@ -91,29 +106,46 @@ inline void fwdLibSparseLengthsWeightedSumInst(
 
 // This version DOES support Tensors of more than 2 dimensions with padding
 template <typename srcType>
-inline void fwdLibSparseLengthsWeightedSumInstThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-    unsigned int pLengthsSize, const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT,
+                                                       LibTensor* in1T,
+                                                       LibTensor* in2T,
+                                                       LibTensor* in3T,
+                                                       LibTensor* in4T,
+                                                       unsigned int pLengthsSize,
+                                                       uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(pdst, scale[4], offset[4]);
-  const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(pweights, scale[1], offset[1]);
-  long long *indices = (long long *)pindices;
-  int32_t *lengths = (int32_t *)plengths;
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dst = outT->getRawDataPointer<void>();
+  void* data = in1T->getRawDataPointer<void>();
+  void* weight = in2T->getRawDataPointer<void>();
+ 
+  // Addresser<srcType> tOutput(pdst, scale[4], offset[4]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(data, in1T->getScale(), in2T->getOffset());
+  // const Addresser<srcType> tWInput(pweights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weight, in2T->getScale(), in2T->getOffset());
+  // long long *indices = (long long *)pindices;
+  long long *indices = in3T->getRawDataPointer<long long>();
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in2T->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -163,7 +195,7 @@ inline void fwdLibSparseLengthsWeightedSumInstThreaded(
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
 } // namespace dnn_lib

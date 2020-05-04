@@ -25,31 +25,41 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
-                                   unsigned int dstDimNum, void *src,
-                                   void *srcDims, void *srcPitches,
-                                   unsigned int srcDimNum, void *pcoord,
-                                   const float *scale, const int32_t *offset) {
+inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  void *dst = outT->getRawDataPointer<void>();
+  void *src = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
 
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+    
   long unsigned int *coord = (long unsigned int *)pcoord;
 
   // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
@@ -105,25 +115,36 @@ inline void fwdLibTensorViewInst(void *dst, void *dstDims, void *dstPitches,
 }
 
 template <typename srcType>
-inline void fwdLibTensorViewInstThreaded(
-    void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-    void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
+                                         void *pcoord, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  void *dst = outT->getRawDataPointer<void>();
+  void *src = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   long unsigned int *coord = (long unsigned int *)pcoord;
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
@@ -238,25 +259,36 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
 }
 
 template <typename srcType>
-inline void fwdLibTensorViewInstVectorized(
-    void *dst, void *dstDims, void *dstPitches, unsigned int dstDimNum,
-    void *src, void *srcDims, void *srcPitches, unsigned int srcDimNum,
-    void *pcoord, const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
+                                           void *pcoord, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return; // Minion not working
 
-  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  /* maintain compatibility through the new Iface Libtensor */
 
-  unsigned int *dstIndex = (unsigned int *)dstDims;
-  unsigned int *actIndex = (unsigned int *)srcDims;
+  void *dst = outT->getRawDataPointer<void>();
+  void *src = inT->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
+  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
 
-  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  unsigned int *actPitch = (unsigned int *)srcPitches;
-
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)srcDims;
+  const size_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
+  const size_t *actPitch = inT->strides().data();
+  
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  
   long unsigned int *coord = (long unsigned int *)pcoord;
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 

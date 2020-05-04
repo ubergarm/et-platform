@@ -14,54 +14,37 @@
 namespace dnn_lib {
 
 void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize) {
+    LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+    LibTensor* in4T, LibTensor* in5T, LibTensor* in6T) {
 
   dnn_lib::inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-    pdst, pdstDims, pdstPitches, pdstDimNum,
-    pdata, pdataDims, pdataPitches, pscale,
-    poffset, pweights, pweightsDims, pweightsPitches,
-    pindices, plengths, pLengthsSize);
+                                      outT, in1T, in2T, in3T, in4T, in5T, in6T);
 }
 
 void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags) {
+             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags) {
 
   dnn_lib::inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
-    pdst, pdstDims, pdstPitches, pdstDimNum,
-    pdata, pdataDims, pdataPitches, pscale,
-    poffset, pweights, pweightsDims, pweightsPitches,
-    pindices, plengths, pLengthsSize, flags);
+                                outT, in1T, in2T, in3T, in4T, in5T, in6T, flags);
 }
 
 template<bool Int8Src, bool Float16Dst>
 void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
-        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-	    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-	    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-	    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-	    const uint32_t minionOffset, const uint32_t assignedMinions) {
+       LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+       LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
+       const uint32_t minionOffset, const uint32_t assignedMinions) {
 
   dnn_lib::inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<Int8Src, Float16Dst>(
-        pdst, pdstDims, pdstPitches, pdstDimNum,
-	    pdata, pdataDims, pdataPitches, pscale,
-	    poffset, pweights, pweightsDims, pweightsPitches,
-	    pindices, plengths, pLengthsSize, flags,
-	    minionOffset, assignedMinions);
+                outT, in1T, in2T, in3T, in4T, in5T, in6T, flags,
+                minionOffset, assignedMinions);
 }
 
 #include "GenInstances.h"
 
 GEN_INSTANCES_RQSLWS_V(template, fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
-            	void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-	    		void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-	    		void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-	    		void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
+          LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+          LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
 	    		const uint32_t minionOffset, const uint32_t assignedMinions);
 
 } // namespace dnn_lib

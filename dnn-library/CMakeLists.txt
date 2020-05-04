@@ -139,8 +139,8 @@ add_library(dnn_lib STATIC
   src/BatchOneHotInst.cpp
   src/Checksum.cpp
   src/ConvertToInst.cpp
-#  src/Convolution3DInst.cpp
-#  src/ConvolutionInst.cpp
+  src/Convolution3DInst.cpp
+  src/ConvolutionInst.cpp
   src/CopyInst.cpp
   src/CopyInstTensorized.cpp
   src/CrossEntropyLossInst.cpp
@@ -156,15 +156,15 @@ add_library(dnn_lib STATIC
   src/ExtractTensorInst.cpp
 #  src/FlipInst.cpp
   src/FullyConnectedInst.cpp
-#  src/FusedRowwiseQuantizedSparseLengthsSum.cpp
-#  src/FusedRowwiseQuantizedSparseLengthsWeightedSum.cpp
+  src/FusedRowwiseQuantizedSparseLengthsSum.cpp
+  src/FusedRowwiseQuantizedSparseLengthsWeightedSum.cpp
   src/GatherInst.cpp
   src/GatherRangesInst.cpp
-#  src/InsertTensorInst.cpp
+  src/InsertTensorInst.cpp
   src/IntLookupTableInst.cpp
   src/LengthsSumInst.cpp
   src/LengthsToRangesInst.cpp
-#  src/LocalResponseNormalizationInst.cpp
+  src/LocalResponseNormalizationInst.cpp
   src/MatMulInst.cpp
 #  src/MatMulInstTransposed.cpp
   src/MaxSplatInst.cpp
@@ -172,22 +172,22 @@ add_library(dnn_lib STATIC
   src/ModuloInst.cpp
   src/QuantizeInst.cpp
   src/RescaleQuantizedInst.cpp
-#  src/RowwiseQuantizedFullyConnected.cpp
-#  src/RowwiseQuantizedSparseLengthsWeightedSum.cpp
+  src/RowwiseQuantizedFullyConnected.cpp
+  src/RowwiseQuantizedSparseLengthsWeightedSum.cpp
   src/ScatterDataInst.cpp
   src/SigmoidInst.cpp
   src/SoftMaxInst1.cpp
   src/SoftMaxInst2.cpp
   src/SoftMaxInst.cpp
-#  src/SparseLengthsWeightedSumInst.cpp
+  src/SparseLengthsWeightedSumInst.cpp
   src/SparseToDenseInst.cpp
-#  src/SparseToDenseMaskInst.cpp
+  src/SparseToDenseMaskInst.cpp
   src/SplatInst.cpp
-#  src/SyncopyInstTensorized.cpp
+  src/SyncopyInstTensorized.cpp
   src/TanhInst.cpp
-#  src/TensorViewInst.cpp
+  src/TensorViewInst.cpp
   src/TopKInst.cpp
-#  src/TransposeInst.cpp
+  src/TransposeInst.cpp
   src/libc.c
   src/printf.c
   src/Float16.cpp

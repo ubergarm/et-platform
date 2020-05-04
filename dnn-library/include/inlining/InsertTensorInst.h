@@ -341,7 +341,7 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
 
   if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
-    fwdLibInsertTensorInst<srcType>(outT, inT, poffsets, count, axis,
+    inlining::fwdLibInsertTensorInst<srcType>(outT, inT, poffsets, count, axis,
                                     flags, minionOffset);
     return;
   }
@@ -554,7 +554,7 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
         initialAddrIn += offsetIn[i] * actPitch[i];
       }
       maxRead = std::min(maxRead, lastRowElem - addrOut);
-      unsigned int length = std::min(maxRead, actIndex[axis] - offsetIn[axis]);
+      unsigned int length = std::min(static_cast<long unsigned int>(maxRead), actIndex[axis] - offsetIn[axis]);
 
       std::pair<int, int> auxlanes = getLanesResFromNElements<srcType>(length);
       maxRead -= length;

@@ -69,11 +69,9 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
     void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
     unsigned int pLengthsSize);
-void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize);
+void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(LibTensor* outT,
+    LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T, LibTensor* in5T,
+    LibTensor* in6T);
 void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
     void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
     void *pdataPitches, void *pscale, void *poffset, void *pweights,

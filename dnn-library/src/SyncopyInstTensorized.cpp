@@ -14,22 +14,14 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibSyncopyInstTensorized(void *dst, void *Dims, void *Pitches,
-                                           void *src, unsigned int DimNum,
-                                           const float *scale, const int32_t *offset,
-                                           unsigned int off) {
+void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT, unsigned int off) {
 
-  dnn_lib::inlining::fwdLibSyncopyInstTensorized<srcType>(dst, Dims, Pitches,
-                                           src, DimNum,
-                                           scale, offset,
-                                           off);
+  dnn_lib::inlining::fwdLibSyncopyInstTensorized<srcType>(outT, inT, off);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibSyncopyInstTensorized, void *dst, void *Dims, void *Pitches,
-                                  void *src, unsigned int DimNum,
-                                  const float *scale, const int32_t *offset,
+GEN_INSTANCES_OP(template, fwdLibSyncopyInstTensorized, LibTensor* outT, LibTensor* intT,
                                   unsigned int off);
 
 } // namespace dnn_lib

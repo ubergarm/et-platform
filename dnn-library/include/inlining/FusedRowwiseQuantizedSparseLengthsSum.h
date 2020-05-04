@@ -33,7 +33,7 @@ namespace inlining {
 template<typename DstType>
 inline __attribute__((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
-        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,                                                              
+        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   const bool float32Dst = (std::is_same<DstType, float>::value);

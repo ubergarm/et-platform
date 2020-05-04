@@ -24,87 +24,119 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset) {
+                  LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                  LibTensor* in3T, LibTensor* in4T, LibTensor* in5T) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tAInput = (int8_t *)pdata;
-  int8_t *tWInput = (int8_t *)pweights;
-  int32_t *tBias = (int32_t *)pbias;
-  float *tScale = (float *)pscale;
-  int32_t *tOffset = (int32_t *)poffset;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dst in1T->data in2T-> weight in3T->bias in4T->scale in5T->offset */
+  
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  // int8_t *tAInput = (int8_t *)pdata;
+  int8_t *tAInput = in1T->getRawDataPointer<int8_t>();
+  // int8_t *tWInput = (int8_t *)pweights;
+  int8_t *tWInput = in2T->getRawDataPointer<int8_t>();
+  // int32_t *tBias = (int32_t *)pbias;
+  int32_t *tBias = in3T->getRawDataPointer<int32_t>();
+  // float *tScale = (float *)pscale;
+  float *tScale = in4T->getRawDataPointer<float>();
+  // int32_t *tOffset = (int32_t *)poffset;
+  int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch =  in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in2T->strides().data();
+  
   float inversedDstScale;
-  fpReciprocalSingleElement(dstscale, inversedDstScale);
+  //  fpReciprocalSingleElement(dstscale, inversedDstScale);
+  fpReciprocalSingleElement(outT->getScale(), inversedDstScale);
   for (size_t i = 0; i < dataIndex[0]; i++) {
     for (size_t j = 0; j < dstIndex[1]; j++) {
-      float matMulScale = tScale[j] * srcscale;
+      //      float matMulScale = tScale[j] * srcscale;
+      float matMulScale = tScale[j] * in1T->getScale();
       float inversedMatMulScale;
       fpReciprocalSingleElement(matMulScale, inversedMatMulScale);
       int32_t sum = 0;
       for (size_t k = 0; k < dataIndex[1]; k++) {
         int32_t W = tWInput[j * weightPitch[0] + k];
         int32_t A = tAInput[i * dataPitch[0] + k];
-        sum += (W - tOffset[j]) * (A - srcoffset);
+        //        sum += (W - tOffset[j]) * (A - srcoffset);
+        sum += (W - tOffset[j]) * (A - in1T->getOffset());
       }
-      int32_t B = nearbyintf(float(tBias[j] - biasoffset) *
-                             (biasscale * inversedMatMulScale));
+      // int32_t B = nearbyintf(float(tBias[j] - biasoffset) * (biasscale * inversedMatMulScale));
+      int32_t B = nearbyintf(float(tBias[j] - in3T->getOffset()) *
+                             (in3T->getScale() * inversedMatMulScale));
       sum += B;
       // Scale the result back to the expected destination scale.
+      // tOutput[i * dstPitch[0] + j] = clip<int32_t, int8_t>(nearbyintf(
+      //     float(sum) * (matMulScale * inversedDstScale) + dstoffset));
       tOutput[i * dstPitch[0] + j] = clip<int32_t, int8_t>(nearbyintf(
-          float(sum) * (matMulScale * inversedDstScale) + dstoffset));
+           float(sum) * (matMulScale * inversedDstScale) + outT->getOffset()));      
     }
   }
 }
 
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset, uint64_t flags) {
+           LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+           LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
-  int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tAInput = (int8_t *)pdata;
-  int8_t *tWInput = (int8_t *)pweights;
-  int32_t *tBias = (int32_t *)pbias;
-  float *tScale = (float *)pscale;
-  int32_t *tOffset = (int32_t *)poffset;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dst in1T->data in2T-> weight in3T->bias in4T->scale in5T->offset */
+  void *pdst = outT->getRawDataPointer<void>();
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  // int8_t *tAInput = (int8_t *)pdata;
+  int8_t *tAInput = in1T->getRawDataPointer<int8_t>();
+  // int8_t *tWInput = (int8_t *)pweights;
+  int8_t *tWInput = in2T->getRawDataPointer<int8_t>();
+  // int32_t *tBias = (int32_t *)pbias;
+  int32_t *tBias = in3T->getRawDataPointer<int32_t>();
+  // float *tScale = (float *)pscale;
+  float *tScale = in4T->getRawDataPointer<float>();
+  // int32_t *tOffset = (int32_t *)poffset;
+  int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
+ 
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch =  in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
-  fpReciprocalSingleElement(dstscale, invDstScale);
-
+  // fpReciprocalSingleElement(dstscale, invDstScale);
+  fpReciprocalSingleElement(outT->getScale(), invDstScale);
+  
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
@@ -130,18 +162,22 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
 
   while (!done && (offsetOut < posMax)) {
 
-    float matMulScale = tScale[coordOut[1]] * srcscale;
+    //float matMulScale = tScale[coordOut[1]] * srcscale;
+    float matMulScale = tScale[coordOut[1]] * in1T->getScale();
     float invMatMulScale;
     fpReciprocalSingleElement(matMulScale, invMatMulScale);
-    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
+    //    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
+    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale);
     int32_t woffset = tOffset[coordOut[1]];
     for (size_t k = 0; k < dataIndex[1]; k++) {
       int32_t W = tWInput[offsetWIn + k];
       int32_t A = tAInput[offsetAIn + k];
-      sum += (W - woffset) * (A - srcoffset);
+      //      sum += (W - woffset) * (A - srcoffset);
+      sum += (W - woffset) * (A - in1T->getOffset());
     }
-    tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
-      float(sum) * (matMulScale * invDstScale) + dstoffset));
+    // tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(float(sum) * (matMulScale * invDstScale) + dstoffset));
+    tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(float(sum) *
+                          (matMulScale * invDstScale) + outT->getOffset()));
 
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {
@@ -161,33 +197,46 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
 }
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset, uint64_t flags) {
+     LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+     LibTensor* in3T, LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dst in1T->data in2T-> weight in3T->bias in4T->scale in5T->offset */
 
-  int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tAInput = (int8_t *)pdata;
-  int8_t *tWInput = (int8_t *)pweights;
-  int32_t *tBias = (int32_t *)pbias;
-  float *tScale = (float *)pscale;
-  int32_t *tOffset = (int32_t *)poffset;
+  void *pdst = outT->getRawDataPointer<void>();
+  
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  // int8_t *tAInput = (int8_t *)pdata;
+  int8_t *tAInput = in1T->getRawDataPointer<int8_t>();
+  // int8_t *tWInput = (int8_t *)pweights;
+  int8_t *tWInput = in2T->getRawDataPointer<int8_t>();
+  // int32_t *tBias = (int32_t *)pbias;
+  int32_t *tBias = in3T->getRawDataPointer<int32_t>();
+  // float *tScale = (float *)pscale;
+  float *tScale = in4T->getRawDataPointer<float>();
+  // int32_t *tOffset = (int32_t *)poffset;
+  int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch =  in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
-  fpReciprocalSingleElement(dstscale, invDstScale);
-
+  //  fpReciprocalSingleElement(dstscale, invDstScale);
+  fpReciprocalSingleElement(outT->getScale(), invDstScale);
+  
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
@@ -213,15 +262,19 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 
   while (!done && (offsetOut < posMax)) {
 
-    float matMulScale = tScale[coordOut[1]] * srcscale;
+    // float matMulScale = tScale[coordOut[1]] * srcscale;
+    float matMulScale = tScale[coordOut[1]] * in1T->getScale();
     float invMatMulScale;
     fpReciprocalSingleElement(matMulScale, invMatMulScale);
-    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
+    // int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
+    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale);
     int32_t woffset = tOffset[coordOut[1]];
 
     uintptr_t actAddr = (uintptr_t)tAInput + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)tWInput + typeSize*offsetWIn;
 
+    size_t srcoffset = in1T->getOffset();
+    
 #define MATMUL_ITERATION               \
     "fgb.ps   f0, f28(%[actAddr])\n" \
     "fgb.ps   f1, f28(%[wgtAddr])\n" \
@@ -295,8 +348,10 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
         [elemsRow]  "r" (dataIndex[1])
       : "t0", "t1", "t2", "f0", "f1", "f29", "f30", "f31");
 
+    // tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
+    //   float(sum) * (matMulScale * invDstScale) + dstoffset));
     tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
-      float(sum) * (matMulScale * invDstScale) + dstoffset));
+           float(sum) * (matMulScale * invDstScale) + outT->getOffset()));
 
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {
@@ -318,33 +373,44 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 }
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
-    void *pdst, void *pdstDims, void *pdstPitches, void *pdata, void *pdataDims,
-    void *pdataPitches, void *pscale, void *poffset, void *pweights,
-    void *pweightsDims, void *pweightsPitches, void *pbias, float srcscale,
-    int32_t srcoffset, float dstscale, int32_t dstoffset, float biasscale,
-    int32_t biasoffset, uint64_t flags) {
+           LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+           LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
-  int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tAInput = (int8_t *)pdata;
-  int8_t *tWInput = (int8_t *)pweights;
-  int32_t *tBias = (int32_t *)pbias;
-  float *tScale = (float *)pscale;
-  int32_t *tOffset = (int32_t *)poffset;
-
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  void *pdst = outT->getRawDataPointer<void>();
+  
+  // int8_t *tOutput = (int8_t *)pdst;
+  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
+  // int8_t *tAInput = (int8_t *)pdata;
+  int8_t *tAInput = in1T->getRawDataPointer<int8_t>();
+  // int8_t *tWInput = (int8_t *)pweights;
+  int8_t *tWInput = in2T->getRawDataPointer<int8_t>();
+  // int32_t *tBias = (int32_t *)pbias;
+  int32_t *tBias = in3T->getRawDataPointer<int32_t>();
+  // float *tScale = (float *)pscale;
+  float *tScale = in4T->getRawDataPointer<float>();
+  // int32_t *tOffset = (int32_t *)poffset;
+  int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
+  
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch =  in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
-  fpReciprocalSingleElement(dstscale, invDstScale);
-
+  //  fpReciprocalSingleElement(dstscale, invDstScale);
+  fpReciprocalSingleElement(outT->getScale(), invDstScale);
+  
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
@@ -370,15 +436,19 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
 
   while (!done && (offsetOut < posMax)) {
 
-    float matMulScale = tScale[coordOut[1]] * srcscale;
+    // float matMulScale = tScale[coordOut[1]] * srcscale;
+    float matMulScale = tScale[coordOut[1]] * in1T->getScale();
     float invMatMulScale;
     fpReciprocalSingleElement(matMulScale, invMatMulScale);
-    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
+    // int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
+    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale);
     int32_t woffset = tOffset[coordOut[1]];
 
     uintptr_t actAddr = (uintptr_t)tAInput + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)tWInput + typeSize*offsetWIn;
 
+    size_t srcoffset = in1T->getOffset();
+    
 #define MATMUL_ITERATION               \
     "fg32b.ps   f0, t0(%[actAddr])\n"  \
     "fg32b.ps   f1, t0(%[wgtAddr])\n"  \
@@ -430,8 +500,10 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
         [g32_conf] "i" (fg32b_conf)
       : "t0", "t1", "t2", "f0", "f1", "f29", "f30", "f31");
 
+    // tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
+    //   float(sum) * (matMulScale * invDstScale) + dstoffset));
     tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
-      float(sum) * (matMulScale * invDstScale) + dstoffset));
+           float(sum) * (matMulScale * invDstScale) + outT->getOffset()));
 
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {

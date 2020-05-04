@@ -417,32 +417,30 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
   return true; 
 }
   
+/* overloading while sw-2400 and sw-2429 are WIP */
+inline __attribute__((always_inline)) 
+bool getOffsets(unsigned int dimNum, unsigned int *coord, unsigned int &offset1,
+                unsigned int &offset2, const size_t*index, const size_t *pitch1,
+                unsigned int* pitch2) {
 
-// /* overloading while sw-2400 and sw-2429 are WIP */
-// template <typename T>
-// inline __attribute__((always_inline)) 
-// bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-//                 T &offset2, const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch1,
-//                 const unsigned int* pitch2) {
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (likely(coord[j] != (index[j] - 1))) {
+      offset1 += pitch1[j];
+      offset2 += pitch2[j];
+      coord[j]++;
+      return false;
+    } else if (likely(j != 0)) {
+      offset1 -= (index[j] - 1) * pitch1[j];
+      offset2 -= (index[j] - 1) * pitch2[j];
+      coord[j] = 0;
+    } else
+      return true;
+  }
 
-//   for (int j = dimNum - 1; j >= 0; j--) {
-//     if (likely(coord[j] != (index[j] - 1))) {
-//       offset1 += pitch1[j];
-//       offset2 += pitch2[j];
-//       coord[j]++;
-//       return false;
-//     } else if (likely(j != 0)) {
-//       offset1 -= (index[j] - 1) * pitch1[j];
-//       offset2 -= (index[j] - 1) * pitch2[j];
-//       coord[j] = 0;
-//     } else
-//       return true;
-//   }
-
-//   //FIXME: use assertion throw "getOffsets Malfunction";
-//   // To avoid warnings. This point will never be reached.
-//   return true; 
-// }
+  //FIXME: use assertion throw "getOffsets Malfunction";
+  // To avoid warnings. This point will never be reached.
+  return true; 
+}
 
   
 /**

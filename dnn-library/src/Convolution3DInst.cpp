@@ -14,48 +14,35 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibConvolution3DInst(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *weights, void *weightsDims, void *weightPitches, void *bias,
-    void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    const float *scale, const int32_t *offset) {
+void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                             LibTensor* in3T, void *pkernels, void *pstrides,
+                             void *ppads, unsigned int group) {
 
-  dnn_lib::inlining::fwdLibConvolution3DInst<srcType>(
-    dstMatrix, dstMatrixDims, dstMatrixPitches,
-    activations, activationsDims, activationsPitches,
-    weights, weightsDims, weightPitches, bias,
-    pkernels, pstrides, ppads, group,
-    scale, offset);
+  dnn_lib::inlining::fwdLibConvolution3DInst<srcType>(outT, in1T, in2T, in3T,
+                                              pkernels, pstrides, ppads, group);
 }
 
 template <typename srcType>
-void fwdLibConvolution3DInstThreaded(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *weights, void *weightsDims, void *weightPitches, void *bias,
-    void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    const float *scale, const int32_t *offset, uint64_t flags) {
+void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                     LibTensor* in2T, LibTensor* in3T,
+                                     void *pkernels, void *pstrides,
+                                     void *ppads, unsigned int group,
+                                     uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibConvolution3DInstThreaded<srcType>(
-    dstMatrix, dstMatrixDims, dstMatrixPitches,
-    activations, activationsDims, activationsPitches,
-    weights, weightsDims, weightPitches, bias,
-    pkernels, pstrides, ppads, group,
-    scale, offset, flags);
+  dnn_lib::inlining::fwdLibConvolution3DInstThreaded<srcType>(outT, in1T, in2T,
+                                                              in3T, pkernels,
+                                                              pstrides, ppads,
+                                                              group, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibConvolution3DInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                void *activations, void *activationsDims, void *activationsPitches,
-                                void *weights, void *weightsDims, void *weightPitches, void *bias,
-                                void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                                const float *scale, const int32_t *offset);
-GEN_INSTANCES_OP(template, fwdLibConvolution3DInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                void *activations, void *activationsDims, void *activationsPitches,
-                                void *weights, void *weightsDims, void *weightPitches, void *bias,
-                                void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                                const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibConvolution3DInst, LibTensor* outT, LibTensor* in1T,
+                 LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
+                 void *ppads, unsigned int group);
+GEN_INSTANCES_OP(template, fwdLibConvolution3DInstThreaded, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                 void *pkernels, void *pstrides, void *ppads, unsigned int group,
+                 uint64_t flags);
 
 } // namespace dnn_lib

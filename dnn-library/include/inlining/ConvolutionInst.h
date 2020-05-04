@@ -24,6 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 
 namespace dnn_lib {
@@ -55,14 +56,9 @@ namespace inlining {
  * @param[in] offset The offset for the quantization.
  */
 template <typename srcType>
-inline void fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
-                                    void *dstMatrixPitches, void *activations,
-                                    void *activationsDims,
-                                    void *activationsPitches, void *weights,
-                                    void *weightsDims, void *weightPitches,
-                                    void *bias, void *pkernels, void *pstrides,
-                                    void *ppads, unsigned int group,
-                                    const float *scale, const int32_t *offset) {
+inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                  LibTensor* in3T, void *pkernels, void *pstrides,
+                                    void *ppads, unsigned int group) {
 
   // FIXME: going back to single thread until general case is solved with
   // multithread
@@ -70,22 +66,37 @@ inline void fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  float *tBias = (float *)bias;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dest in1T->activations in2T-> weight in3T->bias */
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights =  in2T->getRawDataPointer<void>();
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // float *tBias = (float *)bias;
+  float *tBias = in3T->getRawDataPointer<float>();
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
-
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size_t *weightPitch = in2T->strides().data();
+  
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides; 
   unsigned int *pads = (unsigned int *)ppads; 
 
+  
   assert(actIndex[3] % group == 0 &&
          "Input channels must be divisible by group.");
   assert(dstIndex[3] % group == 0 &&
@@ -171,30 +182,41 @@ inline void fwdLibConvolutionInst(void *dstMatrix, void *dstMatrixDims,
  *  should be done at the end of the function.
  */
 template <typename srcType>
-inline void fwdLibConvolutionInstThreaded(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *weights, void *weightsDims, void *weightPitches, void *bias,
-    void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
+             LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
+             void *ppads, unsigned int group, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  float *tBias = (float *)bias;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dest in1T->activations in2T-> weight in3T->bias */
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // float *tBias = (float *)bias;
+  float *tBias = in3T->getRawDataPointer<float>();
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
-
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size_t *weightPitch = in2T->strides().data();
+  
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides; 
   unsigned int *pads = (unsigned int *)ppads; 
@@ -215,10 +237,15 @@ inline void fwdLibConvolutionInstThreaded(
   unsigned int inCperG = actIndex[3] / group;
   unsigned int outCperG = dstIndex[3] / group;
 
-  unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
+  // unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
+  //                              1};
+
+  // unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
+  //                              outCperG};
+  size_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
                                1};
 
-  unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
+  size_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
                                outCperG};
 
   unsigned int coord[5], k;
@@ -304,8 +331,8 @@ inline void fwdLibConvolutionInstThreaded(
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
                             src1Type, float>::value, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    unsigned int *actPitch, unsigned int *weightPitch,
-                    unsigned int *actIndex, unsigned int *kernels,
+                    const size_t *actPitch, const size_t *weightPitch,
+                    const size_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int64_t dist;
@@ -418,8 +445,8 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
                             src1Type, float16>::value, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    unsigned int *actPitch, unsigned int *weightPitch,
-                    unsigned int *actIndex, unsigned int *kernels,
+                    const size_t *actPitch, const size_t *weightPitch,
+                    const size_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int dist;
@@ -560,8 +587,8 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
                             src1Type, float16>::value) && (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    unsigned int *actPitch, unsigned int *weightPitch,
-                    unsigned int *actIndex, unsigned int *kernels,
+                    const size_t *actPitch, const size_t *weightPitch,
+                    const size_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
@@ -599,8 +626,8 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
                             src1Type, float16>::value) /*&& (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    unsigned int *actPitch, unsigned int *weightPitch,
-                    unsigned int *actIndex, unsigned int *kernels,
+                    const size_t *actPitch, const size_t *weightPitch,
+                    const size_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
@@ -631,8 +658,8 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 
 template <typename src1Type, typename src2Type, typename dstType>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    unsigned int *actPitch, unsigned int *weightPitch,
-                    unsigned int *actIndex, unsigned int *kernels,
+                    const size_t *actPitch, const size_t *weightPitch,
+                    const size_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
@@ -692,28 +719,41 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *  should be done at the end of the function.
  */
 template <typename src1Type, typename src2Type, typename dstType>
-inline void fwdLibConvolutionInstVectorized(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    void *weights, void *weightsDims, void *weightPitches, void *bias,
-    void *pkernels, void *pstrides, void *ppads, unsigned int group,
-    const float *scale, const int32_t *offset, uint64_t flags) {
-
-  Addresser<dstType> tOutput(dstMatrix, scale[3], offset[3]);
+inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
+                                            LibTensor* in2T, LibTensor* in3T,
+                                            void *pkernels, void *pstrides,
+                                            void *ppads, unsigned int group,
+                                            const float *scale, const int32_t *offset,
+                                            uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
-  float *tBias = (float *)bias;
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT->dest in1T->activations in2T-> weight in3T->bias */
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
+  void *dstMatrix = outT->getRawDataPointer<void>();
+  void *activations = in1T->getRawDataPointer<void>();
+  void *weights = in2T->getRawDataPointer<void>();
 
+  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());  
+  // float *tBias = (float *)bias;
+  float *tBias = in3T->getRawDataPointer<float>();
+  
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size_t *actIndex = in1T->dims().data();
+
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size_t *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size_t *weightPitch = in2T->strides().data();
+  
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides; // Jump between convols
   unsigned int *pads = (unsigned int *)ppads; // 0 added to avoid loss of dims
@@ -734,10 +774,15 @@ inline void fwdLibConvolutionInstVectorized(
   unsigned int inCperG = actIndex[3] / group;
   unsigned int outCperG = dstIndex[3] / group;
 
-  unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
+  // unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
+  //                              1};
+
+  // unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
+  //                              outCperG};
+  size_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
                                1};
 
-  unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
+  size_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
                                outCperG};
 
   unsigned int coord[5], k;
@@ -754,6 +799,7 @@ inline void fwdLibConvolutionInstVectorized(
   bool done = false;
   ssize_t x, y, d;
   int32_t mask = (1 << (((inCperG - 1) & 0x7)  + 1)) - 1;
+
   while ((offsetOut < posMax) && !done) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
     y = coord[2] * strides[1] - ssize_t(pads[1]);

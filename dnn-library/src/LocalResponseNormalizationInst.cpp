@@ -14,70 +14,43 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibLocalResponseNormalizationInst(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
-    const int32_t *offset) {
+void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTensor* out2T,
+        LibTensor* inT, unsigned int halfWindowSize, float alpha, float beta,
+        float k) {
 
-  dnn_lib::inlining::fwdLibLocalResponseNormalizationInst<srcType>(
-    dstMatrix, dstMatrixDims, dstMatrixPitches,
-    dst2Matrix, dst2MatrixDims, dst2MatrixPitches,
-    activations, activationsDims, activationsPitches,
-    halfWindowSize, alpha, beta, k, scale,
-    offset);
+  dnn_lib::inlining::fwdLibLocalResponseNormalizationInst<srcType>(out1T, out2T,
+                                           inT, halfWindowSize, alpha, beta, k);
 }
 
 template <typename srcType>
-void fwdLibLocalResponseNormalizationInstThreaded(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
-    const int32_t *offset, uint64_t flags) {
+void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
+    LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
+    float beta, float k, uint64_t flags) {
 
   dnn_lib::inlining::fwdLibLocalResponseNormalizationInstThreaded<srcType>(
-    dstMatrix, dstMatrixDims, dstMatrixPitches,
-    dst2Matrix, dst2MatrixDims, dst2MatrixPitches,
-    activations, activationsDims, activationsPitches,
-    halfWindowSize, alpha, beta, k, scale,
-    offset, flags);
+    out1T, out2T, inT, halfWindowSize, alpha, beta, k, flags);
 }
 
 template <typename srcType>
-void fwdLibLocalResponseNormalizationInstVectorized(
-    void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-    void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-    void *activations, void *activationsDims, void *activationsPitches,
-    unsigned int halfWindowSize, float alpha, float beta, float k, const float *scale,
-    const int32_t *offset, uint64_t flags) {
+void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
+    LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
+    float beta, float k, uint64_t flags) {
 
   dnn_lib::inlining::fwdLibLocalResponseNormalizationInstVectorized<srcType>(
-    dstMatrix, dstMatrixDims, dstMatrixPitches,
-    dst2Matrix, dst2MatrixDims, dst2MatrixPitches,
-    activations, activationsDims, activationsPitches,
-    halfWindowSize, alpha, beta, k, scale,
-    offset, flags);
+                out1T, out2T, inT, halfWindowSize, alpha, beta, k, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInst,
+                 LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+                 unsigned int halfWindowSize, float alpha, float beta, float k);
 
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstThreaded,
+                 LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+                 unsigned int halfWindowSize, float alpha, float beta, float k, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstVectorized, LibTensor* out1T,
+                 LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
+                 float beta, float k, uint64_t flags);
 } // namespace dnn_lib

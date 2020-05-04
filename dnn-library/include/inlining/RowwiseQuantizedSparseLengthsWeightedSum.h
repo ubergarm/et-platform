@@ -24,35 +24,52 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize) {
+    LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+    LibTensor* in4T, LibTensor* in5T, LibTensor* in6T) {
+
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  float *tOutput = (float *)pdst;
-  uint8_t *tAInput = (uint8_t *)pdata;
-  float *tScale = (float *)pscale;
-  float *tOffset = (float *)poffset;
-  float *tWInput = (float *)pweights;
-  long long *indices = (long long *)pindices;
-  int32_t *lengths = (int32_t *)plengths;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* out->dst in1T-> data in2T-> weight in3T-> indices in4T-> lengths */
+  /* in5T-> scale in6T-> offset */
+  
+  // float *tOutput = (float *)pdst;
+  float *tOutput = outT->getRawDataPointer<float>();
+  // uint8_t *tAInput = (uint8_t *)pdata;
+  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  // float *tScale = (float *)pscale;
+  float *tScale = in5T->getRawDataPointer<float>();
+  // float *tOffset = (float *)poffset;
+  float *tOffset = in6T->getRawDataPointer<float>();
+  // float *tWInput = (float *)pweights;
+  float *tWInput = in2T->getRawDataPointer<float>();
+  // long long *indices = (long long *)pindices;
+  long long *indices = in3T->getRawDataPointer<long long>();
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
 
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in3T->strides().data();
+  // size_t segments = pLengthsSize;
+  const size_t segments = static_cast<size_t>(in4T->ndims());
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
 
-  size_t segments = pLengthsSize;
   size_t totalLength = 0;
   for (size_t i = 0; i < segments; i++) {
     totalLength += lengths[i];
@@ -89,31 +106,46 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
 }
 
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags) {
+             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  float *tOutput = (float *)pdst;
-  uint8_t *tAInput = (uint8_t *)pdata;
-  float *tScale = (float *)pscale;
-  float *tOffset = (float *)poffset;
-  float *tWInput = (float *)pweights;
-  long long *indices = (long long *)pindices;
-  int32_t *lengths = (int32_t *)plengths;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* out->dst in1T-> data in2T-> weight in3T-> indices in4T-> lengths */
+  /* in5T-> scale in6T-> offset */
+  
+  // float *tOutput = (float *)pdst;
+  float *tOutput = outT->getRawDataPointer<float>();
+  // uint8_t *tAInput = (uint8_t *)pdata;
+  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  // float *tScale = (float *)pscale;
+  float *tScale = in5T->getRawDataPointer<float>();
+  // float *tOffset = (float *)poffset;
+  float *tOffset = in6T->getRawDataPointer<float>();
+  // float *tWInput = (float *)pweights;
+  float *tWInput = in2T->getRawDataPointer<float>();
+  // long long *indices = (long long *)pindices;
+  long long *indices = in3T->getRawDataPointer<long long>();
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
+  
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();  
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
+  const size_t *weightPitch = in3T->strides().data();  
+  // size_t segments = pLengthsSize;
+  const size_t segments = static_cast<size_t>(in4T->ndims());
 
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-
-  size_t segments = pLengthsSize;
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   size_t ranges[segments];
   size_t totalLength = 0;
   for (size_t i = 0; i < segments; i++) {
@@ -160,11 +192,9 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
 
 template<bool Int8Src, bool Float16Dst>
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
-        void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-	    void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-	    void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-	    void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-	    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
+             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   // Get offset of the Minion inside the group of Minions assigned to this Node.
   uint64_t minionId = get_minion_id();
@@ -177,21 +207,39 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
   // If Minion is outside the group assigned to this Node get out.
   if (minionId >= activeMinions) return;
 
+   /* maintain compatibility through the new Iface Libtensor */
+  /* out->dst in1T-> data in2T-> weight in3T-> indices in4T-> lengths */
+  /* in5T-> scale in6T-> offset */
   // Set real types for input pointers.
   // For dst we used uint8_t because it can be accessed with different types.
-  uint8_t *tOutput = (uint8_t *) pdst;
-  uint8_t *tAInput = (uint8_t *) pdata;
-  float   *tWInput = (float   *) pweights;
-  int64_t *indices = (int64_t *) pindices;
-  int32_t *lengths = (int32_t *) plengths;
-  float   *scales  = (float   *) pscale;
-  float   *offsets = (float   *) poffset;
 
-  uint32_t *dstDims     = (uint32_t *) pdstDims;
-  uint32_t *dataDims    = (uint32_t *) pdataDims;
-  uint32_t *dstPitches  = (uint32_t *) pdstPitches;
-  uint32_t *dataPitches = (uint32_t *) pdataPitches;
+  // uint8_t *tOutput = (uint8_t *) pdst;
+  uint8_t *tOutput = outT->getRawDataPointer<uint8_t>();
+  // uint8_t *tAInput = (uint8_t *) pdata;
+  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  // float   *tWInput = (float   *) pweights;
+  float *tWInput = in2T->getRawDataPointer<float>();
+  // int64_t *indices = (int64_t *) pindices;
+  int64_t *indices = in3T->getRawDataPointer<int64_t>();
+  // int32_t *lengths = (int32_t *) plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
+  // float   *scales  = (float   *) pscale;
+  float *scales = in5T->getRawDataPointer<float>();
+  // float   *offsets = (float   *) poffset;
+  float *offsets = in6T->getRawDataPointer<float>();
+  
+  // uint32_t *dstDims     = (uint32_t *) pdstDims;
+  const size_t *dstDims = outT->dims().data();
+  // uint32_t *dataDims    = (uint32_t *) pdataDims;
+  const size_t *dataDims = in1T->dims().data();
+  // uint32_t *dstPitches  = (uint32_t *) pdstPitches;
+  const size_t *dstPitches = outT->strides().data();
+  // uint32_t *dataPitches = (uint32_t *) pdataPitches;
+  const size_t *dataPitches = in1T->strides().data();
 
+
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
+  
   // TODO : Add assert checking segments is equal to the number of output rows.
 
   // TODO : Add assert checking that totalLength is smaller than the size of

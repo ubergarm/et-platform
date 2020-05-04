@@ -24,27 +24,43 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
+
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline void fwdLibSparseToDenseMaskInst(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, void *pdefault,
-    int pdefaultSize, void *pindices, void *plengths, unsigned int pLengthsSize,
-    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset) {
+inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
+                                        LibTensor* in2T, LibTensor* in3T,
+                                        LibTensor* in4T,
+                                        unsigned int pdefaultSize,
+                                        unsigned int pLengthsSize,
+                                        void *pmask, unsigned int pMaskSize) {
 
-  Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tDefVInput(pdefault, scale[1], offset[1]);
-  long long *indices = (long long *)pindices;
-  int32_t *lengths = (int32_t *)plengths;
-  long long *mask = (long long *)pmask;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* out--> dest in1T->val in2T->dft in3T->idx in4T->len*/
+  void* pdst = outT->getRawDataPointer<void>();
+  void* pdata = in1T->getRawDataPointer<void>();
+  void* pdefault = in2T->getRawDataPointer<void>();
+  
+  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
+  Addresser<srcType> tOutput(pdst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(pdata, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tDefVInput(pdefault, scale[1], offset[1]);
+  const Addresser<srcType> tDefVInput(pdefault, in2T->getScale(), in2T->getOffset());
+  // long long *indices = (long long *)pindices;
+  long long *indices = in3T->getRawDataPointer<long long>();
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
+  // long long *mask = (long long *)pmask;
+  long long *mask = reinterpret_cast<long long*>(pmask);
 
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  
   // First un-processed index-value pair.
   size_t posIn = 0;
   // Beginning of output block for first unprocessed batch.
@@ -63,7 +79,7 @@ inline void fwdLibSparseToDenseMaskInst(
     // Fill everything with maskSize copies of defaultValue.
     for (size_t i = 0; i < pMaskSize; i++) {
       srcAddr = 0;
-      srcAddrUp = pdefaultSize;
+      srcAddrUp = //pdefaultSize;
       dstAddr = byteoffsetOut + advanceInBatch * i;
       auto val = tDefVInput[0];
       for (uint64_t addr = srcAddr, cnt = 0; addr < srcAddrUp; addr++, cnt++) {
@@ -103,28 +119,49 @@ inline void fwdLibSparseToDenseMaskInst(
 // (2) The dimensions and pitches of the pdefault tensor are the ones of a batch of the data tensor.
 
 template <typename srcType>
-inline void fwdLibSparseToDenseMaskInstThreaded(
-    void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-    void *pdata, void *pdataDims, void *pdataPitches, unsigned int pdataDimNum, void *pdefault,
-    int pdefaultSize, void *pindices, void *plengths, unsigned int pLengthsSize,
-    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset, uint64_t flags) {
+inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                                LibTensor* in2T, LibTensor* in3T,
+                                                LibTensor* in4T,
+                                                unsigned int pdefaultSize,
+                                                unsigned int pLengthsSize,
+                                                void *pmask, unsigned int pMaskSize,
+                                                uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
 
-  Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tDefVInput(pdefault, scale[1], offset[1]);
-  long long *indices = (long long *)pindices;
-  int32_t *lengths = (int32_t *)plengths;
-  long long *mask = (long long *)pmask;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* out--> dest in1T->val in2T->dft in3T->idx in4T->len*/
+  void *pdst = outT->getRawDataPointer<void>();
+  void *pdata = in1T->getRawDataPointer<void>();
+  void *pdefault = in2T->getRawDataPointer<void>();
+    
+  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
+  Addresser<srcType> tOutput(pdst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(pdata, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tDefVInput(pdefault, scale[1], offset[1]);
+  const Addresser<srcType> tDefVInput(pdefault, in2T->getScale(), in2T->getOffset());
+  // long long *indices = (long long *)pindices;
+  long long *indices = in3T->getRawDataPointer<long long>();
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
+  // long long *mask = (long long *)pmask;
+  long long *mask = reinterpret_cast<long long*>(pmask);
 
-  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  unsigned int *dataIndex = (unsigned int *)pdataDims;
-  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
+  const size_t *dstIndex = outT->dims().data();
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  const size_t *dataIndex = in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
+  const size_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const size_t *dataPitch = in1T->strides().data();
 
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
+  unsigned int pdataDimNum = static_cast<unsigned int>(in1T->ndims());
+  
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();

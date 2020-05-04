@@ -123,53 +123,26 @@ GEN_OP(fwdLibCopyInstTensorized, LibTensor* outT, LibTensor* inT, uint64_t flags
 GEN_OP(fwdLibSyncopyInstTensorized, void *dst, void *Dims, void *Pitches,
                                   void *src, unsigned int DimNum,
                                   const float *scale, const int32_t *offset, unsigned int off);
-GEN_OP(fwdLibTensorViewInst, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset); 
-GEN_OP(fwdLibTensorViewInstThreaded, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset, uint64_t flags );
-GEN_OP(fwdLibTensorViewInstVectorized, void *dst, void *dstDims, void *dstPitches,
-                             unsigned int dstDimNum, void *src, void *srcDims,
-                             void *srcPitches, unsigned int srcDimNum, void *poffsets,
-                             const float *scale, const int32_t *offset, uint64_t flags );  
-GEN_OP(fwdLibConvolutionInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                              void *activations, void *activationsDims, void *activationsPitches,
-                              void *weights, void *weightsDims, void *weightPitches, void *bias,
-                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              const float *scale, const int32_t *offset); 
-GEN_OP(fwdLibConvolutionInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                              void *activations, void *activationsDims, void *activationsPitches,
-                              void *weights, void *weightsDims, void *weightPitches, void *bias,
+GEN_OP(fwdLibTensorViewInst, LibTensor* outT, LibTensor* inT, void *poffsets); 
+GEN_OP(fwdLibTensorViewInstThreaded, LibTensor* outT, LibTensor* inT, void *poffsets, uint64_t flags );
+GEN_OP(fwdLibTensorViewInstVectorized, LibTensor* outT, LibTensor* inT, void *poffsets, uint64_t flags );  
+GEN_OP(fwdLibConvolutionInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group); 
+GEN_OP(fwdLibConvolutionInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                              void *pkernels, void *pstrides, void *ppads, unsigned int group, uint64_t flags);
+GEN_3TYPE_OP(fwdLibConvolutionInstVectorized, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                               void *pkernels, void *pstrides, void *ppads, unsigned int group,
                               const float *scale, const int32_t *offset, uint64_t flags);
-GEN_3TYPE_OP(fwdLibConvolutionInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                              void *activations, void *activationsDims, void *activationsPitches,
-                              void *weights, void *weightsDims, void *weightPitches, void *bias,
-                              void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                              const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibConvolution3DInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                void *activations, void *activationsDims, void *activationsPitches,
-                                void *weights, void *weightsDims, void *weightPitches, void *bias,
-                                void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                                const float *scale, const int32_t *offset); 
-GEN_OP(fwdLibConvolution3DInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                void *activations, void *activationsDims, void *activationsPitches,
-                                void *weights, void *weightsDims, void *weightPitches, void *bias,
-                                void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                                const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibSparseToDenseMaskInst, void *pdst, void *pdstDims, void *pdstPitches,
-                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
-                                    void *pdataPitches, void *pdefault, int pdefaultSize,
-                                    void *pindices, void *plengths, unsigned int pLengthsSize,
-                                    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset);
-GEN_OP(fwdLibSparseToDenseMaskInstThreaded, void *pdst, void *pdstDims, void *pdstPitches,
-                                    unsigned int pdstDimNum, void *pdata, void *pdataDims,
-                                    void *pdataPitches, unsigned int pdataDimNum, void *pdefault, int pdefaultSize,
-                                    void *pindices, void *plengths, unsigned int pLengthsSize,
-                                    void *pmask, unsigned int pMaskSize, const float *scale, const int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibConvolution3DInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                void *pkernels, void *pstrides, void *ppads, unsigned int group); 
+GEN_OP(fwdLibConvolution3DInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                void *pkernels, void *pstrides, void *ppads, unsigned int group, uint64_t flags);
+GEN_OP(fwdLibSparseToDenseMaskInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                          LibTensor* in3T, LibTensor* in4T, unsigned int pdefaultSize,
+                          unsigned int lengthsSize, void *pmask, unsigned int pMaskSize);
+GEN_OP(fwdLibSparseToDenseMaskInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                          LibTensor* in3T, LibTensor* in4T, unsigned int pdefaultSize,
+                          unsigned int lengthsSize, void *pmask, unsigned int pMaskSize, uint64_t flags);
 GEN_OP(fwdLibMatMulInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T);
 GEN_OP(fwdLibMatMulInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
                          const uint32_t minionOffset = 0, const uint32_t numShires = 0);
@@ -235,21 +208,12 @@ GEN_OP(fwdLibMaxSplatInstAligned32Bytes, LibTensor* outT, LibTensor* inT, float 
 GEN_OP(fwdLibFullyConnectedInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T);   
 GEN_OP(fwdLibFullyConnectedInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, const float* scale, const int32_t* offset, uint64_t flags);
 GEN_3TYPE_OP(fwdLibFullyConnectedInstVectorized, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, uint64_t flags);
-GEN_OP(fwdLibLocalResponseNormalizationInst, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset);
-GEN_OP(fwdLibLocalResponseNormalizationInstThreaded, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset, uint64_t flags);
-GEN_OP(fwdLibLocalResponseNormalizationInstVectorized, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                                             void *dst2Matrix, void *dst2MatrixDims, void *dst2MatrixPitches,
-                                             void *activations, void *activationsDims, void *activationsPitches,
-                                             unsigned int halfWindowSize, float alpha, float beta, float k,
-                                             const float *scale, const int32_t *offset, uint64_t flags);
+GEN_OP(fwdLibLocalResponseNormalizationInst, LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+                            unsigned int halfWindowSize, float alpha, float beta, float k);
+GEN_OP(fwdLibLocalResponseNormalizationInstThreaded, LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+                            unsigned int halfWindowSize, float alpha, float beta, float k, uint64_t flags);
+GEN_OP(fwdLibLocalResponseNormalizationInstVectorized, LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+                            unsigned int halfWindowSize, float alpha, float beta, float k, uint64_t flags);
 GEN_QUANT(fwdLibQuantizeInst, LibTensor* outT, LibTensor* inT);
 GEN_QUANT(fwdLibQuantizeInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);  
 GEN_QUANT(fwdLibDequantizeInst, LibTensor* outT, LibTensor* inT);
@@ -270,16 +234,12 @@ GEN_CONVERT(fwdLibConvertToInstThreaded, LibTensor* inT, LibTensor* outT, uint64
 GEN_CONVERT(fwdLibConvertToInstVectorized, LibTensor* inT, LibTensor* outT, uint64_t flags);
 GEN_INTONLY_OP(fwdLibModuloInst, LibTensor* outT, LibTensor* inT, long long divisor, bool signFollowDivisor);
 GEN_INTONLY_OP(fwdLibModuloInstThreaded, LibTensor* outT, LibTensor* inT, long long divisor, bool signFollowDivisor, uint64_t flags);
-GEN_OP(fwdLibSparseLengthsWeightedSumInst,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum, 
-                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights, 
-                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths, 
-                                          unsigned int pLengthsSize, const float *scale, const int32_t *offset);
-GEN_OP(fwdLibSparseLengthsWeightedSumInstThreaded,void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-                                          void *pdata, void *pdataDims, void *pdataPitches, void *pweights,
-                                          void *pweightsDims, void *pweightsPitches, void *pindices, void *plengths,
-                                          unsigned int pLengthsSize, const float *scale, const int32_t *offset, uint64_t flags);
-
-
+GEN_OP(fwdLibSparseLengthsWeightedSumInst, LibTensor* outT, LibTensor* in1T,
+                                           LibTensor* in2T, LibTensor* in3T,
+                                           LibTensor* in4T, unsigned int pLengthsSize);
+GEN_OP(fwdLibSparseLengthsWeightedSumInstThreaded, LibTensor* outT, LibTensor* in1T,
+                                                   LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+                                                   unsigned int pLengthsSize, uint64_t flags);
 GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t numShires = 0);
@@ -289,18 +249,16 @@ GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized,
 GEN_FRQSLWS_V(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
               LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t numShires = 0);
-
-GEN_RQSLWS_V(fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
-             void *pdst, void *pdstDims, void *pdstPitches, unsigned int pdstDimNum,
-             void *pdata, void *pdataDims, void *pdataPitches, void *pscale,
-             void *poffset, void *pweights, void *pweightsDims, void *pweightsPitches,
-             void *pindices, void *plengths, unsigned int pLengthsSize, uint64_t flags,
-             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 GEN_RQSLWS_V(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect,
              uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
              uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
              uintptr_t dataRowSize, uintptr_t dstElemSize,
              uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr);
+
+GEN_RQSLWS_V(fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
+             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
+             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 GEN_OP(fwdLibFlipInst, LibTensor* inT, LibTensor* outT, unsigned int axis);
 
