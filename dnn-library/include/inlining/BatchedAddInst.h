@@ -188,7 +188,7 @@ inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
   // int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
   int8_t *tBatch = in1T->getRawDataPointer<int8_t>();
   // int32_t *tSlice = (int32_t *)pslice; // scale[1]
-  int32_t *tSlice = outT->getRawDataPointer<int32_t>();
+  int32_t *tSlice = in2T->getRawDataPointer<int32_t>();
   
   // unsigned int *batchIndex = (unsigned int *)pbatchDims;
   const size_t *batchIndex = in1T->dims().data();
@@ -274,7 +274,7 @@ inline void fwdLibBatchedAddInsti8i32Threaded(LibTensor* outT, LibTensor* in1T,
   //  int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
   int8_t *tBatch = in1T->getRawDataPointer<int8_t>();
   //  int32_t *tSlice = (int32_t *)pslice; // scale[1]
-  int32_t *tSlice = outT->getRawDataPointer<int32_t>();
+  int32_t *tSlice = in2T->getRawDataPointer<int32_t>();
   //  unsigned int *dstIndex = (unsigned int *)pdstDims;
   const size_t *dstIndex = outT->dims().data();
   //  unsigned int *dstPitch = (unsigned int *)pdstPitches;
