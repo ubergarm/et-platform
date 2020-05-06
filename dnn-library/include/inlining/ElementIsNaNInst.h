@@ -133,14 +133,14 @@ inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const size_t* dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t* actPitch = outT->strides().data();
+  const size_t* actPitch = inT->strides().data();
  
   uint8_t srcDimNum =  static_cast<unsigned int>(inT->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<bool>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
