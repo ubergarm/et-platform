@@ -21,7 +21,7 @@ void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT, unsigned int o
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibSyncopyInstTensorized, LibTensor* outT, LibTensor* intT,
+GEN_INSTANCES_OP(template, fwdLibSyncopyInstTensorized, LibTensor* outT, LibTensor* inT,
                                   unsigned int off);
 
 } // namespace dnn_lib

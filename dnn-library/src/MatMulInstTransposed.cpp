@@ -14,72 +14,38 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibMatMulInstTransposed(void *dstMatrix, void *dstMatrixDims,
-                                         void *dstMatrixPitches, void *activations,
-                                         void *activationsDims, void *activationsPitches,
-                                         void *weights, void *weightsDims,
-                                         void *weightPitches, const float *scale,
-                                         const int32_t *offset) {
+void fwdLibMatMulInstTransposed(LibTensor* outT, LibTensor* in1T,
+                                LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibMatMulInstTransposed<srcType>(dstMatrix, dstMatrixDims,
-                                         dstMatrixPitches, activations,
-                                         activationsDims, activationsPitches,
-                                         weights, weightsDims,
-                                         weightPitches, scale,
-                                         offset);
+  dnn_lib::inlining::fwdLibMatMulInstTransposed<srcType>(outT, in1T, in2T);
 }
 
 template <typename srcType>
-void fwdLibMatMulInstThreadedTransposed(void *dstMatrix, void *dstMatrixDims,
-                                                 void *dstMatrixPitches,
-                                                 void *activations, void *activationsDims,
-                                                 void *activationsPitches, void *weights,
-                                                 void *weightsDims, void *weightPitches,
-                                                 const float *scale, const int32_t *offset,
-                                                 uint64_t flags) {
+void fwdLibMatMulInstThreadedTransposed(LibTensor* outT, LibTensor* in1T,
+                                        LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibMatMulInstThreadedTransposed<srcType>(dstMatrix, dstMatrixDims,
-                                                 dstMatrixPitches,
-                                                 activations, activationsDims,
-                                                 activationsPitches, weights,
-                                                 weightsDims, weightPitches,
-                                                 scale, offset,
-                                                 flags);
+  dnn_lib::inlining::fwdLibMatMulInstThreadedTransposed<srcType>(outT, in1T,
+                                                                 in2T, flags);
 }
 
 template <typename srcType>
-void fwdLibMatMulInstVectorizedTransposed(void *dstMatrix, void *dstMatrixDims,
-                                                   void *dstMatrixPitches,
-                                                   void *activations, void *activationsDims,
-                                                   void *activationsPitches, void *weights,
-                                                   void *weightsDims, void *weightPitches,
-                                                   const float *scale, const int32_t *offset,
-                                                   uint64_t flags) {
+void fwdLibMatMulInstVectorizedTransposed(LibTensor* outT, LibTensor* in1T,
+                                          LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibMatMulInstVectorizedTransposed<srcType>(dstMatrix, dstMatrixDims,
-                                                   dstMatrixPitches,
-                                                   activations, activationsDims,
-                                                   activationsPitches, weights,
-                                                   weightsDims, weightPitches,
-                                                   scale, offset,
-                                                   flags);
+  dnn_lib::inlining::fwdLibMatMulInstVectorizedTransposed<srcType>(outT, in1T,
+                                                                   in2T,
+                                                                   flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibMatMulInstTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                         void *activations, void *activationsDims, void *activationsPitches,
-                         void *weights, void *weightsDims, void *weightPitches,
-                         const float *scale, const int32_t *offset);
+GEN_INSTANCES_OP(template, fwdLibMatMulInstTransposed, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T);
 
-GEN_INSTANCES_OP(template, fwdLibMatMulInstThreadedTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                         void *activations, void *activationsDims, void *activationsPitches,
-                         void *weights, void *weightsDims, void *weightPitches,
-                         const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibMatMulInstThreadedTransposed, LibTensor* outT,
+                 LibTensor* in1T, LibTensor* in2T, uint64_t flags);
 
-GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorizedTransposed, void *dstMatrix, void *dstMatrixDims, void *dstMatrixPitches,
-                         void *activations, void *activationsDims, void *activationsPitches,
-                         void *weights, void *weightsDims, void *weightPitches,
-                         const float *scale, const int32_t *offset, uint64_t flags);
+GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorizedTransposed, LibTensor* out,
+                 LibTensor* in1T, LibTensor* in2T, uint64_t flags);
 
 } // namespace dnn_lib

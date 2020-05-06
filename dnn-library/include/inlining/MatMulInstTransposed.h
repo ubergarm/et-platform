@@ -24,34 +24,47 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(void *dstMatrix, void *dstMatrixDims,
-                                         void *dstMatrixPitches, void *activations,
-                                         void *activationsDims, void *activationsPitches,
-                                         void *weights, void *weightsDims,
-                                         void *weightPitches, const float *scale,
-                                         const int32_t *offset) {
+inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(LibTensor* outT,
+                                                                      LibTensor* in1T,
+                                                                      LibTensor* in2T) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT -> dest  in1T->activations in2T->weigths*/
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
+  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
 
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size *actIndex = in1T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size *weightPitch = in2T->strides().data();
+  
   // For each (x,y) in the destination matrix:
   for (unsigned int x = 0; x < dstIndex[0]; x++) {
     for (unsigned int y = 0; y < dstIndex[1]; y++) {
@@ -67,29 +80,44 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(void *dstM
 }
 
 template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(void *dstMatrix, void *dstMatrixDims,
-                                                 void *dstMatrixPitches,
-                                                 void *activations, void *activationsDims,
-                                                 void *activationsPitches, void *weights,
-                                                 void *weightsDims, void *weightPitches,
-                                                 const float *scale, const int32_t *offset,
-                                                 uint64_t flags) {
+inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(LibTensor* outT,
+                                                                              LibTensor* in1T,
+                                                                              LibTensor* in2T,
+                                                                              uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT -> dest  in1T->activations in2T->weigths*/
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
+  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
+  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size *actIndex = in1T->dims().data();
+ 
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size *weightPitch = in2T->strides().data();
+
+  uint8_t dstDimNum = static_cast<unsigned int>(outT->ndims());
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -324,26 +352,35 @@ inline __attribute__((always_inline)) void matmulOpTrans (uintptr_t dstAddr, int
 
 // Version assuming the weights tensor is transposed. Used for CONSTANT tensors
 template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(void *dstMatrix, void *dstMatrixDims,
-                                                   void *dstMatrixPitches,
-                                                   void *activations, void *activationsDims,
-                                                   void *activationsPitches, void *weights,
-                                                   void *weightsDims, void *weightPitches,
-                                                   const float *scale, const int32_t *offset,
-                                                   uint64_t flags) {
+inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(LibTensor* outT,
+                                                                                LibTensor* in1T,
+                                                                                LibTensor* in2T,
+                                                                                uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
 
-  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  unsigned int *actIndex = (unsigned int *)activationsDims;
+  /* maintain compatibility through the new Iface Libtensor */
+  /* outT -> dest  in1T->activations in2T->weigths*/
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
+  
+  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
+  const size dstIndex = outT->dims().data();
+  // unsigned int *actIndex = (unsigned int *)activationsDims;
+  const size *actIndex = in1T->dims().data();
+  
+  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
+  const size *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const size *actPitch = in1T->strides().data();
+  // unsigned int *weightPitch = (unsigned int *)weightPitches;
+  const size *weightPitch = in2T->strides().data();
 
-  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  unsigned int *actPitch = (unsigned int *)activationsPitches;
-  unsigned int *weightPitch = (unsigned int *)weightPitches;
-
+  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
