@@ -40,7 +40,6 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
   unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
     return;
-
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
@@ -49,32 +48,15 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
   Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tSmallInput(src2, scale[0], offset[0]);
   const Addresser<srcType> tSmallInput(src, inT->getScale(), inT->getOffset());
-  // unsigned int *smallIndex = (unsigned int *)src2Dims;
-  const size_t *smallIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
-  // unsigned int *smallPitch = (unsigned int *)src2Pitches;
-  const size_t *smallPitch = inT->strides().data();
-
-  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
-  unsigned int *coord = (unsigned int *)pcoord;
-
-  unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eOffsets[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (size_t i = 0; i < dstDimNum; i++) {
-    eDims[i] = smallIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrcPitch[i] = smallPitch[i];
-    eOffsets[i] = coord[i];
-  }
-
+  const unsigned int *eOffsets = (unsigned int *)pcoord;
+  const dim_array_t &eDims = inT->dims();
+  const dim_array_t &eDstPitch = outT->strides();
+  const dim_array_t &eSrcPitch = inT->strides();
+  
   size_t advanceOnAxis = 0;
   uint64_t idx;
-  uintptr_t addr2wr = 0, previous_addr2wr = 0;
+  uintptr_t addr2wr = 0, previous_addr2wr = (uintptr_t)dst;
 
   for (size_t cnt = 0; cnt < count; cnt++) {
     // We can use this loop for all shapes.
@@ -96,11 +78,11 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
                                            z * eSrcPitch[2] + w * eSrcPitch[3] +
                                            q * eSrcPitch[4] + r * eSrcPitch[5]];
                 if (DO_EVICTS) {
-                  addr2wr = (uintptr_t)dst + idx*getsize<srcType>();
+                  addr2wr = ((uintptr_t)dst) + idx*getsize<srcType>();
                   if ((addr2wr >> 6) != (previous_addr2wr >> 6))  
                   {
                     /* evict current cache line */
-                    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 15, CACHE_LINE_BYTES);
+                    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 0);
                     previous_addr2wr = addr2wr;
                   }
                 }
@@ -114,7 +96,8 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
   }
 
   if (DO_EVICTS) {
-    evict_va(0, DO_EVICTS, addr2wr, 15, CACHE_LINE_BYTES);
+    if (addr2wr > 0)
+      evict_va(0, DO_EVICTS, addr2wr, 0);
   }
 
 }
@@ -248,8 +231,8 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
   uintptr_t addr2evict = (uintptr_t)dst8;
   // Computes bytes to evict (adds the unaligned cache line bytes of the base address
   uint32_t  bytes2evict = ((lanes.first * 4) + (addr2evict & 0x3F));
-  // With that computes the cl2evict (0 means 1, 1 means 2, ...)
-  uint32_t  cl2evict = bytes2evict / CACHE_LINE_BYTES;
+  // With that computes the cl2evict
+  uint32_t  cl2evict = (bytes2evict + CACHE_LINE_BYTES -1)/ CACHE_LINE_BYTES;
 
   while (lanes.first > 8) {
 
