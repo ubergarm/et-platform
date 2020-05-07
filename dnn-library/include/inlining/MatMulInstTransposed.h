@@ -54,16 +54,16 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(LibTensor*
   const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size dstIndex = outT->dims().data();
+  const size_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size *actIndex = in1T->dims().data();
+  const size_t *actIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size *dstPitch = outT->strides().data();
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size *actPitch = in1T->strides().data();
+  const size_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size *weightPitch = in2T->strides().data();
+  const size_t *weightPitch = in2T->strides().data();
   
   // For each (x,y) in the destination matrix:
   for (unsigned int x = 0; x < dstIndex[0]; x++) {
@@ -106,18 +106,16 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(Li
   const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size dstIndex = outT->dims().data();
+  const size_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size *actIndex = in1T->dims().data();
+  const size_t *actIndex = in1T->dims().data();
  
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size *dstPitch = outT->strides().data();
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size *actPitch = in1T->strides().data();
+  const size_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size *weightPitch = in2T->strides().data();
-
-  uint8_t dstDimNum = static_cast<unsigned int>(outT->ndims());
+  const size_t *weightPitch = in2T->strides().data();
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -369,16 +367,16 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(
   void* weights = in2T->getRawDataPointer<void>();
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size dstIndex = outT->dims().data();
+  const size_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size *actIndex = in1T->dims().data();
+  const size_t *actIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size *dstPitch = outT->strides().data();
+  const size_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size *actPitch = in1T->strides().data();
+  const size_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size *weightPitch = in2T->strides().data();
+  const size_t *weightPitch = in2T->strides().data();
 
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
@@ -410,6 +408,9 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(
 
   unsigned int posMax = initialAddr + maxRead;
   bool done = false;
+
+  const float scale[3] = {in1T->getScale(), in1T->getScale(), outT->getScale()};
+  const int32_t offset[3] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
 
   while (!done && (offsetOut < posMax)) {
     uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;

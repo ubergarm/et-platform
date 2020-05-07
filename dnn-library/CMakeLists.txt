@@ -167,7 +167,7 @@ add_library(dnn_lib STATIC
   src/LengthsToRangesInst.cpp
   src/LocalResponseNormalizationInst.cpp
   src/MatMulInst.cpp
-#  src/MatMulInstTransposed.cpp
+  src/MatMulInstTransposed.cpp
   src/MaxSplatInst.cpp
   src/MaxPoolInst.cpp
   src/ModuloInst.cpp

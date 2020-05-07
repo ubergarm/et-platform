@@ -47,7 +47,7 @@
 #include "LengthsToRangesInst.h" // From include/inlining path
 #include "LocalResponseNormalizationInst.h" // From include/inlining path
 #include "MatMulInst.h" // From include/inlining path
-//TODO: RESTORE #include "MatMulInstTransposed.h" // From include/inlining path __PENDING TO USE LIBTENSOR
+ #include "MatMulInstTransposed.h" // From include/inlining path
 #include "MaxPoolInst.h" // From include/inlining path
 #include "MaxSplatInst.h" // From include/inlining path
 #include "ModuloInst.h" // From include/inlining path
