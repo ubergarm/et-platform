@@ -59,7 +59,7 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   long long *mask = reinterpret_cast<long long*>(pmask);
 
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   
   // First un-processed index-value pair.
   size_t posIn = 0;
@@ -151,13 +151,13 @@ inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T
   long long *mask = reinterpret_cast<long long*>(pmask);
 
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch = in1T->strides().data();
+  const dim_t *dataPitch = in1T->strides().data();
 
   unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
   unsigned int pdataDimNum = static_cast<unsigned int>(in1T->ndims());

@@ -58,13 +58,13 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   int32_t *lengths = in4T->getRawDataPointer<int32_t>();
 
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch = in1T->strides().data();
+  const dim_t *dataPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-  const size_t *weightPitch = in3T->strides().data();
+  const dim_t *weightPitch = in3T->strides().data();
   // size_t segments = pLengthsSize;
   const size_t segments = static_cast<size_t>(in4T->ndims());
 
@@ -134,13 +134,13 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   int32_t *lengths = in4T->getRawDataPointer<int32_t>();
   
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();  
+  const dim_t *dataIndex = in1T->dims().data();  
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch = in1T->strides().data();
+  const dim_t *dataPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-  const size_t *weightPitch = in3T->strides().data();  
+  const dim_t *weightPitch = in3T->strides().data();  
   // size_t segments = pLengthsSize;
   const size_t segments = static_cast<size_t>(in4T->ndims());
 
@@ -229,13 +229,13 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
   float *offsets = in6T->getRawDataPointer<float>();
   
   // uint32_t *dstDims     = (uint32_t *) pdstDims;
-  const size_t *dstDims = outT->dims().data();
+  const dim_t *dstDims = outT->dims().data();
   // uint32_t *dataDims    = (uint32_t *) pdataDims;
-  const size_t *dataDims = in1T->dims().data();
+  const dim_t *dataDims = in1T->dims().data();
   // uint32_t *dstPitches  = (uint32_t *) pdstPitches;
-  const size_t *dstPitches = outT->strides().data();
+  const dim_t *dstPitches = outT->strides().data();
   // uint32_t *dataPitches = (uint32_t *) pdataPitches;
-  const size_t *dataPitches = in1T->strides().data();
+  const dim_t *dataPitches = in1T->strides().data();
 
 
   unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());

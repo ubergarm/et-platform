@@ -54,16 +54,16 @@ inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
   const Addresser<srcType> tWInput(weights, in1T->getScale(), in1T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   // For each (x,y) in the destination matrix:
   for (unsigned int x = 0; x < dstIndex[0]; x++) {
@@ -106,16 +106,16 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   const Addresser<srcType> tWInput(weights, in1T->getScale(), in1T->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -703,16 +703,16 @@ inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
   float *bias = in3T->getRawDataPointer<float>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches1;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   // Total number of elements to process is the size of the outter
   // dimension of the destination tensor multiplied by its pitch

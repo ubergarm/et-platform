@@ -20,14 +20,14 @@
 #define CACHE_LINE_BYTES 64
 #define MIN_PER_SHIRE 32
 
-
+//#define DIM_T_32
 namespace dnn_lib {
 
 #ifdef DIM_T_32
 using dim_t = uint32_t;
 using sdim_t = int32_t;
 #else
-using dim_t = uint64_t;
+  using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
  

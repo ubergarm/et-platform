@@ -48,11 +48,11 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) 
   const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = outT->dims().data();
+  const dim_t *srcIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -101,11 +101,11 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal
   srcType *ptrSrcT = outT->getRawDataPointer<srcType>();
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = outT->dims().data();
+  const dim_t *srcIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
  
@@ -160,11 +160,11 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
   const Addresser<srcType> ptrSrcT(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
     
@@ -229,11 +229,11 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
   srcType *ptrSrcT = inT->getRawDataPointer<srcType>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -408,13 +408,13 @@ inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
   uintptr_t srcAddr = (uintptr_t)src;
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
  
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -519,13 +519,13 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   void *src = inT->getRawDataPointer<void>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   

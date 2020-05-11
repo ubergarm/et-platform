@@ -47,12 +47,12 @@ inline void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   // unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   // unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -116,11 +116,11 @@ inline void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT,long long d
   // unsigned int *dstIndex = (unsigned int *)dstDims;
 
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
   unsigned int initialAddr, maxRead;

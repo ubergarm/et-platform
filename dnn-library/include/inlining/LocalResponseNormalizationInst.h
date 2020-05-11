@@ -54,13 +54,13 @@ inline void fwdLibLocalResponseNormalizationInst(
   const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());  
 
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = inT->dims().data();  
+  const dim_t *actIndex = inT->dims().data();  
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = out1T->strides().data();
+  const dim_t *dstPitch = out1T->strides().data();
   // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
-  const size_t *dst2Pitch = out2T->strides().data();
+  const dim_t *dst2Pitch = out2T->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   
 
@@ -148,13 +148,13 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
   const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = out1T->dims().data();
+  const dim_t *dstIndex = out1T->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = inT->dims().data(); 
+  const dim_t *actIndex = inT->dims().data(); 
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = out1T->strides().data();
+  const dim_t *dstPitch = out1T->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   // LRN node does not change the shape of the input.
   // assert((dstIndex[0] == actIndex[0]) && (dstIndex[1] == actIndex[1]) &&
@@ -252,13 +252,13 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
   const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = out1T->dims().data();
+  const dim_t *dstIndex = out1T->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = out1T->strides().data();
+  const dim_t *dstPitch = out1T->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = inT->dims().data();
+  const dim_t *actPitch = inT->dims().data();
 
   auto windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;

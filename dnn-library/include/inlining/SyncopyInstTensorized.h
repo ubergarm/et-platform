@@ -66,9 +66,9 @@ inline void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT,
   void *src = inT->getRawDataPointer<void>();
   
   // unsigned int *Index = (unsigned int *) Dims;
-  const size_t *Index = inT->dims().data();
+  const dim_t *Index = inT->dims().data();
   // unsigned int *Pitch = (unsigned int *) Pitches;
-  const size_t *Pitch = inT->strides().data();
+  const dim_t *Pitch = inT->strides().data();
   
   size_t typeSize = getsize<srcType>();
   uint64_t numBytes = Pitch[0] * Index[0] * typeSize + off; // Total number of elements in the tensor

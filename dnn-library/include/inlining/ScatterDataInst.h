@@ -98,18 +98,18 @@ inline void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   uint64_t* tIndices = in1T->getRawDataPointer<uint64_t>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indicesIndex = (unsigned int *)indicesDims;
-  const size_t *indicesIndex = in1T->dims().data();
+  const dim_t *indicesIndex = in1T->dims().data();
   // unsigned int *slicesIndex = (unsigned int *)slicesDims;
-  const size_t *slicesIndex = in2T->dims().data();
+  const dim_t *slicesIndex = in2T->dims().data();
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-  const size_t *indicesPitch = in1T->strides().data();
+  const dim_t *indicesPitch = in1T->strides().data();
   // unsigned int *slicesPitch = (unsigned int *)slicesPitches;
-  const size_t * slicesPitch = in2T->strides().data();
+  const dim_t * slicesPitch = in2T->strides().data();
 
   unsigned int sliceNumDim = static_cast<unsigned int>(in2T->ndims());
   

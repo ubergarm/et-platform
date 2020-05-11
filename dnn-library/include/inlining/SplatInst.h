@@ -41,9 +41,9 @@ void fwdLibSplatInst(LibTensor *outT, uint64_t *splatVal) {
   void* dst = outT->getRawDataPointer<void>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
 
   size_t numElems = dstIndex[0] * dstPitch[0];
   
@@ -81,9 +81,9 @@ inline void fwdLibSplatInstThreaded(LibTensor* outT, uint64_t *splatValPtr,
   srcType splatVal = bitwise_lsb_copy<srcType> (*splatValPtr);
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
 
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
 
@@ -131,9 +131,9 @@ inline void fwdLibSplatInstVectorized(LibTensor* outT, uint64_t *splatVal, uint6
   void* dst = outT->getRawDataPointer<void>();
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
 
   
   size_t typeSize = getsize<srcType>();

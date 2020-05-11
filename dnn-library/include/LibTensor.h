@@ -62,7 +62,7 @@ struct Type final {
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   template<size_t numSizes>
-  Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims,  float scale, int32_t offset) :
+  constexpr Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims,  float scale, int32_t offset) :
     sizes_(make_dims(dims)),
     elementType_(elk), numSizes_(numSizes),
     scale_(scale), offset_(offset)
@@ -73,7 +73,7 @@ struct Type final {
   /*@brief Initialize a new non-quantized type.
    */
   template<size_t numSizes>
-  Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims) :
+  constexpr Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims) :
     sizes_(make_dims(dims)),
     elementType_(elk), numSizes_(numSizes)
   {
@@ -83,7 +83,7 @@ struct Type final {
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   template<size_t numSizes>
-  Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides,
+  constexpr Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides,
        float scale, int32_t offset) :
     sizes_(make_dims(dims)),
     strides_(make_strides(strides)),
@@ -97,7 +97,7 @@ struct Type final {
   /*@brief Initialize a new non-quantized type.
    */
   template<size_t numSizes>
-  Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides) :
+  constexpr Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides) :
     sizes_(make_dims(dims)),
     strides_(make_strides(strides)),
     elementType_(elk),
@@ -111,7 +111,7 @@ struct Type final {
    */
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  Type(dnn_lib::ElemKind elk, size_t numSizes, const dim_array_t &dims, const dim_array_t &strides,
+  constexpr Type(dnn_lib::ElemKind elk, size_t numSizes, const dim_array_t &dims, const dim_array_t &strides,
        float scale, int32_t offset) :
     sizes_(dims),
     strides_(strides),
@@ -124,7 +124,7 @@ struct Type final {
   
   /*@brief Initialize a new non-quantized type.
    */
-  Type(dnn_lib::ElemKind elk, size_t numSizes, const dim_array_t &dims, const dim_array_t &strides) :
+  constexpr Type(dnn_lib::ElemKind elk, size_t numSizes, const dim_array_t &dims, const dim_array_t &strides) :
     sizes_(dims),
     strides_(strides),
     elementType_(elk),
@@ -613,7 +613,7 @@ public:
 
   // returns offset and maxRead (in number of elements)
   void partitionCL(uint64_t minionId,  unsigned activeMinions,
-                   size_t &offset, size_t &maxRead) const{
+                   dim_t &offset, dim_t &maxRead) const{
     assume(minionId < 1024);
     size_t elementSize = type_.getElementSize();
     size_t inCL = (type_.getSizeInBytes() + CACHE_LINE_BYTES -1) / CACHE_LINE_BYTES;

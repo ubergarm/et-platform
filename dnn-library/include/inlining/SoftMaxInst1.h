@@ -59,9 +59,9 @@ inline void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t
   size_t typeSize = getsize<srcType>();
 
   // unsigned int *srcIndex = (unsigned int *)srcTDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   float e, sum, inverseSum = 0;
 
@@ -222,9 +222,9 @@ inline void fwdLibSoftMaxInstVectorized1(LibTensor* outT, LibTensor* inT, uint64
   const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcTDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   size_t typeSize = getsize<srcType>();
 

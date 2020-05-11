@@ -46,11 +46,11 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT) {
   float *ptrSrcT = inT->getRawDataPointer<float>();
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -108,11 +108,11 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   float *ptrSrcT = inT->getRawDataPointer<float>();
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 

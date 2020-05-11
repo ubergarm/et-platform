@@ -53,15 +53,15 @@ inline void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT,
   const Addresser<srcType> ptrSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = in1T->dims().data();
+  const dim_t *srcIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  const size_t *src1Pitch = in1T->strides().data();
+  const dim_t *src1Pitch = in1T->strides().data();
   // unsigned int *src2Pitch = (unsigned int *)src2Pitches;
-  const size_t *src2Pitch = in2T->strides().data();
+  const dim_t *src2Pitch = in2T->strides().data();
   // unsigned int *condPitch = (unsigned int *)condPitches;
-  const size_t *condPitch = condT->strides().data();
+  const dim_t *condPitch = condT->strides().data();
  
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
@@ -133,15 +133,15 @@ inline void fwdLibElementSelectInstThreaded(LibTensor* outT, LibTensor* condT,
   const Addresser<srcType> ptrSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  const size_t *act1Pitch = in1T->strides().data();
+  const dim_t *act1Pitch = in1T->strides().data();
   // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
-  const size_t *act2Pitch = in2T->strides().data();
+  const dim_t *act2Pitch = in2T->strides().data();
   // unsigned int *condPitch = (unsigned int *)condPitches;
-  const size_t *condPitch = condT->strides().data();
+  const dim_t *condPitch = condT->strides().data();
   
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
 

@@ -53,16 +53,16 @@ inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,
   int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
-  const size_t *dst2Pitch = out2T->strides().data();
+  const dim_t *dst2Pitch = out2T->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
 
@@ -152,16 +152,16 @@ inline void fwdLibMaxPoolInstThreaded(bool argMax, LibTensor* outT,
   int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
-  const size_t *dst2Pitch = out2T->strides().data();
+  const dim_t *dst2Pitch = out2T->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = inT->strides().data(); 
+  const dim_t *actPitch = inT->strides().data(); 
 
   unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
 

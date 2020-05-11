@@ -53,9 +53,9 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(LibTensor*
   long long *tLabels = in2T->getRawDataPointer<long long>();
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = in1T->dims().data();
+  const dim_t *srcIndex = in1T->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in1T->strides().data();
   
   float op1;
   const float op2 = M_1_LOG2E;
@@ -100,9 +100,9 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
   long long *tLabels = in2T->getRawDataPointer<long long>();
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = in1T->dims().data();
+  const dim_t *srcIndex = in1T->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in1T->strides().data();
  
   unsigned int rowstodo = srcIndex[0] / activeMinions;
   unsigned int firstrow;

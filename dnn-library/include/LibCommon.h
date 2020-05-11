@@ -252,9 +252,6 @@ inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, dim_t *newDims,
  
 }
 
-using dim_t = uint64_t;
-using sdim_t = int64_t;
-
 /**
  * @brief Using C++ template for size-based type selection.
  *

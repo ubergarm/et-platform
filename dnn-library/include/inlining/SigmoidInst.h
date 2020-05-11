@@ -49,11 +49,11 @@ inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t 
   const Addresser<srcType> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
 
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t * dstPitch = outT->strides().data();
+  const dim_t * dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
@@ -111,14 +111,14 @@ inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
   const Addresser<srcType> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t * srcIndex = inT->dims().data();
+  const dim_t * srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t * dstPitch = outT->strides().data();
+  const dim_t * dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t * srcPitch = inT->strides().data();
+  const dim_t * srcPitch = inT->strides().data();
   
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
+
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
   unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
   unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
@@ -129,8 +129,9 @@ inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
     eSrcPitch[i] = srcPitch[i];
   }
 
-  uint64_t addrSrc, addrDst;
   float op, inverse;
+  uint64_t addrSrc, addrDst;
+    
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -151,6 +152,7 @@ inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
       }
     }
   }
+  
 }
 
 } // namespace inlining

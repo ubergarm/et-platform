@@ -65,11 +65,11 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
   const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
 
   //  unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   //  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   //  unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   uint8_t srcDimNum =  static_cast<unsigned int>(inT->ndims());
   
@@ -137,14 +137,14 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
   // uint8_t *src8 = (uint8_t *)src;
 
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   //  unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   
   //  unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   //  unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   unsigned int numElemsDst =
       dstPitch[0] * dstIndex[0]; // Total number of elements in the tensor
@@ -237,10 +237,10 @@ inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
   const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
   
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   
   uint8_t *dst8 = (uint8_t *)dst;
   uint8_t *src8 = (uint8_t *)src;
@@ -248,9 +248,9 @@ inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
   uint8_t *dst8Init = dst8;
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   unsigned int typeSize = getsize<srcType>();
   unsigned int numElemsDst =

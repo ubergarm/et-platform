@@ -316,7 +316,7 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
 
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
    
@@ -336,11 +336,11 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)src2Dims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *actPitch = (unsigned int *)src2Pitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
  
   unsigned int *coord = (unsigned int *)poffsets;
 
@@ -537,7 +537,7 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
         initialAddrIn += offsetIn[i] * actPitch[i];
       }
       maxRead = std::min(maxRead, lastRowElem - addrOut);
-      unsigned int length = std::min(static_cast<long unsigned int>(maxRead), actIndex[axis] - offsetIn[axis]);
+      unsigned int length = std::min(static_cast<dim_t>(maxRead), actIndex[axis] - offsetIn[axis]);
 
       std::pair<int, int> auxlanes = getLanesResFromNElements<srcType>(length);
       maxRead -= length;

@@ -48,11 +48,11 @@ inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
   Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t * dstPitch = outT->strides().data();
+  const dim_t * dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   uint8_t srcDimNum = static_cast<uint8_t>(inT->ndims());
   
@@ -110,11 +110,11 @@ inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t fla
   Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
  
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t * dstPitch = outT->strides().data();
+  const dim_t * dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   uint8_t srcDimNum = static_cast<uint8_t>(inT->ndims());
 

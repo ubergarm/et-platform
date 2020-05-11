@@ -75,9 +75,9 @@ inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
   void* dst = outT->getRawDataPointer<void>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
    
   size_t typeSize = getsize<srcType>();
   uint64_t numElemsDst = dstPitch[0] * actIndex[0] *

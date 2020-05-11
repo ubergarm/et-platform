@@ -43,13 +43,13 @@ inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
   const Addresser<srcType> tAInput(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();  
+  const dim_t *dstIndex = outT->dims().data();  
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
 #define START_IND(a, b, c) (a * c) / b
 #define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1

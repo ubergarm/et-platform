@@ -46,9 +46,9 @@ inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
   Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   
-  const size_t *lenIndx = inT->dims().data();
+  const dim_t *lenIndx = inT->dims().data();
 
   auto offset = lengths[0];
   offset = 0;
@@ -81,9 +81,9 @@ void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
     level++;
 
   //unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   
-  const size_t *lenIndx = inT->dims().data();
+  const dim_t *lenIndx = inT->dims().data();
   
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();

@@ -64,14 +64,14 @@ inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
   uint64_t *offsets = in4T->getRawDataPointer<uint64_t>();
 
   // const size_t segments    = offsetsSize;
-    const size_t segments = in4T->dims().data()[0];
+    const dim_t segments = in4T->dims().data()[0];
   // const size_t totalLength = indicesSize;
-  const size_t totalLength = in3T->dims().data()[0];
+  const dim_t totalLength = in3T->dims().data()[0];
 
   // NOTE : Pitch is passed as the number of elements, not as bytes.
   const size_t lineSize = dataDim1Pitch;
   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works. 
-  //const size_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize());
+  //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize());
   
   uint64_t curIdx = 0;
   for (uint64_t i = 0; i < segments; i++) {

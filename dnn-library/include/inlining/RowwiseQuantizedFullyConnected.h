@@ -54,16 +54,16 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
   int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
 
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch =  in1T->strides().data();
+  const dim_t *dataPitch =  in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   float inversedDstScale;
   //  fpReciprocalSingleElement(dstscale, inversedDstScale);
@@ -122,16 +122,16 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
   int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
  
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch =  in1T->strides().data();
+  const dim_t *dataPitch =  in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
   // fpReciprocalSingleElement(dstscale, invDstScale);
@@ -222,16 +222,16 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
   int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
 
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch =  in1T->strides().data();
+  const dim_t *dataPitch =  in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
   //  fpReciprocalSingleElement(dstscale, invDstScale);
@@ -396,16 +396,16 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
   int32_t *tOffset = in5T->getRawDataPointer<int32_t>();
   
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch =  in1T->strides().data();
+  const dim_t *dataPitch =  in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
   //  fpReciprocalSingleElement(dstscale, invDstScale);

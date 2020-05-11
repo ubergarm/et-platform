@@ -47,11 +47,11 @@ inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
   const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   unsigned int *coord = (unsigned int *)pcoord;
 
@@ -111,11 +111,11 @@ inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   unsigned int *coord = (unsigned int *)pcoord;
 

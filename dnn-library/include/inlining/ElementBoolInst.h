@@ -62,14 +62,14 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
   bool* aDstT = outT->getRawDataPointer<bool>();
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = in1T->dims().data();
+  const dim_t *srcIndex = in1T->dims().data();
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  const size_t *src1Pitch = in1T->strides().data();
+  const dim_t *src1Pitch = in1T->strides().data();
   // unsigned int *src2Pitch = (unsigned int *)src2Pitches;
-  const size_t *src2Pitch = in2T->strides().data();
+  const dim_t *src2Pitch = in2T->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
@@ -154,13 +154,13 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   bool *aDstT = outT->getRawDataPointer<bool>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  const size_t *act1Pitch = in1T->strides().data();
+  const dim_t *act1Pitch = in1T->strides().data();
   // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
-  const size_t *act2Pitch = in2T->strides().data();
+  const dim_t *act2Pitch = in2T->strides().data();
   
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
@@ -247,11 +247,11 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   void* srcT2 = in2T->getRawDataPointer<void>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)src1Pitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // bool *dstAddr = (bool *)dstT;
   bool* dstAddr = outT->getRawDataPointer<bool>();
   

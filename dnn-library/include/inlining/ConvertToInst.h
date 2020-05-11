@@ -137,8 +137,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   ////////////////////////////////////////////////////////////////////////////////
   // partition work between minions in multiples of CL
   ////////////////////////////////////////////////////////////////////////////////  
-  size_t first; // first element in raw array to process
-  size_t count; // nr  elements in to process (will be in multiples of CL)
+  dim_t first; // first element in raw array to process
+  dim_t count; // nr  elements in to process (will be in multiples of CL)
 
   outT->partitionCL(minionId, activeMinions, first, count);
   if (unlikely(count == 0)) return; // minion has no work to do
@@ -164,8 +164,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   dstStorage_t * const  dstP = outT->getRawDataPointer<dstStorage_t>();
   
   const size_t ndims = outT->ndims();
-  const size_t lastDim = outT->dims()[ndims-1];
-  constexpr size_t step=8; // ConvertVect works with 8 elements at a time
+  const dim_t lastDim = outT->dims()[ndims-1];
+  constexpr dim_t step=8; // ConvertVect works with 8 elements at a time
 
   // get iterators to loop through all the dimensions except the last one
   auto out = outT->getHandle<dstStorage_t>().getIterator(first);
@@ -174,7 +174,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
 #if 0
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
   for(; out.offset() < first + count; out+=step, in+=step) {
-    size_t valid = lastDim - out.coords()[ndims-1];
+    dim_t valid = lastDim - out.coords()[ndims-1];
     
     // set and restore the mask if we are in the boundary before and after the conversion
     if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
@@ -189,9 +189,9 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   }
 #else
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
-  size_t endOffset = first + count;
-  size_t oOffset = out.offset();
-  size_t iOffset = in.offset();
+  dim_t endOffset = first + count;
+  dim_t oOffset = out.offset();
+  dim_t iOffset = in.offset();
   
   ////////////////////////////////////////////////////////////////////////////////
   // simpler loop if there is just one dimension
@@ -199,7 +199,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   if (ndims == 1) {
     for( ; oOffset < endOffset; oOffset+=step, iOffset+=step){
 #ifndef  CONVERTTO_OK_TO_WRITE_PADDING
-      size_t valid = lastDim - out.coords()[ndims-1];
+      dim_t valid = lastDim - out.coords()[ndims-1];
       // set and restore the mask if we are in the boundary before and after the conversion
       if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
 #endif
@@ -218,7 +218,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
     
     //// First iterate until completing the first feature dimension (in case initial coordinates are in the middle)
     for(; ( out.coords()[ndims-1] != 0 ||  ndims == 1) && out.offset() < endOffset; out+=step, in+=step) {
-    size_t valid = lastDim - out.coords()[ndims-1];
+    dim_t valid = lastDim - out.coords()[ndims-1];
 #ifndef  CONVERTTO_OK_TO_WRITE_PADDING
     // set and restore the mask if we are in the boundary before and after the conversion
     if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
@@ -235,9 +235,9 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
     for( ;out.offset() < endOffset ; out.step(ndims-2), in.step(ndims-2) ){ // step 2n outer dimension
       assume(out.coords()[ndims-1] == 0 && in.coords()[ndims-1] == 0);
-      for ( size_t i = 0 ; i < lastDim && oOffset + i < endOffset; i+=step) { // step outer dimension
+      for ( dim_t i = 0 ; i < lastDim && oOffset + i < endOffset; i+=step) { // step outer dimension
 #ifndef  CONVERTTO_OK_TO_WRITE_PADDING        
-        size_t valid = lastDim - i;
+        dim_t valid = lastDim - i;
         // set and restore the mask if we are in the boundary before and after the conversion
         if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
 #endif

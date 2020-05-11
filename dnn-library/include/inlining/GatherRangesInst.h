@@ -54,22 +54,22 @@ inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
   Addresser<indexType> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  //  const size_t *srcIndex = in1T->dims().data();
+  //  const dim_t *srcIndex = in1T->dims().data();
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  //const size_t *dstIndex = outT->dims().data();
+  //const dim_t *dstIndex = outT->dims().data();
   // unsigned int *rangesIndex = (unsigned int *)prangesDims;
-  const size_t *rangesIndex = in2T->dims().data();
+  const dim_t *rangesIndex = in2T->dims().data();
   // unsigned int *lenIndex = (unsigned int *)dst2Dims;
-  //const size_t *lenIndex = out2T->dims().data();
+  //const dim_t *lenIndex = out2T->dims().data();
 
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in1T->strides().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
-  const size_t *rangesPitch = in2T->strides().data();
+  const dim_t *rangesPitch = in2T->strides().data();
   // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
-  const size_t *lenPitch = out2T->strides().data();
+  const dim_t *lenPitch = out2T->strides().data();
   
   // Offset into the output tensor that keeps track of where to start
   // copying data.
@@ -158,22 +158,22 @@ inline void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor* out2T,
   Addresser<indexType> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = in1T->dims().data();
+  const dim_t *srcIndex = in1T->dims().data();
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *rangesIndex = (unsigned int *)prangesDims;
-  const size_t *rangesIndex = in2T->dims().data();
+  const dim_t *rangesIndex = in2T->dims().data();
   // unsigned int *lenIndex = (unsigned int *)dst2Dims;
-  const size_t *lenIndex = out2T->dims().data();
+  const dim_t *lenIndex = out2T->dims().data();
   
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in1T->strides().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
-  const size_t *rangesPitch = in2T->strides().data();
+  const dim_t *rangesPitch = in2T->strides().data();
   // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
-  const size_t *lenPitch = out2T->strides().data();
+  const dim_t *lenPitch = out2T->strides().data();
 
   
   unsigned int last_minion = activeMinions - 1;

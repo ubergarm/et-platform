@@ -46,11 +46,11 @@ inline void fwdLibIntLookupTableInstInt8QTy(LibTensor* outT, LibTensor* in1T,
   int8_t *ptrSrcT2 = in2T->getRawDataPointer<int8_t>();
   
   // unsigned int *src1Index = (unsigned int *)src1Dims;
-  const size_t* src1Index =  in1T->dims().data();
+  const dim_t* src1Index =  in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t* dstPitch = outT->strides().data();
+  const dim_t* dstPitch = outT->strides().data();
   // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  const size_t* src1Pitch = in1T->strides().data();
+  const dim_t* src1Pitch = in1T->strides().data();
 
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
@@ -105,13 +105,13 @@ inline void fwdLibIntLookupTableInstInt8QTyThreaded(LibTensor* outT,
   int8_t *ptrSrcT2 = in2T->getRawDataPointer<int8_t>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t* dstIndex =  outT->dims().data();
+  const dim_t* dstIndex =  outT->dims().data();
   // unsigned int *src1Index = (unsigned int *)src1Dims;
-  const size_t* src1Index =  in1T->dims().data();
+  const dim_t* src1Index =  in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t* dstPitch = outT->strides().data();
+  const dim_t* dstPitch = outT->strides().data();
   // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  const size_t* src1Pitch = in1T->strides().data();
+  const dim_t* src1Pitch = in1T->strides().data();
 
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
 

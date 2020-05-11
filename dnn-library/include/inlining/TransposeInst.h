@@ -47,11 +47,11 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle)
   const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   // unsigned int *shuffle = (unsigned int *)pshuffle;
   unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
@@ -116,11 +116,11 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
   const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex =  outT->dims().data();
+  const dim_t *dstIndex =  outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   // unsigned int *shuffle = (unsigned int *)pshuffle;
   unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
@@ -215,11 +215,11 @@ inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
   uintptr_t srcAddr = reinterpret_cast<uintptr_t>(src);
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   // unsigned int *shuffle = (unsigned int *)pshuffle;
   unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
@@ -377,11 +377,11 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   uintptr_t srcAddr = reinterpret_cast<uintptr_t>(src);
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   // unsigned int *shuffle = (unsigned int *)pshuffle;
   unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);

@@ -52,13 +52,13 @@ inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in1T->strides().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-  const size_t *indicesPitch = in2T->strides().data();
+  const dim_t *indicesPitch = in2T->strides().data();
 
   unsigned int srcDimsNum = static_cast<unsigned int>(in1T->ndims());
    
@@ -128,17 +128,17 @@ inline void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor
   const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = in1T->dims().data();
+  const dim_t *srcIndex = in1T->dims().data();
   // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indicesIndex = (unsigned int *)indicesDims;
-  const size_t *indicesIndex = in2T->dims().data();
+  const dim_t *indicesIndex = in2T->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in1T->strides().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-  const size_t *indicesPitch = in2T->strides().data();
+  const dim_t *indicesPitch = in2T->strides().data();
   
   unsigned int srcDimsNum = static_cast<unsigned int>(in1T->ndims());
   unsigned int indicesDimsNum = static_cast<unsigned int>(in2T->ndims());

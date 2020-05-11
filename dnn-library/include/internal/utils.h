@@ -89,20 +89,12 @@ constexpr std::size_t getsize<float16>() {
  * @param[in] srcDimNum The "number of dimensions" of the tensor.
  * @param[in] pitch The vector of pitches of the given tensor.
  */
-inline __attribute__((always_inline))
-void getCoordinates(unsigned int *coord, unsigned int offset,
-                    unsigned int dimNum, const unsigned int *pitch) {
-  unsigned int rm = offset;
-  for (unsigned int i = 0; i < dimNum; i++) {
-    coord[i] = rm / pitch[i];
-    rm = rm - coord[i] * pitch[i];
-  }
-}
 
 /* overloading while sw-2400 and sw-2429 are WIP */
+template<typename T>
 inline __attribute__((always_inline))
 void getCoordinates(unsigned int *coord, unsigned int offset,
-                    unsigned int dimNum, const dnn_lib::dim_t *pitch) {
+                    unsigned int dimNum, const T *pitch) {
   unsigned int rm = offset;
   for (unsigned int i = 0; i < dimNum; i++) {
     coord[i] = rm / pitch[i];
@@ -129,28 +121,12 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
  * @param[out] k The last coordinate that has not been set to 0 while searching
  *  the next non-padding-position.
  */
+
+  template<typename pitch_t, typename dims_t>
 inline __attribute__((always_inline)) 
 void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
-                              unsigned int srcDimNum, const unsigned int *pitch,
-                              const unsigned int *dims, unsigned int &k) {
-
-  getCoordinates(coord, offset, srcDimNum, pitch);
-  k = srcDimNum;
-  for (int j = srcDimNum - 1; j > 0; j--) {
-    if (unlikely(coord[j] >= dims[j])) {
-      coord[j - 1]++;
-      k = j;
-    }
-  }
-  for (unsigned int j = k; j < srcDimNum; j++)
-    coord[j] = 0;
-}
-
-/* overloading while sw-2400 and sw-2429 are WIP */
-inline __attribute__((always_inline)) 
-void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
-                              unsigned int srcDimNum, const dnn_lib::dim_t *pitch,
-                              const dnn_lib::dim_t *dims, unsigned int &k) {
+                              unsigned int srcDimNum, const pitch_t *pitch,
+                              const dims_t *dims, unsigned int &k) {
 
   getCoordinates(coord, offset, srcDimNum, pitch);
   k = srcDimNum;
@@ -313,33 +289,11 @@ void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsD
  * @param[in] pitch The vector of pitches of the given tensor.
  * @returns True if the tensor has ended and false otherwise.
  */
-template <typename T>
+
+  template <typename offset_t, typename dims_t, typename pitches_t>
 inline __attribute__((always_inline)) 
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
-                const unsigned int *index, const unsigned int *pitch) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset += pitch[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset -= (index[j] - 1) * pitch[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
-
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true; 
-}
-
-/* overloading while sw-2400 and sw-2429 are WIP */
-template <typename T>
-inline __attribute__((always_inline)) 
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset,
-                const dnn_lib::dim_t *index, const dnn_lib::dim_t *pitch) {
+bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset,
+                const dims_t *index, const pitches_t *pitch) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (likely(coord[j] != (index[j] - 1))) {
@@ -486,43 +440,12 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
  * @warning The tensors in which we are moving should have the same dimensions
  *  (but not necessarily the same pitches).
  */
-template <typename T> 
-inline __attribute__((always_inline)) 
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, T &offset4, const unsigned int *index, 
-                const unsigned int *pitch1, const unsigned int *pitch2,
-                const unsigned int *pitch3, const unsigned int *pitch4) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (coord[j] != (index[j] - 1)) {
-      offset1 += pitch1[j];
-      offset2 += pitch2[j];
-      offset3 += pitch3[j];
-      offset4 += pitch4[j];
-      coord[j]++;
-      return false;
-    } else if (j != 0) {
-      offset1 -= (index[j] - 1) * pitch1[j];
-      offset2 -= (index[j] - 1) * pitch2[j];
-      offset3 -= (index[j] - 1) * pitch3[j];
-      offset4 -= (index[j] - 1) * pitch4[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
-
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;
-}
-
-/* overloading while sw-2400 and sw-2429 are on WIP */
-template <typename T> 
+  template <typename offset_t, typename dims_t, typename pitches_t> 
 inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, T &offset4, const dim_t *index, 
-                const dim_t *pitch1, const dim_t *pitch2,
-                const dim_t *pitch3, const dim_t *pitch4) {
+bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset1,
+                offset_t &offset2, offset_t &offset3, offset_t &offset4, const dims_t *index, 
+                const pitches_t *pitch1, const pitches_t *pitch2,
+                const pitches_t *pitch3, const pitches_t *pitch4) {
 
   for (int j = dimNum - 1; j >= 0; j--) {
     if (coord[j] != (index[j] - 1)) {
@@ -702,20 +625,10 @@ bool getNextStep(unsigned int dimNum,
   return false;
 }
 
+template<typename T>
 inline __attribute__((always_inline))
 unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
-                       const unsigned int *pitch) {
-  unsigned int offset = 0;
-  for (unsigned int i = 0; i < dimNum; i++) {
-    offset += coord[i] * pitch[i];
-  }
-  return offset;
-}
-
-/* overloading while sw-2400 and sw-2429 are on WIP */
-inline __attribute__((always_inline))
-unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
-                       const dnn_lib::dim_t *pitch) {
+                       const T *pitch) {
   unsigned int offset = 0;
   for (unsigned int i = 0; i < dimNum; i++) {
     offset += coord[i] * pitch[i];

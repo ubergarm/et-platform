@@ -90,13 +90,13 @@ inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
   long long *indT = out2T->getRawDataPointer<long long>();
 
   // unsigned int *inputIndex = (unsigned int *)srcDims;
-  const size_t *inputIndex = inT->dims().data();
+  const dim_t *inputIndex = inT->dims().data();
   // unsigned int *valuesPitch = (unsigned int *)dstPitches;
-  const size_t *valuesPitch = outT->strides().data();
+  const dim_t *valuesPitch = outT->strides().data();
   // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const size_t *indPitch = out2T->strides().data();
+  const dim_t *indPitch = out2T->strides().data();
   // unsigned int *inputPitch = (unsigned int *)srcPitches;
-  const size_t *inputPitch = inT->strides().data();
+  const dim_t *inputPitch = inT->strides().data();
 
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -172,15 +172,15 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
   long long *indT = out2T->getRawDataPointer<long long>();
 
   // unsigned int *valuesIndex = (unsigned int *)dstDims;
-  const size_t *valuesIndex = inT->dims().data();
+  const dim_t *valuesIndex = inT->dims().data();
   // unsigned int *inputIndex = (unsigned int *)srcDims;
-  const size_t *inputIndex = inT->dims().data();
+  const dim_t *inputIndex = inT->dims().data();
   // unsigned int *valuesPitch = (unsigned int *)dstPitches;
-  const size_t *valuesPitch = outT->strides().data();
+  const dim_t *valuesPitch = outT->strides().data();
   // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const size_t *indPitch = out2T->strides().data();
+  const dim_t *indPitch = out2T->strides().data();
   // unsigned int *inputPitch = (unsigned int *)srcPitches;
-  const size_t *inputPitch = inT->strides().data();
+  const dim_t *inputPitch = inT->strides().data();
 
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -413,18 +413,18 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
   // srcType *valT = (srcType *)dstT;
 
   // unsigned int *valuesIndex = (unsigned int *)dstDims;
-  const size_t *valuesIndex = outT->dims().data();
+  const dim_t *valuesIndex = outT->dims().data();
   // unsigned int *indIndex = (unsigned int *)dst2Dims;
-  const size_t *indIndex = out2T->dims().data();
+  const dim_t *indIndex = out2T->dims().data();
   // unsigned int *inputIndex = (unsigned int *)srcDims;
-  const size_t *inputIndex = inT->dims().data();
+  const dim_t *inputIndex = inT->dims().data();
 
   // unsigned int *valuesPitch = (unsigned int *)dstPitches;
-  const size_t *valuesPitch = outT->strides().data();
+  const dim_t *valuesPitch = outT->strides().data();
   // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const size_t *indPitch = out2T->strides().data();
+  const dim_t *indPitch = out2T->strides().data();
   // unsigned int *inputPitch = (unsigned int *)srcPitches;
-  const size_t *inputPitch = inT->strides().data();
+  const dim_t *inputPitch = inT->strides().data();
   
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
    
@@ -613,13 +613,13 @@ inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTens
   long long *indT = out2T->getRawDataPointer<long long>();
   
   // unsigned int *inputIndex = (unsigned int *)srcDims;
-  const size_t *inputIndex = inT->dims().data();
+  const dim_t *inputIndex = inT->dims().data();
   // unsigned int *valuesPitch = (unsigned int *)dstPitches;
-  const size_t *valuesPitch = outT->strides().data();
+  const dim_t *valuesPitch = outT->strides().data();
   // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const size_t *indPitch = out2T->strides().data();
+  const dim_t *indPitch = out2T->strides().data();
   // unsigned int *inputPitch = (unsigned int *)srcPitches;
-  const size_t *inputPitch = inT->strides().data();
+  const dim_t *inputPitch = inT->strides().data();
 
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
   

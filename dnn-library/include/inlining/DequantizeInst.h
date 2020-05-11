@@ -47,11 +47,11 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
   const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
    
@@ -106,11 +106,11 @@ inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64
   const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   

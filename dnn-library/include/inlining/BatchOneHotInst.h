@@ -53,11 +53,11 @@ inline void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
   int32_t* lengths = in3T->getRawDataPointer<int32_t>();
   
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch = in1T->strides().data();
+  const dim_t *dataPitch = in1T->strides().data();
  
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
@@ -108,13 +108,13 @@ inline void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
   int32_t *lengths = in3T->getRawDataPointer<int32_t>();
   
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const size_t *dataIndex = in1T->dims().data();
+  const dim_t *dataIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch  = outT->strides().data();
+  const dim_t *dstPitch  = outT->strides().data();
   // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const size_t *dataPitch = in1T->strides().data();
+  const dim_t *dataPitch = in1T->strides().data();
  
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];

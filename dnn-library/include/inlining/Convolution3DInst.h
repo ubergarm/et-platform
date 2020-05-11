@@ -57,15 +57,15 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   float* tBias = in3T->getRawDataPointer<float>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;
@@ -168,15 +168,15 @@ inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
   float* tBias = in3T->getRawDataPointer<float>();
  
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides;

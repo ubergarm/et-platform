@@ -52,11 +52,11 @@ inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
   const Addresser<srcType> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *batchIndex = (unsigned int *)pbatchDims;
-  const size_t *batchIndex = in1T->dims().data();
+  const dim_t *batchIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-  const size_t *batchPitch = in1T->strides().data();
+  const dim_t *batchPitch = in1T->strides().data();
 
   unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
   //  assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
@@ -123,11 +123,11 @@ inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
   const Addresser<srcType> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-  const size_t *batchPitch = in1T->strides().data();
+  const dim_t *batchPitch = in1T->strides().data();
 
   unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
   
@@ -191,13 +191,13 @@ inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
   int32_t *tSlice = in2T->getRawDataPointer<int32_t>();
   
   // unsigned int *batchIndex = (unsigned int *)pbatchDims;
-  const size_t *batchIndex = in1T->dims().data();
+  const dim_t *batchIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-  const size_t *batchPitch = in1T->strides().data();
+  const dim_t *batchPitch = in1T->strides().data();
   // unsigned int *slicePitch = (unsigned int *)pslicePitches;
-  const size_t *slicePitch = in2T->strides().data();
+  const dim_t *slicePitch = in2T->strides().data();
 
   unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
   // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
@@ -276,13 +276,13 @@ inline void fwdLibBatchedAddInsti8i32Threaded(LibTensor* outT, LibTensor* in1T,
   //  int32_t *tSlice = (int32_t *)pslice; // scale[1]
   int32_t *tSlice = in2T->getRawDataPointer<int32_t>();
   //  unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   //  unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   //  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-  const size_t *batchPitch = in1T->strides().data();
+  const dim_t *batchPitch = in1T->strides().data();
   //  unsigned int *slicePitch = (unsigned int *)pslicePitches;
-  const size_t *slicePitch = in2T->strides().data();
+  const dim_t *slicePitch = in2T->strides().data();
 
   unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
 

@@ -54,11 +54,11 @@ inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT) {
   // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
   const Addresser<srcType> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
 
   uint8_t srcDimNum =  static_cast<unsigned int>(inT->ndims());
   
@@ -129,11 +129,11 @@ inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
   bool* aDstT = outT->getRawDataPointer<bool>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t* actIndex = inT->dims().data();
+  const dim_t* actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t* dstPitch = outT->strides().data();
+  const dim_t* dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t* actPitch = inT->strides().data();
+  const dim_t* actPitch = inT->strides().data();
  
   uint8_t srcDimNum =  static_cast<unsigned int>(inT->ndims());
   

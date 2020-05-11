@@ -47,11 +47,11 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT) {
   Addresser<srcType> aDstT(dst, outT->getScale(), outT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const size_t *srcIndex = inT->dims().data();
+  const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const size_t *srcPitch = inT->strides().data();
+  const dim_t *srcPitch = inT->strides().data();
   
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -107,11 +107,11 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
   Addresser<srcType> aDstT(dst, outT->getScale(), outT->getOffset());
 
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
 
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
 
@@ -167,11 +167,11 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT,
   void* srcT1 = inT->getRawDataPointer<void>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
-  const size_t *actIndex = inT->dims().data();
+  const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const size_t *actPitch = inT->strides().data();
+  const dim_t *actPitch = inT->strides().data();
   
   uintptr_t dstAddr = (uintptr_t)dstT;
   uintptr_t srcAddr = (uintptr_t)srcT1;

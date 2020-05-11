@@ -82,15 +82,15 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   float *tBias = in3T->getRawDataPointer<float>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides; 
@@ -207,15 +207,15 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   float *tBias = in3T->getRawDataPointer<float>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides; 
@@ -331,8 +331,8 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
                             src1Type, float>::value, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const size_t *actPitch, const size_t *weightPitch,
-                    const size_t *actIndex, unsigned int *kernels,
+                    const dim_t *actPitch, const dim_t *weightPitch,
+                    const dim_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int64_t dist;
@@ -445,8 +445,8 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
                             src1Type, float16>::value, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const size_t *actPitch, const size_t *weightPitch,
-                    const size_t *actIndex, unsigned int *kernels,
+                    const dim_t *actPitch, const dim_t *weightPitch,
+                    const dim_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int dist;
@@ -587,8 +587,8 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
                             src1Type, float16>::value) && (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const size_t *actPitch, const size_t *weightPitch,
-                    const size_t *actIndex, unsigned int *kernels,
+                    const dim_t *actPitch, const dim_t *weightPitch,
+                    const dim_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
@@ -626,8 +626,8 @@ template <typename src1Type, typename src2Type, typename dstType, typename std::
                             src1Type, float16>::value) /*&& (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const size_t *actPitch, const size_t *weightPitch,
-                    const size_t *actIndex, unsigned int *kernels,
+                    const dim_t *actPitch, const dim_t *weightPitch,
+                    const dim_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
@@ -658,8 +658,8 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 
 template <typename src1Type, typename src2Type, typename dstType>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const size_t *actPitch, const size_t *weightPitch,
-                    const size_t *actIndex, unsigned int *kernels,
+                    const dim_t *actPitch, const dim_t *weightPitch,
+                    const dim_t *actIndex, unsigned int *kernels,
                     unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
                     ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
@@ -743,16 +743,16 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   float *tBias = in3T->getRawDataPointer<float>();
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const size_t *dstIndex = outT->dims().data();
+  const dim_t *dstIndex = outT->dims().data();
   // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const size_t *actIndex = in1T->dims().data();
+  const dim_t *actIndex = in1T->dims().data();
 
   // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const size_t *dstPitch = outT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const size_t *actPitch = in1T->strides().data();
+  const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const size_t *weightPitch = in2T->strides().data();
+  const dim_t *weightPitch = in2T->strides().data();
   
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides; // Jump between convols
@@ -779,10 +779,10 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
 
   // unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
   //                              outCperG};
-  size_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
+  dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
                                1};
 
-  size_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
+  dim_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
                                outCperG};
 
   unsigned int coord[5], k;

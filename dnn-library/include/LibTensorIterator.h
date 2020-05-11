@@ -15,7 +15,7 @@ public:
   HandleIterator() = delete;
   HandleIterator(const HandleIterator& x) = default;
   
-  HandleIterator(Handle<ElemTy>& h, const size_t offset) :
+  HandleIterator(Handle<ElemTy>& h, const dim_t offset) :
     dims_(h.tensor_->dims()),
     strides_(h.tensor_->strides()),
     ndims_(h.tensor_->ndims()),
@@ -50,7 +50,7 @@ public:
     ptr_(h.tensor_->template getRawDataPointer<ElemTy>()),
     wrap_(buildWrap())  { } // assuming offset=0, coords=0
   
-  HandleIterator(Handle<ElemTy> &h, size_t offset, const dim_array_t &coords) :
+  HandleIterator(Handle<ElemTy> &h, dim_t offset, const dim_array_t &coords) :
     dims_(h.tensor_->dims()),
     strides_(h.tensor_->strides()),
     ndims_(h.tensor_->ndims()),
@@ -103,7 +103,7 @@ public:
   static HandleIterator begin(Handle<ElemTy>& t) { return t.begin();}
   static HandleIterator end(Handle<ElemTy>& t) { return t.end(); }
   
-  size_t offset() const { return offset_; }
+  dim_t offset() const { return offset_; }
   const dim_array_t & coords() const { return coords_;}
   
 private:
@@ -112,7 +112,7 @@ private:
   const size_t ndims_;
   ElemTy * const ptr_;
   
-  size_t offset_ = 0;
+  dim_t offset_ = 0;
   dim_array_t coords_ = {0};
   const dim_array_t wrap_;
   
