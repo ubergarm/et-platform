@@ -100,9 +100,9 @@ GEN_OP(fwdLibAvgPoolInst, LibTensor* outT, LibTensor* inT,
 GEN_2TYPE_OP(fwdLibAvgPoolInstThreaded, LibTensor* outT, LibTensor* inT,
                          void *pkernels, void *pstrides, void *ppads, uint64_t flags);
 GEN_OP(fwdLibAdaptiveAvgPoolInst, LibTensor* outT, LibTensor* inT);
-GEN_OP(fwdLibInsertTensorInst, LibTensor* outT, LibTensor* inT, void *poffsets, unsigned int count, 
+GEN_OP(fwdLibInsertTensorInst, LibTensor* outT, LibTensor* inT, const uint32_t *poffsets, unsigned int count, 
                                unsigned int axis, uint64_t flags, const uint32_t minionOffset = 0);
-GEN_OP(fwdLibInsertTensorInstThreaded, LibTensor* outT, LibTensor* inT, void *poffsets,
+GEN_OP(fwdLibInsertTensorInstThreaded, LibTensor* outT, LibTensor* inT, const uint32_t *poffsets,
                                        unsigned int count, unsigned int axis, uint64_t flags,
                                        const uint32_t minionOffset = 0,
                                        const uint32_t assignedMinions = 0);

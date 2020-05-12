@@ -33,7 +33,7 @@ namespace inlining {
 
 template <typename srcType>
 inline __attribute__((always_inline))
-void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
+void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pcoord,
                             unsigned int count, unsigned int axis,
                             uint64_t flags, const uint32_t minionOffset = 0) {
 
@@ -302,7 +302,7 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
 template <typename srcType>
 inline __attribute__((always_inline))
 void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                    void *poffsets, unsigned int count,
+                                    const uint32_t *poffsets, unsigned int count,
                                     unsigned int axis, uint64_t flags,
                                     const uint32_t minionOffset = 0,
                                     const  uint32_t assignedMinions = 0) {

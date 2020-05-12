@@ -14,7 +14,7 @@
 namespace dnn_lib {
 
 template <typename srcType>
-void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
+void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pcoord,
                             unsigned int count, unsigned int axis,
                             uint64_t flags, const uint32_t minionOffset) {
 
@@ -24,7 +24,7 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord,
 
 template <typename srcType>
 void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                    void *poffsets, unsigned int count,
+                                    const uint32_t *poffsets, unsigned int count,
                                     unsigned int axis, uint64_t flags,
                                     const uint32_t minionOffset,
                                     const  uint32_t assignedMinions) {
@@ -38,11 +38,11 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
 #include "GenInstances.h"
 
 GEN_INSTANCES_OP(template, fwdLibInsertTensorInst, LibTensor* outT, LibTensor* inT,
-                 void *poffsets, unsigned int count, unsigned int axis,
+                 const uint32_t *poffsets, unsigned int count, unsigned int axis,
                  uint64_t flags, const uint32_t minionOffset);
 
 GEN_INSTANCES_OP(template, fwdLibInsertTensorInstThreaded, LibTensor* outT,
-                 LibTensor* inT, void *poffsets, unsigned int count,
+                 LibTensor* inT, const uint32_t *poffsets, unsigned int count,
                  unsigned int axis, uint64_t flags, const uint32_t minionOffset,
                  const uint32_t assignedMinions);
 
