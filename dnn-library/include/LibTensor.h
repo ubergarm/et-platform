@@ -350,13 +350,6 @@ struct Type final {
    //     return dnn_lib::ElemKind::FloatTy;
    //   }
    // }
-//TODO: REMOVE if not used  dim_t dbgDims(unsigned int ndx) const {
-//TODO: REMOVE if not used    return sizes_[ndx];
-//TODO: REMOVE if not used  }
-//TODO: REMOVE if not used  
-//TODO: REMOVE if not used  dim_t dbgSize(unsigned int ndx) const {
-//TODO: REMOVE if not used    return strides_[ndx];
-//TODO: REMOVE if not used  }
 
  }; //class Type
   
@@ -369,18 +362,6 @@ class LibTensor final {
   char* const ptrData_;
 
   const Type type_;
-
-//TODO: REMOVE if not used  bool isUnowned_ {false};
-//TODO: REMOVE if not used  
-//TODO: REMOVE if not used  size_t unpaddedSize_{0};
-  
-  /* std::array<uint64_t, max_tensor_dimensions> dims_; */
-  /* std::array<uint64_t, max_tensor_dimensions> pitches_; */
-  /* std::array<uint64_t, max_tensor_dimensions> coord_; */
-  /* unsigned int numDims_; */
-  /* float scale_; */
-  /* int8_t offset; */
-  //add more info if it is need....
   
   template <class ElemTy> friend class Handle;
 
@@ -389,24 +370,9 @@ class LibTensor final {
    */
   const char* dbgData() const { return ptrData_; }
 
-//TODO: REMOVE if unused  /*@brief returns true if it is an unowned.
-//TODO: REMOVE if unused   */
-//TODO: REMOVE if unused  bool isUnowned() const { return isUnowned_; }
-  
   /* @brief returns the type of the tensor.
    */
   const Type &getType() const { return type_;}
-
-  /* @brief set type of the Tensor to \p t.
-   */
-//TODO: REMOVE if unused => assuming type does not change  void setType(const TypeRef t) {
-//TODO: REMOVE if unused => assuming type does not change    //@TODO assert(type_.dims() == t->dims() && "New type must retain the same shape.");
-//TODO: REMOVE if unused => assuming type does not change    //@TOODassert(((type_.getElementType() == t->getElementType() &&
-//TODO: REMOVE if unused => assuming type does not change           //   type_.size() == t->size()) ||
-//TODO: REMOVE if unused => assuming type does not change           //  type_.getSizeInBytes() == t->getSizeInBytes()) &&
-//TODO: REMOVE if unused => assuming type does not change           // "New type must retain the same size in bytes.");
-//TODO: REMOVE if unused => assuming type does not change    type_ = *t;
-//TODO: REMOVE if unused => assuming type does not change  }
 
   /*@brief returns the element type of the tensor.
    */
@@ -630,8 +596,8 @@ public:
   size_t getElementSize() const { return type_.getElementSize(); }  
 
 
-//  /*@brief returns a pointer to the raw data, of type \p ElemTy.
-//   */
+  /*@brief returns a pointer to the raw data, of type \p ElemTy.
+   */
   template<class ElemTy>  ElemTy *getRawDataPointer() {
     //@TODO check Elemty is type_.isType<>()
     return reinterpret_cast<ElemTy*>(ptrData_);
@@ -703,20 +669,18 @@ public:
  *@param[inout] indices keeps the coords of the element 
  *@return
  */
-  template<size_t N>
-  INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices, const dim_array_t &strides) {
-    /*@TODO check indices size isn't bigger than strides*/
-    //assert(indices.size() <= strides.size());
-    size_t r = 0;
-    for (size_t i = 0 ; i < N; i++) r+=indices[i] * strides[i];
-    return r;
-    
-  }
+template<size_t N>
+INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices, const dim_array_t &strides) {
+  /*@TODO check indices size isn't bigger than strides*/
+  //assert(indices.size() <= strides.size());
+  size_t r = 0;
+  for (size_t i = 0 ; i < N; i++) r+=indices[i] * strides[i];
+  return r;   
+}
 
-  #include "LibTensorIterator.h"
+#include "LibTensorIterator.h"
 
 template <class ElemTy> class Handle final {
-
   
    /*brief pointer to the tensor that this handle wraps.
     */
@@ -732,10 +696,6 @@ template <class ElemTy> class Handle final {
    */
   const dim_t numDims_;
 
-
-  // TODO: REMOVE => assuming we won't use invalid Handles , always from a tensor
-  // Handle() = default;
-  //TODO: END REMOVE
 public:
   using iterator = HandleIterator<ElemTy>;
   friend class HandleIterator<ElemTy>;
@@ -745,24 +705,13 @@ public:
   iterator getIterator(size_t offset) { return iterator(*this, offset);}
   iterator getIterator(const dim_array_t &coords) { return iterator(*this, coords);}
   
-  // TODO: REMOVE => assuming we won't use invalid Handles , always from a tensor
-  //   /*@brief Allocate anew invalid handle.
-  //    */
-  //   static Handle createInvalidHandle() { return Handle(); }
-  //
-  //
-  ///*@brief returns true if this Handle points to a valid tensor.
-  // */
-  //bool isValid() const { return tensor_; }
-
-  //TODO: END REMOVE
-  
-   /*@brief Calculate the index for a specific element in the tensor.
-    *
-    *@param[inout] coords indices to access element. It has to have the same
-    * dimensions as tensor to be acessed.
-    *@return flattened 1D element position.
-    */
+ 
+  /*@brief Calculate the index for a specific element in the tensor.
+   *
+   *@param[inout] coords indices to access element. It has to have the same
+   * dimensions as tensor to be acessed.
+   *@return flattened 1D element position.
+   */
   template<size_t N>
   size_t getElementPtr(const std::array<dim_t, N> &indices) {
     return getFlattenedOffset(indices, strides_);
@@ -843,31 +792,14 @@ public:
     auto *data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
-//TODO: remove if unused 
-//TODO: remove if unused /*@brief get a copy of dims_ internal dimension Tensor.
-//TODO: remove if unused   *
-//TODO: remove if unused   *@param[inout] dim array pointer to copy the tensor sizes_.
-//TODO: remove if unused   *@return the numDims_ value. (the number of dims be copied).
-//TODO: remove if unused   */
-//TODO: remove if unused  uint8_t cpydims(dim_t* cpydim) {
-//TODO: remove if unused    for(uint8_t i = 0; i < numDims_; i++) {
-//TODO: remove if unused      cpydim[i] = sizes_[i];
-//TODO: remove if unused    }
-//TODO: remove if unused    return numDims_;
-//TODO: remove if unused  }
-//TODO: remove if unused
-//TODO: remove if unused
-  
+
   char* getPtrdbg(void) const {return tensor_->dbgData();}
   const dim_array_t & getSizeIntdbg(void) const {return strides_;}
   const dim_array_t & getSizesdbg(void) const {return sizes_;}
   dim_t getNumDimsdbg(void) const {return numDims_;}
   LibTensor* getTensordbg(void) const {return tensor_;}
-  //TODO: REMOVE if not used  char* getUnsafePtrdbg(void) {return tensor_->getUnsafePtr();}
   float getScale(void) {return tensor_->getScale();}
   int32_t getOffset(void) {return tensor_->getOffset();}
-//TODO: remove if unused  uint8_t cpypitchesdbg(dim_t* cpypitch) { return tensor_->dbgcpypitches(cpypitch); }
-//TODO: remove if unused  uint8_t cpydimsdbg(dim_t* cpydims) { return tensor_->dims(cpydims); }
   
 }; //end Handle class
 
