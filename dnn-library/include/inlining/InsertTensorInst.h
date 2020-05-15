@@ -82,7 +82,7 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pco
                   if ((addr2wr >> 6) != (previous_addr2wr >> 6))  
                   {
                     /* evict current cache line */
-                    if (previous_addr2wr != 0) evict_va(0, DO_EVICTS, previous_addr2wr, 0);
+                    if (previous_addr2wr != 0) fence_evict_va(0, DO_EVICTS, previous_addr2wr, 0);
                     previous_addr2wr = addr2wr;
                   }
                 }
@@ -97,7 +97,7 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pco
 
   if (DO_EVICTS) {
     if (addr2wr > 0)
-      evict_va(0, DO_EVICTS, addr2wr, 0);
+      fence_evict_va(0, DO_EVICTS, addr2wr, 0);
   }
 
 }
@@ -294,7 +294,7 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
     }
     
     if (DO_EVICTS) {
-      evict_va(0, DO_EVICTS, (uintptr_t) dst8, 0);
+      fence_evict_va(0, DO_EVICTS, (uintptr_t) dst8, 0);
     }
   }
 }

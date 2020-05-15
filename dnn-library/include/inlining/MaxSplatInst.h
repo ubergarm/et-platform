@@ -589,11 +589,11 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, n_actIndex,
                       n_actPitch, n_dstPitch);
   }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0)
-    evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
+  if (DO_EVICTS) {
+    unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+    if (clperminion > 0)
+      fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
+  }
 }
 
 } // namespace inlining

@@ -647,6 +647,7 @@ public:
 
 
   void evict(uint64_t dst, size_t offset, size_t count) const{
+    FENCE;
     const size_t typeSize = type_.getElementSize();    
     size_t cl = count * typeSize / CACHE_LINE_BYTES;
     assert(cl > 0);

@@ -40,6 +40,20 @@ constexpr uint64_t fg32h_conf = 0x76543210;
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
+#define print(s) syscall(SYSCALL_LOG_WRITE, (uint64_t)(s), sizeof(s), 0)
+
+
+//-------------------------------------------------------------------------------------------------
+//
+// FUNCTION: fence_evict_va
+//
+// just calls evict_va, but doing a fence first
+inline  __attribute__((always_inline))
+void fence_evict_va(uint64_t use_tmask, uint64_t dst, uint64_t addr, uint64_t num_lines = 0, uint64_t stride = 0, uint64_t id = 0, uint64_t warl = 0) {
+  FENCE;
+  evict_va(use_tmask,dst, addr, num_lines, stride,id,warl);
+}
+  
 //-------------------------------------------------------------------------------------------------
 //
 // FUNCTION: evict_va_multi
@@ -49,6 +63,7 @@ constexpr uint64_t fg32h_conf = 0x76543210;
 //
 inline __attribute__((always_inline))
 void evict_va_multi(uint64_t dst, uintptr_t addr, uint64_t num_lines) {
+  FENCE;
   while (num_lines > 16) {
     evict_va(0, dst, addr, 15, CACHE_LINE_BYTES);
     addr += (CACHE_LINE_BYTES*16);

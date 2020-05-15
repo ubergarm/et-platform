@@ -448,11 +448,11 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
     transposeOpAligned32Bytes <srcType>(dstAddr, srcAddr, gatherValues);
     done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, newdstIndex, newdstPitch, newPitch);
   }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0)
-    evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
+  if (DO_EVICTS) {
+    unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+    if (clperminion > 0)
+      fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
+  }
 }
 
 } // namespace inlining
