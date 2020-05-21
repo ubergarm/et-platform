@@ -54,7 +54,7 @@ void fwdLibSplatInst(LibTensor *outT, uint64_t *splatVal) {
   static_assert( (ratio64 & (ratio64 - 1)) == 0, "ratio to 64b word is not power of 2" );
 
 
-  for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i++, dst64++) 
+  for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i+=ratio64, dst64++) 
     *dst64 = *splatVal;
 
   memcpy(dst64, splatVal, (numElems & mask) * sizeof(srcType));
