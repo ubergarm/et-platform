@@ -31,6 +31,19 @@ namespace dnn_lib {
 
 namespace inlining {
 
+#ifndef ACCUMULATOR_TYPE
+#define ACCUMULATOR_TYPE
+
+template<typename srcType>
+struct accumulatorType {
+  using type =
+    typename std::conditional<std::is_same<srcType, int64_t>::value, int64_t,
+      typename std::conditional<std::is_same<srcType, int32_t>::value, int32_t,
+        float>::type >::type;
+};
+
+#endif
+
 /**
  * @brief Performs the conolution operation between the activation, weights and bias.
  *
@@ -155,6 +168,223 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   }         // N
 }
 
+#define CONVOLUTION_MAX_ELEMS 8
+
+/**
+ * @brief Computes one step in the convolution.
+ *
+ * This function accumulates in the result all the input channels
+ * by its weight for a specific step in the kernel X and kernel Y.
+ * 
+ * @tparam srcType The type of the elements in the matrices.
+ * @param[in] sum Pointer to tensor where the results must be accumulated
+ * @param[in] tAInput Tensor where the activations are.
+ * @param[in] tAInputPtr Pointer to activation tensor.
+ * @param[in] tWInput Tensor where the weights are.
+ * @param[in] tWInputPtr Pointer to weight tensor.
+ * @param[in] inCperG Number of input channels to accumulate per output channel.
+ * @param[in] actOffset Offset in the activation tensor pointing to data for this step.
+ * @param[in] weightOffset Offset in the weight array where the weights for current step are.
+ * @param[in] weightPitch Pitch of one row of the weight tensor.
+ * @param[in] elems Number of elements in a row to compute.
+ */
+template <typename srcType,
+          typename std::enable_if<std::is_same<srcType, int64_t>::value, std::size_t>::type = 0>
+inline void convolutionStep (int64_t *sum,
+                             const Addresser<srcType> &tAInput,
+                             void * tAInputPtr,
+                             const Addresser<srcType> &tWInput,
+                             void * tWInputPtr,
+                             size_t inCperG,
+                             size_t actOffset,
+                             size_t weightOffset,
+                             size_t weightPitch,
+                             size_t elems) {
+  // For all the input channels of the current "pixel"
+  for (size_t dataF = 0; dataF < inCperG; dataF++) {
+    // Gets input value
+    auto act = tAInput[actOffset + dataF];
+    for (size_t elem = 0; elem < elems; elem++) {
+      // Gets weight value
+      auto weight = tWInput[weightOffset + elem + dataF * weightPitch];
+      // Adds to the result
+      sum[elem] += act * weight;
+    }
+  }
+}
+
+/**
+ * @brief Computes one step in the convolution.
+ *
+ * This function accumulates in the result all the input channels
+ * by its weight for a specific step in the kernel X and kernel Y.
+ * 
+ * @tparam srcType The type of the elements in the matrices.
+ * @param[in] sum Pointer to tensor where the results must be accumulated
+ * @param[in] tAInput Tensor where the activations are.
+ * @param[in] tAInputPtr Pointer to activation tensor.
+ * @param[in] tWInput Tensor where the weights are.
+ * @param[in] tWInputPtr Pointer to weight tensor.
+ * @param[in] inCperG Number of input channels to accumulate per output channel.
+ * @param[in] actOffset Offset in the activation tensor pointing to data for this step.
+ * @param[in] weightOffset Offset in the weight array where the weights for current step are.
+ * @param[in] weightPitch Pitch of one row of the weight tensor.
+ * @param[in] elems Number of elements in a row to compute.
+ */
+template <typename srcType,
+          typename std::enable_if<std::is_same<srcType, int32_t>::value, std::size_t>::type = 0>
+inline void convolutionStep (int32_t *sum,
+                             const Addresser<srcType> &tAInput,
+                             void * tAInputPtr,
+                             const Addresser<srcType> &tWInput,
+                             void * tWInputPtr,
+                             size_t inCperG,
+                             size_t actOffset,
+                             size_t weightOffset,
+                             size_t weightPitch,
+                             size_t elems) {
+  // For all the input channels of the current "pixel"
+  for (size_t dataF = 0; dataF < inCperG; dataF++) {
+    // Gets input value
+    auto act = tAInput[actOffset + dataF];
+    for (size_t elem = 0; elem < elems; elem++) {
+      // Gets weight value
+      auto weight = tWInput[weightOffset + elem + dataF * weightPitch];
+      // Adds to the result
+      sum[elem] += act * weight;
+    }
+  }
+}
+
+/**
+ * @brief Computes one step in the convolution.
+ *
+ * This function accumulates in the result all the input channels
+ * by its weight for a specific step in the kernel X and kernel Y.
+ * 
+ * @tparam srcType The type of the elements in the matrices.
+ * @param[in] sum Pointer to tensor where the results must be accumulated
+ * @param[in] tAInput Tensor where the activations are.
+ * @param[in] tAInputPtr Pointer to activation tensor.
+ * @param[in] tWInput Tensor where the weights are.
+ * @param[in] tWInputPtr Pointer to weight tensor.
+ * @param[in] inCperG Number of input channels to accumulate per output channel.
+ * @param[in] actOffset Offset in the activation tensor pointing to data for this step.
+ * @param[in] weightOffset Offset in the weight array where the weights for current step are.
+ * @param[in] weightPitch Pitch of one row of the weight tensor.
+ * @param[in] elems Number of elements in a row to compute.
+ */
+template <typename srcType>
+inline void convolutionStep (float *sum,
+                             const Addresser<srcType> &tAInput,
+                             void * tAInputPtr,
+                             const Addresser<srcType> &tWInput,
+                             void * tWInputPtr,
+                             size_t inCperG,
+                             size_t actOffset,
+                             size_t weightOffset,
+                             size_t weightPitch,
+                             size_t elems) {
+  // Float version
+  if (std::is_same<srcType, float>::value) {
+    char * tAAddr = (char *) tAInputPtr;
+    tAAddr += actOffset * 4;
+    char * tWAddr = (char *) tWInputPtr;
+    tWAddr += weightOffset * 4;
+
+    // Computes the offsets for the gather of weight
+    int32_t offsets[CONVOLUTION_MAX_ELEMS];
+    for (size_t i = 0; i < CONVOLUTION_MAX_ELEMS; i++) {
+      offsets[i] = i * weightPitch * 4;
+    }
+
+    // Active elements
+    size_t mask = (1 << elems) - 1;
+    __asm__ __volatile__(
+        // Sets 1 lane enabled, moves scalar to float
+        "mov.m.x	   mt0, %[mask], 0\n"
+        "flw.ps      f2, 0(%[sum])\n"      // Loads initial value
+        "flw.ps      f3, 0(%[offsets])\n"  // Loads offsets for gathers
+        // Main loop
+        "1:\n"
+        "fbc.ps      f0, 0(%[tAAddr])\n"   // Loads data
+        "fgw.ps      f1, f3(%[tWAddr])\n"
+        "fmadd.ps    f2, f1, f0, f2\n"     // Accum
+        // End of loop
+        "addi   %[inCperG], %[inCperG], -1\n"
+        "addi   %[tAAddr], %[tAAddr], 4\n"    // Increment pointers
+        "addi   %[tWAddr], %[tWAddr], 4\n"
+        "bne    %[inCperG], x0, 1b\n"
+        // Converts back to scalar
+        "fsw.ps f2, 0(%[sum])\n"
+      : [tAAddr] "+&r" (tAAddr),
+        [tWAddr] "+&r" (tWAddr),
+        [inCperG] "+&r" (inCperG),
+        [sum] "+&r" (sum)
+      : [mask] "r" (mask),
+        [offsets] "r" (offsets)
+      : "memory", "f0", "f1", "f2"
+    );
+  }
+  // Float16 version
+  else if (std::is_same<srcType, float16>::value) {
+    char * tAAddr = (char *) tAInputPtr;
+    tAAddr += actOffset * 2;
+    char * tWAddr = (char *) tWInputPtr;
+    tWAddr += weightOffset * 2;
+
+    // Computes the offsets for the gather of weight
+    int32_t offsets[CONVOLUTION_MAX_ELEMS];
+    for (size_t i = 0; i < CONVOLUTION_MAX_ELEMS; i++) {
+      offsets[i] = i * weightPitch * 2;
+    }
+
+    // Active elements
+    size_t mask = (1 << elems) - 1;
+    __asm__ __volatile__(
+        // Sets 1 lane enabled, moves scalar to float
+        "mov.m.x	   mt0, %[mask], 0\n"
+        "flw.ps      f2, 0(%[sum])\n"      // Loads initial value
+        "flw.ps      f3, 0(%[offsets])\n"  // Loads offsets for gathers
+        // Main loop
+        "1:\n"
+        "fbc.ps      f0, 0(%[tAAddr])\n"   // Loads data
+        "fgh.ps      f1, f3(%[tWAddr])\n"
+        "fcvt.ps.f16 f0, f0\n"             // Converts to FP32
+        "fcvt.ps.f16 f1, f1\n"
+        "fmadd.ps    f2, f1, f0, f2\n"     // Accum
+        // End of loop
+        "addi   %[inCperG], %[inCperG], -1\n"
+        "addi   %[tAAddr], %[tAAddr], 2\n"    // Increment pointers
+        "addi   %[tWAddr], %[tWAddr], 2\n"
+        "bne    %[inCperG], x0, 1b\n"
+        // Converts back to scalar
+        "fsw.ps f2, 0(%[sum])\n"
+      : [tAAddr] "+&r" (tAAddr),
+        [tWAddr] "+&r" (tWAddr),
+        [inCperG] "+&r" (inCperG),
+        [sum] "+&r" (sum)
+      : [mask] "r" (mask),
+        [offsets] "r" (offsets)
+      : "memory", "f0", "f1", "f2"
+    );
+  }
+  // Others
+  else {
+    // For all the input channels of the current "pixel"
+    for (size_t dataF = 0; dataF < inCperG; dataF++) {
+      // Gets input value
+      auto act = tAInput[actOffset + dataF];
+      for (size_t elem = 0; elem < elems; elem++) {
+        // Gets weight value
+        auto weight = tWInput[weightOffset + dataF + elem  * weightPitch];
+        // Adds to the result
+        sum[elem] += act * weight;
+      }
+    }
+  }
+}
+
 /**
  * @brief Performs the convolution operation between the activation, weights and bias.
  *
@@ -164,20 +394,14 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
  * 
  * @tparam srcType Type of the elements of the tensors involved in the 
  *  convolution (except for the bias)
- * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
- * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 
- *  (with batch and chanel).
- * @param[in] dstMatrixPitches Vector of pitches of the dstMatrix.
- * @param[in] weights Matrix with the weights for the convolution.
- * @param[in] weightDims Vector of dimensions of the weights. Unused.
- * @param[in] weightPitches Vector of pitches of the weights.
- * @param[in] bias Floats vector of biases (one for each chanel in a group).
- * @param[in] pkernels Vector of dimensions of the kernek that is applied.
+ * @param[out] outT Tensor where we save the result of the convolution.
+ * @param[in] in1T Tensor with the activations of the convolution.
+ * @param[in] in2T Tensor with the weights of the convolution.
+ * @param[in] in2T Tensor with the biases of the convolution.
+ * @param[in] pkernels Vector of dimensions of the kernel that is applied.
  * @param[in] pstrides Vector with the strides for both dimensions.
  * @param[in] ppads Vector with the padding for both dimensions.
  * @param[in] group The number of groups in which we divide the chanel.
- * @param[in] scale The scale for the quantization.
- * @param[in] offset The offset for the quantization.
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
@@ -186,6 +410,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
              LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
              void *ppads, unsigned int group, uint64_t flags) {
 
+  // Gets minion Id and check if minion is active
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -193,34 +418,24 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
-  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* dstMatrix   = outT->getRawDataPointer<void>();
   void* activations = in1T->getRawDataPointer<void>();
-  void* weights = in2T->getRawDataPointer<void>();
+  void* weights     = in2T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
+  Addresser<srcType>       tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
   const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
-  // float *tBias = (float *)bias;
   float *tBias = in3T->getRawDataPointer<float>();
 
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t *actIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
   
   unsigned int *kernels = (unsigned int *)pkernels;
   unsigned int *strides = (unsigned int *)pstrides; 
   unsigned int *pads = (unsigned int *)ppads; 
-
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -237,16 +452,9 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   unsigned int inCperG = actIndex[3] / group;
   unsigned int outCperG = dstIndex[3] / group;
 
-  // unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
-  //                              1};
+  size_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG, 1};
 
-  // unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
-  //                              outCperG};
-  size_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
-                               1};
-
-  size_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
-                               outCperG};
+  size_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group, outCperG};
 
   unsigned int coord[5], k;
   getNonPaddingCoordinates(coord, initialAddr, 5, eDstPitch, eDstIndex, k);
@@ -260,46 +468,90 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
 
   unsigned int posMax = initialAddr + maxRead;
   bool done = false;
-  ssize_t x, y, d;
   while ((offsetOut < posMax) && !done) {
-    x = coord[1] * strides[0] - ssize_t(pads[0]); // least x coordinate in kernel
-    y = coord[2] * strides[1] - ssize_t(pads[1]); // least y coordinate in kernel
-    d = coord[3] * outCperG + coord[4];           // depth in kernel
+    // Computes position of the pixel being computed
+    size_t dataB = coord[0];                                 // Batch
+    size_t dataX = coord[1] * strides[0] - ssize_t(pads[0]); // X
+    size_t dataY = coord[2] * strides[1] - ssize_t(pads[1]); // Y
+    size_t dataC = coord[3];                                 // Out Channel
 
-    auto sum = tAInput[0];                        //Same type as tAInput[]
-    sum = tBias[d];// 0;
+    // Computes position of the weight channel
+    size_t weightC = coord[3] * outCperG + coord[4];
 
-    for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
-      for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
-        ssize_t ox = x + fx;
-        ssize_t oy = y + fy;
+    // Precomputes data to move out of loop
+    size_t dataBOffset   = dataB * actPitch[0];
+    size_t dataCOffset   = dataC * inCperG;
+    size_t dataBCOffset  = dataBOffset + dataCOffset;
+    size_t weightCOffset = weightC * weightPitch[0];
 
-        // Ignore index access below zero (this is due to padding).
-        if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
-            oy >= ssize_t(actIndex[2])) {
+    // Computes how many more elements can we compute
+    size_t elems = CONVOLUTION_MAX_ELEMS;
+    // Can't go beyond the elements left
+    size_t elemsLeft = posMax - offsetOut;
+    if(elems > elemsLeft) { elems = elemsLeft; }
+    // Can't go beyond current row
+    size_t featsLeft = eDstIndex[4] - coord[4];
+    if(elems > featsLeft) { elems = featsLeft; }
+
+    // Starts the accumulation with the bias (per Channel)
+    typename accumulatorType<srcType>::type sum[CONVOLUTION_MAX_ELEMS];
+    for (size_t i = 0; i < elems; i++) {
+      sum[i] = tBias[weightC + i];
+    }
+
+    // For all the rows of the kernel
+    for (size_t kernelXStep = 0; kernelXStep < kernels[0]; kernelXStep++) {
+      ssize_t dataKernelX = dataX + kernelXStep; // Position of the pixel sampled for the convolution
+
+      // Ignore index accesses outside the "image"
+      if (
+            (dataKernelX < 0)                     // Left
+         || (dataKernelX >= ssize_t(actIndex[1])) // Right
+      ) {
+        continue;
+      }
+
+      // Precompute offsets
+      size_t dataKernelXOffset        = dataKernelX * actPitch[1];
+      size_t dataBCKernelXOffset      = dataBCOffset + dataKernelXOffset;
+      size_t weightKernelXStepOffset  = kernelXStep * weightPitch[1];
+      size_t weightKernelXStepCOffset = weightCOffset + weightKernelXStepOffset;
+
+      // For all the cols of the kernel
+      for (size_t kernelYStep = 0; kernelYStep < kernels[1]; kernelYStep++) {
+        ssize_t dataKernelY = dataY + kernelYStep;
+
+        // Precomputes offsets
+        ssize_t dataKernelYOffset       = dataKernelY * actPitch[2];
+        ssize_t dataBCKernelOffset      = dataBCKernelXOffset + dataKernelYOffset;
+        ssize_t weightKernelYStepOffset = kernelYStep * weightPitch[2];
+        ssize_t weightKernelStepCOffset = weightKernelXStepCOffset + weightKernelYStepOffset;
+
+        // Ignore index accesses outside the "image"
+        if (
+              (dataKernelY < 0)                     // Up
+           || (dataKernelY >= ssize_t(actIndex[2])) // Down
+        ) {
           continue;
         }
-        for (size_t fd = 0; fd < inCperG; fd++) { //for all depth coordinates
-          auto op1 = tWInput[d * weightPitch[0] + fx * weightPitch[1] +
-                             fy * weightPitch[2] + fd];
-          auto op2 =
-              tAInput[coord[0] * actPitch[0] + (size_t)ox * actPitch[1] +
-                      (size_t)oy * actPitch[2] + coord[3] * inCperG + fd];
-          sum += op1 * op2;
-        }
+
+        // Calls the function that will accumulate all the channels for specific kernel step
+        convolutionStep <srcType> (sum, tAInput, activations, tWInput, weights, inCperG, dataBCKernelOffset, weightKernelStepCOffset, weightPitch[0], elems);
       }
     }
-    //sum += tBias[d];
-    tOutput[offsetOut] = sum;
-
-    done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);
+    // Moves to next result
+    for (size_t i = 0; i < elems; i++) {
+      tOutput[offsetOut] = sum[i];
+      done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);
+    }
   }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
-}
 
+  // Check if evicts required
+  if (DO_EVICTS) {
+    unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+    if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  }
+}
 
 /**
  * @brief Computes one element in the convolution.
