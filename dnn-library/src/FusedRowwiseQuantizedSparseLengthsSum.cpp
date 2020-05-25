@@ -14,6 +14,16 @@
 namespace dnn_lib {
 
 template<typename DstType>
+void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyThreaded(
+             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+             uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions) {
+
+  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyThreaded<DstType>(
+             outT, in1T, in2T, in3T, flags,
+             minionOffset, assignedMinions);
+}
+
+template<typename DstType>
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
              LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
              uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions) {
@@ -25,8 +35,11 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
 
 #include "GenInstances.h"
 
+GEN_INSTANCES_1TYPEFP(template, fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyThreaded,
+                      LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                      uint64_t flags, const uint32_t minionOffset, const uint32_t numShires);
 GEN_INSTANCES_1TYPEFP(template, fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized,
-                      LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,                      
+                      LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                       uint64_t flags, const uint32_t minionOffset, const uint32_t numShires);
 
 } // namespace dnn_lib

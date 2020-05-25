@@ -32,6 +32,17 @@ namespace inlining {
 
 template<typename DstType>
 inline __attribute__((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyThreaded(
+        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  LibTensor* inW = nullptr;
+  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded <DstType> (
+    outT, in1T, inW, in2T, in3T, flags, minionOffset, assignedMinions);
+}
+
+template<typename DstType>
+inline __attribute__((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {

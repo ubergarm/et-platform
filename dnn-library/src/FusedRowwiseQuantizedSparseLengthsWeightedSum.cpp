@@ -20,11 +20,12 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
                         outT, in1T, in2T, in3T, in4T);
 }
 
+template <typename DstType>
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
                LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                LibTensor* in4T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
+  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded <DstType> (
                outT, in1T, in2T, in3T, in4T, flags);
 }
 

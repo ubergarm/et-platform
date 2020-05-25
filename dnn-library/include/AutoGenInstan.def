@@ -232,6 +232,9 @@ GEN_OP(fwdLibSparseLengthsWeightedSumInstThreaded, LibTensor* outT, LibTensor* i
 GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t numShires = 0);
+GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyThreaded,
+            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, 
+            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t numShires = 0);
 GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized,
             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, 
             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t numShires = 0);
