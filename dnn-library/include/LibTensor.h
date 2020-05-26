@@ -462,23 +462,23 @@ class LibTensor final {
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
             const std::array<dim_t, numSizes> &pitches, float scale, int offset)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata ,64))),
       type_(elk, dims, pitches, scale, offset) {}
 
   // constructor for non quant types
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
             const std::array<dim_t, numSizes> &pitches)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
       type_(elk, dims, pitches) {}
 
   // constructor from type
   LibTensor(const Type &type, void* rawdata)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
       type_(type) {}
 
   LibTensor(const Type &&type, void* rawdata)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
       type_(std::move(type)) {}
 
 
@@ -688,9 +688,9 @@ template <class ElemTy> class Handle final {
 
    /*@brief It has the mult of the sizes for each position to end.
     */
-  const dim_array_t &strides_;
+  const dim_array_t &strides_ __attribute__((aligned(8)));
 
-  const dim_array_t &sizes_;
+  const dim_array_t &sizes_  __attribute__((aligned(8)));
 
   /*@brief the number of dimensions used in the tensor.
    */
