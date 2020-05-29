@@ -184,7 +184,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
 
   // size_t segments = pLengthsSize;
-  const size_t segments = static_cast<size_t>(in4T->ndims());
+  const size_t segments = in4T->dims()[0];
   size_t ranges[segments];
   size_t totalLength = 0;
   for (size_t i = 0; i < segments; i++) {
