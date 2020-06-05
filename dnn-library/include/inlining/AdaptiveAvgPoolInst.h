@@ -26,9 +26,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
-
+  using srcType = elemKind2elemTy<elK>::type;
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;

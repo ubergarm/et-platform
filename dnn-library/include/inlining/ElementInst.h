@@ -29,7 +29,7 @@
 namespace dnn_lib {
 
 namespace inlining {
-
+  
 /**
  * @brief Given to tensors, it gives the result of the opType applied elementwise.
  *
@@ -373,6 +373,39 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
+
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // individual functions per operator (forwarding call to the previous ones with
+  // the proper parameters)
+  ////////////////////////////////////////////////////////////////////////////////
+#define EltWiseInst(name, opType)                                                                               \
+  template <typename srcType> inline void                                                                       \
+  fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {                                 \
+    fwdLibElementInst<srcType, opType>(outT, in1T,in2T);                                                        \
+  }                                                                                                             \
+  template <typename src1Type, typename src2Type, typename dstType>  inline void                                \
+  fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {         \
+    fwdLibElementInstThreaded<src1Type, src2Type,dstType, opType>  (outT, in1T, in2T,flags);                    \
+  }                                                                                                             \
+  template <typename src1Type, typename src2Type, typename dstType> inline void                                 \
+  fwdLib ## opType ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                         \
+                                       const float* scale, const int32_t* offset, uint64_t flags) {             \
+    fwdLibElementInstVectorized <src1Type, src2Type, dstType, opType>(outT, in1T,  in2T, scale, offset, flags); \
+  }
+
+
+  EltWiseInst(ElementAdd, Add)
+  EltWiseInst(ElementSub, Sub)
+  EltWiseInst(ElementDiv, Mul)
+  EltWiseInst(ElementMul, Div)
+  EltWiseInst(ElementMin, Max)
+  EltWiseInst(ElementMax, Min)
+  EltWiseInst(ElementPow, Pow)
+  
+#undef EltWiseInst
+
+  
 } // namespace inlining
 
 } // namespace dnn_lib

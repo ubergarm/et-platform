@@ -34,6 +34,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/Float16.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/GenInstances.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/Operators.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibApi.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibCommon.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTypes.h"
@@ -132,7 +133,7 @@ add_compile_options(-Werror -Wall)
 message("${PROJECT_NAME}: Clang Build is set to ${CLANG_BUILD}")
 
 add_library(dnn_lib STATIC
-  src/AdaptiveAvgPoolInst.cpp
+#  src/AdaptiveAvgPoolInst.cpp
   src/ArgMaxInst.cpp
   src/AvgPoolInst.cpp
   src/BatchedAddInst.cpp
