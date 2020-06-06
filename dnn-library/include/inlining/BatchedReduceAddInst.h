@@ -181,7 +181,6 @@ inline void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
     tOutput[offsetOut] = tBatch[offsetIn];
     offsetIn += batchPitch[axis];
     for (size_t i = 1; i < batchIndex[axis]; i++) {
-      print(__PRETTY_FUNCTION__);
       Addresser<srcType> tSum = tOutput;
       op.doOp(tOutput, tSum, tBatch, offsetOut, offsetOut, offsetIn);
       offsetIn += batchPitch[axis];
@@ -355,7 +354,6 @@ inline void fwdLibBatchedReduceAddInstInt8Threaded(LibTensor* outT,
   while (not done && offsetOut < posMax) {
     float sum = 0.0;
     for (size_t i = 0; i < batchIndex[axis]; i++) {
-      // print(__PRETTY_FUNCTION__);
       sum += tBatch[offsetIn] - inT->getOffset();
       offsetIn += batchPitch[axis];
     }

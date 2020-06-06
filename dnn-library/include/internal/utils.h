@@ -40,8 +40,6 @@ constexpr uint64_t fg32h_conf = 0x76543210;
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
-#define print(s) syscall(SYSCALL_LOG_WRITE, (uint64_t)(s), sizeof(s), 0)
-
 //-------------------------------------------------------------------------------------------------
 //
 // FUNCTION: evict_va_multi
