@@ -68,11 +68,14 @@ struct accumulatorType {
  * @param[in] scale The scale for the quantization.
  * @param[in] offset The offset for the quantization.
  */
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                   LibTensor* in3T, void *pkernels, void *pstrides,
                                     void *ppads, unsigned int group) {
-
+  using dstType = elemKind2elemTy<dstElK>::type;
+  using src1Type = elemKind2elemTy<src1ElK>::type;
+  using src2Type = elemKind2elemTy<src2ElK>::type;
+  
   // FIXME: going back to single thread until general case is solved with
   // multithread
   unsigned int minionId = get_minion_id();
@@ -86,11 +89,11 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   void* weights =  in2T->getRawDataPointer<void>();
 
   // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src1Type> tAInput(activations, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  const Addresser<src2Type> tWInput(weights, in2T->getScale(), in2T->getOffset());
   // float *tBias = (float *)bias;
   float *tBias = in3T->getRawDataPointer<float>();
 
@@ -405,11 +408,14 @@ inline void convolutionStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
              LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
              void *ppads, unsigned int group, uint64_t flags) {
-
+  using dstType = elemKind2elemTy<dstElK>::type;
+  using src1Type = elemKind2elemTy<src1ElK>::type;
+  using src2Type = elemKind2elemTy<src2ElK>::type;
+  
   // Gets minion Id and check if minion is active
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -422,9 +428,9 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   void* activations = in1T->getRawDataPointer<void>();
   void* weights     = in2T->getRawDataPointer<void>();
 
-  Addresser<srcType>       tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  Addresser<dstType>       tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<src1Type> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2Type> tWInput(weights, in2T->getScale(), in2T->getOffset());
   float *tBias = in3T->getRawDataPointer<float>();
 
   const dim_t *dstIndex = outT->dims().data();
@@ -970,7 +976,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename dstType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
                                             void *pkernels, void *pstrides,
@@ -978,6 +984,10 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             const float *scale, const int32_t *offset,
                                             uint64_t flags) {
 
+  using dstType = elemKind2elemTy<dstElK>::type;
+  using src1Type = elemKind2elemTy<src1ElK>::type;
+  using src2Type = elemKind2elemTy<src2ElK>::type;
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

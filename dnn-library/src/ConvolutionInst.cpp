@@ -37,12 +37,12 @@ namespace dnn_lib {
  * @param[in] scale The scale for the quantization.
  * @param[in] offset The offset for the quantization.
  */
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                            LibTensor* in3T, void *pkernels, void *pstrides,
                            void *ppads, unsigned int group) {
 
-  dnn_lib::inlining::fwdLibConvolutionInst<srcType>(outT, in1T, in2T, in3T,
+  dnn_lib::inlining::fwdLibConvolutionInst<dstElk, src1Elk, src2Elk>(outT, in1T, in2T, in3T,
                                                     pkernels, pstrides, ppads,
                                                     group);
 }
@@ -73,14 +73,14 @@ void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
                                    LibTensor* in2T, LibTensor* in3T,
                                    void *pkernels, void *pstrides,
                                    void *ppads, unsigned int group,
                                    uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibConvolutionInstThreaded<srcType>(outT, in1T, in2T,
+  dnn_lib::inlining::fwdLibConvolutionInstThreaded<dstElk, src1Elk, src2Elk>(outT, in1T, in2T,
                                                             in3T, pkernels,
                                                             pstrides, ppads,
                                                             group, flags);
@@ -116,7 +116,7 @@ void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename dstType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                      LibTensor* in2T, LibTensor* in3T,
                                      void *pkernels, void *pstrides,
@@ -124,20 +124,20 @@ void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                      const float *scale, const int32_t *offset,
                                      uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibConvolutionInstVectorized<src1Type, src2Type, dstType>(
+  dnn_lib::inlining::fwdLibConvolutionInstVectorized<dstElk, src1Elk, src2Elk>(
       outT, in1T, in2T, in3T, pkernels, pstrides, ppads, group, scale, offset, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibConvolutionInst, LibTensor* outT, LibTensor* in1T,
-                 LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
-                 void *ppads, unsigned int group);
-
-GEN_INSTANCES_OP(template, fwdLibConvolutionInstThreaded, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, void *pkernels,
-                 void *pstrides, void *ppads, unsigned int group, uint64_t flags);
-
+GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInst, LibTensor* outT, LibTensor* in1T,
+                       LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
+                       void *ppads, unsigned int group);
+  
+GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInstThreaded, LibTensor* outT,
+                       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, void *pkernels,
+                       void *pstrides, void *ppads, unsigned int group, uint64_t flags);
+  
 GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInstVectorized, LibTensor* outT,
                        LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                        void *pkernels, void *pstrides, void *ppads, unsigned int group,
