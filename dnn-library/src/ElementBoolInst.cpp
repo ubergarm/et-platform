@@ -13,49 +13,50 @@
 
 namespace dnn_lib {
 
-template <typename srcType, typename opType>
-void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
-
-  dnn_lib::inlining::fwdLibElementBoolInst<srcType, opType>(outT, in1T, in2T);
-}
-
-template <typename srcType, typename opType>
-void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                   LibTensor* in2T, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibElementBoolInstThreaded<srcType, opType>(outT, in1T,
-                                                                    in2T, flags);
-}
-
-template <typename src1Type, typename src2Type, typename opType>
-void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                     LibTensor* in2T, const float* scale,
-                                     const int32_t* offset, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibElementBoolInstVectorized<src1Type, src2Type, opType>(
-                                                     outT, in1T, in2T, scale, offset, flags);
-}
-
+  template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
+  void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+    
+    dnn_lib::inlining::fwdLibElementBoolInst<src1Elk, src2Elk, opType>
+      (outT, in1T, in2T);
+  }
+  
+  template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
+  void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                     LibTensor* in2T, uint64_t flags) {
+    
+    dnn_lib::inlining::fwdLibElementBoolInstThreaded<src1Elk, src2Elk, opType>
+      (outT, in1T, in2T, flags);
+  }
+  
+  template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
+  void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
+                                       LibTensor* in2T, const float* scale,
+                                       const int32_t* offset, uint64_t flags) {
+    
+    dnn_lib::inlining::fwdLibElementBoolInstVectorized<src1Elk, src2Elk, opType>
+      (outT, in1T, in2T, scale, offset, flags);
+  }
+  
 #include "GenInstances.h"
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInst,CmpEQ, LibTensor* outT,
+GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInst,CmpEQ, LibTensor* outT,
                         LibTensor* in1T, LibTensor* in2T);
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInst,CmpLTE, LibTensor* outT,
+GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInst,CmpLTE, LibTensor* outT,
                         LibTensor* in1T, LibTensor* in2T);
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInst,CmpLT, LibTensor* outT,
+GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInst,CmpLT, LibTensor* outT,
                         LibTensor* in1T, LibTensor* in2T);
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInstThreaded,CmpEQ,
+GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstThreaded,CmpEQ,
                         LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                         uint64_t flags);
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInstThreaded,CmpLTE,
+GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstThreaded,CmpLTE,
                         LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                         uint64_t flags);
 
-GEN_INSTANCES_INSTANCES(template, fwdLibElementBoolInstThreaded,CmpLT,
+GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstThreaded,CmpLT,
                         LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                         uint64_t flags);
 

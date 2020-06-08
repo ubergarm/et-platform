@@ -39,25 +39,23 @@ namespace inlining {
  * 
  * @warning It comes without doubt that A and B must have the same dimensions.
  * 
- * @tparam srcType The type of the elements in the input tensors.
- * @tparam opType An operator that takes two srcType elements and returns a 
-    bool (>, \geq, =, etc).
+ * @tparam srcNElk The type of the elements in the nth input tensor
+ * @tparam opType The operation to perform, returning a bool (>, \geq, =, etc).
  * @param[out] outT pointer to the output LibTensor.
  * @param[in] in1T pointer to first source LibTensor
  * @param[in] in2T pointer to second source LibTensor
  */
-template <typename srcType, typename opType>
+template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
                                   LibTensor* in2T) {
-
+  using src1Type = elemKind2elemTy<src1ElK>::type;
+  using src2Type = elemKind2elemTy<src2ElK>::type;
   /* maintain compatibility through the new Iface Libtensor */    
   void* srcT1 = in1T->getRawDataPointer<void>();
   void* srcT2 = in2T->getRawDataPointer<void>();
   
-  // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> aSrcT2(srcT2, scale[1], offset[1]);
-  const Addresser<srcType> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
+  const Addresser<src1Type> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2Type> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   // bool *aDstT = (bool *)dstT;
   bool* aDstT = outT->getRawDataPointer<bool>();
   
@@ -87,7 +85,7 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
 
   uint64_t addrSrc1, addrSrc2, addrDst;
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
+  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<bool>, opType> op;
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -124,19 +122,19 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
  * 
  * @warning It comes without doubt that A and B must have the same dimensions.
  * 
- * @tparam srcType The type of the elements in the input tensors.
- * @tparam opType An operator that takes two srcType elements and returns a 
-    bool.
+ * @tparam srcNElk The type of the elements in the nth input tensor
+ * @tparam opType The operation to perform, returning a bool (>, \geq, =, etc).
  * @param[out] dstT Pointer to the output matrix.
  * @param[in] in1T pointer to first source LibTensor
  * @param[in] in2T pointer to second source LibTensor
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename srcType, typename opType>
+template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
                                           LibTensor* in2T, uint64_t flags) {
-
+  using src1Type = elemKind2elemTy<src1ElK>::type;
+  using src2Type = elemKind2elemTy<src2ElK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -147,10 +145,8 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   void* srcT2 = in2T->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
   
-  // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> aSrcT2(srcT2, scale[1], offset[1]);
-  const Addresser<srcType> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
+  const Addresser<src1Type> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2Type> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   bool *aDstT = outT->getRawDataPointer<bool>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
@@ -164,12 +160,12 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
+  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<bool>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<bool>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -214,9 +210,8 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
  * 
  * @warning It comes without doubt that A and B must have the same dimensions.
  * 
- * @tparam srcType The type of the elements in the input tensors.
- * @tparam opType An operator that takes two srcType elements and returns a 
-    bool.
+ * @tparam srcNElk The type of the elements in the nth input tensor
+ * @tparam opType The operation to perform, returning a bool (>, \geq, =, etc).
  * @param[out] dstT Pointer to the output matrix.
  * @param[in] dstDims The "number of dimensions" of the output matrix.
  * @param[in] dstPitches Vector of pitches of the output matrix.
@@ -230,11 +225,13 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename opType>
+template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, const float* scale,
                                             const int32_t* offset, uint64_t flags) {
-
+  using src1Type = elemKind2elemTy<src1ElK>::type;
+  using src2Type = elemKind2elemTy<src2ElK>::type;
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -356,19 +353,19 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   // individual functions per operator (forwarding call to the previous ones with
   // the proper parameters)
   ////////////////////////////////////////////////////////////////////////////////
-#define EltWiseInst(name, opType)                                                                                   \
-  template <typename srcType> inline void                                                                           \
-  fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {                                     \
-    fwdLibElementBoolInst<srcType, opType>(outT, in1T,in2T);                                                        \
-  }                                                                                                                 \
-  template <typename src1Type, typename src2Type, typename dstType>  inline void                                    \
-  fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {             \
-    fwdLibElementBoolInstThreaded<src1Type, src2Type,dstType, opType>  (outT, in1T, in2T,flags);                    \
-  }                                                                                                                 \
-  template <typename src1Type, typename src2Type, typename dstType> inline void                                     \
-  fwdLib ## opType ## Vectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                 \
-                                   const float* scale, const int32_t* offset, uint64_t flags) {                     \
-    fwdLibElementBoolInstVectorized <src1Type, src2Type, dstType, opType>(outT, in1T,  in2T, scale, offset, flags); \
+#define EltWiseInst(name, opType)                                                                        \
+  template <ElemKind src1Elk, ElemKind src2Elk>                                                          \
+  fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {                          \
+    fwdLibElementBoolInst<src1Elk, src2Elk, opType> (outT, in1T,in2T);                                   \
+  }                                                                                                      \
+  template <ElemKind src1Elk, ElemKind src2Elk>  inline void                                             \
+  fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {  \
+    fwdLibElementBoolInstThreaded<src1Elk, src2Elk, opType>  (outT, in1T, in2T,flags);                   \
+  }                                                                                                      \
+  template <ElemKind src1Elk, ElemKind src2Elk>  inline void                                             \
+  fwdLib ## opType ## Vectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                      \
+                                   const float* scale, const int32_t* offset, uint64_t flags) {          \
+    fwdLibElementBoolInstVectorized<src1Elk, src2Elk, opType> (outT, in1T,  in2T, scale, offset, flags); \
   }
   
   EltWiseInst(ElementCmpEQ, CmpEQ)
