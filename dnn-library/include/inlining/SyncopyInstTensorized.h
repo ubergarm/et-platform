@@ -50,14 +50,16 @@ namespace inlining {
  */
 template <typename srcType>
 inline void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT,
-                                        unsigned int off) {
+                                        unsigned int off,
+                                        const uint32_t assignedMinions = 0) {
 
   uint32_t hart = get_hart_id();
   uint32_t threadId = hart & 1;
   uint32_t minionId = (hart >> 1) - (32 * 32 + 16);
-  int32_t activeMinions = 16;
+  uint32_t activeMinions = (assignedMinions == 0) ? 16 : assignedMinions;
   // Disable second thread from now on, as they don't have tensor extensions
   if (threadId != 0) { return; }
+  if (minionId >= activeMinions) { return; }
 
   
   /* maintain compatibility through the new Iface Libtensor */
@@ -112,19 +114,28 @@ inline void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT,
   shire_barrier(0,                 // FLB0
                 0,                 // FCC0
                 activeMinions,     // Number of active minions
-                SYNC_MINIONS_MASK, // Mask of active thread0 minions
+                (((1 << activeMinions)-1) << 16),     // Mask of active thread0 minions
                 0);                // Mask of active thread1 minions
 
-  // Flush CB (4 banks, 4 minions in parallel)
-  if(minionId < 4)
+  // Flush CB (4 banks)
+  if (activeMinions >= 4) {
+    // 4 minions in parallel
+    if(minionId < 4)
+      cb_drain(SHIRE_OWN, minionId);
+  } else {
     cb_drain(SHIRE_OWN, minionId);
+    uint32_t mod = (4 % activeMinions);
+    if(minionId < mod) {
+      cb_drain(SHIRE_OWN, minionId + activeMinions);
+    }
+  }
 
   // Barrier to get all minions threa0 here
   // Guarantees all data in L3
   shire_barrier(0,                 // FLB0
                 0,                 // FCC0
                 activeMinions,     // Number of active minions
-                SYNC_MINIONS_MASK, // Mask of active thread0 minions
+                (((1 << activeMinions)-1) << 16),     // Mask of active thread0 minions
                 0);                // Mask of active thread1 minions
 
   // Evicts from L3 to DDR

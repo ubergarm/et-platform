@@ -120,7 +120,7 @@ GEN_OP(fwdLibCopyInstVectorized, LibTensor* outT, LibTensor* inT, uint64_t flags
                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 GEN_OP(fwdLibCopyInstTensorized, LibTensor* outT, LibTensor* inT, uint64_t flags,
                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-GEN_OP(fwdLibSyncopyInstTensorized, LibTensor* outT, LibTensor* inT, unsigned int off);
+GEN_OP(fwdLibSyncopyInstTensorized, LibTensor* outT, LibTensor* inT, unsigned int off, const uint32_t assignedMinions = 0);
 GEN_OP(fwdLibTensorViewInst, LibTensor* outT, LibTensor* inT, void *poffsets); 
 GEN_OP(fwdLibTensorViewInstThreaded, LibTensor* outT, LibTensor* inT, void *poffsets, uint64_t flags );
 GEN_OP(fwdLibTensorViewInstVectorized, LibTensor* outT, LibTensor* inT, void *poffsets, uint64_t flags );  
