@@ -184,4 +184,81 @@
   void functionName(__VA_ARGS__);                                                     \
   GEN_INSTANCES_RQSLWS_V(extern template, functionName, __VA_ARGS__)
 
+#define GEN_INSTANCES_OP_ELK(template, functionName, ...)                      \
+  template void functionName<FloatTy>(__VA_ARGS__);                            \
+  template void functionName<Float16Ty>(__VA_ARGS__);                          \
+  template void functionName<Int8QTy>(__VA_ARGS__);                            \
+  template void functionName<Int32ITy>(__VA_ARGS__);                           \
+  template void functionName<Int64ITy>(__VA_ARGS__);                           \
+  template void functionName<UInt8QTy>(__VA_ARGS__);                           \
+  template void functionName<Int16QTy>(__VA_ARGS__);                           \
+  template void functionName<Int32QTy>(__VA_ARGS__);                           \
+  template void functionName<UInt8FusedQTy>(__VA_ARGS__);                      \
+  template void functionName<UInt8FusedFP16QTy>(__VA_ARGS__);                  \
+  template void functionName<UInt4FusedFP16QTy>(__VA_ARGS__);                  
+  /* template void functionName<BoolTy>(__VA_ARGS__); */
+
+#define GEN_OP_ELK(functionName, ...)                                                 \
+  template <ElemKind elKind>                                                          \
+  void functionName(__VA_ARGS__);                                                     \
+  GEN_INSTANCES_OP_ELK(extern template, functionName, __VA_ARGS__)
+
+#define GEN_INSTANCES_OP_ELK_UINT32_ARR(functionName)	    \
+  template <ElemKind elKind, size_t N>						\
+  void functionName(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                                                     \
+  GEN_INSTANCES_OP_ELK_UINT32_ARR_N(functionName, 1) \
+  GEN_INSTANCES_OP_ELK_UINT32_ARR_N(functionName, 2) \
+  GEN_INSTANCES_OP_ELK_UINT32_ARR_N(functionName, 3) \
+  GEN_INSTANCES_OP_ELK_UINT32_ARR_N(functionName, 4) \
+  GEN_INSTANCES_OP_ELK_UINT32_ARR_N(functionName, 5) \
+  GEN_INSTANCES_OP_ELK_UINT32_ARR_N(functionName, 6) 
+
+#define GEN_INSTANCES_OP_ELK_UINT32_ARR_N(functionName, N)	\
+  extern template void functionName<FloatTy, N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags); \
+  extern template void functionName<Float16Ty,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                          \
+  extern template void functionName<Int8QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                            \
+  extern template void functionName<Int32ITy,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                           \
+  extern template void functionName<Int64ITy,    N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                           \
+  extern template void functionName<UInt8QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                           \
+  extern template void functionName<Int16QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                           \
+  extern template void functionName<Int32QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                           \
+  extern template void functionName<UInt8FusedQTy,    N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                      \
+  extern template void functionName<UInt8FusedFP16QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                  \
+  extern template void functionName<UInt4FusedFP16QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                  
+  /* template void functionName<BoolTy,  N>(__VA_ARGS__); */
+
+#define GEN_OP_ELK_UINT32_ARR(functionName, ...)                                       \
+  template <ElemKind elKind, size_t N>						\
+  void functionName(__VA_ARGS__);                                               \
+  GEN_INSTANCES_OP_ELK_UINT32_ARR(functionName)
+
+#define GEN_INSTANCES_OP_ELK_FLOAT_ARR(functionName)			\
+  template <ElemKind elKind, size_t N>						\
+  void functionName(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                                                     \
+  GEN_INSTANCES_OP_ELK_FLOAT_ARR_N(functionName, 1) \
+  GEN_INSTANCES_OP_ELK_FLOAT_ARR_N(functionName, 2) \
+  GEN_INSTANCES_OP_ELK_FLOAT_ARR_N(functionName, 3) \
+  GEN_INSTANCES_OP_ELK_FLOAT_ARR_N(functionName, 4) \
+  GEN_INSTANCES_OP_ELK_FLOAT_ARR_N(functionName, 5) \
+  GEN_INSTANCES_OP_ELK_FLOAT_ARR_N(functionName, 6) 
+
+#define GEN_INSTANCES_OP_ELK_FLOAT_ARR_N(functionName, N)	\
+  extern template void functionName<FloatTy, N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags); \
+  extern template void functionName<Float16Ty,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                          \
+  extern template void functionName<Int8QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                            \
+  extern template void functionName<Int32ITy,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                           \
+  extern template void functionName<Int64ITy,    N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                           \
+  extern template void functionName<UInt8QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                           \
+  extern template void functionName<Int16QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                           \
+  extern template void functionName<Int32QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                           \
+  extern template void functionName<UInt8FusedQTy,    N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                      \
+  extern template void functionName<UInt8FusedFP16QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                  \
+  extern template void functionName<UInt4FusedFP16QTy,   N>(LibTensor* outT, LibTensor* inT, const std::array<float, N> &axes, uint64_t flags);                  
+  /* template void functionName<BoolTy,  N>(__VA_ARGS__); */
+
+#define GEN_OP_ELK_FLOAT_ARR(functionName, ...)                                       \
+  template <ElemKind elKind, size_t N>						\
+  void functionName(__VA_ARGS__);                                               \
+  GEN_INSTANCES_OP_ELK_FLOAT_ARR(functionName)
+
 #endif

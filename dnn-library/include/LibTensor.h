@@ -22,16 +22,7 @@
 
 namespace dnn_lib {
 
-
-/*@brief return whether \p e is a quantized ElemKind.
-  */
-// inline bool isQuantizedElemKind(ElemKind e) {
-//   return (e == ElemKind::Int8QTy || e == ElemKind::UInt8QTy ||
-//           e == ElemKind::Int16QTy); //|| e == ElemKind::UInt32QTy ||
-//           // e == ElemKind::Int8FusedQTy || e == ElemKind::UInt8FusedFP16QTy ||
-//           // e == ElemKind::Int4FusedFP16QTy         
-// }
-  
+ 
 struct Type final {
    
    /*@brief contains the dimensions (sizes) of the tensor.
@@ -282,7 +273,7 @@ struct Type final {
     * account. Since size() does not take striding into account, size() is
     * always <= actualSize()
     */
-   size_t actualSize() const { return (getSizeInBytes() / getElementSize()); }
+   size_t actualSize() const { return (sizes_[0] * strides_[0]); }
 
    /// \return the size of the element \p Ty.
    static unsigned getElementSize(dnn_lib::ElemKind Ty) {
@@ -366,9 +357,6 @@ class LibTensor final {
   template <class ElemTy> friend class Handle;
 
  public:
-  /* @brief returns a pointer to the tensor data buffer.
-   */
-  const char* dbgData() const { return ptrData_; }
 
   /* @brief returns the type of the tensor.
    */
@@ -441,6 +429,9 @@ class LibTensor final {
    */
   const dim_array_t &dims() const { return type_.sizes_;}
   
+  /*@brief returns the strides (padded with 0 until max_tensor_dimensions)
+   */
+  const dim_array_t &strides() const { return type_.strides_;}
 
   /*@brief returns the number of real menaingful elements in the tensor. Does
    *not take strides into account.
@@ -501,69 +492,6 @@ class LibTensor final {
 
   template <class ElemTy = float> Handle<ElemTy> getHandle() && = delete;
 
-//TODO: REMOVE if not used  /*@brief returns an unowned tensor with the exact same dimensions as this.
-//TODO: REMOVE if not used   */
-//TODO: REMOVE if not used  LibTensor getUnowned() const {
-//TODO: REMOVE if not used    dim_t cpydims[max_tensor_dimensions] = {0,};
-//TODO: REMOVE if not used    uint8_t numdim = this->type_.dims(cpydims);
-//TODO: REMOVE if not used    return getUnowned(cpydims, numdim);
-//TODO: REMOVE if not used  }
-//TODO: REMOVE if not used    
-//TODO: REMOVE if not used  /*@brief Create a Tensor using the data buffer in \p dims as the current tensor
-//TODO: REMOVE if not used   *but having different dimensions \p dims. \p offsets represents an optional
-//TODO: REMOVE if not used   *offset into the tensor representing th elocation of the first element to start
-//TODO: REMOVE if not used   *a subview from. The returned tensor is essentially a different view or subview
-//TODO: REMOVE if not used   *on the same data.
-//TODO: REMOVE if not used   *
-//TODO: REMOVE if not used   *@param[in] dims keep the current tensor size.
-//TODO: REMOVE if not used   *@param[in] optional indices It keeps the position subview.
-//TODO: REMOVE if not used   *@return a Tensor.
-//TODO: REMOVE if not used   */
-//TODO: REMOVE if not used  LibTensor getUnowned(dim_t *dims, uint8_t numDims, bool useSameStrides = false,
-//TODO: REMOVE if not used                       dim_t *indices = {nullptr}, uint8_t indNumDims = 0) const {
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used    LibTensor unownedTensor;
-//TODO: REMOVE if not used    auto* ptrToData = getData();
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used    if (indNumDims) {
-//TODO: REMOVE if not used      //@TODO check indNumDims == numDims
-//TODO: REMOVE if not used      dim_t strides[max_tensor_dimensions] = {0,};
-//TODO: REMOVE if not used      uint8_t numSize = type_.strides(strides);
-//TODO: REMOVE if not used      size_t index = 0 ;
-//TODO: REMOVE if not used      
-//TODO: REMOVE if not used      for (size_t i = 0; i < numSize; i++) {
-//TODO: REMOVE if not used        index += strides[i] * indices[i];
-//TODO: REMOVE if not used      }
-//TODO: REMOVE if not used      ptrToData = &ptrToData[index * type_.getElementSize()];
-//TODO: REMOVE if not used    }
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used    unownedTensor.ptrData_ = ptrToData;
-//TODO: REMOVE if not used    unownedTensor.isUnowned_ = true;
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used    unownedTensor.type_ = Type::newShape(getType(), dims, numDims);
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used    if(useSameStrides) {
-//TODO: REMOVE if not used      dim_t strides[max_tensor_dimensions] = {0,};
-//TODO: REMOVE if not used      uint8_t numStrides = this->type_.strides(strides);
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used      for (unsigned int i = 0; i < numStrides; i++) {
-//TODO: REMOVE if not used        unownedTensor.type_.strides_[i] = strides[i];
-//TODO: REMOVE if not used      }
-//TODO: REMOVE if not used    }
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used    if(indNumDims) {
-//TODO: REMOVE if not used      unownedTensor.unpaddedSize_ = unpaddedSize_;
-//TODO: REMOVE if not used      //@TODO check actualSize() == unownedTensor.actualSize()
-//TODO: REMOVE if not used    }
-//TODO: REMOVE if not used    else {
-//TODO: REMOVE if not used      unownedTensor.unpaddedSize_ = unownedTensor.type_.getSizeInBytes();
-//TODO: REMOVE if not used      //@TODO check getSizeInBytes() == getUnpaddedSizeInBytes()
-//TODO: REMOVE if not used      //@TODO check actualSize() >= unownedensor.actualSize()
-//TODO: REMOVE if not used    }
-//TODO: REMOVE if not used
-//TODO: REMOVE if not used    return unownedTensor;
-//TODO: REMOVE if not used  }
   
   /* @brief copy raw data value at ptrData_ buffer tensor given at \p inTensor
    * to the other ptrData_ buffer at (this).
@@ -590,7 +518,6 @@ class LibTensor final {
 
   /*TODO: After re-do sw-2429 (refact operands) are the getters necessary? if not remove them. */
 public:  
-  const dim_array_t &strides() const { return type_.strides_;}
   float   getScale() const  { return type_.getScale(); }
   int32_t getOffset() const { return type_.getOffset(); }
   size_t getElementSize() const { return type_.getElementSize(); }  
@@ -649,7 +576,7 @@ public:
   void evict(uint64_t dst, size_t offset, size_t count) const{
     FENCE;
     const size_t typeSize = type_.getElementSize();    
-    size_t cl = count * typeSize / CACHE_LINE_BYTES;
+    size_t cl = (count * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     assert(cl > 0);
     uintptr_t addr = reinterpret_cast<uintptr_t>(ptrData_) + typeSize*offset;
     while(cl > 16) {
@@ -659,6 +586,10 @@ public:
     }
     if (cl > 0)
       evict_va(0, dst, addr, cl-1, CACHE_LINE_BYTES);
+  }
+
+  void evict(uint64_t dst) const {
+    evict(dst, 0, this->actualSize());
   }
   
 }; //end LibTensorBase class
@@ -677,6 +608,21 @@ INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices, const
   size_t r = 0;
   for (size_t i = 0 ; i < N; i++) r+=indices[i] * strides[i];
   return r;   
+}
+
+template<size_t N>
+INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices, 
+                                     const dim_array_t &strides, 
+                                     const dim_array_t &extStrides, size_t ndx) {
+
+  size_t r = 0;
+  for (size_t i = 0; i < N; i++) {
+    if (i == ndx)
+      r += indices[i] * extStrides[i];
+    else 
+      r += indices[i] * strides[i];
+  }
+   return r;
 }
 
 #include "LibTensorIterator.h"
@@ -716,6 +662,12 @@ public:
   template<size_t N>
   size_t getElementPtr(const std::array<dim_t, N> &indices) {
     return getFlattenedOffset(indices, strides_);
+  }
+
+  template<size_t N>
+  size_t getElementPtr(const std::array<dim_t, N> &indices, 
+                      const dim_array_t &extStrides, size_t ndx) {
+    return getFlattenedOffset(indices, strides_, extStrides, ndx);
   }
 
   /*@brief returns the value of the n'th dimension \p dim, for the index \p idx.
@@ -773,8 +725,9 @@ public:
   //   return tensor_->isInBounds(indices);
   // }
 
-  void clear(ElemTy value = 0) {
-    
+  
+  void clear(ElemTy value = 0) {  
+    std::fill(this->begin(), this->end(), value); 
   }
 
   /*@brief return reference to a meaningful data element. This method skip
@@ -794,11 +747,14 @@ public:
     return data[index];
   }
 
-  char* getPtrdbg(void) const {return tensor_->dbgData();}
-  const dim_array_t & getSizeIntdbg(void) const {return strides_;}
-  const dim_array_t & getSizesdbg(void) const {return sizes_;}
-  dim_t getNumDimsdbg(void) const {return numDims_;}
-  LibTensor* getTensordbg(void) const {return tensor_;}
+  template<size_t N>
+  ElemTy &at(std::array<dim_t, N> indices, const dim_array_t &extStrides, 
+            size_t ndx) {
+    size_t index = getElementPtr(indices, extStrides, ndx);
+    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    return data[index];
+  }
+
   float getScale(void) {return tensor_->getScale();}
   int32_t getOffset(void) {return tensor_->getOffset();}
   

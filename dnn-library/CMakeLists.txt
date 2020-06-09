@@ -46,6 +46,8 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchOneHotInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedAddInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceAddInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceMinInst.h"
+#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedPairwiseDotProductInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Checksum.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ConvertToInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Convolution3DInst.h"
@@ -53,6 +55,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CopyInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CopyInstTensorized.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CrossEntropyLossInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CumSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/DequantizeInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxSplatInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementBoolInst.h"
@@ -72,6 +75,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/GatherRangesInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/InsertTensorInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/IntLookupTableInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LengthsRangeFillInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LengthsSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LengthsToRangesInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LocalResponseNormalizationInst.h"
@@ -81,6 +85,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ModuloInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/QuantizeInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RescaleQuantizedInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ResizeNearestInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RowwiseQuantizedFullyConnected.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RowwiseQuantizedSparseLengthsWeightedSum.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ScatterDataInst.h"
@@ -137,6 +142,8 @@ add_library(dnn_lib STATIC
   src/AvgPoolInst.cpp
   src/BatchedAddInst.cpp
   src/BatchedReduceAddInst.cpp
+  src/BatchedReduceMinInst.cpp
+#  src/BatchedPairwiseDotProductInst.cpp
   src/BatchOneHotInst.cpp
   src/Checksum.cpp
   src/ConvertToInst.cpp
@@ -145,6 +152,7 @@ add_library(dnn_lib STATIC
   src/CopyInst.cpp
   src/CopyInstTensorized.cpp
   src/CrossEntropyLossInst.cpp
+  src/CumSumInst.cpp
   src/DequantizeInst.cpp
   src/ElementBoolInst.cpp
   src/ElementExpInst.cpp
@@ -163,6 +171,7 @@ add_library(dnn_lib STATIC
   src/GatherRangesInst.cpp
   src/InsertTensorInst.cpp
   src/IntLookupTableInst.cpp
+  src/LengthsRangeFillInst.cpp
   src/LengthsSumInst.cpp
   src/LengthsToRangesInst.cpp
   src/LocalResponseNormalizationInst.cpp
@@ -173,6 +182,7 @@ add_library(dnn_lib STATIC
   src/ModuloInst.cpp
   src/QuantizeInst.cpp
   src/RescaleQuantizedInst.cpp
+  src/ResizeNearestInst.cpp
   src/RowwiseQuantizedFullyConnected.cpp
   src/RowwiseQuantizedSparseLengthsWeightedSum.cpp
   src/ScatterDataInst.cpp

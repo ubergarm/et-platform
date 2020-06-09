@@ -99,7 +99,7 @@ GEN_OP(fwdLibAvgPoolInst, LibTensor* outT, LibTensor* inT,
                          void *pkernels, void *pstrides, void *ppads);
 GEN_2TYPE_OP(fwdLibAvgPoolInstThreaded, LibTensor* outT, LibTensor* inT,
                          void *pkernels, void *pstrides, void *ppads, uint64_t flags);
-GEN_OP(fwdLibAdaptiveAvgPoolInst, LibTensor* outT, LibTensor* inT);
+GEN_OP_ELK(fwdLibAdaptiveAvgPoolInst, LibTensor* outT, LibTensor* inT, uint64_t flags);
 GEN_OP(fwdLibInsertTensorInst, LibTensor* outT, LibTensor* inT, const uint32_t *poffsets, unsigned int count, 
                                unsigned int axis, uint64_t flags, const uint32_t minionOffset = 0);
 GEN_OP(fwdLibInsertTensorInstThreaded, LibTensor* outT, LibTensor* inT, const uint32_t *poffsets,
@@ -162,6 +162,9 @@ GEN_OP(fwdLibSparseToDenseInstVectorized,  LibTensor* outT, LibTensor* in1T, Lib
        const float *scale, const int32_t *offset, uint64_t flags);
 GEN_OP(fwdLibBatchedReduceAddInst, LibTensor* outT, LibTensor* inT, unsigned int axis);                    
 GEN_OP(fwdLibBatchedReduceAddInstThreaded, LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags);
+GEN_OP_ELK_UINT32_ARR(fwdLibBatchedReduceMinInst);
+GEN_OP_ELK_FLOAT_ARR(fwdLibResizeNearestInst);
+GEN_OP_ELK(fwdLibBatchedPairwiseDotProductInst, LibTensor* outT,  uint32_t numInputs, uint32_t vectorSize, uint64_t flags);
 GEN_OP(fwdLibTransposeInst, LibTensor* outT, LibTensor intT, void *pshuffle);
 GEN_OP(fwdLibTransposeInstThreaded, LibTensor* outT, LibTensor* inT, void *pshuffle, uint64_t flags);
 GEN_OP(fwdLibTransposeInstVectorized, LibTensor* outT, LibTensor* inT, void *pshuffle, uint64_t flags);
@@ -213,6 +216,7 @@ GEN_OP(fwdLibScatterDataInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
 
 GEN_OP(fwdLibCrossEntropyLossInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T);
 GEN_OP(fwdLibCrossEntropyLossInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags);
+GEN_OP_ELK(fwdLibCumSumInst, LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, uint64_t flags);
 GEN_OP_INDEX(fwdLibGatherInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T, unsigned int batchedDims);
 GEN_OP_INDEX(fwdLibGatherInstThreaded, LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                        unsigned int batchedDims, uint64_t flags);
@@ -253,6 +257,8 @@ GEN_RQSLWS_V(fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 GEN_OP(fwdLibFlipInst, LibTensor* inT, LibTensor* outT, unsigned int axis);
+
+GEN_OP_ELK(fwdLibLengthsRangeFillInst, LibTensor* outT, LibTensor* inT, uint64_t flags);
 
 #undef GEN_INSTANCES
 #undef GEN_OP

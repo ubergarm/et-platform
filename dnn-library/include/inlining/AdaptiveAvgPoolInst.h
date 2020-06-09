@@ -17,82 +17,168 @@
 #include <limits>
 #include <cmath>
 #include <cstring>
+#include <cfenv>
 
 #include "utils.h" // From include/internal path
-#include "Addresser.h" // From include/internal path
+#include "LibTypes.h"
 #include "LibTensor.h"
+#include "LibUtils.h"
+#include "LibCommon.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
+template <ElemKind elKind>
+inline typename std::enable_if_t<(isQuantizedElemKind(elKind)||(elKind==Float16Ty)), void> 
+fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  /* maintain compatibility through the new Iface Libtensor */
-  void* srcT = inT->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
-  
-  // dnn_lib::Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const dnn_lib::Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(srcT, inT->getScale(), inT->getOffset());
-  
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();  
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = inT->strides().data();
-  
+  assert(inT->getElementType() == outT->getElementType());
+
+  assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
+
+  size_t rounding_mode = fegetround();
+  std::fesetround(FE_UPWARD);
+
+  using elkType = typename elemKind2elemTy<elKind>::type; 
+
+  auto inH = inT->getHandle<elkType>();
+  auto outH = outT->getHandle<elkType>();
+
 #define START_IND(a, b, c) (a * c) / b
 #define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1
 
-  // For each input in the batch:
-  for (size_t n = 0; n < dstIndex[0]; n++) {
-    // For each layer in the output tensor:
-    for (size_t z = 0; z < actIndex[3]; z++) {
-      // For each value in the output tensor::
-      for (size_t ax = 0; ax < dstIndex[1]; ax++) {
+  //For each input in the batch
+  for (size_t n = 0; n < outT->dims()[0]; n++) {
+    //For each layer in the output tensor
+    for (size_t z = 0; z < inT->dims()[3]; z++) {
+      //For each value in the output tensor
+      for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
 
-        unsigned int x = START_IND(ax, dstIndex[1], actIndex[1]);
-        unsigned int kH = END_IND(ax, dstIndex[1], actIndex[1]) - x;
+	unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
+	unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
 
-        for (size_t ay = 0; ay < dstIndex[2]; ay++) {
+	for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
+	  unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
+	  unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
+	  
+	  float sum = 0;
 
-          unsigned int y = START_IND(ay, dstIndex[2], actIndex[2]);
-          unsigned int kW = END_IND(ay, dstIndex[2], actIndex[2]) - y;
-          
-          float sum = tAInput[0];
-          sum = 0;
+	  for (size_t fx = 0; fx < kH; fx++) {
+	    for (size_t fy = 0; fy < kW; fy++) {
+	      
+	      dim_t ox = x + fx;
+	      dim_t oy = y + fy;
 
-          for (size_t fx = 0; fx < kH; fx++) {
-            for (size_t fy = 0; fy < kW; fy++) {
-              unsigned int ox = x + fx;
-              unsigned int oy = y + fy;
+	      std::array<size_t, 4> InIndices = {n, ox, oy, z};	      
+	      dim_array_t extStrides = outT->strides();
 
-              sum += tAInput[n * actPitch[0] + (size_t)ox * actPitch[1] +
-                             (size_t)oy * actPitch[2] + z * dstPitch[3]];
-            }
-          }
+	      if (elKind == Float16Ty) {
+		float dst = 0;
+		/*the cast avoid compilation error due to quantize types are handle together here.*/
+		convertFp16ToFp32(static_cast<uint16_t>(inH.at(InIndices, extStrides, 3)), dst);
+		sum += dst;
+	      }
+	      else
+		sum += dequantize<elkType>(inH.at(InIndices, extStrides, 3),
+					   inH.getScale(), 
+					   inH.getOffset());
+	    }
+	  }
+	  float kHW = kH * kW;
+	  float invkHW;
+	  fpReciprocalSingleElement(kHW, invkHW);
+	  std::array<size_t, 4> OutIndices = {n, ax, ay, z};
 
-          float kHW = kH * kW;
-          float invkHW;
-          fpReciprocalSingleElement(kHW, invkHW);
-          tOutput[n * dstPitch[0] + (size_t)ax * dstPitch[1] +
-                  (size_t)ay * dstPitch[2] + z * dstPitch[3]] = sum * invkHW;
-        } // W
-      }   // H
-    }     // C
-  }       // N
+	  if (elKind == Float16Ty) {
+	    uint16_t dst = 0;
+	    convertFp32ToFp16((sum * invkHW), dst);
+	    outH.at(OutIndices) = dst;
+	  }
+	  else 
+	    outH.at(OutIndices) = quantize<elkType>((sum * invkHW), 
+						    outT->getScale(),
+						    outT->getOffset());
+
+	} // W
+      } // H
+    } // C
+  } // N
+  
+  std::fesetround(rounding_mode);
+  outT->evict(DO_EVICTS);
+
 #undef START_IND
 #undef END_IND
+}
+ 
+template <ElemKind elKind>
+inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void> 
+fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) { 
+
+  assert(inT->getElementType() == outT->getElementType());
+
+  assert((inT->getElementType() == FloatTy)||(inT->getElementType() == Int32ITy)||
+	 (inT->getElementType() == Int64ITy));
+
+  unsigned int minionId = get_minion_id();
+  if (minionId != 0) 
+    return;
+
+  using elkType = typename elemKind2elemTy<elKind>::type;
+
+  auto inH = inT->getHandle<elkType>();
+  auto outH = outT->getHandle<elkType>();
+
+#define START_IND(a, b, c) (a * c) / b
+#define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1
+
+  //For each input in the batch
+  for (size_t n = 0; n < outT->dims()[0]; n++) {
+    //For each layer in the output tensor
+    for (size_t z = 0; z < inT->dims()[3]; z++) {
+      //For each value in the output tensor
+      for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
+
+	unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
+	unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
+
+	for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
+	  unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
+	  unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
+	  
+	  elkType sum = 0;
+
+	  for (size_t fx = 0; fx < kH; fx++) {
+	    for (size_t fy = 0; fy < kW; fy++) {	      
+	      dim_t ox = x + fx;
+	      dim_t oy = y + fy;
+	      
+	      std::array<size_t, 4> InIndices = {n, ox, oy, z};
+	      dim_array_t extStrides = outT->strides();
+	      sum += inH.at(InIndices, extStrides, 3);
+	    }
+	  }
+
+ 	  float kHW = kH * kW;
+	  float invkHW;
+	  fpReciprocalSingleElement(kHW, invkHW);
+	  std::array<size_t, 4> OutIndices = {n, ax, ay, z};
+	  outH.at(OutIndices) = elkType(sum * invkHW);
+
+	} // W
+      } // H
+    } // C
+  } // N
+
+  outT->evict(DO_EVICTS);
+
+#undef START_IND
+#undef END_IND 
 }
 
 } // inlining

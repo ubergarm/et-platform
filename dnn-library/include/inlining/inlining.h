@@ -17,6 +17,7 @@
 #include "AvgPoolInst.h" // From include/inlining path
 #include "BatchedAddInst.h" // From include/inlining path
 #include "BatchedReduceAddInst.h" // From include/inlining path
+#include "BatchedReduceMinInst.h" // From include/inlining path
 #include "BatchOneHotInst.h" // From include/inlining path
 #include "Checksum.h" // From include/inlining path
 #include "ConvertToInst.h" // From include/inlining path
@@ -25,6 +26,7 @@
 #include "CopyInst.h" // From include/inlining path
 #include "CopyInstTensorized.h" // From include/inlining path
 #include "CrossEntropyLossInst.h" // From include/inlining path
+#include "CumSumInst.h" // From include/inlining path
 #include "DequantizeInst.h" // From include/inlining path
 #include "ElementBoolInst.h" // From include/inlining path
 #include "ElementExpInst.h" // From include/inlining path
@@ -42,7 +44,8 @@
 #include "GatherInst.h" // From include/inlining path
 #include "GatherRangesInst.h" // From include/inlining path
 #include "InsertTensorInst.h" // From include/inlining path
- #include "IntLookupTableInst.h" // From include/inlining path
+#include "IntLookupTableInst.h" // From include/inlining path
+#include "LengthsRangeFillInst.h" // From include/inlining path
 #include "LengthsSumInst.h" // From include/inlining path
 #include "LengthsToRangesInst.h" // From include/inlining path
 #include "LocalResponseNormalizationInst.h" // From include/inlining path
@@ -53,6 +56,7 @@
 #include "ModuloInst.h" // From include/inlining path
 #include "QuantizeInst.h" // From include/inlining path
 #include "RescaleQuantizedInst.h" // From include/inlining path
+#include "ResizeNearestInst.h" // From include/inlining path
 #include "RowwiseQuantizedFullyConnected.h" // From include/inlining path
 #include "RowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining path
 #include "ScatterDataInst.h" // From include/inlining path

@@ -9,18 +9,22 @@
  *-------------------------------------------------------------------------
  */
 
-#include "AdaptiveAvgPoolInst.h" // From include/inlining
+#include "CumSumInst.h" // From include/inlining
 
 namespace dnn_lib {
 
 template <ElemKind elKind>
-void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+void fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, 
+		      bool reverse, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibAdaptiveAvgPoolInst<elKind>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibCumSumInst<elKind>(outT, inT, exclusive, 
+					      reverse, flags);
 }
 
 #include "GenInstances.h"
 
-  GEN_INSTANCES_OP_ELK(template, fwdLibAdaptiveAvgPoolInst, LibTensor* outT, LibTensor* inT, uint64_t flags);
+GEN_INSTANCES_OP_ELK(template, fwdLibCumSumInst, LibTensor* outT, 
+		     LibTensor* inT, bool exclusive, bool reverse, 
+		     uint64_t flags);
 
 } // dnn_lib
