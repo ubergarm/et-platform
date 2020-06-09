@@ -860,7 +860,7 @@ static int _vsnprintf(out_fct_type out, char* buffer, const size_t maxlen, const
 ///////////////////////////////////////////////////////////////////////////////
 // functions to avoid minions printing at the same time
 // (and mixing messages in the uart)
-uint32_t _printf_free = 1;
+static uint32_t _printf_free = 1;
 
 void printf_lock() {
   uint32_t v;
@@ -885,15 +885,25 @@ void printf_unlock() {
      : : [lock] "r" (&_printf_free), [v] "r" (v): "memory");
 }
 
+#include <syscall.h>
+
+static inline void log_write(const char *str, int len)
+{
+  syscall(SYSCALL_LOG_WRITE, (uint64_t)str, len, 0);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
+
+#define BUF_SIZE  128
 
 int printf(const char* format, ...)
 {
   va_list va;
   va_start(va, format);
-  char buffer[1];
+  char buffer[BUF_SIZE];
+  const int ret = _vsnprintf(_out_buffer, buffer, sizeof(buffer), format, va);
   printf_lock();
-  const int ret = _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
+  log_write(buffer, ret);
   printf_unlock();
   va_end(va);
   return ret;
@@ -922,9 +932,10 @@ int snprintf(char* buffer, size_t count, const char* format, ...)
 
 int vprintf(const char* format, va_list va)
 {
-  char buffer[1];
+  char buffer[BUF_SIZE];
+  int ret = _vsnprintf(_out_buffer, buffer, sizeof(buffer), format, va);
   printf_lock();
-  int ret = _vsnprintf(_out_char, buffer, (size_t)-1, format, va);
+  log_write(buffer, ret);
   printf_unlock();
   return ret;
 }
