@@ -9,18 +9,20 @@
  *-------------------------------------------------------------------------
  */
 
-#include "AdaptiveAvgPoolInst.h" // From include/inlining
+#include "LengthsRangeFillInst.h" // From include/inlining
 
 namespace dnn_lib {
 
 template <ElemKind elKind>
-void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibAdaptiveAvgPoolInst<elKind>(outT, inT, flags);
+void fwdLibLengthsRangeFillInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {  
+  
+  dnn_lib::inlining::fwdLibLengthsRangeFillInst<elKind>(outT, inT, flags);
 }
 
 #include "GenInstances.h"
 
-  GEN_INSTANCES_OP_ELK(template, fwdLibAdaptiveAvgPoolInst, LibTensor* outT, LibTensor* inT, uint64_t flags);
+GEN_INSTANCES_OP_ELK(template, fwdLibLengthsRangeFillInst, LibTensor* outT, 
+		     LibTensor* inT, uint64_t flags);
 
-} // dnn_lib
+} //dnn_lib
+

@@ -28,7 +28,7 @@ namespace dnn_lib{
   struct elemKind2elemTy {
     using type =
       typename std::conditional<elK == ElemKind::FloatTy, float,
-       typename std::conditional<elK == ElemKind::Float16Ty, float16,
+       typename std::conditional<elK == ElemKind::Float16Ty, uint16_t,
         typename std::conditional<elK == ElemKind::Int8QTy, int8_t,
          typename std::conditional<elK == ElemKind::UInt8QTy, uint8_t,
           typename std::conditional<elK == ElemKind::Int16QTy, int16_t,
@@ -78,7 +78,6 @@ namespace dnn_lib{
                                         base1 + strides1[first] * i,
                                         base2 + strides2[first] * i);
     }
-    
 
 #if 0
     // loop with strides from 2 tensors with initial and end coordinates

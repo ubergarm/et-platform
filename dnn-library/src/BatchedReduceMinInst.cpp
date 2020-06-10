@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2020, Esperanto Technologies Inc.
+ * Copyright (C) 2019, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -9,18 +9,22 @@
  *-------------------------------------------------------------------------
  */
 
-#include "AdaptiveAvgPoolInst.h" // From include/inlining
+#include "BatchedReduceMinInst.h" // From include/inlining
 
 namespace dnn_lib {
 
-template <ElemKind elKind>
-void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibAdaptiveAvgPoolInst<elKind>(outT, inT, flags);
+template <ElemKind elKind, size_t N>
+void fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT, std::array<uint32_t, N> const &axes, uint64_t flags ) {
+
+  dnn_lib::inlining::fwdLibBatchedReduceMinInst<elKind>(outT, inT, axes, flags);
+
 }
 
 #include "GenInstances.h"
 
-  GEN_INSTANCES_OP_ELK(template, fwdLibAdaptiveAvgPoolInst, LibTensor* outT, LibTensor* inT, uint64_t flags);
+GEN_INSTANCES_OP_ELK_UINT32_ARR(fwdLibBatchedReduceMinInst);
 
-} // dnn_lib
+} //dnn_lib
+
+

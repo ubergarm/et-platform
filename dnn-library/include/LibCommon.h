@@ -178,7 +178,7 @@ DestTy quantize(float input, float scale, int32_t offset) {
   float invertedScale;
   fpReciprocalSingleElement(scale, invertedScale);
   float result = input * invertedScale + offset;
-  return clip<int32_t, DestTy>((int32_t)nearbyintf(result));
+  return clip<int32_t, DestTy>((int32_t)nearbyintf/* round */(result));
 }
 
 // TODO Convert to int64_t
