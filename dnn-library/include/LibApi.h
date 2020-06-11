@@ -23,6 +23,7 @@ namespace dnn_lib {
    mbBatchDims,
    mbCount,
    mbValue,
+   mbSyncOffset,
    mbMaxMembers
   };
 
@@ -63,7 +64,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbAxis, mbKeepDims}, // members
-       0, // template param mask
+       2, // template param mask
        {} // impl versions
      },
      /**** ET_avgpool ****/
@@ -71,7 +72,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbKernels, mbStrides, mbPads}, // members
-       0, // template param mask
+       3, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_batchedadd ****/
@@ -79,15 +80,15 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
-       {"Threaded", "i8i32", "i8i32Threaded"} // impl versions
+       7, // template param mask
+       {"Threaded"} // impl versions
      },
      /**** ET_batchedreduceadd ****/
      { "BatchedReduceAdd", // name
        1, // # outs
        1,  // # ins
        {mbAxis}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded", "Int8", "Int8Threaded"} // impl versions
      },
      /**** ET_batchonehot ****/
@@ -95,15 +96,15 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {}, // members
-       0, // template param mask
+       1, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_checksum ****/
-     { "notImplemented", // name
+     { "Checksum", // name
        0, // # outs
-       0,  // # ins
+       1,  // # ins
        {}, // members
-       0, // template param mask
+       1, // template param mask
        {} // impl versions
      },
      /**** ET_convertto ****/
@@ -111,15 +112,15 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       3, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_int8converter ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
+     { "Int8Converter", // name
+       1, // # outs
+       1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {} // impl versions
      },
      /**** ET_convolution ****/
@@ -127,7 +128,7 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {mbKernels, mbStrides, mbPads, mbGroup}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_convolution3d ****/
@@ -135,7 +136,7 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {mbKernels, mbStrides, mbPads, mbGroup}, // members
-       0, // template param mask
+       1, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_copy ****/
@@ -143,8 +144,8 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
-       {"Tensorized", "Threaded", "Vectorized"} // impl versions
+       1, // template param mask
+       {"Threaded", "Vectorized", "Tensorized"} // impl versions
      },
      /**** ET_crc ****/
      { "notImplemented", // name
@@ -159,7 +160,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_deallocactivation ****/
@@ -183,7 +184,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_elementadd ****/
@@ -191,7 +192,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementandi ****/
@@ -207,7 +208,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       6, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementcmplte ****/
@@ -215,7 +216,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       6, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementcmplt ****/
@@ -223,7 +224,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       6, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementdiv ****/
@@ -231,7 +232,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementexp ****/
@@ -239,7 +240,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {} // impl versions
      },
      /**** ET_elementisnan ****/
@@ -247,23 +248,23 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_elementlog ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
+     { "ElementLog", // name
+       1, // # outs
+       1,  // # ins
        {}, // members
-       0, // template param mask
-       {} // impl versions
+       3, // template param mask
+       {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementmax ****/
      { "ElementMax", // name
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementmin ****/
@@ -271,7 +272,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementmul ****/
@@ -279,7 +280,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementori ****/
@@ -295,7 +296,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementselect ****/
@@ -303,7 +304,7 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_elementsub ****/
@@ -311,7 +312,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_elementxori ****/
@@ -328,7 +329,7 @@ namespace dnn_lib {
        4,  // # ins
        {}, // members
        0, // template param mask
-       {"FloatTy"} // impl versions
+       {} // impl versions
      },
      /**** ET_emptyoperator ****/
      { "notImplemented", // name
@@ -338,15 +339,7 @@ namespace dnn_lib {
        0, // template param mask
        {} // impl versions
      },
-     /**** ET_etsocfullyconnected ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
-       {}, // members
-       0, // template param mask
-       {} // impl versions
-     },
-     /**** ET_etsocmaxsplat ****/
+     /**** ET_maxsplat ****/
      { "notImplemented", // name
        0, // # outs
        0,  // # ins
@@ -358,8 +351,8 @@ namespace dnn_lib {
      { "ExtractTensor", // name
        1, // # outs
        1,  // # ins
-       {}, // members
-       0, // template param mask
+       {mbOffsets}, // members
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_flip ****/
@@ -367,7 +360,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbAxis}, // members
-       0, // template param mask
+       2, // template param mask
        {} // impl versions
      },
      /**** ET_flushL3 ****/
@@ -383,7 +376,7 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {}, // members
-       0, // template param mask
+       7, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_fusedrowwisequantizedsparselengthsweightedsum ****/
@@ -391,7 +384,7 @@ namespace dnn_lib {
        1, // # outs
        4,  // # ins
        {}, // members
-       0, // template param mask
+       1, // template param mask
        {"FloatTy", "FloatTyThreaded", "FloatTyVectorized", "FloatTyVectorized"} // impl versions
      },
      /**** ET_fusedrowwisequantizedsparselengthssum ****/
@@ -399,15 +392,15 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {}, // members
-       0, // template param mask
-       {"FloatTyThreaded", "FloatTyVectorized"} // impl versions
+       1, // template param mask
+       {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_gather ****/
      { "Gather", // name
        1, // # outs
        2,  // # ins
        {mbBatchDims}, // members
-       0, // template param mask
+       6, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_gatherranges ****/
@@ -415,7 +408,7 @@ namespace dnn_lib {
        2, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       12, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_inserttensor ****/
@@ -423,8 +416,8 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbOffsets, mbCount}, // members
-       0, // template param mask
-       {"Threaded", "Threaded"} // impl versions
+       2, // template param mask
+       {"Threaded"} // impl versions
      },
      /**** ET_intlookuptable ****/
      { "IntLookupTable", // name
@@ -432,14 +425,14 @@ namespace dnn_lib {
        2,  // # ins
        {}, // members
        0, // template param mask
-       {"Int8QTy", "Int8QTyThreaded"} // impl versions
+       {"Threaded"} // impl versions
      },
      /**** ET_lengthssum ****/
      { "LengthsSum", // name
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_lengthstoranges ****/
@@ -447,7 +440,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_localresponsenormalization ****/
@@ -455,7 +448,7 @@ namespace dnn_lib {
        2, // # outs
        1,  // # ins
        {mbHalfWindowSize, mbAlpha, mbBeta, mbK}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_matmul ****/
@@ -463,15 +456,15 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
-       {"Threaded", "Vectorized", "Transposed", "ThreadedTransposed", "VectorizedTransposed"} // impl versions
+       2, // template param mask
+       {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_maxpool ****/
      { "MaxPool", // name
        1, // # outs
        1,  // # ins
        {mbKernels, mbStrides, mbPads}, // members
-       0, // template param mask
+       3, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_maxpoolwithargmax ****/
@@ -487,7 +480,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbDivisor, mbSignFollowDivisor}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_quantizationprofile ****/
@@ -503,7 +496,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       1, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_rescalequantized ****/
@@ -511,7 +504,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_rowwisequantizedfullyconnected ****/
@@ -520,22 +513,22 @@ namespace dnn_lib {
        5,  // # ins
        {}, // members
        0, // template param mask
-       {"Int8QTy", "Int8QTyThreaded", "Int8QTyVectorized", "Int8QTyAligned32Bytes"} // impl versions
+       {"Threaded", "Vectorized", "Aligned32Bytes"} // impl versions
      },
      /**** ET_rowwisequantizedsparselengthsweightedsum ****/
      { "RowwiseQuantizedSparseLengthsWeightedSum", // name
        1, // # outs
        6,  // # ins
        {}, // members
-       0, // template param mask
-       {"FloatTy", "FloatTyThreaded", "FloatTyVectorized"} // impl versions
+       3, // template param mask
+       {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_scatterdata ****/
      { "ScatterData", // name
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {} // impl versions
      },
      /**** ET_sigmoid ****/
@@ -543,7 +536,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_softmax ****/
@@ -551,7 +544,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded", "Vectorized", "Threaded1", "Vectorized1", "2", "Threaded2"} // impl versions
      },
      /**** ET_sparselengthsweightedsum ****/
@@ -559,7 +552,7 @@ namespace dnn_lib {
        1, // # outs
        4,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_sparsetodense ****/
@@ -567,7 +560,7 @@ namespace dnn_lib {
        1, // # outs
        2,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_sparsetodensemask ****/
@@ -575,7 +568,7 @@ namespace dnn_lib {
        1, // # outs
        4,  // # ins
        {mbMask}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_splat ****/
@@ -583,7 +576,7 @@ namespace dnn_lib {
        1, // # outs
        0,  // # ins
        {mbValue}, // members
-       0, // template param mask
+       1, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_sync ****/
@@ -595,11 +588,11 @@ namespace dnn_lib {
        {} // impl versions
      },
      /**** ET_syncopy ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
-       {}, // members
-       0, // template param mask
+     { "Syncopy", // name
+       1, // # outs
+       1,  // # ins
+       {mbSyncOffset}, // members
+       2, // template param mask
        {} // impl versions
      },
      /**** ET_tanh ****/
@@ -607,7 +600,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_tensorview ****/
@@ -615,7 +608,7 @@ namespace dnn_lib {
        0, // # outs
        1,  // # ins
        {mbOffsets}, // members
-       0, // template param mask
+       1, // template param mask
        {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_topk ****/
@@ -623,7 +616,7 @@ namespace dnn_lib {
        2, // # outs
        1,  // # ins
        {mbK}, // members
-       0, // template param mask
+       4, // template param mask
        {"Threaded_all", "Threaded_k4", "Threaded_k4", "Threaded_k8"} // impl versions
      },
      /**** ET_touch ****/
@@ -647,7 +640,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbShuffle}, // members
-       0, // template param mask
+       2, // template param mask
        {"Threaded", "Vectorized", "Aligned32Bytes"} // impl versions
      }
      // INSTR_CONFIG_TABLE_END
