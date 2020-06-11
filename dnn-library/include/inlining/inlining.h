@@ -35,19 +35,18 @@
 #include "ElementSingleInst.h" // From include/inlining path
 #include "EmbeddingBagInst.h" // From include/inlining path
 #include "ExtractTensorInst.h" // From include/inlining path
-//TODO: RESTORE#include "FlipInst.h" // From include/inlining path
+#include "FlipInst.h" // From include/inlining path
 #include "FullyConnectedInst.h" // From include/inlining path
 #include "FusedRowwiseQuantizedSparseLengthsSum.h" // From include/inlining path error:template overload fix when finish
 #include "FusedRowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining path  error:template overload fix when finish
 #include "GatherInst.h" // From include/inlining path
 #include "GatherRangesInst.h" // From include/inlining path
 #include "InsertTensorInst.h" // From include/inlining path
- #include "IntLookupTableInst.h" // From include/inlining path
+#include "IntLookupTableInst.h" // From include/inlining path
 #include "LengthsSumInst.h" // From include/inlining path
 #include "LengthsToRangesInst.h" // From include/inlining path
 #include "LocalResponseNormalizationInst.h" // From include/inlining path
 #include "MatMulInst.h" // From include/inlining path
- #include "MatMulInstTransposed.h" // From include/inlining path
 #include "MaxPoolInst.h" // From include/inlining path
 #include "MaxSplatInst.h" // From include/inlining path
 #include "ModuloInst.h" // From include/inlining path
