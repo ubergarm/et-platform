@@ -23,32 +23,32 @@ void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
                     unsigned int k) {
 
-  dnn_lib::inlining::fwdLibTopKInst<srcType>(outT, out2T, inT, k);
+  dnn_lib::inlining::fwdLibTopKInst<elK>(outT, out2T, inT, k);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
                                 LibTensor* inT, unsigned int k, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTopKInstThreaded_all<srcType>(outT, out2T, inT, k, flags);
+  dnn_lib::inlining::fwdLibTopKInstThreaded_all<elK>(outT, out2T, inT, k, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
                                LibTensor* inT, unsigned int k, uint64_t flags) {
 
-  dnn_lib::fwdLibTopKInstThreaded_k4<srcType>(outT, out2T, inT, k, flags);
+  dnn_lib::fwdLibTopKInstThreaded_k4<elK>(outT, out2T, inT, k, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T,
                                LibTensor* inT, unsigned int k, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTopKInstThreaded_k8<srcType>(outT, out2T, inT, k, flags);
+  dnn_lib::inlining::fwdLibTopKInstThreaded_k8<elK>(outT, out2T, inT, k, flags);
 }
 
 #include "GenInstances.h"

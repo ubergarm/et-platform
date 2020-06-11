@@ -13,17 +13,17 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibBatchedAddInst<srcType>(outT, in1T, in2T);
+  dnn_lib::inlining::fwdLibBatchedAddInst<elK>(outT, in1T, in2T);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
                                   LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibBatchedAddInstThreaded<srcType>(outT, in1T,
+  dnn_lib::inlining::fwdLibBatchedAddInstThreaded<elK>(outT, in1T,
                                                            in2T, flags);
 }
 

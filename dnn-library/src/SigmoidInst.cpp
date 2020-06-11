@@ -13,16 +13,16 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSigmoidInstThreaded<srcType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibSigmoidInstThreaded<elK>(outT, inT, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibSigmoidInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibSigmoidInst<elK>(outT, inT);
 }
 
 #include "GenInstances.h"

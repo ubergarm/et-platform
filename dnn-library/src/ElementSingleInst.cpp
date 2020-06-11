@@ -13,25 +13,25 @@
 
 namespace dnn_lib {
 
-template <typename srcType, typename opType>
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
 void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibElementSingleInst<srcType, opType>(outT, inT);
+  dnn_lib::inlining::fwdLibElementSingleInst<dstElk, srcElk, opType>(outT, inT);
 }
 
-template <typename srcType, typename opType>
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
 void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibElementSingleInstThreaded<srcType, opType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibElementSingleInstThreaded<dstElk, srcElk, opType>(outT, inT, flags);
 }
 
-template <typename src1Type, typename dstType, typename opType>
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
 void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT,
                                        const float* scaleA,
                                        const int32_t* offsetA, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibElementSingleInstVectorized<src1Type, dstType, opType>(outT, inT,
-                                                                                  scaleA, offsetA, flags);
+  dnn_lib::inlining::fwdLibElementSingleInstVectorized<dstElk, srcElk, opType>(outT, inT,
+                                                                               scaleA, offsetA, flags);
 }
 
 #include "GenInstances.h"

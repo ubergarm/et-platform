@@ -13,12 +13,12 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                               const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstTensorized<srcType>(outT, inT, flags,
+  dnn_lib::inlining::fwdLibCopyInstTensorized<elK>(outT, inT, flags,
                                                        minionOffset,
                                                        assignedMinions);
 }

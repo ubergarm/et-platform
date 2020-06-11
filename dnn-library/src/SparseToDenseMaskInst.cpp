@@ -13,21 +13,21 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
                                  LibTensor* in2T, LibTensor* in3T,
                                  LibTensor* in4T, unsigned int pdefaultSize,
                                  unsigned int lengthsSize,
                                  void *pmask, unsigned int pMaskSize) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseMaskInst<srcType>(outT, in1T, in2T,
+  dnn_lib::inlining::fwdLibSparseToDenseMaskInst<elK>(outT, in1T, in2T,
                                                           in3T, in4T,
                                                           pdefaultSize,
                                                           lengthsSize,
                                                           pmask, pMaskSize);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T,
                                          LibTensor* in2T, LibTensor* in3T,
                                          LibTensor* in4T, unsigned int pdefaultSize,
@@ -35,7 +35,7 @@ void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T,
                                          void *pmask, unsigned int pMaskSize,
                                          uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseMaskInstThreaded<srcType>(outT, in1T, in2T,
+  dnn_lib::inlining::fwdLibSparseToDenseMaskInstThreaded<elK>(outT, in1T, in2T,
                                                                   in3T, in4T,
                                                                   pdefaultSize,
                                                                   lengthsSize,

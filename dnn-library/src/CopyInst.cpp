@@ -20,7 +20,7 @@ namespace dnn_lib {
  * have the same pitches or dimensions, so it allows a reshaping. In this
  * version all the work is done by the same minion.
  * 
- * @tparam srcType The type of the elements in the tensor.
+ * @tparam elK The type of the elements in the tensor.
  * @param[out] dst Pointer to the output matrix.
  * @param[in] dstDims The "number of dimensions" of the output matrix.
  * @param[in] dstPitches Vector of pitches of the output matrix.
@@ -30,10 +30,10 @@ namespace dnn_lib {
  * @param[in] srcDimNum The "number of dimensions" of the input matrix.
  * @param[in] scale, offset Parameters for the quantization.
  */
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibCopyInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibCopyInst<elK>(outT, inT);
 }
 
 /**
@@ -43,7 +43,7 @@ void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
  * have the same pitches or dimensions, so it allows a reshaping. This is
  * the threaded version for this operator, so several minions are used.
  * 
- * @tparam srcType The type of the elements in the tensor.
+ * @tparam elK The type of the elements in the tensor.
  * @param[out] dst Pointer to the output matrix.
  * @param[in] dstDims The "number of dimensions" of the output matrix.
  * @param[in] dstPitches Vector of pitches of the output matrix.
@@ -57,13 +57,13 @@ void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
  * @param[in] minionOffset The first minion that is assigned to this node.
  * @param[in] assignedMinions Amount of minions avaliable.
  */
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
                             uint64_t flags,
                             const uint32_t minionOffset,
                             const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstThreaded<srcType>(outT, inT, flags, minionOffset,
+  dnn_lib::inlining::fwdLibCopyInstThreaded<elK>(outT, inT, flags, minionOffset,
                                                      assignedMinions);
 }
 
@@ -77,7 +77,7 @@ void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
  * @Warning It is assumed that the destination tensor starts at the beginning
  *  of a cacheline.
  * 
- * @tparam srcType The type of the elements in the tensor.
+ * @tparam elK The type of the elements in the tensor.
  * @param[out] dst Pointer to the output matrix.
  * @param[in] dstDims The "number of dimensions" of the output matrix.
  * @param[in] dstPitches Vector of pitches of the output matrix.
@@ -91,12 +91,12 @@ void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
  * @param[in] minionOffset The first minion that is assigned to this node.
  * @param[in] assignedMinions Amount of minions avaliable.
  */
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                               const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibCopyInstVectorized<srcType>(outT, inT, flags,
+  dnn_lib::inlining::fwdLibCopyInstVectorized<elK>(outT, inT, flags,
                                                        minionOffset, assignedMinions);
 }
 

@@ -13,17 +13,17 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibRescaleQuantizedInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibRescaleQuantizedInst<elK>(outT, inT);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibRescaleQuantizedInstThreaded(LibTensor* outT, LibTensor* inT,
                                         uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibRescaleQuantizedInstThreaded<srcType>(outT, inT,
+  dnn_lib::inlining::fwdLibRescaleQuantizedInstThreaded<elK>(outT, inT,
                                                                  flags);
 }
 

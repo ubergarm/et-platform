@@ -13,22 +13,22 @@
 
 namespace dnn_lib {
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK>
 void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
 
-  dnn_lib::inlining::fwdLibConvertToInst<srcType, dstType>(inT, outT);
+  dnn_lib::inlining::fwdLibConvertToInst<dstElK, srcElK>(inT, outT);
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK>
 void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags) {
 
-  dnn_lib::fwdLibConvertToInstThreaded<srcType, dstType>(inT, outT, flags);
+  dnn_lib::fwdLibConvertToInstThreaded<dstElK, srcElK>(inT, outT, flags);
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK>
 void fwdLibConvertToInstVectorized(LibTensor* inT, LibTensor* outT, uint64_t flags) {
 
-  dnn_lib::fwdLibConvertToInstVectorized<srcType, dstType>(inT, outT, flags);
+  dnn_lib::fwdLibConvertToInstVectorized<dstElK, srcElK>(inT, outT, flags);
 }
 
 #include "GenInstances.h"

@@ -13,14 +13,14 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-  dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<srcType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<elK>(outT, inT, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSoftMaxInstVectorized1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-  dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<srcType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<elK>(outT, inT, flags);
 }
 
 #include "GenInstances.h"

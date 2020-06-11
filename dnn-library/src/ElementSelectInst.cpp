@@ -13,19 +13,19 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT, LibTensor* in1T,
                              LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibElementSelectInst<srcType>(outT, condT, in1T, in2T);
+  dnn_lib::inlining::fwdLibElementSelectInst<elK>(outT, condT, in1T, in2T);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibElementSelectInstThreaded(LibTensor* outT, LibTensor* condT,
                                      LibTensor* in1T, LibTensor* in2T,
                                      uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibElementSelectInstThreaded<srcType>(outT, condT, in1T,
+  dnn_lib::inlining::fwdLibElementSelectInstThreaded<elK>(outT, condT, in1T,
                                                               in2T, flags);
 }
 

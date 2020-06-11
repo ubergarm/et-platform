@@ -13,33 +13,33 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void* pshuffle) {
 
-  dnn_lib::inlining::fwdLibTransposeInst<srcType>(outT, inT, pshuffle);
+  dnn_lib::inlining::fwdLibTransposeInst<elK>(outT, inT, pshuffle);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
                                  void* pshuffle, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTransposeInstThreaded<srcType>(outT, inT, pshuffle,
+  dnn_lib::inlining::fwdLibTransposeInstThreaded<elK>(outT, inT, pshuffle,
                                                           flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
                                    void* pshuffle, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTransposeInstVectorized<srcType>(outT, inT,
+  dnn_lib::inlining::fwdLibTransposeInstVectorized<elK>(outT, inT,
                                                             pshuffle, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
                                           void* pshuffle, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTransposeInstAligned32Bytes<srcType>(outT, inT,
+  dnn_lib::inlining::fwdLibTransposeInstAligned32Bytes<elK>(outT, inT,
                                                                 pshuffle, flags);
 }
 

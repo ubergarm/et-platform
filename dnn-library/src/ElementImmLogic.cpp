@@ -13,10 +13,10 @@
 
 namespace dnn_lib {
 
-template <typename srcType, typename opType>
+template <ElemKind elK, typename opType>
 void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, void *imm) {
 
-  dnn_lib::inlining::fwdLibElementImmLogic<srcType, opType>(outT, inT, imm);
+  dnn_lib::inlining::fwdLibElementImmLogic<elK, opType>(outT, inT, imm);
 }
 
 #include "GenInstances.h"

@@ -13,26 +13,26 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in2T, LibTensor* in3T,
                                         LibTensor* in4T,
                                         unsigned int pLengthsSize) {
 
-  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInst<srcType>(outT, in1T,
+  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInst<elK>(outT, in1T,
                                                                  in2T, in3T,
                                                                  in4T,
                                                                  pLengthsSize);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T,
                                                 LibTensor* in2T, LibTensor* in3T,
                                                 LibTensor* in4T,
                                                 unsigned int pLengthsSize,
                                                 uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInstThreaded<srcType>(outT, in1T,
+  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInstThreaded<elK>(outT, in1T,
                                                                          in2T, in3T,
                                                                          in4T,
                                                                          pLengthsSize,

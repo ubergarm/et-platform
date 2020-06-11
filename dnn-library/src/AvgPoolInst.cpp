@@ -13,20 +13,20 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind dstElk, ElemKind srcElk>
 void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, void *pkernels,
                        void *pstrides, void *ppads) {
 
-  dnn_lib::inlining::fwdLibAvgPoolInst<srcType>(outT, inT, pkernels, pstrides,
+  dnn_lib::inlining::fwdLibAvgPoolInst<dstElk, srcElk>(outT, inT, pkernels, pstrides,
                                                 ppads);
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind elK, typename dstType>
 void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                void *pkernels, void *pstrides, void *ppads,
                                uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibAvgPoolInstThreaded<srcType, dstType>(outT, inT,
+  dnn_lib::inlining::fwdLibAvgPoolInstThreaded<dstElk, srcElk>(outT, inT,
                                               pkernels, pstrides, ppads, flags);
 }
 

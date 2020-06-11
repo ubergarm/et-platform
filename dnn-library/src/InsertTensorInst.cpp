@@ -13,23 +13,23 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pcoord,
                             unsigned int count, unsigned int axis,
                             uint64_t flags, const uint32_t minionOffset) {
 
-  dnn_lib::inlining::fwdLibInsertTensorInst<srcType>(outT, inT, pcoord, count,
+  dnn_lib::inlining::fwdLibInsertTensorInst<elK>(outT, inT, pcoord, count,
                                                      axis, flags, minionOffset);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                                     const uint32_t *poffsets, unsigned int count,
                                     unsigned int axis, uint64_t flags,
                                     const uint32_t minionOffset,
                                     const  uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibInsertTensorInstThreaded<srcType>(outT, inT, poffsets,
+  dnn_lib::inlining::fwdLibInsertTensorInstThreaded<elK>(outT, inT, poffsets,
                                                              count, axis, flags,
                                                              minionOffset,
                                                              assignedMinions);

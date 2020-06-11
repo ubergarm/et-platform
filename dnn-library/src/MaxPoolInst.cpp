@@ -13,23 +13,23 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,
                        LibTensor* inT, void *srcMatrixPitchesNoPadding,
                        void *pkernels, void *pstrides, void *ppads) {
 
-  dnn_lib::inlining::fwdLibMaxPoolInst<srcType>(argMax, outT, out2T, inT,
+  dnn_lib::inlining::fwdLibMaxPoolInst<elK>(argMax, outT, out2T, inT,
                                                 srcMatrixPitchesNoPadding,
                                                 pkernels, pstrides, ppads);
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind elK, typename dstType>
 void fwdLibMaxPoolInstThreaded(bool argMax, LibTensor* outT, LibTensor* out2T,
                                LibTensor* inT, void *srcMatrixPitchesNoPadding,
                                void *pkernels, void *pstrides, void *ppads,
                                uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibMaxPoolInstThreaded<srcType, dstType>(argMax, outT,
+  dnn_lib::inlining::fwdLibMaxPoolInstThreaded<elK, dstType>(argMax, outT,
                                          out2T, inT, srcMatrixPitchesNoPadding,
                                          pkernels, pstrides, ppads, flags);
 }

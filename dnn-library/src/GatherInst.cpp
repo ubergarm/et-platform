@@ -13,19 +13,19 @@
 
 namespace dnn_lib {
 
-template <typename srcType, typename indexType>
+template <ElemKind elK, typename indexType>
 void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                       unsigned int batchedDims) {
 
-  dnn_lib::inlining::fwdLibGatherInst<srcType, indexType>(outT, in1T, in2T,
+  dnn_lib::inlining::fwdLibGatherInst<elK, indexType>(outT, in1T, in2T,
                                                           batchedDims);
 }
 
-template <typename srcType, typename indexType>
+template <ElemKind elK, typename indexType>
 void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                               unsigned int batchedDims, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibGatherInstThreaded<srcType, indexType>(outT, in1T, in2T,
+  dnn_lib::inlining::fwdLibGatherInstThreaded<elK, indexType>(outT, in1T, in2T,
                                                                   batchedDims, flags);
 }
 

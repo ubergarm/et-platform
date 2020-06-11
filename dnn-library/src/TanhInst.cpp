@@ -13,16 +13,16 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibTanhInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibTanhInst<elK>(outT, inT);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTanhInstThreaded<srcType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibTanhInstThreaded<elK>(outT, inT, flags);
 }
 
 #include "GenInstances.h"

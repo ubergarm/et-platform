@@ -13,20 +13,20 @@
 
 namespace dnn_lib {
 
-template <typename srcType, typename indexType>
+template <ElemKind elK, typename indexType>
 void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
                             LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibGatherRangesInst<srcType, indexType>(outT, out2T,
+  dnn_lib::inlining::fwdLibGatherRangesInst<elK, indexType>(outT, out2T,
                                                                 in1T, in2T);
 }
 
 
-template <typename srcType, typename indexType>
+template <ElemKind elK, typename indexType>
 void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor*out2T,
                                     LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibGatherRangesInstThreaded<srcType, indexType>(outT, out2T,
+  dnn_lib::inlining::fwdLibGatherRangesInstThreaded<elK, indexType>(outT, out2T,
                                                                         in1T, in2T,
                                                                         flags);
 }

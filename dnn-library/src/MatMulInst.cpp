@@ -13,28 +13,28 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibMatMulInst<srcType>(outT, in1T, in2T);
+  dnn_lib::inlining::fwdLibMatMulInst<elK>(outT, in1T, in2T);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
                               uint64_t flags, const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibMatMulInstThreaded<srcType>(outT, in1T, in2T,  flags,
+  dnn_lib::inlining::fwdLibMatMulInstThreaded<elK>(outT, in1T, in2T,  flags,
                                                        minionOffset, assignedMinions);
 }
 
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
                                 uint64_t flags, const uint32_t minionOffset,
                                 const uint32_t assignedMinions) {
 
-  dnn_lib::inlining::fwdLibMatMulInstVectorized<srcType>(outT, in1T, in2T, flags,
+  dnn_lib::inlining::fwdLibMatMulInstVectorized<elK>(outT, in1T, in2T, flags,
                                                          minionOffset, assignedMinions);
 }
 

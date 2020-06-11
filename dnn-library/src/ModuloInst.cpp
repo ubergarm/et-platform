@@ -13,19 +13,19 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
                       bool signFollowDivisor) {
 
-  dnn_lib::inlining::fwdLibModuloInst<srcType>(outT, inT, divisor,
+  dnn_lib::inlining::fwdLibModuloInst<elK>(outT, inT, divisor,
                                                signFollowDivisor);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT, long long divisor,
                               bool signFollowDivisor, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibModuloInstThreaded<srcType>(outT, inT, divisor,
+  dnn_lib::inlining::fwdLibModuloInstThreaded<elK>(outT, inT, divisor,
                                                        signFollowDivisor, flags);
 }
 

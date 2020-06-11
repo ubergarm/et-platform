@@ -13,10 +13,10 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibChecksum<srcType>(inT, flags);
+  dnn_lib::inlining::fwdLibChecksum<elK>(inT, flags);
 }
 
 void fwdLibFlushL3(uint32_t numShires) {

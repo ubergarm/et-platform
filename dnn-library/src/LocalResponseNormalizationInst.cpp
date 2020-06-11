@@ -13,30 +13,30 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTensor* out2T,
         LibTensor* inT, unsigned int halfWindowSize, float alpha, float beta,
         float k) {
 
-  dnn_lib::inlining::fwdLibLocalResponseNormalizationInst<srcType>(out1T, out2T,
+  dnn_lib::inlining::fwdLibLocalResponseNormalizationInst<elK>(out1T, out2T,
                                            inT, halfWindowSize, alpha, beta, k);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
     LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
     float beta, float k, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibLocalResponseNormalizationInstThreaded<srcType>(
+  dnn_lib::inlining::fwdLibLocalResponseNormalizationInstThreaded<elK>(
     out1T, out2T, inT, halfWindowSize, alpha, beta, k, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
     LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
     float beta, float k, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibLocalResponseNormalizationInstVectorized<srcType>(
+  dnn_lib::inlining::fwdLibLocalResponseNormalizationInstVectorized<elK>(
                 out1T, out2T, inT, halfWindowSize, alpha, beta, k, flags);
 }
 

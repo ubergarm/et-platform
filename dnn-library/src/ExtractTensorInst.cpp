@@ -13,17 +13,17 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
 
-  dnn_lib::inlining::fwdLibExtractTensorInst<srcType>(outT, inT, pcoord);
+  dnn_lib::inlining::fwdLibExtractTensorInst<elK>(outT, inT, pcoord);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                                      void *pcoord, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibExtractTensorInstThreaded<srcType>(outT, inT,
+  dnn_lib::inlining::fwdLibExtractTensorInstThreaded<elK>(outT, inT,
                                                               pcoord, flags);
 }
 

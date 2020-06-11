@@ -14,14 +14,14 @@
 
 namespace dnn_lib {
   
-template <typename ElemTy>
-void fwdLibFlipInst(LibTensor* inT, LibTensor* outT, unsigned int axis) {
+template <ElemKind elK>
+void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
 
-  dnn_lib::inlining::fwdLibFlipInst<ElemTy>(inT, outT, axis);
+  dnn_lib::inlining::fwdLibFlipInst<elK>(outT, inT, axis);
 }
 
 #include "GenInstances.h"
   
-GEN_INSTANCES_OP(template, fwdLibFlipInst, LibTensor* inT, LibTensor *outT, unsigned int axis);
+GEN_INSTANCES_OP(template, fwdLibFlipInst, LibTensor* outT, LibTensor *inT, unsigned int axis);
 
 } //namespace dnn_lib

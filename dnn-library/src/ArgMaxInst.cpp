@@ -13,10 +13,10 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim){
 
-  dnn_lib::inlining::fwdLibArgMaxInst<srcType>(outT, inT, axis, keepDim);
+  dnn_lib::inlining::fwdLibArgMaxInst<elK>(outT, inT, axis, keepDim);
 }
 
 #include "GenInstances.h"

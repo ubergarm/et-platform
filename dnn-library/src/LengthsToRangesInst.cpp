@@ -13,16 +13,16 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibLengthsToRangesInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibLengthsToRangesInst<elK>(outT, inT);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibLengthsToRangesInstThreaded<srcType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibLengthsToRangesInstThreaded<elK>(outT, inT, flags);
 }
 
 #include "GenInstances.h"

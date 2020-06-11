@@ -13,10 +13,10 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibScatterDataInst<srcType>(outT, in1T, in2T);
+  dnn_lib::inlining::fwdLibScatterDataInst<elK>(outT, in1T, in2T);
 }
 
 

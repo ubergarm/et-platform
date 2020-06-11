@@ -13,16 +13,16 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibDequantizeInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibDequantizeInst<elK>(outT, inT);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibDequantizeInstThreaded<srcType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibDequantizeInstThreaded<elK>(outT, inT, flags);
 }
 
 #include "GenInstances.h"

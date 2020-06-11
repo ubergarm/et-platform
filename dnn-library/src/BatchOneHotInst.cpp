@@ -13,19 +13,19 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
                            LibTensor* in2T, LibTensor* in3T) {
 
-  dnn_lib::inlining::fwdLibBatchOneHotInst<srcType>(outT, in1T, in2T, in3T);
+  dnn_lib::inlining::fwdLibBatchOneHotInst<elK>(outT, in1T, in2T, in3T);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
                                    LibTensor* in2T, LibTensor* in3T,
                                    uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibBatchOneHotInstThreaded<srcType>(outT, in1T,
+  dnn_lib::inlining::fwdLibBatchOneHotInstThreaded<elK>(outT, in1T,
                                                             in2T, in3T,
                                                              flags);
 }

@@ -13,23 +13,23 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                              LibTensor* in3T, void *pkernels, void *pstrides,
                              void *ppads, unsigned int group) {
 
-  dnn_lib::inlining::fwdLibConvolution3DInst<srcType>(outT, in1T, in2T, in3T,
+  dnn_lib::inlining::fwdLibConvolution3DInst<elK>(outT, in1T, in2T, in3T,
                                               pkernels, pstrides, ppads, group);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
                                      LibTensor* in2T, LibTensor* in3T,
                                      void *pkernels, void *pstrides,
                                      void *ppads, unsigned int group,
                                      uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibConvolution3DInstThreaded<srcType>(outT, in1T, in2T,
+  dnn_lib::inlining::fwdLibConvolution3DInstThreaded<elK>(outT, in1T, in2T,
                                                               in3T, pkernels,
                                                               pstrides, ppads,
                                                               group, flags);

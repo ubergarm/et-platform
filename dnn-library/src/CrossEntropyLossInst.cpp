@@ -13,17 +13,17 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibCrossEntropyLossInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibCrossEntropyLossInst<srcType>(outT, in1T, in2T);
+  dnn_lib::inlining::fwdLibCrossEntropyLossInst<elK>(outT, in1T, in2T);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibCrossEntropyLossInstThreaded(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibCrossEntropyLossInstThreaded<srcType>(outT, in1T, in2T,
+  dnn_lib::inlining::fwdLibCrossEntropyLossInstThreaded<elK>(outT, in1T, in2T,
                                                                  flags);
 }
 

@@ -15,42 +15,42 @@ namespace dnn_lib {
 
 // This function copies a matrix replacing all the elements which are < splatVal
 // and replaces them with splatVal
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) {
 
-  dnn_lib::inlining::fwdLibMaxSplatInst<srcType>(outT, inT, splatVal);
+  dnn_lib::inlining::fwdLibMaxSplatInst<elK>(outT, inT, splatVal);
 
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal) {
 
-  dnn_lib::inlining::fwdLibMaxSplatInst<srcType>(outT, inT, splatVal);
+  dnn_lib::inlining::fwdLibMaxSplatInst<elK>(outT, inT, splatVal);
 
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT, float splatVal, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibMaxSplatInstThreaded<srcType>(outT, inT, splatVal, flags);
+  dnn_lib::inlining::fwdLibMaxSplatInstThreaded<elK>(outT, inT, splatVal, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT, int64_t splatVal, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibMaxSplatInstThreaded<srcType>(outT, inT, splatVal, flags);
+  dnn_lib::inlining::fwdLibMaxSplatInstThreaded<elK>(outT, inT, splatVal, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT, float splatVal, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibMaxSplatInstVectorized<srcType>(outT, inT, splatVal, flags);
+  dnn_lib::inlining::fwdLibMaxSplatInstVectorized<elK>(outT, inT, splatVal, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT, float splatVal, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibMaxSplatInstAligned32Bytes<srcType>(outT, inT, splatVal, flags);
+  dnn_lib::inlining::fwdLibMaxSplatInstAligned32Bytes<elK>(outT, inT, splatVal, flags);
 }
 
 #include "GenInstances.h"

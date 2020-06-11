@@ -13,17 +13,17 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor *inT) {
 
-  dnn_lib::inlining::fwdLibElementIsNaNInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibElementIsNaNInst<elK>(outT, inT);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
                                     uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibElementIsNaNInstThreaded<srcType>(outT, inT, flags);
+  dnn_lib::inlining::fwdLibElementIsNaNInstThreaded<elK>(outT, inT, flags);
 }
 
 #include "GenInstances.h"

@@ -13,18 +13,18 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                           unsigned int pLengthsSize) {
 
-  dnn_lib::inlining::fwdLibLengthsSumInst<srcType>(outT, in1T, in2T, pLengthsSize);
+  dnn_lib::inlining::fwdLibLengthsSumInst<elK>(outT, in1T, in2T, pLengthsSize);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
                                   LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibLengthsSumInstThreaded<srcType>(outT, in1T, in2T, flags);
+  dnn_lib::inlining::fwdLibLengthsSumInstThreaded<elK>(outT, in1T, in2T, flags);
 
 }
 

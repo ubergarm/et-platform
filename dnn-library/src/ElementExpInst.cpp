@@ -13,10 +13,10 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibElementExpInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibElementExpInst<elK>(outT, inT);
 }
 
 #include "GenInstances.h"

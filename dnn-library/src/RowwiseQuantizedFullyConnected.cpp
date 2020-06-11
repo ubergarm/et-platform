@@ -13,35 +13,35 @@
 
 namespace dnn_lib {
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(LibTensor* outT,
+void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT,
       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
       LibTensor* in5T) {
 
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
+  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInst(
                                      outT, in1T, in2T, in3T, in4T, in5T);
 }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(LibTensor* outT,
+void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(LibTensor* outT,
       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
       LibTensor* in5T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
+  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstThreaded(
                                      outT, in1T, in2T, in3T, in4T, in5T, flags);
 }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(LibTensor* outT,
+void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(LibTensor* outT,
       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
       LibTensor* in5T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
+  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstVectorized(
                                      outT, in1T, in2T, in3T, in4T, in5T, flags);
 }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(LibTensor* outT,
+void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTensor* outT,
       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
       LibTensor* in5T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
+  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
                                      outT, in1T, in2T, in3T, in4T, in5T, flags);
 }
 

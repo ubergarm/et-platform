@@ -13,25 +13,25 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
 
-  dnn_lib::inlining::fwdLibTensorViewInst<srcType>(outT, inT, pcoord);
+  dnn_lib::inlining::fwdLibTensorViewInst<elK>(outT, inT, pcoord);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
                                   void *pcoord, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTensorViewInstThreaded<srcType>(outT, inT,
+  dnn_lib::inlining::fwdLibTensorViewInstThreaded<elK>(outT, inT,
                                                            pcoord, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
                                     void *pcoord, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibTensorViewInstVectorized<srcType>(outT, inT,
+  dnn_lib::inlining::fwdLibTensorViewInstVectorized<elK>(outT, inT,
                                                              pcoord, flags);
 }
 

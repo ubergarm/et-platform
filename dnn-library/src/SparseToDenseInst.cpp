@@ -13,25 +13,25 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSparseToDenseInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseInst<srcType>(outT, in1T, in2T);
+  dnn_lib::inlining::fwdLibSparseToDenseInst<elK>(outT, in1T, in2T);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSparseToDenseInstThreaded(LibTensor* outT, LibTensor* in1T,
                                      LibTensor* in2T, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<srcType>(outT, in1T, in2T, flags);
+  dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<elK>(outT, in1T, in2T, flags);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibSparseToDenseInstVectorized(LibTensor* outT, LibTensor* in1T,
                                        LibTensor* in2T, const float* scale,
                                        const int32_t* offset, uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<srcType>(outT, in1T, in2T, scale, offset, flags);
+  dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<elK>(outT, in1T, in2T, scale, offset, flags);
 }
 
 #include "GenInstances.h"

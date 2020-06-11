@@ -20,7 +20,7 @@ namespace dnn_lib {
  * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
  * The convolution is executed by the first minion only.
  * 
- * @tparam srcType Type of the elements of the tensors involved in the 
+ * @tparam elK Type of the elements of the tensors involved in the 
  *  convolution (except for the bias)
  * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
  * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 
@@ -54,7 +54,7 @@ void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
  * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
  * This is the threaded version for the convolution.
  * 
- * @tparam srcType Type of the elements of the tensors involved in the 
+ * @tparam elK Type of the elements of the tensors involved in the 
  *  convolution (except for the bias)
  * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
  * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 

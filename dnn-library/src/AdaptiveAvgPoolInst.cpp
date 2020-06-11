@@ -13,10 +13,10 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
 
-  dnn_lib::inlining::fwdLibAdaptiveAvgPoolInst<srcType>(outT, inT);
+  dnn_lib::inlining::fwdLibAdaptiveAvgPoolInst<elK>(outT, inT);
 }
 
 #include "GenInstances.h"

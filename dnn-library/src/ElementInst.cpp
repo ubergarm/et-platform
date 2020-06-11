@@ -12,31 +12,32 @@
 #include "ElementInst.h" // From include/inlining
 
 namespace dnn_lib {
-
-template <typename srcType, typename opType>
-void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
-
-  dnn_lib::inlining::fwdLibElementInst<srcType, opType>(outT, in1T, in2T);
-
-}
-
-template <typename src1Type, typename src2Type, typename dstType, typename opType>
-void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
-                               LibTensor* in2T, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibElementInstThreaded<src1Type, src2Type, dstType, opType>(
-                                                             outT, in1T, in2T, flags);
-}
-
-template <typename src1Type, typename src2Type, typename dstType, typename opType>
-void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                 LibTensor* in2T, const float* scale,
-                                 const int32_t* offset, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibElementInstVectorized<src1Type, src2Type, dstType, opType>(
-                                             outT, in1T, in2T, scale, offset, flags);
-}
-
+  
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
+  void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+    
+    dnn_lib::inlining::fwdLibElementInst<dstElK, src1ElK, src2ElK, opType>
+      (outT, in1T, in2T);
+    
+  }
+  
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
+  void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                 LibTensor* in2T, uint64_t flags) {
+    
+    dnn_lib::inlining::fwdLibElementInstThreaded<dstElK, src1ElK, src2ElK, opType>
+      (outT, in1T, in2T, flags);
+  }
+  
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
+  void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
+                                   LibTensor* in2T, const float* scale,
+                                   const int32_t* offset, uint64_t flags) {
+    
+    dnn_lib::inlining::fwdLibElementInstVectorized<dstElK, src1ElK, src2ElK, opType>
+      (outT, in1T, in2T, scale, offset, flags);
+  }
+  
 #include "GenInstances.h"
 
 GEN_INSTANCES_INSTANCES(template, fwdLibElementInst,Add, LibTensor* outT,

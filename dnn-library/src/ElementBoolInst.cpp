@@ -30,11 +30,10 @@ namespace dnn_lib {
   
   template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
   void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                       LibTensor* in2T, const float* scale,
-                                       const int32_t* offset, uint64_t flags) {
+                                       LibTensor* in2T,  uint64_t flags) {
     
     dnn_lib::inlining::fwdLibElementBoolInstVectorized<src1Elk, src2Elk, opType>
-      (outT, in1T, in2T, scale, offset, flags);
+      (outT, in1T, in2T, flags);
   }
   
 #include "GenInstances.h"
@@ -63,14 +62,14 @@ GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstThreaded,CmpLT,
 
 GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstVectorized,CmpEQ,
                     LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                    const float* scale, const int32_t* offset, uint64_t flags);
+                    uint64_t flags);
 
 GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstVectorized,CmpLTE,
                     LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                    const float* scale, const int32_t* offset, uint64_t flags);
+                    uint64_t flags);
   
 GEN_INSTANCES_2TYPE(template, fwdLibElementBoolInstVectorized,CmpLT,
                     LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                    const float* scale, const int32_t* offset, uint64_t flags);  
+                    uint64_t flags);  
 
 } // namespace dnn_lib
