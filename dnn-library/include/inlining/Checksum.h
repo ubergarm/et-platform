@@ -37,8 +37,10 @@ inline void uint32_to_ascii_hex(char *s, uint32_t value) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   // The checksum is the u32 addition of all the non-padding bytes of the tensor
   uint32_t checksum = 0;
 

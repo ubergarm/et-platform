@@ -31,8 +31,10 @@ namespace inlining {
 
 /// Quantize floating point tensor. Scale and Offset are based on return type
 /// of the instruction \p I.
-template <typename dstType>
+template <ElemKind elK>
 inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT) {
+  using dstType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -91,9 +93,11 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT) {
     }
   }
 }
-template <typename dstType>
-inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
   
+template <ElemKind elK>
+inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  using dstType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

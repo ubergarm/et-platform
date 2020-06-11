@@ -30,8 +30,12 @@ namespace dnn_lib {
 
 namespace inlining {
 
-inline void fwdLibIntLookupTableInstInt8QTy(LibTensor* outT, LibTensor* in1T,
-                                            LibTensor* in2T) {
+inline void fwdLibIntLookupTableInst(LibTensor* outT, LibTensor* in1T,
+                                     LibTensor* in2T) {
+  assert(outT->getElementType == Int8QTy &&
+         in1T->getElementType == Int8QTy &&
+         in2T->getElementType == Int8QTy);
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -84,11 +88,14 @@ inline void fwdLibIntLookupTableInstInt8QTy(LibTensor* outT, LibTensor* in1T,
   }
 }
 
-inline void fwdLibIntLookupTableInstInt8QTyThreaded(LibTensor* outT,
-                                                    LibTensor* in1T,
-                                                    LibTensor* in2T,
-                                                    uint64_t flags) {
-
+inline void fwdLibIntLookupTableInstThreaded(LibTensor* outT,
+                                             LibTensor* in1T,
+                                             LibTensor* in2T,
+                                             uint64_t flags) {
+  assert(outT->getElementType == Int8QTy &&
+         in1T->getElementType == Int8QTy &&
+         in2T->getElementType == Int8QTy);
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

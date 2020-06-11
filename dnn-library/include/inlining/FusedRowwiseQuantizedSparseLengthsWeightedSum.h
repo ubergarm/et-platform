@@ -43,11 +43,14 @@ struct accumulatorType {
 
 #endif
 
+template <ElemKind elK>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst(
                    LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                    LibTensor* in3T, LibTensor* in4T) {
 
+  assert(elK == FloatTy || elK == Float16Ty);
+  using dstType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   
   if (minionId != 0) {
@@ -58,7 +61,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   /* outT-> dst in1T->data in2T->weight in3T->indices in4T->lengths */
 
   // float *tOutput = (float *)pdst;
-  float *tOutput = outT->getRawDataPointer<float>();
+  float *tOutput = outT->getRawDataPointer<dstType>();
   // uint8_t *tAInput = (uint8_t *)pdata;
   uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
   // float *tWInput = (float *)pweights;
@@ -137,13 +140,14 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   }
 }
 
-template<typename DstType>
+template <ElemKind elK>
 inline __attribute((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
                    LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                    LibTensor* in3T, LibTensor* in4T, uint64_t flags,
                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
+  assert(elK == FloatTy || elK == Float16Ty);
+  using dstType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.
   minionId -= minionOffset;
@@ -312,13 +316,17 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
 // vector f31 should be set to {0, 1, 2, 3, 4, 5, 6, 7}
 // vector f29 should be set to {0, 2, 4, 6, 8, 10, 12, 14}
 //
-template <bool Weighted, bool Float32Dst, bool Float16Dst>
+  template <ElemKind elK>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
+void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
     uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
     uintptr_t dataRowSize, uintptr_t dstElemSize,
-    uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr) { 
+    uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr, const bool Weighted = true) { 
+
+  using dstType = typename elemKind2elemTy<elK>::type;
+  const bool float32Dst = elK == FloatTy;
+  const bool float16Dst = elK == Float16Ty;
 
   // Clear vector accumulator at the start.
   __asm__ __volatile__ (
@@ -439,12 +447,16 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
   }
 }
 
-template<bool Weighted, bool Float32Dst, bool Float16Dst>
+ 
+template <ElemKind elK, bool Weighted = true>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    
+  using dstType = typename elemKind2elemTy<elK>::type;
 
+  assert(elK == FloatTy || elK == Float16Ty);
   // Get offset of the Minion inside the group of Minions assigned to this Node.
 
   uint64_t minionId = get_minion_id();
@@ -893,10 +905,10 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
       }
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-        dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
+          fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
           dataPitches[0], dataRowSize, dstElemSize,
-          tWInput, dst_ptr, dst2_ptr);
+          tWInput, dst_ptr, dst2_ptr, Weighted);
       }
 
       // Set mask for last VReg in group.
@@ -906,10 +918,10 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         : [tail_mask] "r" (dstRowTailVRegMask)
       );
 
-      dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
+      fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
         minionCurrIndex, currSegmentLength, tAInput, indices,
         dataPitches[0], dataRowSize, dstElemSize,
-        tWInput, dst_ptr, dst2_ptr);
+        tWInput, dst_ptr, dst2_ptr, Weighted);
 
       minionCurrIndex += currSegmentLength;
 
@@ -931,12 +943,8 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  const bool float32Dst = (std::is_same<Type, float>::value);
-  const bool float16Dst = (std::is_same<Type, float16>::value);
-
-  LibTensor* out2T = nullptr;
-  inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<true, float32Dst, float16Dst>(
-              outT, out2T, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
+    fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, true>
+      outT, nullptr, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining

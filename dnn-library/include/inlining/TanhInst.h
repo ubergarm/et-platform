@@ -31,9 +31,9 @@ namespace dnn_lib {
 namespace inlining {
 
 // TODO Check corner cases
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -92,9 +92,9 @@ inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

@@ -36,8 +36,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK>
 inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  
   // FIXME: single thread convertto fails when combined with multi-threaded
   // operators
   unsigned int minionId = get_minion_id();
@@ -52,9 +55,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  // Addresser<dstType> ptrDstT(dstT, scalexo[1], offset[1]);
   Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
   const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
 
   Converter<srcType, dstType> converter;
@@ -72,8 +73,10 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
 
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK>
 inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   size_t activeMinions =  MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -126,8 +129,11 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
 }
 
   
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK>
 inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTensor* inT,  LibTensor*outT, uint64_t flags){
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+
   const unsigned int minionId = get_minion_id();
   const unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   assume(activeMinions<=1024);

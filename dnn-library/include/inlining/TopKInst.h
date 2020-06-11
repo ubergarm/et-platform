@@ -69,10 +69,10 @@ inline int partition(void *vals, void *inds, int low, int high) {
 // In this implementation we suppose that the dstPitches (1 and 2) have padding
 // which ensures the dstPitches[n-2] being multiple of cacheline length if not,
 // it needs sore global or reduce
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
                            unsigned int k) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -149,11 +149,11 @@ inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
                                        LibTensor* inT, unsigned int k,
                                        uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -248,12 +248,12 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
 
 /*
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibTopKInstThreaded_k4(void *dstT, void *dstDims, void
 *dstPitches, void *dstT2, void *dst2Dims, void *dst2Pitches, void *srcT, void
 *srcDims, void *srcPitches, unsigned int srcDimNum, unsigned int k, const float
 *scale, const int32_t *offset, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32*ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;
@@ -387,11 +387,11 @@ void fwdLibTopKInstThreaded_k4(void *dstT, void *dstDims, void
 */
 
 // ONLY FOR K = 1, 2, 3, 4
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
                                       LibTensor* inT, unsigned int k,
                                       uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -591,10 +591,10 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
 }
 
 // ONLY FOR K = 5, 6, 7, 8
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
                                       unsigned int k, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

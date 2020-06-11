@@ -72,9 +72,9 @@ template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                   LibTensor* in3T, void *pkernels, void *pstrides,
                                     void *ppads, unsigned int group) {
-  using dstType = elemKind2elemTy<dstElK>::type;
-  using src1Type = elemKind2elemTy<src1ElK>::type;
-  using src2Type = elemKind2elemTy<src2ElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
   // FIXME: going back to single thread until general case is solved with
   // multithread
@@ -412,9 +412,9 @@ template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
              LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
              void *ppads, unsigned int group, uint64_t flags) {
-  using dstType = elemKind2elemTy<dstElK>::type;
-  using src1Type = elemKind2elemTy<src1ElK>::type;
-  using src2Type = elemKind2elemTy<src2ElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
   // Gets minion Id and check if minion is active
   unsigned int minionId = get_minion_id();
@@ -984,9 +984,9 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             const float *scale, const int32_t *offset,
                                             uint64_t flags) {
 
-  using dstType = elemKind2elemTy<dstElK>::type;
-  using src1Type = elemKind2elemTy<src1ElK>::type;
-  using src2Type = elemKind2elemTy<src2ElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

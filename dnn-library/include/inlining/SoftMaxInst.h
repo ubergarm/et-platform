@@ -32,9 +32,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT) {
-    
+  using srcType = typename elemKind2elemTy<elK>::type;    
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -85,37 +85,37 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSoftMaxInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
   const dim_t *srcPitch = inT->strides().data();
 
   size_t typeSize = getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<elK>(outT, inT, flags);
   else if (cll%srcPitch[0] == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<elK>(outT, inT, flags);
   else
-    dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(outT, inT);
+    dnn_lib::inlining::fwdLibSoftMaxInst2<elK>(outT, inT);
 
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
   const dim_t *srcPitch = inT->strides().data();
  
   size_t typeSize = getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<elK>(outT, inT, flags);
   else if (cll%srcPitch[0] == 0) // TODO: vectorize v2.
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<elK>(outT, inT, flags);
   else
-    dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(outT, inT); 
+    dnn_lib::inlining::fwdLibSoftMaxInst2<elK>(outT, inT); 
 }
 
 } // namespace inlining

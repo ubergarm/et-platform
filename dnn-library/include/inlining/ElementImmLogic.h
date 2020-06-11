@@ -45,7 +45,7 @@ namespace inlining {
  * @param[in] imm.
  */
 template <typename srcType, typename opType>
-inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, void *imm) {
+inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_value) {
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -56,9 +56,6 @@ inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, void *imm) {
   const srcType *aSrcT1 = inT->getRawDataPointer<srcType>();
   // srcType *aDstT = reinterpret_cast<srcType*>(dstT);
   srcType *aDstT = outT->getRawDataPointer<srcType>();
-  
-  const srcType *imm_ptr = reinterpret_cast<srcType*>(imm);
-  const srcType imm_value = *imm_ptr;
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -102,6 +99,13 @@ inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, void *imm) {
   }
 }
 
+  // and instance for Int8Converter
+template <typename srcType>
+inline void fwdLibElementInt8Converter(LibTensor* outT, LibTensor* inT, ) {
+  srcType imm_value = 0x80;
+  fwdLibElementImmLogic<srcType, Xor>(outT, inT, imm_value);
+}
+  
 } // namespace inlining
 
 } // namespace dnn_lib

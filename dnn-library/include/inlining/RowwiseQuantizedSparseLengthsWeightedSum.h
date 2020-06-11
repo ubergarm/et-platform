@@ -29,10 +29,13 @@
 namespace dnn_lib {
 
 namespace inlining {
-
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
     LibTensor* in4T, LibTensor* in5T, LibTensor* in6T) {
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -43,9 +46,9 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   /* in5T-> scale in6T-> offset */
   
   // float *tOutput = (float *)pdst;
-  float *tOutput = outT->getRawDataPointer<float>();
+  float *tOutput = outT->getRawDataPointer<dstType>();
   // uint8_t *tAInput = (uint8_t *)pdata;
-  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  uint8_t *tAInput = in1T->getRawDataPointer<srcType>();
   // float *tScale = (float *)pscale;
   float *tScale = in5T->getRawDataPointer<float>();
   // float *tOffset = (float *)poffset;
@@ -104,10 +107,13 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     }
   }
 }
-
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
              LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
              LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags) {
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -119,9 +125,9 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   /* in5T-> scale in6T-> offset */
   
   // float *tOutput = (float *)pdst;
-  float *tOutput = outT->getRawDataPointer<float>();
+  float *tOutput = outT->getRawDataPointer<dstType>();
   // uint8_t *tAInput = (uint8_t *)pdata;
-  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  uint8_t *tAInput = in1T->getRawDataPointer<srcType>();
   // float *tScale = (float *)pscale;
   float *tScale = in5T->getRawDataPointer<float>();
   // float *tOffset = (float *)poffset;
@@ -190,11 +196,17 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   }
 }
 
-template<bool Int8Src, bool Float16Dst>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
              LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
              LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  const bool Int8Src = srcElk == Int8QTy;
+  const bool Float16Dst = dstElk == Float16Ty;
+  
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   // Get offset of the Minion inside the group of Minions assigned to this Node.
   uint64_t minionId = get_minion_id();

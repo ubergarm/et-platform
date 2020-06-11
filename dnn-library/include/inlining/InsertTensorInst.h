@@ -31,12 +31,12 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline))
 void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pcoord,
                             unsigned int count, unsigned int axis,
                             uint64_t flags, const uint32_t minionOffset = 0) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   if (minionId != 0)
     return;
@@ -104,7 +104,7 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pco
 
 //FIXME This version fits the small cases that currently are not vectorized,
 //but it still fails some tests.
-//template <typename srcType>
+//template <ElemKind elK>
 //void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
 //                                             void *dstPitches,
 //                                             unsigned int dstDimNum, void *src2,
@@ -112,6 +112,7 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pco
 //                                             void *poffsets, unsigned int count,
 //                                             unsigned int axis, const float *scale,
 //                                             const int32_t *offset, uint64_t flags) {
+//  using srcType = typename elemKind2elemTy<elK>::type;
 //  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
 //  const Addresser<srcType> tAInput(src2, scale[0], offset[0]);
 //
@@ -299,14 +300,14 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline))
 void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                                     const uint32_t *poffsets, unsigned int count,
                                     unsigned int axis, uint64_t flags,
                                     const uint32_t minionOffset = 0,
                                     const  uint32_t assignedMinions = 0) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) :  assignedMinions;
   if (minionId >= activeMinions)
@@ -324,7 +325,7 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
 
   if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
-    inlining::fwdLibInsertTensorInst<srcType>(outT, inT, poffsets, count, axis,
+    inlining::fwdLibInsertTensorInst<elK>(outT, inT, poffsets, count, axis,
                                     flags, minionOffset);
     return;
   }

@@ -30,9 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -94,9 +94,9 @@ inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t 
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;

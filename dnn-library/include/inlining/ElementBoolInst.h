@@ -48,8 +48,8 @@ namespace inlining {
 template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
                                   LibTensor* in2T) {
-  using src1Type = elemKind2elemTy<src1ElK>::type;
-  using src2Type = elemKind2elemTy<src2ElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   /* maintain compatibility through the new Iface Libtensor */    
   void* srcT1 = in1T->getRawDataPointer<void>();
   void* srcT2 = in2T->getRawDataPointer<void>();
@@ -133,8 +133,8 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
 template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
                                           LibTensor* in2T, uint64_t flags) {
-  using src1Type = elemKind2elemTy<src1ElK>::type;
-  using src2Type = elemKind2elemTy<src2ElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -227,10 +227,13 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
  */
 template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                            LibTensor* in2T, const float* scale,
-                                            const int32_t* offset, uint64_t flags) {
-  using src1Type = elemKind2elemTy<src1ElK>::type;
-  using src2Type = elemKind2elemTy<src2ElK>::type;
+                                            LibTensor* in2T, uint64_t flags) {
+
+  const float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
+  const int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
+  
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -363,9 +366,8 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
     fwdLibElementBoolInstThreaded<src1Elk, src2Elk, opType>  (outT, in1T, in2T,flags);                   \
   }                                                                                                      \
   template <ElemKind src1Elk, ElemKind src2Elk>  inline void                                             \
-  fwdLib ## opType ## Vectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                      \
-                                   const float* scale, const int32_t* offset, uint64_t flags) {          \
-    fwdLibElementBoolInstVectorized<src1Elk, src2Elk, opType> (outT, in1T,  in2T, scale, offset, flags); \
+  fwdLib ## opType ## Vectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {    \
+    fwdLibElementBoolInstVectorized<src1Elk, src2Elk, opType> (outT, in1T,  in2T, flags); \
   }
   
   EltWiseInst(ElementCmpEQ, CmpEQ)

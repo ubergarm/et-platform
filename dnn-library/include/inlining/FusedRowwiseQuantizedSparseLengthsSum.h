@@ -30,29 +30,24 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template<typename DstType>
+template <ElemKind elK>
 inline __attribute__((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyThreaded(
+void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded(
         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   LibTensor* inW = nullptr;
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded <DstType> (
+  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded <elK> (
     outT, in1T, inW, in2T, in3T, flags, minionOffset, assignedMinions);
 }
 
-template<typename DstType>
+template <ElemKind elK>
 inline __attribute__((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstFloatTyVectorized(
+void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstVectorized(
         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  const bool float32Dst = (std::is_same<DstType, float>::value);
-  const bool float16Dst = (std::is_same<DstType, float16>::value);
-
-  LibTensor* out2T = nullptr;
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<false, float32Dst, float16Dst>(
-    outT, out2T, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
+  fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, false>
+    outT, nullptr, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining

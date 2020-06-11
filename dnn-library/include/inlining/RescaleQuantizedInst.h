@@ -30,8 +30,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -83,9 +85,10 @@ inline void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibRescaleQuantizedInstThreaded(LibTensor* outT, LibTensor* inT,
                                                uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

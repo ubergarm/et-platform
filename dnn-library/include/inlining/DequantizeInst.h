@@ -32,8 +32,9 @@ namespace inlining {
 
 /// Dequantize integer tensor. Scale and Offset are based
 /// on the source tensor type.
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -88,9 +89,9 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

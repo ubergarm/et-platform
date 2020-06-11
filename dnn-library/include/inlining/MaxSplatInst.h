@@ -32,119 +32,52 @@ namespace inlining {
 
 // This function copies a matrix replacing all the elements which are < splatVal
 // and replaces them with splatVal
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> ptrSrcT(srcT, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
+  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
+
+  dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
+                   [&](size_t addrDst, size_t addrSrc) {
+                     if (std::is_same<srcType, valType>::value) {
+                       dstT[addrDst] = (srcT[addrSrc] > splatVal) ? src[addrSrc] : splatVal;
+                     } else {
+                       auto src = ptrSrcT[addrSrc];
+                       ptrDstT[addrDst] = src > splatVal ? src : splatVal;
+                     }
+                   } );
+
   
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const dim_t *srcIndex = outT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = inT->strides().data();
-
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (size_t i = 0; i < srcDimNum; i++) {
-    eBatchDims[i] = srcIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrcPitch[i] = srcPitch[i];
-  }
-
-  uint64_t addrSrc, addrDst;
-
-  // We can use this loop for all shapes.
-  for (size_t x = 0; x < eBatchDims[0]; x++) {
-    for (size_t y = 0; y < eBatchDims[1]; y++) {
-      for (size_t z = 0; z < eBatchDims[2]; z++) {
-        for (size_t w = 0; w < eBatchDims[3]; w++) {
-          for (size_t q = 0; q < eBatchDims[4]; q++) {
-            for (size_t r = 0; r < eBatchDims[5]; r++) {
-              addrSrc = x * eSrcPitch[0] + y * eSrcPitch[1] + z * eSrcPitch[2] +
-                        w * eSrcPitch[3] + q * eSrcPitch[4] + r * eSrcPitch[5];
-              addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
-                        w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
-              auto src = ptrSrcT[addrSrc];
-              ptrDstT[addrDst] = (src > splatVal) ? src : splatVal;
-            }
-          }
-        }
-      }
-    }
-  }
 }
-
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  // srcType *ptrDstT = (srcType *)dstT;
-  srcType *ptrDstT = outT->getRawDataPointer<srcType>();
-  // srcType *ptrSrcT = (srcType *)srcT;
-  srcType *ptrSrcT = outT->getRawDataPointer<srcType>();
-
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const dim_t *srcIndex = outT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = inT->strides().data();
-
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
- 
-  unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (size_t i = 0; i < srcDimNum; i++) {
-    eBatchDims[i] = srcIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrcPitch[i] = srcPitch[i];
-  }
-
-  uint64_t addrSrc, addrDst;
-
-  // We can use this loop for all shapes.
-  for (size_t x = 0; x < eBatchDims[0]; x++) {
-    for (size_t y = 0; y < eBatchDims[1]; y++) {
-      for (size_t z = 0; z < eBatchDims[2]; z++) {
-        for (size_t w = 0; w < eBatchDims[3]; w++) {
-          for (size_t q = 0; q < eBatchDims[4]; q++) {
-            for (size_t r = 0; r < eBatchDims[5]; r++) {
-              addrSrc = x * eSrcPitch[0] + y * eSrcPitch[1] + z * eSrcPitch[2] +
-                        w * eSrcPitch[3] + q * eSrcPitch[4] + r * eSrcPitch[5];
-              addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
-                        w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
-              int64_t src = ptrSrcT[addrSrc];
-              ptrDstT[addrDst] = (src > splatVal) ? src : splatVal;
-            }
-          }
-        }
-      }
-    }
-  }
+  int64_t* dstT = outT->getRawDataPointer<int64_t>();
+  int64_t* srcT = inT->getRawDataPointer<int64_t>();
+  
+  dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
+                   dstT[addrDst] = (srcT[addrSrc] > splatVal) ? src[addrSrc] : splatVal;
+                   } );
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
                                             float splatVal, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -211,10 +144,11 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
                                        int64_t splatVal, uint64_t flags) {
 
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -391,10 +325,11 @@ inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const floa
   //FIXME: implementation missing
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
                                          float splatVal, uint64_t flags) {
-  
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -503,9 +438,11 @@ inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
                                              float splatVal, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

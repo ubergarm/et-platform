@@ -30,9 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename ElemTy>
-inline void fwdLibFlipInst(LibTensor* inT, LibTensor* outT, unsigned int axis) {
-
+template <ElemKind elK>
+inline void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
+  using ElemTy = elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;

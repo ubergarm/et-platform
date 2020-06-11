@@ -30,9 +30,13 @@ namespace dnn_lib {
 
 namespace inlining {
 
-inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
+inline void fwdLibRowwiseQuantizedFullyConnectedInst(
                   LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                   LibTensor* in3T, LibTensor* in4T, LibTensor* in5T) {
+  assert(outT->getElementType() == Int8QTy &&
+         in1T->getElementType() == Int8QTy &&
+         int2->getElementType() == Int8QTy);
+         
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -95,9 +99,12 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTy(
 }
 
 
-inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
+inline void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(
            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
            LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
+  assert(outT->getElementType() == Int8QTy &&
+         in1T->getElementType() == Int8QTy &&
+         int2->getElementType() == Int8QTy);
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -196,9 +203,12 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 }
 
-inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
+inline void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(
      LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
      LibTensor* in3T, LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
+  assert(outT->getElementType() == Int8QTy &&
+         in1T->getElementType() == Int8QTy &&
+         int2->getElementType() == Int8QTy);
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -372,9 +382,12 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyVectorized(
 #undef MATMUL_ITERATION
 }
 
-inline void fwdLibRowwiseQuantizedFullyConnectedInstInt8QTyAligned32Bytes(
+inline void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
            LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
+  assert(outT->getElementType() == Int8QTy &&
+         in1T->getElementType() == Int8QTy &&
+         int2->getElementType() == Int8QTy);
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

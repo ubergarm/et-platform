@@ -30,12 +30,13 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elk>
 inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, unsigned int pLengthsSize) {
+  using srcType = typename elemKind2elemTy<elK>::type;  
   unsigned int minionId = get_minion_id();
   if (minionId > 0)
     return;
-
+  const auto pLengthsSize = in2->dims()[0];
   /* outT --> dst  in1T--> src   in2T--> length */
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
@@ -114,10 +115,11 @@ inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in
   }
 }
 
-template <typename srcType>
+template <ElemKind elk>
 inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
                                          LibTensor* in2T, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   unsigned int minion_id = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
   if (minion_id >= activeMinions) return;

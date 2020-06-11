@@ -42,9 +42,13 @@ struct accumulatorType {
 
 #endif
 
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
                                      LibTensor* in2T, LibTensor* in3T) {
+
+  using dstType  = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -60,11 +64,9 @@ inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
   float *tBias = in3T->getRawDataPointer<float>();
   
   // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in1T->getScale(), in1T->getOffset());
+  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<src1Type> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2Type> tWInput(weights, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -322,10 +324,14 @@ inline void matmulStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
                                              LibTensor* in2T, LibTensor* in3T,
                                              uint64_t flags) {
+  
+  using dstType  = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -339,9 +345,9 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   void *weights = in2T->getRawDataPointer<void>();
   float *tBias = in3T->getRawDataPointer<float>();
   
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  const Addresser<srcType> tWInput(weights, in1T->getScale(), in1T->getOffset());
+  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<src1Type> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2Type> tWInput(weights, in2T->getScale(), in2T->getOffset());
   
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = in1T->dims().data();
@@ -352,7 +358,7 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -383,13 +389,13 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
     if(elems > colsLeft) { elems = colsLeft; }
 
     // Starts the accumulation with the bias (per Channel)
-    typename accumulatorType<srcType>::type sum[FULLYCONNECTED_MAX_ELEMS];
+    typename accumulatorType<src1Type>::type sum[FULLYCONNECTED_MAX_ELEMS];
     for (size_t i = 0; i < elems; i++) {
       sum[i] = tBias[coord[1] + i];
     }
 
     // Computes one result as efficient as possible
-    matmulStep <srcType> (sum, tAInput, activations, tWInput, weights, actIndex[1], coord[0] * actPitch[0], coord[1], weightPitch[0], elems);
+    matmulStep <src1Type> (sum, tAInput, activations, tWInput, weights, actIndex[1], coord[0] * actPitch[0], coord[1], weightPitch[0], elems);
 
     // Moves to next result
     for (size_t i = 0; i < elems; i++) {
@@ -934,12 +940,16 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<!std::is_same<src1Type, int8_t>::value && !std::is_same<src1Type, float16>::value && !std::is_same<src1Type, float>::value && !std::is_same<src1Type, uint8_t>::value, std::size_t>::type = 0>
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){}
 
-template <typename src1Type, typename src2Type, typename dstType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
                                                LibTensor* in2T, LibTensor* in3T,
                                                const float* scale,
                                                const int32_t* offset,
                                                uint64_t flags) {
+  
+  using dstType  = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

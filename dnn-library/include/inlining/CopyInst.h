@@ -47,9 +47,9 @@ namespace inlining {
  * @param[in] srcDimNum The "number of dimensions" of the input matrix.
  * @param[in] scale, offset Parameters for the quantization.
  */
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -112,12 +112,12 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
  * @param[in] minionOffset The first minion that is assigned to this node.
  * @param[in] assignedMinions Amount of minions avaliable.
  */
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
                                    uint64_t flags,
                                    const uint32_t minionOffset = 0,
                                    const uint32_t assignedMinions = 0) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
@@ -216,12 +216,12 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
  * @param[in] minionOffset The first minion that is assigned to this node.
  * @param[in] assignedMinions Amount of minions avaliable.
  */
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
                                      uint64_t flags,
                                      const uint32_t minionOffset = 0,
                                      const uint32_t assignedMinions = 0) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)

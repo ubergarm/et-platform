@@ -33,7 +33,7 @@ namespace inlining {
 template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
 inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
                                  LibTensor* in2T) {
-  using dstType = elemKind2elemTy<dstElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
   using batchType = elemKind2elemTy<batchElK>::type;
   using sliceType = elemKind2elemTy<sliceElK>::type;
 
@@ -103,7 +103,7 @@ inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
 template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
 inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
                                          LibTensor* in2T, uint64_t flags) {
-  using dstType = elemKind2elemTy<dstElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
   using batchType = elemKind2elemTy<batchElK>::type;
   using sliceType = elemKind2elemTy<sliceElK>::type;
 

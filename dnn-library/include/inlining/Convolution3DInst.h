@@ -30,12 +30,12 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
                                     LibTensor* in2T, LibTensor* in3T,
                                     void *pkernels, void *pstrides,
                                     void *ppads, unsigned int group) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -139,13 +139,14 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   }           // N
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
                                             void *pkernels, void *pstrides,
                                             void *ppads, unsigned int group,
                                             uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

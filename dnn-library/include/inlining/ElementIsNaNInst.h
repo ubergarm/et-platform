@@ -41,8 +41,10 @@ namespace inlining {
  * @param[out] outT LibTensor pointer to the output matrix.
  * @param[in] inT LibTensor pointer to the input matrix.
  */
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -109,10 +111,10 @@ inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT) {
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
                                            uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

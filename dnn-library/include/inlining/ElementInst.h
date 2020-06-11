@@ -49,10 +49,12 @@ namespace inlining {
  * @param[in] in1T LibTensor pointer to the src1 matrix
  * @param[in] in2T LibTensor pointer to the src2 matrix
  */
-template <typename srcType, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2Elk, typename opType>
 inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
-
- unsigned int minionId = get_minion_id();
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+  unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
@@ -150,10 +152,12 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2Elk, typename opType>
 inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
                                       LibTensor* in2T, uint64_t flags) {
-
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -248,16 +252,20 @@ inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2Elk, typename opType>
 inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, const float* scale,
-                                        const int32_t* offset, uint64_t flags) {
-
+                                        LibTensor* in2T, uint64_t flags) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
+  const float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
+  const int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
   
+
  /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
@@ -379,19 +387,18 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   // individual functions per operator (forwarding call to the previous ones with
   // the proper parameters)
   ////////////////////////////////////////////////////////////////////////////////
-#define EltWiseInst(name, opType)                                                                               \
-  template <typename srcType> inline void                                                                       \
-  fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {                                 \
-    fwdLibElementInst<srcType, opType>(outT, in1T,in2T);                                                        \
-  }                                                                                                             \
-  template <typename src1Type, typename src2Type, typename dstType>  inline void                                \
-  fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {         \
-    fwdLibElementInstThreaded<src1Type, src2Type,dstType, opType>  (outT, in1T, in2T,flags);                    \
-  }                                                                                                             \
-  template <typename src1Type, typename src2Type, typename dstType> inline void                                 \
-  fwdLib ## opType ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                         \
-                                       const float* scale, const int32_t* offset, uint64_t flags) {             \
-    fwdLibElementInstVectorized <src1Type, src2Type, dstType, opType>(outT, in1T,  in2T, scale, offset, flags); \
+#define EltWiseInst(name, opType)                                                                            \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                 \
+  fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {                              \
+    fwdLibElementInst<dstElk, src1Elk, src2Elk, opType>(outT, in1T,in2T);                                    \
+  }                                                                                                          \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>inline void                                  \
+  fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {      \
+    fwdLibElementInstThreaded<dstElk, src1Elk, src2Elk, opType>  (outT, in1T, in2T,flags);                   \
+  }                                                                                                          \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                 \
+  fwdLib ## opType ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {    \
+    fwdLibElementInstVectorized <dstElk, src1Elk, src2Elk, opType>(outT, in1T,  in2T, scale, offset, flags); \
   }
 
 

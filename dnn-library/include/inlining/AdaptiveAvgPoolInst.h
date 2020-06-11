@@ -28,7 +28,7 @@ namespace inlining {
 
 template <ElemKind elK>
 inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
-  using srcType = elemKind2elemTy<elK>::type;
+  using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id();
   if (minionId != 0)

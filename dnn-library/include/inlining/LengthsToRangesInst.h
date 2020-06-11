@@ -30,8 +30,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -60,8 +62,9 @@ inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
    unsigned int minionId = get_minion_id();
   unsigned int activeMinions = 32;

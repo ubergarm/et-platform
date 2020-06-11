@@ -31,9 +31,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim){
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   /* maintain compatibility through the new Iface Libtensor */
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();

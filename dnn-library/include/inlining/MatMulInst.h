@@ -30,8 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -78,10 +79,11 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
                               uint64_t flags, const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -395,11 +397,12 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 // since all the tensors involved are 2D. It is necessary to assume this at least for the
 // wgt and dst tensors, so we can use vectorization.
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
                                 LibTensor* in2T, uint64_t flags,
                                 const uint32_t minionOffset,
                                 const uint32_t assignedMinions) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;

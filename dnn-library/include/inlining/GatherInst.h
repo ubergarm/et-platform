@@ -30,9 +30,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType, typename indexType>
+template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                              unsigned int batchedDims) {
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  using indexType = typename elemKind2elemTy<indexElK>::type;
   
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -105,10 +107,12 @@ inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
 // tIndices tensor must be integers between 0 and di - 1, so they are valid
 // index values for the i-th dimension of the source tensor tInput.
 
-template <typename srcType, typename indexType>
+template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                     
                                      unsigned int batchedDims, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  using indexType = typename elemKind2elemTy<indexElK>::type;
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

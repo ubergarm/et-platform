@@ -30,9 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-void fwdLibSplatInst(LibTensor *outT, uint64_t *splatVal) {
-  
+template <ElemKind elK>
+void fwdLibSplatInst(LibTensor *outT, float splatVal) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -46,6 +46,15 @@ void fwdLibSplatInst(LibTensor *outT, uint64_t *splatVal) {
   const dim_t *dstPitch = outT->strides().data();
 
   size_t numElems = dstIndex[0] * dstPitch[0];
+
+  // transform splatVal to srcType, and replicate to fit up to 64 bits
+  srcType splatValType;
+  const Addresser <srcType> valAd(&splatValType, outT->getScale(), inT->getOffset());
+  valAd[0] = splatVal;
+  uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
+  for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){
+    splatVal64 = splatVal64  | splatVal64 << (j*sizeof(srcType)*8);
+  }
   
   uint64_t *dst64 = static_cast<uint64_t*>(dst);
   // splatVal has the data replicated as many times as to fill a uint64 
@@ -55,16 +64,16 @@ void fwdLibSplatInst(LibTensor *outT, uint64_t *splatVal) {
 
 
   for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i+=ratio64, dst64++) 
-    *dst64 = *splatVal;
+    *dst64 = splatVal64;
 
-  memcpy(dst64, splatVal, (numElems & mask) * sizeof(srcType));
+  memcpy(dst64, &splatVal64, (numElems & mask) * sizeof(srcType));
 
 }
 
 template <typename sourceTy>
-inline void fwdLibSplatInstThreaded(LibTensor* outT, uint64_t *splatValPtr,
+inline void fwdLibSplatInstThreaded(LibTensor* outT, float splatVal,
                                     uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -78,8 +87,6 @@ inline void fwdLibSplatInstThreaded(LibTensor* outT, uint64_t *splatValPtr,
   // srcType *tOutput = (srcType *)dst;
   srcType *tOutput = outT->getRawDataPointer<srcType>();
   
-  srcType splatVal = bitwise_lsb_copy<srcType> (*splatValPtr);
-
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -119,9 +126,9 @@ inline void fwdLibSplatInstThreaded(LibTensor* outT, uint64_t *splatValPtr,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType>
-inline void fwdLibSplatInstVectorized(LibTensor* outT, uint64_t *splatVal, uint64_t flags) {
-
+template <ElemKind elK>
+inline void fwdLibSplatInstVectorized(LibTensor* outT, float splatVal, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -153,6 +160,16 @@ inline void fwdLibSplatInstVectorized(LibTensor* outT, uint64_t *splatVal, uint6
   char *dstPtr = (char *)dst;
   dstPtr += offsetOut;
 
+  // transform splatVal to srcType, and replicate to fit up to 64 bits
+  srcType splatValType;
+  const Addresser <srcType> valAd(&splatValType, outT->getScale(), inT->getOffset());
+  valAd[0] = splatVal;
+  uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
+  for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){
+    splatVal64 = splatVal64  | splatVal64 << (j*sizeof(srcType)*8);
+  }
+
+  
   if (regsperMinion > 0){
     //TODO: it writes in padding! check if that's alright!
     
@@ -195,7 +212,8 @@ inline void fwdLibSplatInstVectorized(LibTensor* outT, uint64_t *splatVal, uint6
        : [fg32w_conf] "r" (0x208208),   // gather32 configuration in xreg
          [endPtr] "r" (endPtr),
          [endPtrUnrolled] "r" (endPtrUnrolled),
-         [splatValPtr] "r" (splatVal)
+         [splatValPtr] "r" (&splatVal64),
+         [splatValPtrMem] "m" (splatVal64)
 
        : "memory"
      );

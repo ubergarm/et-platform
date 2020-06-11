@@ -30,9 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -97,10 +97,10 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle)
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
                                         void *pshuffle, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -199,9 +199,11 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t
 
 
 
-template <typename srcType>
+
+template <ElemKind elK>
 inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
                                           void *pshuffle, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -359,9 +361,10 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
 
 
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
                                               void *pshuffle, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

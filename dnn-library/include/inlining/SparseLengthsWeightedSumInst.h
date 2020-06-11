@@ -31,11 +31,12 @@ namespace dnn_lib {
 namespace inlining {
 
 // This version does NOT support Tensors of more than 2 dimensions with padding
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T,
                                                LibTensor* in2T, LibTensor* in3T,
                                                LibTensor* in4T,
                                                unsigned int pLengthsSize) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -105,7 +106,7 @@ inline void fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T,
 }
 
 // This version DOES support Tensors of more than 2 dimensions with padding
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT,
                                                        LibTensor* in1T,
                                                        LibTensor* in2T,
@@ -113,7 +114,7 @@ inline void fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT,
                                                        LibTensor* in4T,
                                                        unsigned int pLengthsSize,
                                                        uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

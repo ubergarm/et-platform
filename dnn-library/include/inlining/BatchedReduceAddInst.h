@@ -30,8 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -111,9 +112,11 @@ inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
                                                unsigned int axis,  uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

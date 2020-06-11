@@ -30,11 +30,13 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,                              
                               LibTensor* inT, 
                               void *srcMatrixPitchesNoPadding,
                               void *pkernels, void *pstrides, void *ppads) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -127,12 +129,14 @@ inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,
   }       // N
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibMaxPoolInstThreaded(bool argMax, LibTensor* outT,
                                       LibTensor* out2T, LibTensor* inT,
                                       void *srcMatrixPitchesNoPadding,
                                       void *pkernels, void *pstrides,
                                       void *ppads, uint64_t flags) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

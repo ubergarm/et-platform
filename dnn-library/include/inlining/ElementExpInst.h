@@ -42,9 +42,10 @@ namespace inlining {
  * @param[out] outT LibTensor pointer to the destination matrix
  * @param[in]  inT LibTensor pointer to the input Matrix
  */
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;

@@ -79,9 +79,9 @@ class WriteSliceToDst<ptrT, 0> {
   }
 };
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;

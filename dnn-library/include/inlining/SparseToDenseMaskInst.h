@@ -31,13 +31,15 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in2T, LibTensor* in3T,
                                         LibTensor* in4T,
                                         unsigned int pdefaultSize,
                                         unsigned int pLengthsSize,
                                         void *pmask, unsigned int pMaskSize) {
+
+    using srcType = typename elemKind2elemTy<elK>::type;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out--> dest in1T->val in2T->dft in3T->idx in4T->len*/
@@ -118,7 +120,7 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
 // (1) The pmask vector size (pMaskSize) has the same length as the second dimension of the output tensor.
 // (2) The dimensions and pitches of the pdefault tensor are the ones of a batch of the data tensor.
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T,
                                                 LibTensor* in2T, LibTensor* in3T,
                                                 LibTensor* in4T,
@@ -126,7 +128,8 @@ inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T
                                                 unsigned int pLengthsSize,
                                                 void *pmask, unsigned int pMaskSize,
                                                 uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions) return;

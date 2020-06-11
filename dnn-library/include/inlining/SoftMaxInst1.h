@@ -38,9 +38,9 @@ namespace inlining {
   // there will not be two minions in different rows writing on the same cache
   // line.
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -202,9 +202,9 @@ inline void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t
 // TODO: use templates for each srcType for a speed up (the only
 // difference is in the GATHER_FLOAT and SCATTER_FLOAT functions).
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibSoftMaxInstVectorized1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

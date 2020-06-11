@@ -30,10 +30,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind dstElk, ElemKind srcElk>
 inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
                               void *pkernels, void *pstrides, void *ppads) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -44,7 +45,7 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   void* activations = inT->getRawDataPointer<void>();
   
   // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
   const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
 
@@ -103,11 +104,12 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   }       // N
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElk, ElemKind srcElk>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       void *pkernels, void *pstrides,
                                       void *ppads, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

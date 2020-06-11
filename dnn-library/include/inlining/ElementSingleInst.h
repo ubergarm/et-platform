@@ -30,8 +30,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType, typename opType>
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
 inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT) {
+  using dstType = typename elemKind2elemTy<dstElk>::type;
+  using srcType = typename elemKind2elemTy<src1Elk>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -89,8 +91,10 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType, typename opType>
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
 inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  using dstType = typename elemKind2elemTy<dstElk>::type;
+  using srcType = typename elemKind2elemTy<src1Elk>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -151,11 +155,10 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename src1Type, typename dstType, typename opType>
-inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT,
-                                              const float* scale,
-                                              const int32_t* offset,
-                                              uint64_t flags) {
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
+inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  using dstType = typename elemKind2elemTy<dstElk>::type;
+  using srcType = typename elemKind2elemTy<src1Elk>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -179,12 +182,12 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
   
-  Operator<Addresser<src1Type>, Addresser<src1Type>, Addresser<dstType>, opType> op;
+  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<dstType>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
  
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<src1Type>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -239,6 +242,9 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT,
     dstAddr += offsetOut * typeSize;
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
+    int32_t offset[] = {inT->getOffset(), outT->getOffset()};
+    float scale[] =  {inT->getScale(), outT->getScale()};
+      
     unsigned int cnt = 0;
     while(cnt < registersInRow) {
       /* review in implementation sw-2429 to tacke out scale and offset from params and set what it is necessary*/
@@ -271,8 +277,30 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
+
+
+  // instances for particular instructions
+template <ElemKind dstElk, ElemKind srcElk>
+inline void fwdLibElementLogInst(LibTensor* outT, LibTensor* inT) {
+  fwdLibElementSingleInst<dstElk, srcElk, ElementLog>(outT, inT);
+}
+
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
+inline void fwdLibElementLogInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  fwdLibElementSingleInstThreaded<dstElk, srcElk, ElementLog>(outT, inT, flags);
+}
+
+template <ElemKind dstElk, ElemKind srcElk, typename opType>
+inline void fwdLibElementLogInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  inline void fwdLibElementSingleInstVectorized<dstElk, srcElk, ElementLog>(outT, inT, flags);
+}
+  
 } // namespace inlining
 
 } // namespace dnn_lib
 
 #endif // _ELEMENT_SINGLE_INST_H_
+
+
+
+

@@ -45,8 +45,16 @@ namespace inlining {
 
 inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
                                           LibTensor* in2T, LibTensor* in3T,
-                                          LibTensor* in4T, uint64_t dataDim1Pitch) {
+                                          LibTensor* in4T) {
 
+  assert( outT->getElementSize == FloatTy && 
+          in1T->getElementSize == FloatTy && 
+          in2T->getElementSize == FloatTy && 
+          in3T->getElementSize == FloatTy && 
+          in4T->getElementSize == FloatTy);
+  
+  uint64_t dataDim1Pitch = in1T->strides()[0] / in1T->getElementSize();
+  
   uint32_t minionId = get_minion_id();
   if (minionId != 0)
     return;

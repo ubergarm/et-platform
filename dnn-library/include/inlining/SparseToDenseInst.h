@@ -30,10 +30,12 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* outT,
                                                                    LibTensor* in1T,
                                                                    LibTensor* in2T) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id();
   if (minionId > 0)
     return;
@@ -127,9 +129,10 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* ou
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -370,10 +373,11 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 }
 
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, const float* scale,
            const int32_t* offset, uint64_t flags) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

@@ -30,9 +30,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
                              bool signFollowDivisor) {
+  using srcType = typename elemKind2elemTy<elK>::type;  
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -94,10 +95,10 @@ inline void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT,long long divisor,
                                      bool signFollowDivisor, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

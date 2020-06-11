@@ -30,11 +30,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInst(
     LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
     unsigned int halfWindowSize, float alpha, float beta, float k) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
@@ -124,11 +124,11 @@ inline void fwdLibLocalResponseNormalizationInst(
 // version is not correct. Notice that dst2Matrix is only needed for backward
 // pass, i.e. ETSOC won't be using it. Actually, we could skip generating it.
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
           LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize,
           float alpha, float beta, float k, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
@@ -225,11 +225,11 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
     LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
     float beta, float k, uint64_t flags) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
