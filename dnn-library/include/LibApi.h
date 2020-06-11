@@ -340,12 +340,12 @@ namespace dnn_lib {
        {} // impl versions
      },
      /**** ET_maxsplat ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
-       {}, // members
-       0, // template param mask
-       {} // impl versions
+     { "MaxSplat", // name
+       1, // # outs
+       1,  // # ins
+       {mbValue}, // members
+       2, // template param mask
+       {"Threaded", "Vectorized", "Aligned32Bytes"} // impl versions
      },
      /**** ET_extracttensor ****/
      { "ExtractTensor", // name
