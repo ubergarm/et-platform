@@ -77,7 +77,6 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LengthsToRangesInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LocalResponseNormalizationInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInst.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInstTransposed.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxPoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ModuloInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/QuantizeInst.h"
@@ -93,7 +92,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseMaskInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SplatInst.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SyncopyInstTensorized.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SyncopyInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TanhInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TensorViewInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TopKInst.h"
@@ -133,7 +132,7 @@ add_compile_options(-Werror -Wall)
 message("${PROJECT_NAME}: Clang Build is set to ${CLANG_BUILD}")
 
 add_library(dnn_lib STATIC
-#  src/AdaptiveAvgPoolInst.cpp
+  src/AdaptiveAvgPoolInst.cpp
   src/ArgMaxInst.cpp
   src/AvgPoolInst.cpp
   src/BatchedAddInst.cpp
@@ -168,7 +167,6 @@ add_library(dnn_lib STATIC
   src/LengthsToRangesInst.cpp
   src/LocalResponseNormalizationInst.cpp
   src/MatMulInst.cpp
-  src/MatMulInstTransposed.cpp
   src/MaxSplatInst.cpp
   src/MaxPoolInst.cpp
   src/ModuloInst.cpp
@@ -185,7 +183,7 @@ add_library(dnn_lib STATIC
   src/SparseToDenseInst.cpp
   src/SparseToDenseMaskInst.cpp
   src/SplatInst.cpp
-  src/SyncopyInstTensorized.cpp
+  src/SyncopyInst.cpp
   src/TanhInst.cpp
   src/TensorViewInst.cpp
   src/TopKInst.cpp

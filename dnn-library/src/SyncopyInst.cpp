@@ -9,19 +9,19 @@
  *-------------------------------------------------------------------------
  */
 
-#include "SyncopyInstTensorized.h" // From include/inlining
+#include "SyncopyInst.h" // From include/inlining
 
 namespace dnn_lib {
 
-template <typename srcType>
-void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT, unsigned int off) {
+template <ElemKind elK>
+void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off) {
 
-  dnn_lib::inlining::fwdLibSyncopyInstTensorized<srcType>(outT, inT, off);
+  dnn_lib::inlining::fwdLibSyncopyInst<elK>(outT, inT, off);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP(template, fwdLibSyncopyInstTensorized, LibTensor* outT, LibTensor* inT,
+GEN_INSTANCES_OP(template, fwdLibSyncopyInst, LibTensor* outT, LibTensor* inT,
                                   unsigned int off);
 
 } // namespace dnn_lib
