@@ -29,10 +29,49 @@ class LibManagerSheet:
     # constants
     ################################################################################
     headerKeys = ("Operator", "nrOutTensors", "nrInTensors", "members", "templateElk","extraImpl", "implSel")
+    instHeader=("Operator", "nrOutTensors", "nrInTensors", "templateElk")
+
     headerFill = PatternFill(fgColor = "DDDDDD", fill_type = "solid")
     #    operatorFill = [PatternFill(fgColor = "3FBE7E", fill_type = "solid"),
     #                    PatternFill(fgColor = "5F9E9F", fill_type = "solid") ]
     operatorFill = [None]
+
+    memberTypeMap = { "HalfWindowSize": "uint32_t",
+                      "Alpha": "float",
+                      "Beta": "float",
+                      "K": "float",
+                      "Divisor": "uint64_t",
+                      "SignFollowDivisor": "bool",
+                      "Axis": "dim_t",
+                      "KeepDims": "bool",
+                      "Kernels": "std::array<uint32_t, default_kernels_size>",
+                      "Strides": "std::array<uint32_t, default_kernels_size>",
+                      "Pads": "std::array<uint32_t, default_kernels_size>",
+                      "Group": "uint32_t",
+                      "Offsets": "std::array<size_t, max_tensor_dimensions>",
+                      "Shuffle": "std::array<size_t, max_tensor_dimensions>",
+                      "Mask": "std::array<uint64_t, default_mask_size>",
+                      "BatchDims": "uint32_t",
+                      "Count": "uint32_t",
+                      "SyncOffset": "uint32_t",
+                      "Value": "float"
+                    }
+
+    # members that end up adding another template paramer (they are std::array<T, N>)
+    # assuming all the ones with the same value (e.g. Kernels and Strides share the same template param
+    # if not, just rename one of them
+    memberExtraTpl = { "Kernels": "size_t KN",
+                       "Strides":  "size_t KN",
+                       "Pads": "size_t KN",
+                       "Offsets": "size_t N",
+                       "Shuffle": "size_t N",
+                       "Mask": "size_t MN"
+    }
+
+
+    ################################################################################
+    # constructor
+    ################################################################################
 
     def __init__(self, spreadsheet, hostswdir = None, glowdir = None):
 
@@ -40,7 +79,7 @@ class LibManagerSheet:
         self.__enum = enum.get()
         
         try:
-            self.__wb = load_workbook(spreadsheet)            
+            self.__wb = load_workbook(spreadsheet, data_only=True)
             self._existing = True
         except FileNotFoundError:
             self._existing = False
@@ -162,7 +201,50 @@ class LibManagerSheet:
     def __codeGen(self, hostswdir):
         # load configuration from spreadsheet
         self.loadSheet()
+        # create LibApi table
+        self.genLibApi(hostswdir)
+        # create non-inline functions and extern template definitions
+        self.genNonInline(hostswdir)
 
+    def parseLibManagerSheet(self, row):
+        operator = { "gen": False}
+        for h,cell in zip(LibManagerSheet.headerKeys, row):
+            operator[h] = cell.value
+                
+        enum = "ET_" + operator["Operator"].lower()
+        self.__configs[enum] = operator
+        
+    def parseInstancesSheet(self, row):
+        instances= []
+        for i,cell in enumerate(row):
+            if i == 0: # op name
+                op = cell.value
+            elif i >= len(LibManagerSheet.instHeader):
+                v = cell.value
+                if v:
+                    instances.append(v)
+        if op == 0: #ignoring empty
+            return
+
+        enum = "ET_" + op.lower()                    
+        self.__configs[enum]["instances"] = instances
+
+    def loadSheet(self):
+
+        # read the sheets
+        self.__configs = {}
+        parser = [self.parseLibManagerSheet, self.parseInstancesSheet ]
+        for i,sn in enumerate(("LibManager","Instances")):
+            ws = self.__wb[sn]
+            skipHeader  = True
+            for row in ws.rows:
+                if skipHeader:
+                    skipHeader = False
+                    continue
+                parser[i](row)
+        
+
+    def genLibApi(self, hostswdir):
         # generate table for header file
         table = [ self.tableEntry(i) for i in self.__enum ] 
         tableStr = self.formatTable(table)
@@ -172,25 +254,9 @@ class LibManagerSheet:
         for i in missing:
             print("Spreadhseet row for %s not used" % i, file = sys.stderr)
 
-        # and output inplace
-        self.output(hostswdir, tableStr)
-                
-    def loadSheet(self):
-        ws = self.__wb.active
-        self.__configs = {}
-        skipHeader = True
-        for row in ws.rows:
-            if skipHeader:
-                skipHeader = False
-                continue
-
-            operator = { "gen": False}
-            for h,cell in zip(LibManagerSheet.headerKeys, row):
-                operator[h] = cell.value
-                
-            enum = "ET_" + operator["Operator"].lower()
-            self.__configs[enum] = operator
-
+        # and create output
+        self.outputLibApi(hostswdir, tableStr)
+            
     def tableEntry(self, op):
         if op in self.__configs:
             conf = self.__configs[op];
@@ -241,7 +307,7 @@ class LibManagerSheet:
         entries = [ s.substitute(e) for e in table]        
         return ",\n".join(entries)
 
-    def output(self, hostswdir, tableStr):
+    def outputLibApi(self, hostswdir, tableStr):
         contents = []
         startMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_BEGIN')
         endMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_END')
@@ -269,8 +335,161 @@ class LibManagerSheet:
         with open(fname, "w") as f:
             f.writelines(contents)
 
+    def genNonInline(self, hostswdir):
+        fncs = {}
+        for op in self.__enum:
+            if op in self.__configs:
+                opData = []
+                conf = self.__configs[op]
+                if not conf["gen"]:
+                    continue
+
+                inst = conf["instances"]
+                versions = [""]
+                if conf["extraImpl"]:
+                    versions += ['"' + i.replace(" ", "") + '"' for i in conf["extraImpl"].split(',')]
+                members = []
+                if conf["members"]:
+                    members = [ i.replace(" ", "") for i in conf["members"].split(',')]
+
+                for v in versions:
+                    fname = "fwdLib%sInst%s" % (conf["Operator"], v)
+                    if len(inst) == 0:
+                        opData.append(self.getImplInfo(conf["Operator"], fname, conf, members))
+                    else:
+                        for tpl in inst:
+                            opData.append(self.getImplInfo(conf["Operator"],fname, conf, members, tpl))
+                fncs[op] = opData
+
+        # and generate the code
+        self.genLibNodes(hostswdir, fncs)
+        self.genCppNodes(hostswdir, fncs)
+
+    def genLibNodes(self, hostswdir, fncs):
+        #create libNodes.h
+        autogenMsg = "// File automatically generated with:\n//  %s\n//  cwd=%s\n" % (' '.join(sys.argv), os.getcwd())
         
-                       
+        hFile = os.path.join ( hostswdir, 'dnn_lib/include/LibNodes.h');
+        code = []
+        for op in fncs:
+            code+= [ "\n/****************************************************************************",
+                     "/* %s implementations" % op[0]['opname'],
+                     "****************************************************************************/",
+                     "// declarations"]
+            declared = {} # keep track of what has been declared (not to repeat several times the same
+                          # declarations) => required because splat functions have different params
+                          # depending on the templates
+            for i in fncs[op]:
+                decl = "%s\nvoid %s(%s);" % (i['templateDecl'], i['fname'], i['callDeclHeader'])
+                if decl not in declared:
+                    code.append(decl)
+                    declared[decl] = True
+
+            code.append("\n// extern template declarations")
+            for i in fncs[op]:
+                code.append("extern template void %s%s(%s);" % (i['fname'], i['templateInst'], i['callDecl']))
+
+        code = "\n".join(code)
+        with open(hFile, "w") as f:
+            f.write("""%s
+#ifndef LIBNODES_H_
+#define LIBNODES_H_
+
+#include "LibTensor.h"
+
+namespace dnn_lib {
+static constexpr size_t default_kernels_size = 2;
+static constexpr size_t default_mask_size = max_tensor_dimensions;
+%s
+} // namespace dnn_lib
+
+#endif /* LIBNODES_H_ */
+""" % (autogenMsg, code))
+
+    def genCppNodes(self, hostswdir, fncs):
+        for op in fncs:
+            opname = op[0]['opname']
+            cppFile = os.path.join(hostswdir, "dnn_lib/src/%s.cpp" % opname )
+
+
+### 
+### #include "LibNodes.h"
+### 
+### namespace dnn_lib {
+### 
+### template <ElemKind elK>
+### void XXX(LibTensor* outT, LibTensor* inT) {
+### 
+###   dnn_lib::inlining::XXX<elK>(outT, inT);
+### }
+### 
+### "template void %s%s(%s);" % (i['fname'], i['templateInst'], i['callDecl']))
+### } // dnn_lib
+
+
+        
+        
+    def getImplInfo(self, opname, fname, conf, members, tpl = None):
+        if conf["templateElk"] == "NONE":
+            tensorTpl = []
+        else:
+            tensorTpl = [ int(i) for i in str(conf["templateElk"]).split(',')]
+        tplInst = "" if tpl == None else tpl
+        info = { 'fname': fname,
+                 'opname': opname,
+                 'templateDecl' : [],
+                 'templateInst': "<%s>" % tplInst,
+                 'callDecl': [],
+                 'callInst':[]}
+
+        
+        for i in range(conf["nrOutTensors"]):
+            info['callDecl'].append("LibTensor* out%d" % i)
+            info['callInst'].append("out%d" % i)            
+            if i in tensorTpl:
+                info['templateDecl'].append('ElemKind out%dType' % i)
+                
+        for i in range(conf["nrInTensors"]):
+            info['callDecl'].append("LibTensor* out%d" % i)
+            info['callInst'].append("in%d" % i)            
+            if i + conf["nrOutTensors"] in tensorTpl:
+                info['templateDecl'].append('ElemKind in%dType' % i)
+
+            
+        for i in members:
+            info['callDecl'].append(self.memberType(i, tpl) + " " + i)
+            info['callInst'].append(i)
+            ##if i in LibManagerSheet.memberExtraTpl:
+            ##    t = LibManagerSheet.memberExtraTpl[i]
+            ##    info['templateDecl'].append( "%s %s" %(t,i))
+
+        info['callDeclHeader'] = info['callDecl'].copy() # same as callDecl, but with default values
+        info['callDecl']+=[ "const uint64_t flags",
+                            "const uint32_t minionOffset",
+                            "const uint32_t assignedMinions" ]
+        info['callDeclHeader']+=[ "const uint64_t flags",
+                                  "const uint32_t minionOffset = 0",
+                                  "const uint32_t assignedMinions = 0" ]        
+        info['callInst']+=["flags", "minionOffset", "assignedMinions"]
+                               
+        # convert to strings
+        info['callDecl'] = ', '.join(info['callDecl'])
+        info['callDeclHeader'] = ', '.join(info['callDeclHeader'])
+        info['callInst'] = ', '.join(info['callInst'])
+        info['templateDecl'] = "template <%s>" % (', '.join(info['templateDecl']))
+
+        return info
+
+    def memberType(self, m, tpl = None):
+        # special case: "Value" => type is float except int64_t if first param is int64_t
+        if m == "Value" and re.match(r'int64_t', tpl):
+            return "int64_t"
+        
+        # expected exception if member not found
+        return LibManagerSheet.memberTypeMap[m]
+
+
+        
 if __name__ == "__main__":
     # parse command line options
     parser = argparse.ArgumentParser("Create Operator test")
