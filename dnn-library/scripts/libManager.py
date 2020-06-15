@@ -347,7 +347,7 @@ class LibManagerSheet:
                 inst = conf["instances"]
                 versions = [""]
                 if conf["extraImpl"]:
-                    versions += ['"' + i.replace(" ", "") + '"' for i in conf["extraImpl"].split(',')]
+                    versions += [i.replace(" ", "")  for i in conf["extraImpl"].split(',')]
                 members = []
                 if conf["members"]:
                     members = [ i.replace(" ", "") for i in conf["members"].split(',')]
@@ -373,7 +373,7 @@ class LibManagerSheet:
         code = []
         for op in fncs:
             code+= [ "\n/****************************************************************************",
-                     "/* %s implementations" % fncs[op][0]['opname'],
+                     "*  %s implementations" % fncs[op][0]['opname'],
                      "****************************************************************************/",
                      "// declarations"]
             declared = {} # keep track of what has been declared (not to repeat several times the same
@@ -469,7 +469,7 @@ namespace dnn_lib {
                 info['templateDecl'].append('ElemKind out%dType' % i)
                 
         for i in range(conf["nrInTensors"]):
-            info['callDecl'].append("LibTensor* out%d" % i)
+            info['callDecl'].append("LibTensor* in%d" % i)
             info['callInst'].append("in%d" % i)            
             if i + conf["nrOutTensors"] in tensorTpl:
                 info['templateDecl'].append('ElemKind in%dType' % i)
