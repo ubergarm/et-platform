@@ -32,9 +32,9 @@ namespace inlining {
 
 /// Dequantize integer tensor. Scale and Offset are based
 /// on the source tensor type.
-template <ElemKind dstElk, ElemKind srcElK>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using dstType = typename elemKind2elemTy<dstElK>::type; //TODO: use to support float16 as well (SW-3267)
   using srcType = typename elemKind2elemTy<srcElK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -90,10 +90,10 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <ElemKind dstElk, ElemKind srcElK>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using dstType = typename elemKind2elemTy<dstElK>::type; //TODO: use to support float16 as well (SW-3267)
+  using srcType = typename elemKind2elemTy<srcElK>::type;
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)

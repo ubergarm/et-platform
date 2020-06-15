@@ -387,7 +387,8 @@ class LibManagerSheet:
 
             code.append("\n// extern template declarations")
             for i in fncs[op]:
-                code.append("extern template void %s%s(%s);" % (i['fname'], i['templateInst'], i['callDecl']))
+                if len(i['templateInst']) > 0:
+                    code.append("extern template void %s%s(%s);" % (i['fname'], i['templateInst'], i['callDecl']))
 
         code = "\n".join(code)
         with open(hFile, "w") as f:
@@ -396,6 +397,7 @@ class LibManagerSheet:
 #define LIBNODES_H_
 
 #include "LibTensor.h"
+#include "inlining.h"
 
 namespace dnn_lib {
 static constexpr size_t default_kernels_size = 2;
@@ -453,11 +455,11 @@ namespace dnn_lib {
             tensorTpl = []
         else:
             tensorTpl = [ int(i) for i in str(conf["templateElk"]).split(',')]
-        tplInst = "" if tpl == None else tpl
+        tplInst = "" if tpl == None else "<%s>" % tpl
         info = { 'fname': fname,
                  'opname': opname,
                  'templateDecl' : [],
-                 'templateInst': "<%s>" % tplInst,
+                 'templateInst': tplInst,
                  'callDecl': [],
                  'callInst':[]}
 
@@ -495,7 +497,10 @@ namespace dnn_lib {
         info['callDecl'] = ', '.join(info['callDecl'])
         info['callDeclHeader'] = ', '.join(info['callDeclHeader'])
         info['callInst'] = ', '.join(info['callInst'])
-        info['templateDecl'] = "template <%s>" % (', '.join(info['templateDecl']))
+        if len(info['templateDecl']) == 0:
+            info['templateDecl'] = ""
+        else:
+            info['templateDecl'] = "template <%s>" % (', '.join(info['templateDecl']))
 
         return info
 

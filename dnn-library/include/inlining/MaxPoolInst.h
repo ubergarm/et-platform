@@ -48,7 +48,7 @@ inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,
   void* activations = inT->getRawDataPointer<void>();
 
   // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
   const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
   // int64_t *tOutput2 = (int64_t *)dst2Matrix;

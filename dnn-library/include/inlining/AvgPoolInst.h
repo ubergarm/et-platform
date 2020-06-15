@@ -30,10 +30,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind dstElk, ElemKind srcElk>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
                               void *pkernels, void *pstrides, void *ppads) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -104,7 +104,7 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   }       // N
 }
 
-template <ElemKind dstElk, ElemKind srcElk>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       void *pkernels, void *pstrides,
                                       void *ppads, uint64_t flags) {

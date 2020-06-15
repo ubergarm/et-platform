@@ -32,7 +32,7 @@ namespace inlining {
 
 template <ElemKind elK>
 inline void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
-  using ElemTy = elemKind2elemTy<elK>::type;
+  using ElemTy = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;

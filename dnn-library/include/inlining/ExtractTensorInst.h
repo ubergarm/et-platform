@@ -30,7 +30,7 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elk>
+template <ElemKind elK>
 inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
                                     void *pcoord) {
   using srcType = typename elemKind2elemTy<elK>::type;
@@ -93,7 +93,7 @@ inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
   }
 }
 
-template <ElemKind elk>
+template <ElemKind elK>
 inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                                             void *pcoord, uint64_t flags) {
   using srcType = typename elemKind2elemTy<elK>::type;

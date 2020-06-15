@@ -184,7 +184,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {}, // members
-       2, // template param mask
+       3, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_elementadd ****/

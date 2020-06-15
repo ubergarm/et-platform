@@ -100,8 +100,9 @@ inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_v
 }
 
   // and instance for Int8Converter
-template <typename srcType>
-inline void fwdLibElementInt8Converter(LibTensor* outT, LibTensor* inT, ) {
+template <ElemKind elK>
+inline void fwdLibElementInt8Converter(LibTensor* outT, LibTensor* inT) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   srcType imm_value = 0x80;
   fwdLibElementImmLogic<srcType, Xor>(outT, inT, imm_value);
 }

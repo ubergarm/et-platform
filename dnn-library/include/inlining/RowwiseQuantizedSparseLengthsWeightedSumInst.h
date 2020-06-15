@@ -202,12 +202,9 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
              LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  const bool Int8Src = srcElk == Int8QTy;
-  const bool Float16Dst = dstElk == Float16Ty;
+  const bool Int8Src = srcElK == Int8QTy;
+  const bool Float16Dst = dstElK == Float16Ty;
   
-  using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<srcElK>::type;
-
   // Get offset of the Minion inside the group of Minions assigned to this Node.
   uint64_t minionId = get_minion_id();
   if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.

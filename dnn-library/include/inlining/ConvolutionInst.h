@@ -445,7 +445,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -500,7 +500,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
     if(elems > featsLeft) { elems = featsLeft; }
 
     // Starts the accumulation with the bias (per Channel)
-    typename accumulatorType<srcType>::type sum[CONVOLUTION_MAX_ELEMS];
+    typename accumulatorType<src1Type>::type sum[CONVOLUTION_MAX_ELEMS];
     for (size_t i = 0; i < elems; i++) {
       sum[i] = tBias[weightC + i];
     }
@@ -542,7 +542,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
         }
 
         // Calls the function that will accumulate all the channels for specific kernel step
-        convolutionStep <srcType> (sum, tAInput, activations, tWInput, weights, inCperG, dataBCKernelOffset, weightKernelStepCOffset, weightPitch[0], elems);
+        convolutionStep <src1Type> (sum, tAInput, activations, tWInput, weights, inCperG, dataBCKernelOffset, weightKernelStepCOffset, weightPitch[0], elems);
       }
     }
     // Moves to next result

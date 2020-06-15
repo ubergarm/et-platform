@@ -35,7 +35,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInst(
                   LibTensor* in3T, LibTensor* in4T, LibTensor* in5T) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
-         int2->getElementType() == Int8QTy);
+         in2T->getElementType() == Int8QTy);
          
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -104,7 +104,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(
            LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
-         int2->getElementType() == Int8QTy);
+         in2T->getElementType() == Int8QTy);
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -208,7 +208,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(
      LibTensor* in3T, LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
-         int2->getElementType() == Int8QTy);
+         in2T->getElementType() == Int8QTy);
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -387,7 +387,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
            LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
-         int2->getElementType() == Int8QTy);
+         in2T->getElementType() == Int8QTy);
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;

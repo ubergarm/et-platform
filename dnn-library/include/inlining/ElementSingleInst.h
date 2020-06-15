@@ -30,10 +30,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind dstElk, ElemKind srcElk, typename opType>
+template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT) {
-  using dstType = typename elemKind2elemTy<dstElk>::type;
-  using srcType = typename elemKind2elemTy<src1Elk>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -46,7 +46,7 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT) {
   // const Addresser<srcType> aSrcT1(src, scale[0], offset[0]);
   const Addresser<srcType> aSrcT1(src, inT->getScale(), inT->getOffset());
   // Addresser<srcType> aDstT(dstT, scale[2], offset[2]);
-  Addresser<srcType> aDstT(dst, outT->getScale(), outT->getOffset());
+  Addresser<dstType> aDstT(dst, outT->getScale(), outT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -91,10 +91,10 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <ElemKind dstElk, ElemKind srcElk, typename opType>
+template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-  using dstType = typename elemKind2elemTy<dstElk>::type;
-  using srcType = typename elemKind2elemTy<src1Elk>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -108,7 +108,7 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
   // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
   const Addresser<srcType> aSrcT1(src, inT->getScale(), inT->getOffset());
   // Addresser<srcType> aDstT(dstT, scale[2], offset[2]);
-  Addresser<srcType> aDstT(dst, outT->getScale(), outT->getOffset());
+  Addresser<dstType> aDstT(dst, outT->getScale(), outT->getOffset());
 
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
@@ -155,10 +155,10 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <ElemKind dstElk, ElemKind srcElk, typename opType>
+template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-  using dstType = typename elemKind2elemTy<dstElk>::type;
-  using srcType = typename elemKind2elemTy<src1Elk>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
@@ -280,19 +280,19 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
 
 
   // instances for particular instructions
-template <ElemKind dstElk, ElemKind srcElk>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibElementLogInst(LibTensor* outT, LibTensor* inT) {
-  fwdLibElementSingleInst<dstElk, srcElk, ElementLog>(outT, inT);
+  fwdLibElementSingleInst<dstElK, srcElK, ElementLog>(outT, inT);
 }
 
-template <ElemKind dstElk, ElemKind srcElk, typename opType>
+template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementLogInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-  fwdLibElementSingleInstThreaded<dstElk, srcElk, ElementLog>(outT, inT, flags);
+  fwdLibElementSingleInstThreaded<dstElK, srcElK, ElementLog>(outT, inT, flags);
 }
 
-template <ElemKind dstElk, ElemKind srcElk, typename opType>
+template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementLogInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-  inline void fwdLibElementSingleInstVectorized<dstElk, srcElk, ElementLog>(outT, inT, flags);
+  fwdLibElementSingleInstVectorized<dstElK, srcElK, ElementLog>(outT, inT, flags);
 }
   
 } // namespace inlining

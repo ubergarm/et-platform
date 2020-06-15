@@ -49,7 +49,7 @@ void fwdLibSplatInst(LibTensor *outT, float splatVal) {
 
   // transform splatVal to srcType, and replicate to fit up to 64 bits
   srcType splatValType;
-  const Addresser <srcType> valAd(&splatValType, outT->getScale(), inT->getOffset());
+  const Addresser <srcType> valAd(&splatValType, outT->getScale(), outT->getOffset());
   valAd[0] = splatVal;
   uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
   for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){
@@ -70,7 +70,7 @@ void fwdLibSplatInst(LibTensor *outT, float splatVal) {
 
 }
 
-template <typename sourceTy>
+template <ElemKind elK>
 inline void fwdLibSplatInstThreaded(LibTensor* outT, float splatVal,
                                     uint64_t flags) {
   using srcType = typename elemKind2elemTy<elK>::type;
@@ -78,8 +78,6 @@ inline void fwdLibSplatInstThreaded(LibTensor* outT, float splatVal,
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
   if (minionId >= activeMinions)
     return;
-
-  using srcType = typename std::conditional< std::is_same<sourceTy, float16>::value, uint16_t, sourceTy>::type;
 
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
@@ -162,7 +160,7 @@ inline void fwdLibSplatInstVectorized(LibTensor* outT, float splatVal, uint64_t 
 
   // transform splatVal to srcType, and replicate to fit up to 64 bits
   srcType splatValType;
-  const Addresser <srcType> valAd(&splatValType, outT->getScale(), inT->getOffset());
+  const Addresser <srcType> valAd(&splatValType, outT->getScale(), outT->getOffset());
   valAd[0] = splatVal;
   uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
   for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){

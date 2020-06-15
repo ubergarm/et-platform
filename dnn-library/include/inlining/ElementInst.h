@@ -49,7 +49,7 @@ namespace inlining {
  * @param[in] in1T LibTensor pointer to the src1 matrix
  * @param[in] in2T LibTensor pointer to the src2 matrix
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2Elk, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
@@ -72,11 +72,11 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
   void* srcT2 = in2T->getRawDataPointer<void>();
  
   // const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
-  const Addresser<srcType> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());  
+  const Addresser<src1Type> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());  
   // const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
-  const Addresser<srcType> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset()); 
+  const Addresser<src2Type> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset()); 
   // Addresser<srcType> aDstT(dstT, scale2, offset2);
-  Addresser<srcType> aDstT(dstT, outT->getScale(), outT->getOffset());
+  Addresser<dstType> aDstT(dstT, outT->getScale(), outT->getOffset());
  
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = in1T->dims().data();
@@ -102,7 +102,7 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
 
   uint64_t addrSrc1, addrSrc2, addrDst;
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
+  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<dstType>, opType> op;
 
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -152,7 +152,7 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2Elk, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
                                       LibTensor* in2T, uint64_t flags) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
@@ -252,7 +252,7 @@ inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2Elk, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in2T, uint64_t flags) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
@@ -390,15 +390,15 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
 #define EltWiseInst(name, opType)                                                                            \
   template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                 \
   fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {                              \
-    fwdLibElementInst<dstElk, src1Elk, src2Elk, opType>(outT, in1T,in2T);                                    \
+    fwdLibElementInst<dstElK, src1ElK, src2ElK, opType>(outT, in1T,in2T);                                    \
   }                                                                                                          \
   template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>inline void                                  \
   fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {      \
-    fwdLibElementInstThreaded<dstElk, src1Elk, src2Elk, opType>  (outT, in1T, in2T,flags);                   \
+    fwdLibElementInstThreaded<dstElK, src1ElK, src2ElK, opType>  (outT, in1T, in2T,flags);                   \
   }                                                                                                          \
   template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                 \
   fwdLib ## opType ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {    \
-    fwdLibElementInstVectorized <dstElk, src1Elk, src2Elk, opType>(outT, in1T,  in2T, scale, offset, flags); \
+    fwdLibElementInstVectorized <dstElK, src1ElK, src2ElK, opType>(outT, in1T,  in2T, flags);                \
   }
 
 

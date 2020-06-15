@@ -39,7 +39,7 @@ namespace inlining {
  * 
  * @warning It comes without doubt that A and B must have the same dimensions.
  * 
- * @tparam srcNElk The type of the elements in the nth input tensor
+ * @tparam srcNElK The type of the elements in the nth input tensor
  * @tparam opType The operation to perform, returning a bool (>, \geq, =, etc).
  * @param[out] outT pointer to the output LibTensor.
  * @param[in] in1T pointer to first source LibTensor
@@ -122,7 +122,7 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
  * 
  * @warning It comes without doubt that A and B must have the same dimensions.
  * 
- * @tparam srcNElk The type of the elements in the nth input tensor
+ * @tparam srcNElK The type of the elements in the nth input tensor
  * @tparam opType The operation to perform, returning a bool (>, \geq, =, etc).
  * @param[out] dstT Pointer to the output matrix.
  * @param[in] in1T pointer to first source LibTensor
@@ -210,7 +210,7 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
  * 
  * @warning It comes without doubt that A and B must have the same dimensions.
  * 
- * @tparam srcNElk The type of the elements in the nth input tensor
+ * @tparam srcNElK The type of the elements in the nth input tensor
  * @tparam opType The operation to perform, returning a bool (>, \geq, =, etc).
  * @param[out] dstT Pointer to the output matrix.
  * @param[in] dstDims The "number of dimensions" of the output matrix.
@@ -357,17 +357,17 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   // the proper parameters)
   ////////////////////////////////////////////////////////////////////////////////
 #define EltWiseInst(name, opType)                                                                        \
-  template <ElemKind src1Elk, ElemKind src2Elk>                                                          \
+  template <ElemKind src1ElK, ElemKind src2ElK> inline void                                              \
   fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {                          \
-    fwdLibElementBoolInst<src1Elk, src2Elk, opType> (outT, in1T,in2T);                                   \
+    fwdLibElementBoolInst<src1ElK, src2ElK, opType> (outT, in1T,in2T);                                   \
   }                                                                                                      \
-  template <ElemKind src1Elk, ElemKind src2Elk>  inline void                                             \
+  template <ElemKind src1ElK, ElemKind src2ElK>  inline void                                             \
   fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {  \
-    fwdLibElementBoolInstThreaded<src1Elk, src2Elk, opType>  (outT, in1T, in2T,flags);                   \
+    fwdLibElementBoolInstThreaded<src1ElK, src2ElK, opType>  (outT, in1T, in2T,flags);                   \
   }                                                                                                      \
-  template <ElemKind src1Elk, ElemKind src2Elk>  inline void                                             \
+  template <ElemKind src1ElK, ElemKind src2ElK>  inline void                                             \
   fwdLib ## opType ## Vectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {    \
-    fwdLibElementBoolInstVectorized<src1Elk, src2Elk, opType> (outT, in1T,  in2T, flags); \
+    fwdLibElementBoolInstVectorized<src1ElK, src2ElK, opType> (outT, in1T,  in2T, flags); \
   }
   
   EltWiseInst(ElementCmpEQ, CmpEQ)

@@ -40,16 +40,16 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) 
   if (minionId != 0)
     return;
 
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = inT->getRawDataPointer<void>();
+  srcType* const dstT = outT->getRawDataPointer<srcType>();
+  srcType* const srcT = inT->getRawDataPointer<srcType>();
   
-  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
+  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
 
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    [&](size_t addrDst, size_t addrSrc) {
-                     if (std::is_same<srcType, valType>::value) {
-                       dstT[addrDst] = (srcT[addrSrc] > splatVal) ? src[addrSrc] : splatVal;
+                     if (std::is_same<srcType, float>::value) {
+                       dstT[addrDst] = (srcT[addrSrc] > splatVal) ? srcT[addrSrc] : splatVal;
                      } else {
                        auto src = ptrSrcT[addrSrc];
                        ptrDstT[addrDst] = src > splatVal ? src : splatVal;
@@ -60,17 +60,17 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) 
 }
 template <ElemKind elK>
 inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal) {
-  using srcType = typename elemKind2elemTy<elK>::type;
-  
+  static_assert( elK == Int64ITy);
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
     return;
 
-  int64_t* dstT = outT->getRawDataPointer<int64_t>();
-  int64_t* srcT = inT->getRawDataPointer<int64_t>();
+  int64_t* const dstT = outT->getRawDataPointer<int64_t>();
+  int64_t* const srcT = inT->getRawDataPointer<int64_t>();
   
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
-                   dstT[addrDst] = (srcT[addrSrc] > splatVal) ? src[addrSrc] : splatVal;
+                   [&](size_t addrDst, size_t addrSrc) {
+                     dstT[addrDst] = (srcT[addrSrc] > splatVal) ? srcT[addrSrc] : splatVal;
                    } );
 }
 

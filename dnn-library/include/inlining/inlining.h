@@ -35,7 +35,7 @@
 #include "ElementSingleInst.h" // From include/inlining path
 #include "EmbeddingBagInst.h" // From include/inlining path
 #include "ExtractTensorInst.h" // From include/inlining path
-#include "FlipInst.h" // From include/inlining path
+//#include "FlipInst.h" // From include/inlining path
 #include "FullyConnectedInst.h" // From include/inlining path
 #include "FusedRowwiseQuantizedSparseLengthsSumInst.h" // From include/inlining path error:template overload fix when finish
 #include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path  error:template overload fix when finish
@@ -61,7 +61,7 @@
 #include "SparseToDenseInst.h" // From include/inlining path
 #include "SparseToDenseMaskInst.h" // From include/inlining path
 #include "SplatInst.h" // From include/inlining path
-#include "SyncopyInstTensorized.h" // From include/inlining path
+#include "SyncopyInst.h" // From include/inlining path
 #include "TanhInst.h" // From include/inlining path
 #include "TensorViewInst.h" // From include/inlining path
 #include "TopKInst.h" // From include/inlining path

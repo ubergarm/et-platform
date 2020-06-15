@@ -47,11 +47,11 @@ inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
                                           LibTensor* in2T, LibTensor* in3T,
                                           LibTensor* in4T) {
 
-  assert( outT->getElementSize == FloatTy && 
-          in1T->getElementSize == FloatTy && 
-          in2T->getElementSize == FloatTy && 
-          in3T->getElementSize == FloatTy && 
-          in4T->getElementSize == FloatTy);
+  assert( outT->getElementType() == FloatTy && 
+          in1T->getElementType() == FloatTy && 
+          in2T->getElementType() == FloatTy && 
+          in3T->getElementType() == FloatTy && 
+          in4T->getElementType() == FloatTy);
   
   uint64_t dataDim1Pitch = in1T->strides()[0] / in1T->getElementSize();
   

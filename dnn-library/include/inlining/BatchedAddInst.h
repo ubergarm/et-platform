@@ -34,8 +34,8 @@ template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
 inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
                                  LibTensor* in2T) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
-  using batchType = elemKind2elemTy<batchElK>::type;
-  using sliceType = elemKind2elemTy<sliceElK>::type;
+  using batchType = typename elemKind2elemTy<batchElK>::type;
+  using sliceType = typename elemKind2elemTy<sliceElK>::type;
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0)
@@ -104,8 +104,8 @@ template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
 inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
                                          LibTensor* in2T, uint64_t flags) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
-  using batchType = elemKind2elemTy<batchElK>::type;
-  using sliceType = elemKind2elemTy<sliceElK>::type;
+  using batchType = typename elemKind2elemTy<batchElK>::type;
+  using sliceType = typename elemKind2elemTy<sliceElK>::type;
 
   unsigned int minionId = get_minion_id();
   unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
