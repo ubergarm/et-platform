@@ -24,7 +24,7 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
-#include "FusedRowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining path
+#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path
 
 namespace dnn_lib {
 

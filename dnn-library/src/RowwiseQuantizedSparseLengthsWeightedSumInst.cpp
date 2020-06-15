@@ -9,7 +9,7 @@
  *-------------------------------------------------------------------------
  */
 
-#include "RowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining
+#include "RowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining
 
 namespace dnn_lib {
 template <ElemKind dstElK, ElemKind srcElK>

@@ -9,7 +9,7 @@
  *-------------------------------------------------------------------------
  */
 
-#include "RowwiseQuantizedFullyConnected.h" // From include/inlining
+#include "RowwiseQuantizedFullyConnectedInst.h" // From include/inlining
 
 namespace dnn_lib {
 

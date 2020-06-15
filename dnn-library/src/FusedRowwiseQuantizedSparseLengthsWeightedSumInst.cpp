@@ -9,7 +9,7 @@
  *-------------------------------------------------------------------------
  */
 
-#include "FusedRowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining
+#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining
 
 namespace dnn_lib {
      
