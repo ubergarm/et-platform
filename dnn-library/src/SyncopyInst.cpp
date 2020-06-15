@@ -1,27 +1,24 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "SyncopyInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibSyncopyInst(LibTensor* out0, LibTensor* out0, uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibSyncopyInst<FloatTy>(out0, in0, SyncOffset, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off) {
-
-  dnn_lib::inlining::fwdLibSyncopyInst<elK>(outT, inT, off);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibSyncopyInst, LibTensor* outT, LibTensor* inT,
-                                  unsigned int off);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibSyncopyInst<FloatTy>(LibTensor* out0, LibTensor* out0, uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSyncopyInst<Float16Ty>(LibTensor* out0, LibTensor* out0, uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSyncopyInst<Int8QTy>(LibTensor* out0, LibTensor* out0, uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSyncopyInst<Int64ITy>(LibTensor* out0, LibTensor* out0, uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSyncopyInst<Int32ITy>(LibTensor* out0, LibTensor* out0, uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSyncopyInst<Int16QTy>(LibTensor* out0, LibTensor* out0, uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

@@ -373,7 +373,7 @@ class LibManagerSheet:
         code = []
         for op in fncs:
             code+= [ "\n/****************************************************************************",
-                     "/* %s implementations" % op[0]['opname'],
+                     "/* %s implementations" % fncs[op][0]['opname'],
                      "****************************************************************************/",
                      "// declarations"]
             declared = {} # keep track of what has been declared (not to repeat several times the same
@@ -408,23 +408,42 @@ static constexpr size_t default_mask_size = max_tensor_dimensions;
 
     def genCppNodes(self, hostswdir, fncs):
         for op in fncs:
-            opname = op[0]['opname']
-            cppFile = os.path.join(hostswdir, "dnn_lib/src/%s.cpp" % opname )
+            opname = fncs[op][0]['opname']
+            cppFile = os.path.join(hostswdir, "dnn_lib/src/%sInst.cpp" % opname )
+            with open(cppFile, "w") as f:
+                f.write("""
+#include "LibNodes.h"
+ 
+namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ """)
+                created = {}
+                for i in fncs[op]:
+                    fnc = "%s\n  void %s(%s)" % (i['templateDecl'], i['fname'], i['callDecl'])
+                    if fnc not in created:
+                        f.write("""
+  %s
+  {
+    dnn_lib::inlining::%s%s(%s);
+  }
+"""
+                                % (fnc, i['fname'], i['templateInst'], i['callInst']))
+                        created[fnc] = True
+                        f.write("""
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+""")
+                created = {}
+                for i in fncs[op]:
+                    decl = "template void %s%s(%s);\n" % (i['fname'], i['templateInst'], i['callDecl'])
+                    if fnc not in created:
+                        f.write(decl);
+                        created[decl] = True
 
-
-### 
-### #include "LibNodes.h"
-### 
-### namespace dnn_lib {
-### 
-### template <ElemKind elK>
-### void XXX(LibTensor* outT, LibTensor* inT) {
-### 
-###   dnn_lib::inlining::XXX<elK>(outT, inT);
-### }
-### 
-### "template void %s%s(%s);" % (i['fname'], i['templateInst'], i['callDecl']))
-### } // dnn_lib
+                f.write("} // dnn_lib\n")
 
 
         

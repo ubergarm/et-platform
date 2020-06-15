@@ -1,34 +1,32 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "ElementIsNaNInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibElementIsNaNInst(LibTensor* out0, LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementIsNaNInst<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor *inT) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibElementIsNaNInst<elK>(outT, inT);
-}
+  template <ElemKind in0Type>
+  void fwdLibElementIsNaNInst"Threaded"(LibTensor* out0, LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementIsNaNInst"Threaded"<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
-                                    uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibElementIsNaNInstThreaded<elK>(outT, inT, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibElementIsNaNInst, LibTensor* outT, LibTensor* inT);
-GEN_INSTANCES_OP(template, fwdLibElementIsNaNInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibElementIsNaNInst<FloatTy>(LibTensor* out0, LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibElementIsNaNInst<Float16Ty>(LibTensor* out0, LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibElementIsNaNInst"Threaded"<FloatTy>(LibTensor* out0, LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibElementIsNaNInst"Threaded"<Float16Ty>(LibTensor* out0, LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

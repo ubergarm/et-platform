@@ -1,52 +1,40 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "SparseLengthsWeightedSumInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibSparseLengthsWeightedSumInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInst<FloatTy>(out0, in0, in1, in2, in3, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, LibTensor* in3T,
-                                        LibTensor* in4T,
-                                        unsigned int pLengthsSize) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInst<elK>(outT, in1T,
-                                                                 in2T, in3T,
-                                                                 in4T,
-                                                                 pLengthsSize);
-}
+  template <ElemKind in0Type>
+  void fwdLibSparseLengthsWeightedSumInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInst"Threaded"<FloatTy>(out0, in0, in1, in2, in3, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                                LibTensor* in2T, LibTensor* in3T,
-                                                LibTensor* in4T,
-                                                unsigned int pLengthsSize,
-                                                uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInstThreaded<elK>(outT, in1T,
-                                                                         in2T, in3T,
-                                                                         in4T,
-                                                                         pLengthsSize,
-                                                                         flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInst, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                 LibTensor* in4T, unsigned int pLengthsSize);
-
-GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInstThreaded, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-                 unsigned int pLengthsSize, uint64_t flags);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibSparseLengthsWeightedSumInst<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst"Threaded"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst"Threaded"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst"Threaded"<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst"Threaded"<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst"Threaded"<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSparseLengthsWeightedSumInst"Threaded"<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

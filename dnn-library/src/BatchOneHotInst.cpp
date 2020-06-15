@@ -1,41 +1,40 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "BatchOneHotInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type>
+  void fwdLibBatchOneHotInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibBatchOneHotInst<FloatTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
-                           LibTensor* in2T, LibTensor* in3T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibBatchOneHotInst<elK>(outT, in1T, in2T, in3T);
-}
+  template <ElemKind out0Type>
+  void fwdLibBatchOneHotInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibBatchOneHotInst"Threaded"<FloatTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                   LibTensor* in2T, LibTensor* in3T,
-                                   uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibBatchOneHotInstThreaded<elK>(outT, in1T,
-                                                            in2T, in3T,
-                                                             flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibBatchOneHotInst, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T);
-
-GEN_INSTANCES_OP(template, fwdLibBatchOneHotInstThreaded, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                 uint64_t flags);
-}
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibBatchOneHotInst<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst"Threaded"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst"Threaded"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst"Threaded"<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst"Threaded"<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst"Threaded"<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchOneHotInst"Threaded"<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

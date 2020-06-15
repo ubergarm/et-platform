@@ -1,37 +1,40 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "CrossEntropyLossInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibCrossEntropyLossInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibCrossEntropyLossInst<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibCrossEntropyLossInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibCrossEntropyLossInst<elK>(outT, in1T, in2T);
-}
+  template <ElemKind in0Type>
+  void fwdLibCrossEntropyLossInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibCrossEntropyLossInst"Threaded"<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibCrossEntropyLossInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibCrossEntropyLossInstThreaded<elK>(outT, in1T, in2T,
-                                                                 flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInst, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T );
-
-GEN_INSTANCES_OP(template, fwdLibCrossEntropyLossInstThreaded, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T , uint64_t flags);
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibCrossEntropyLossInst<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst"Threaded"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst"Threaded"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst"Threaded"<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst"Threaded"<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst"Threaded"<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCrossEntropyLossInst"Threaded"<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

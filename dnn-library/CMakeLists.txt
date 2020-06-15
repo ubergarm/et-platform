@@ -143,6 +143,18 @@ add_library(dnn_lib STATIC
   src/CopyInst.cpp
   src/CrossEntropyLossInst.cpp
   src/DequantizeInst.cpp
+  src/ElementAddInst.cpp
+  src/ElementCmpEQInst.cpp
+  src/ElementCmpLTEInst.cpp
+  src/ElementCmpLTInst.cpp
+  src/ElementDivInst.cpp
+  src/ElementLogInst.cpp
+  src/ElementMaxInst.cpp
+  src/ElementMinInst.cpp
+  src/ElementMulInst.cpp
+  src/ElementPowInst.cpp
+  src/ElementSubInst.cpp
+  src/Int8ConverterInst.cpp
   src/ElementExpInst.cpp
   src/ElementIsNaNInst.cpp
   src/ElementSelectInst.cpp

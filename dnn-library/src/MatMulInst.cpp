@@ -1,54 +1,56 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "MatMulInst.h" // From include/inlining path
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibMatMulInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibMatMulInst<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibMatMulInst<elK>(outT, in1T, in2T);
-}
+  template <ElemKind in0Type>
+  void fwdLibMatMulInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibMatMulInst"Threaded"<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
-                              uint64_t flags, const uint32_t minionOffset,
-                              const uint32_t assignedMinions) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibMatMulInstThreaded<elK>(outT, in1T, in2T,  flags,
-                                                       minionOffset, assignedMinions);
-}
+  template <ElemKind in0Type>
+  void fwdLibMatMulInst"Vectorized"(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibMatMulInst"Vectorized"<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-
-template <ElemKind elK>
-void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
-                                uint64_t flags, const uint32_t minionOffset,
-                                const uint32_t assignedMinions) {
-
-  dnn_lib::inlining::fwdLibMatMulInstVectorized<elK>(outT, in1T, in2T, flags,
-                                                         minionOffset, assignedMinions);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibMatMulInst, LibTensor* inT, LibTensor* weighT,
-                 LibTensor* outT);
-
-GEN_INSTANCES_OP(template, fwdLibMatMulInstThreaded, LibTensor* outT, LibTensor* in1T,
-                 LibTensor* in2T,  uint64_t flags,
-                 const uint32_t minionOffset = 0, const uint32_t numShires = 0);
-
-GEN_INSTANCES_OP(template, fwdLibMatMulInstVectorized, LibTensor* outT, LibTensor* in1T,
-                 LibTensor* in2T, uint64_t flags,
-                 const uint32_t minionOffset = 0, const uint32_t numShires = 0);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibMatMulInst<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Threaded"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Threaded"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Threaded"<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Threaded"<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Threaded"<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Threaded"<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Vectorized"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Vectorized"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Vectorized"<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Vectorized"<Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Vectorized"<Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibMatMulInst"Vectorized"<Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

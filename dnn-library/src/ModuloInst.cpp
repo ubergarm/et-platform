@@ -1,40 +1,32 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "ModuloInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibModuloInst(LibTensor* out0, LibTensor* out0, uint64_t Divisor, bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibModuloInst<Int64ITy>(out0, in0, Divisor, SignFollowDivisor, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
-                      bool signFollowDivisor) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibModuloInst<elK>(outT, inT, divisor,
-                                               signFollowDivisor);
-}
+  template <ElemKind in0Type>
+  void fwdLibModuloInst"Threaded"(LibTensor* out0, LibTensor* out0, uint64_t Divisor, bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibModuloInst"Threaded"<Int64ITy>(out0, in0, Divisor, SignFollowDivisor, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT, long long divisor,
-                              bool signFollowDivisor, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibModuloInstThreaded<elK>(outT, inT, divisor,
-                                                       signFollowDivisor, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInst, LibTensor* outT, LibTensor* inT,
-                         long long divisor, bool signFollowDivisor);
-
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInstThreaded, LibTensor* outT,
-                         LibTensor* inT, long long divisor, bool signFollowDivisor,
-                         uint64_t flags);
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibModuloInst<Int64ITy>(LibTensor* out0, LibTensor* out0, uint64_t Divisor, bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibModuloInst<Int32ITy>(LibTensor* out0, LibTensor* out0, uint64_t Divisor, bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibModuloInst"Threaded"<Int64ITy>(LibTensor* out0, LibTensor* out0, uint64_t Divisor, bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibModuloInst"Threaded"<Int32ITy>(LibTensor* out0, LibTensor* out0, uint64_t Divisor, bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

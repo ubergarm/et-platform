@@ -1,27 +1,24 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "FlipInst.h"  // From include/inlining
-
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
-  
-template <ElemKind elK>
-void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibFlipInst(LibTensor* out0, LibTensor* out0, dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFlipInst<FloatTy>(out0, in0, Axis, flags, minionOffset, assignedMinions);
+  }
 
-  dnn_lib::inlining::fwdLibFlipInst<elK>(outT, inT, axis);
-}
-
-#include "GenInstances.h"
-  
-GEN_INSTANCES_OP(template, fwdLibFlipInst, LibTensor* outT, LibTensor *inT, unsigned int axis);
-
-} //namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibFlipInst<FloatTy>(LibTensor* out0, LibTensor* out0, dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFlipInst<Float16Ty>(LibTensor* out0, LibTensor* out0, dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFlipInst<Int8QTy>(LibTensor* out0, LibTensor* out0, dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFlipInst<Int64ITy>(LibTensor* out0, LibTensor* out0, dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFlipInst<Int32ITy>(LibTensor* out0, LibTensor* out0, dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFlipInst<Int16QTy>(LibTensor* out0, LibTensor* out0, dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

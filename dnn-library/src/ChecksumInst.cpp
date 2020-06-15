@@ -1,29 +1,24 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "Checksum.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibChecksumInst(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibChecksumInst<FloatTy>(in0, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibChecksum<elK>(inT, flags);
-}
-
-void fwdLibFlushL3(uint32_t numShires) {
-  dnn_lib::inlining::fwdLibFlushL3(numShires);
-}
-
-#include "GenInstances.h"
-
-  GEN_INSTANCES_OP(template, fwdLibChecksum, LibTensor* inT, uint64_t flags);
-}
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibChecksumInst<FloatTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibChecksumInst<Float16Ty>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibChecksumInst<Int8QTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibChecksumInst<Int64ITy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibChecksumInst<Int32ITy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibChecksumInst<Int16QTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

@@ -1,42 +1,42 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "AvgPoolInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type, ElemKind in0Type>
+  void fwdLibAvgPoolInst(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibAvgPoolInst<FloatTy, FloatTy>(out0, in0, Kernels, Strides, Pads, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind dstElk, ElemKind srcElk>
-void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, void *pkernels,
-                       void *pstrides, void *ppads) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibAvgPoolInst<dstElk, srcElk>(outT, inT, pkernels, pstrides,
-                                                ppads);
-}
+  template <ElemKind out0Type, ElemKind in0Type>
+  void fwdLibAvgPoolInst"Threaded"(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibAvgPoolInst"Threaded"<FloatTy, FloatTy>(out0, in0, Kernels, Strides, Pads, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK, typename dstType>
-void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
-                               void *pkernels, void *pstrides, void *ppads,
-                               uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibAvgPoolInstThreaded<dstElk, srcElk>(outT, inT,
-                                              pkernels, pstrides, ppads, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibAvgPoolInst, LibTensor* outT, LibTensor* inT,
-                 void *pkernels, void *pstrides, void *ppads);
-
-GEN_INSTANCES_2TYPE_OP(template, fwdLibAvgPoolInstThreaded, LibTensor* outT,
-                       LibTensor* inT, void *pkernels, void *pstrides,
-                       void *ppads, uint64_t flags);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibAvgPoolInst<FloatTy, FloatTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst<Float16Ty, Float16Ty>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst<Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst<UInt8QTy,Int8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst<Int8QTy,UInt8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst<UInt8QTy,UInt8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst<Int64Ty,Int64Ty>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst"Threaded"<FloatTy, FloatTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst"Threaded"<Float16Ty, Float16Ty>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst"Threaded"<Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst"Threaded"<UInt8QTy,Int8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst"Threaded"<Int8QTy,UInt8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst"Threaded"<UInt8QTy,UInt8QTy>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibAvgPoolInst"Threaded"<Int64Ty,Int64Ty>(LibTensor* out0, LibTensor* out0, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

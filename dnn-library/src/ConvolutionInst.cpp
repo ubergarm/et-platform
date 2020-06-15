@@ -1,146 +1,50 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "ConvolutionInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibConvolutionInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibConvolutionInst<FloatTy,FloatTy,FloatTy>(out0, in0, in1, in2, Kernels, Strides, Pads, Group, flags, minionOffset, assignedMinions);
+  }
 
-/**
- * @brief Performs the conolution operation between the activation, weights and bias.
- *
- * This convolution admits the division of the chanel into gropus and the use of stride
- * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
- * The convolution is executed by the first minion only.
- * 
- * @tparam elK Type of the elements of the tensors involved in the 
- *  convolution (except for the bias)
- * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
- * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 
- *  (with batch and chanel).
- * @param[in] dstMatrixPitches Vector of pitches of the dstMatrix.
- * @param[in] weights Matrix with the weights for the convolution.
- * @param[in] weightDims Vector of dimensions of the weights. Unused.
- * @param[in] weightPitches Vector of pitches of the weights.
- * @param[in] bias Floats vector of biases (one for each chanel in a group).
- * @param[in] pkernels Vector of dimensions of the kernek that is applied.
- * @param[in] pstrides Vector with the strides for both dimensions.
- * @param[in] ppads Vector with the padding for both dimensions.
- * @param[in] group The number of groups in which we divide the chanel.
- * @param[in] scale The scale for the quantization.
- * @param[in] offset The offset for the quantization.
- */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
-void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                           LibTensor* in3T, void *pkernels, void *pstrides,
-                           void *ppads, unsigned int group) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibConvolutionInst<dstElk, src1Elk, src2Elk>(outT, in1T, in2T, in3T,
-                                                    pkernels, pstrides, ppads,
-                                                    group);
-}
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibConvolutionInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibConvolutionInst"Threaded"<FloatTy,FloatTy,FloatTy>(out0, in0, in1, in2, Kernels, Strides, Pads, Group, flags, minionOffset, assignedMinions);
+  }
 
-/**
- * @brief Performs the convolution operation between the activation, weights and bias.
- *
- * This convolution admits the division of the chanel into gropus and the use of stride
- * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
- * This is the threaded version for the convolution.
- * 
- * @tparam elK Type of the elements of the tensors involved in the 
- *  convolution (except for the bias)
- * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
- * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 
- *  (with batch and chanel).
- * @param[in] dstMatrixPitches Vector of pitches of the dstMatrix.
- * @param[in] weights Matrix with the weights for the convolution.
- * @param[in] weightDims Vector of dimensions of the weights. Unused.
- * @param[in] weightPitches Vector of pitches of the weights.
- * @param[in] bias Floats vector of biases (one for each chanel in a group).
- * @param[in] pkernels Vector of dimensions of the kernek that is applied.
- * @param[in] pstrides Vector with the strides for both dimensions.
- * @param[in] ppads Vector with the padding for both dimensions.
- * @param[in] group The number of groups in which we divide the chanel.
- * @param[in] scale The scale for the quantization.
- * @param[in] offset The offset for the quantization.
- * @param[in] flags Controls the active shires and the type of evict that 
- *  should be done at the end of the function.
- */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
-void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                   LibTensor* in2T, LibTensor* in3T,
-                                   void *pkernels, void *pstrides,
-                                   void *ppads, unsigned int group,
-                                   uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibConvolutionInstThreaded<dstElk, src1Elk, src2Elk>(outT, in1T, in2T,
-                                                            in3T, pkernels,
-                                                            pstrides, ppads,
-                                                            group, flags);
-}
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibConvolutionInst"Vectorized"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibConvolutionInst"Vectorized"<FloatTy,FloatTy,FloatTy>(out0, in0, in1, in2, Kernels, Strides, Pads, Group, flags, minionOffset, assignedMinions);
+  }
 
-/**
- * @brief Performs the convolution operation between the activation, weights and bias.
- *
- * This convolution admits the division of the chanel into gropus and the use of stride
- * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
- * This is the threaded and vectorized version for the convolution.
- * 
- * @tparam src1Type Type of the elements of the src1 tensor involved in the 
- *  convolution (except for the bias)
- * @tparam src2Type Type of the elements of the src2 tensor involved in the 
- *  convolution (except for the bias)
- * @tparam dstType Type of the elements of the dst tensor involved in the 
- *  convolution (except for the bias)
- * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
- * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 
- *  (with batch and chanel).
- * @param[in] dstMatrixPitches Vector of pitches of the dstMatrix.
- * @param[in] weights Matrix with the weights for the convolution.
- * @param[in] weightDims Vector of dimensions of the weights. Unused.
- * @param[in] weightPitches Vector of pitches of the weights.
- * @param[in] bias Floats vector of biases (one for each chanel in a group).
- * @param[in] pkernels Vector of dimensions of the kernek that is applied.
- * @param[in] pstrides Vector with the strides for both dimensions.
- * @param[in] ppads Vector with the padding for both dimensions.
- * @param[in] group The number of groups in which we divide the chanel.
- * @param[in] scale The scale for the quantization.
- * @param[in] offset The offset for the quantization.
- * @param[in] flags Controls the active shires and the type of evict that 
- *  should be done at the end of the function.
- */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
-void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                     LibTensor* in2T, LibTensor* in3T,
-                                     void *pkernels, void *pstrides,
-                                     void *ppads, unsigned int group,
-                                     const float *scale, const int32_t *offset,
-                                     uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibConvolutionInstVectorized<dstElk, src1Elk, src2Elk>(
-      outT, in1T, in2T, in3T, pkernels, pstrides, ppads, group, scale, offset, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInst, LibTensor* outT, LibTensor* in1T,
-                       LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
-                       void *ppads, unsigned int group);
-  
-GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInstThreaded, LibTensor* outT,
-                       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, void *pkernels,
-                       void *pstrides, void *ppads, unsigned int group, uint64_t flags);
-  
-GEN_INSTANCES_3TYPE_OP(template, fwdLibConvolutionInstVectorized, LibTensor* outT,
-                       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                       void *pkernels, void *pstrides, void *ppads, unsigned int group,
-                       const float *scale, const int32_t *offset, uint64_t flags);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibConvolutionInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst<Int16QTy,Int16QTy,Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Threaded"<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Threaded"<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Threaded"<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Threaded"<Int16QTy,Int16QTy,Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Vectorized"<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Vectorized"<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Vectorized"<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibConvolutionInst"Vectorized"<Int16QTy,Int16QTy,Int16QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, std::array<uint32_t, default_kernels_size> Kernels, std::array<uint32_t, default_kernels_size> Strides, std::array<uint32_t, default_kernels_size> Pads, uint32_t Group, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

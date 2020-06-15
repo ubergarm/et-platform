@@ -1,48 +1,52 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "RowwiseQuantizedFullyConnectedInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <>
+  void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInst<>(out0, in0, in1, in2, in3, in4, flags, minionOffset, assignedMinions);
+  }
 
-void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT,
-      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-      LibTensor* in5T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInst(
-                                     outT, in1T, in2T, in3T, in4T, in5T);
-}
+  template <>
+  void fwdLibRowwiseQuantizedFullyConnectedInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInst"Threaded"<>(out0, in0, in1, in2, in3, in4, flags, minionOffset, assignedMinions);
+  }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(LibTensor* outT,
-      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-      LibTensor* in5T, uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstThreaded(
-                                     outT, in1T, in2T, in3T, in4T, in5T, flags);
-}
+  template <>
+  void fwdLibRowwiseQuantizedFullyConnectedInst"Vectorized"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInst"Vectorized"<>(out0, in0, in1, in2, in3, in4, flags, minionOffset, assignedMinions);
+  }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(LibTensor* outT,
-      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-      LibTensor* in5T, uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstVectorized(
-                                     outT, in1T, in2T, in3T, in4T, in5T, flags);
-}
+  template <>
+  void fwdLibRowwiseQuantizedFullyConnectedInst"Aligned32Bytes"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInst"Aligned32Bytes"<>(out0, in0, in1, in2, in3, in4, flags, minionOffset, assignedMinions);
+  }
 
-void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTensor* outT,
-      LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-      LibTensor* in5T, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
-                                     outT, in1T, in2T, in3T, in4T, in5T, flags);
-}
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibRowwiseQuantizedFullyConnectedInst<>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibRowwiseQuantizedFullyConnectedInst"Threaded"<>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibRowwiseQuantizedFullyConnectedInst"Vectorized"<>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibRowwiseQuantizedFullyConnectedInst"Aligned32Bytes"<>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, LibTensor* out4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

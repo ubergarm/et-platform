@@ -1,38 +1,40 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "ExtractTensorInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibExtractTensorInst(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibExtractTensorInst<FloatTy>(out0, in0, Offsets, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibExtractTensorInst<elK>(outT, inT, pcoord);
-}
+  template <ElemKind in0Type>
+  void fwdLibExtractTensorInst"Threaded"(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibExtractTensorInst"Threaded"<FloatTy>(out0, in0, Offsets, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                     void *pcoord, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibExtractTensorInstThreaded<elK>(outT, inT,
-                                                              pcoord, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibExtractTensorInst, LibTensor* outT,
-                 LibTensor* inT, void * poffsets);
-
-  GEN_INSTANCES_OP(template, fwdLibExtractTensorInstThreaded, LibTensor* outT,
-                   LibTensor* inT, void * poffsets, uint64_t flags);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibExtractTensorInst<FloatTy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst<Float16Ty>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst<Int8QTy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst<Int64ITy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst<Int32ITy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst<Int16QTy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst"Threaded"<FloatTy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst"Threaded"<Float16Ty>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst"Threaded"<Int8QTy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst"Threaded"<Int64ITy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst"Threaded"<Int32ITy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibExtractTensorInst"Threaded"<Int16QTy>(LibTensor* out0, LibTensor* out0, std::array<size_t, max_tensor_dimensions> Offsets, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

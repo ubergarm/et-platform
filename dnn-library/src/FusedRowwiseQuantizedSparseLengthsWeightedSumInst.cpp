@@ -1,82 +1,58 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
-     
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type>
+  void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst<FloatTy>(out0, in0, in1, in2, in3, flags, minionOffset, assignedMinions);
+  }
 
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
-                        outT, in1T, in2T, in3T, in4T);
-}
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-template <typename DstType>
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
-               LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-               LibTensor* in4T, uint64_t flags) {
+  template <ElemKind out0Type>
+  void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTy"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTy"<FloatTy>(out0, in0, in1, in2, in3, flags, minionOffset, assignedMinions);
+  }
 
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded <DstType> (
-               outT, in1T, in2T, in3T, in4T, flags);
-}
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-template <bool Weighted, bool Float32Dst, bool Float16Dst>
-inline void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
-    uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
-    uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
-    uintptr_t dataRowSize, uintptr_t dstElemSize,
-    uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr) { 
+  template <ElemKind out0Type>
+  void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyThreaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyThreaded"<FloatTy>(out0, in0, in1, in2, in3, flags, minionOffset, assignedMinions);
+  }
 
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
-    minionCurrIndex, currSegmentLength,
-    tAInput, indices, dataRowPitch,
-    dataRowSize, dstElemSize,
-    tWInput, dst_ptr, dst2_ptr);
-}
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-template<bool Weighted, bool Float32Dst, bool Float16Dst>
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
-        LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T,
-        LibTensor* in3T, LibTensor* in4T, uint64_t flags,
-        const uint32_t minionOffset, const uint32_t assignedMinions) {
+  template <ElemKind out0Type>
+  void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyVectorized"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyVectorized"<FloatTy>(out0, in0, in1, in2, in3, flags, minionOffset, assignedMinions);
+  }
 
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<Weighted, Float32Dst, Float16Dst> (
-        outT, out2T, in1T, in2T, in3T, in4T,
-        flags, minionOffset, assignedMinions);
-}
-
-template<typename Type>
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
-        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-        uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions) {
-
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<Type>(
-        outT, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_1TYPEFP(template, fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
-        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-        uint64_t flags, const uint32_t minionOffset, const uint32_t numShires);
-
-GEN_INSTANCES_FRQSLWS_V(template, fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
-                        LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T,
-                        LibTensor* in3T, LibTensor* in4T, uint64_t flags,
-                        const uint32_t minionOffset, const uint32_t numShires);
-
-GEN_INSTANCES_FRQSLWS_V(template, fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect,
-                        uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
-                        uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
-                        uintptr_t dataRowSize, uintptr_t dstElemSize,
-                        uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr);
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTy"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTy"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyThreaded"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyThreaded"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyVectorized"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyVectorized"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyVectorized"<FloatTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst"FloatTyVectorized"<Float16Ty>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, LibTensor* out3, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

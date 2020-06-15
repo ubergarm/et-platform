@@ -1,39 +1,48 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "GatherInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type, ElemKind in1Type>
+  void fwdLibGatherInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibGatherInst<FloatTy,Int32ITy>(out0, in0, in1, BatchDims, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK, typename indexType>
-void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                      unsigned int batchedDims) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibGatherInst<elK, indexType>(outT, in1T, in2T,
-                                                          batchedDims);
-}
+  template <ElemKind in0Type, ElemKind in1Type>
+  void fwdLibGatherInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibGatherInst"Threaded"<FloatTy,Int32ITy>(out0, in0, in1, BatchDims, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK, typename indexType>
-void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                              unsigned int batchedDims, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibGatherInstThreaded<elK, indexType>(outT, in1T, in2T,
-                                                                  batchedDims, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInst, LibTensor* outT, LibTensor* in1T,
-                       LibTensor* in2T, unsigned int batchedDims);
-
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherInstThreaded, LibTensor* outT, LibTensor* in1T,
-                       LibTensor* in2T, unsigned int batchedDims,  uint64_t flags);
-} // namespce dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibGatherInst<FloatTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<Float16Ty,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<Int8QTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<UInt8QTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<Int16QTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<FloatTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<Float16Ty,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<Int8QTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<UInt8QTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst<Int16QTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<FloatTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<Float16Ty,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<Int8QTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<UInt8QTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<Int16QTy,Int32ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<FloatTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<Float16Ty,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<Int8QTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<UInt8QTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherInst"Threaded"<Int16QTy,Int64ITy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, uint32_t BatchDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

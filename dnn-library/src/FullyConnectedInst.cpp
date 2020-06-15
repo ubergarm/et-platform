@@ -1,54 +1,41 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "FullyConnectedInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibFullyConnectedInst(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFullyConnectedInst<Int8QTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                              LibTensor* in3T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibFullyConnectedInst<elK>(outT, in1T, in2T, in3T);
-}
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibFullyConnectedInst"Threaded"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFullyConnectedInst"Threaded"<Int8QTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK>
-void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                      LibTensor* in2T, LibTensor* in3T,
-                                      uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibFullyConnectedInstThreaded<elK>(outT, in1T, in2T,
-                                                               in3T, flags);
-}
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibFullyConnectedInst"Vectorized"(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibFullyConnectedInst"Vectorized"<Int8QTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+  }
 
-template <typename src1Type, typename src2Type, typename dstType>
-void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, LibTensor* in3T,
-                                        const float* scale, const int32_t* offset,
-                                        uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibFullyConnectedInstVectorized<src1Type, src2Type, dstType>(
-                                         outT, in1T, in2T, in3T, scale, offset, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibFullyConnectedInst, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T);
-
-GEN_INSTANCES_OP(template, fwdLibFullyConnectedInstThreaded, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, uint64_t flags);
-
-GEN_INSTANCES_3TYPE_OP(template, fwdLibFullyConnectedInstVectorized, LibTensor* outT,
-                       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                       const float* scale, const int32_t* offset, uint64_t flags);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibFullyConnectedInst<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFullyConnectedInst"Threaded"<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibFullyConnectedInst"Vectorized"<Int8QTy>(LibTensor* out0, LibTensor* out0, LibTensor* out1, LibTensor* out2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

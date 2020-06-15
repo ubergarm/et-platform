@@ -1,42 +1,48 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "GatherRangesInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type, ElemKind in1Type>
+  void fwdLibGatherRangesInst(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibGatherRangesInst<FloatTy,Int32ITy>(out0, out1, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-template <ElemKind elK, typename indexType>
-void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
-                            LibTensor* in1T, LibTensor* in2T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibGatherRangesInst<elK, indexType>(outT, out2T,
-                                                                in1T, in2T);
-}
+  template <ElemKind in0Type, ElemKind in1Type>
+  void fwdLibGatherRangesInst"Threaded"(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibGatherRangesInst"Threaded"<FloatTy,Int32ITy>(out0, out1, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-
-template <ElemKind elK, typename indexType>
-void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor*out2T,
-                                    LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibGatherRangesInstThreaded<elK, indexType>(outT, out2T,
-                                                                        in1T, in2T,
-                                                                        flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInst, LibTensor* outT,
-                       LibTensor* out2T, LibTensor* in1T, LibTensor* in2T);
-
-GEN_INSTANCES_OP_INDEX(template, fwdLibGatherRangesInstThreaded, LibTensor* outT,
-                         LibTensor* out2T, LibTensor* in1T, LibTensor* in2T,
-                         uint64_t flags);
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibGatherRangesInst<FloatTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<Float16Ty,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<Int8QTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<UInt8QTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<Int16QTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<FloatTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<Float16Ty,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<Int8QTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<UInt8QTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst<Int16QTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<FloatTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<Float16Ty,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<Int8QTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<UInt8QTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<Int16QTy,Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<FloatTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<Float16Ty,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<Int8QTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<UInt8QTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibGatherRangesInst"Threaded"<Int16QTy,Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* out0, LibTensor* out1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib
