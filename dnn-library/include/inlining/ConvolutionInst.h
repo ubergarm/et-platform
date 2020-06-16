@@ -71,16 +71,15 @@ struct accumulatorType {
 template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                   LibTensor* in3T, void *pkernels, void *pstrides,
-                                    void *ppads, unsigned int group) {
+                                  void *ppads, unsigned int group,
+                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
   using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
   // FIXME: going back to single thread until general case is solved with
   // multithread
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
@@ -411,16 +410,15 @@ inline void convolutionStep (float *sum,
 template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
              LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
-             void *ppads, unsigned int group, uint64_t flags) {
+             void *ppads, unsigned int group, uint64_t flags,
+             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
   using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
-  // Gets minion Id and check if minion is active
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
@@ -982,16 +980,16 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             void *pkernels, void *pstrides,
                                             void *ppads, unsigned int group,
                                             const float *scale, const int32_t *offset,
-                                            uint64_t flags) {
+                                            uint64_t flags,
+                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
   using src2Type = typename elemKind2elemTy<src2ElK>::type;
-  
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */

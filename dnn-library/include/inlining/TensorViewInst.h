@@ -32,13 +32,11 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
+inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
   /* maintain compatibility through the new Iface Libtensor */
 
   void *dst = outT->getRawDataPointer<void>();
@@ -117,13 +115,13 @@ inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) 
 
 template <ElemKind elK>
 inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
-                                         void *pcoord, uint64_t flags) {
+                                         void *pcoord, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
 
@@ -262,13 +260,13 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
 
 template <ElemKind elK>
 inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
-                                           void *pcoord, uint64_t flags) {
+                                           void *pcoord, uint64_t flags,
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return; // Minion not working
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
 

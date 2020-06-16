@@ -43,10 +43,13 @@ namespace inlining {
 // indices and offsets tensors dimensions are required.
 //
 
-inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
-                                          LibTensor* in2T, LibTensor* in3T,
-                                          LibTensor* in4T) {
+inline void fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T,
+                                   LibTensor* in2T, LibTensor* in3T,
+                                   LibTensor* in4T,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
+  if (get_minion_id() != minionOffset) return;
+  
   assert( outT->getElementType() == FloatTy && 
           in1T->getElementType() == FloatTy && 
           in2T->getElementType() == FloatTy && 

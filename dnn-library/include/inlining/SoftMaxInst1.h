@@ -39,12 +39,13 @@ namespace inlining {
   // line.
 
 template <ElemKind elK>
-inline void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+inline void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
   srcType* dstT = outT->getRawDataPointer<srcType>();
@@ -203,12 +204,14 @@ inline void fwdLibSoftMaxInstThreaded1(LibTensor* outT, LibTensor* inT, uint64_t
 // difference is in the GATHER_FLOAT and SCATTER_FLOAT functions).
 
 template <ElemKind elK>
-inline void fwdLibSoftMaxInstVectorized1(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+inline void fwdLibSoftMaxInstVectorized1(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */  
   srcType* dstT = outT->getRawDataPointer<srcType>();

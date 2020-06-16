@@ -45,11 +45,11 @@ namespace inlining {
  * @param[in] imm.
  */
 template <typename srcType, typename opType>
-inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_value) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_value,
+                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */    
 
   // const srcType *aSrcT1 = reinterpret_cast<srcType*>(srcT1);
@@ -101,10 +101,11 @@ inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_v
 
   // and instance for Int8Converter
 template <ElemKind elK>
-inline void fwdLibElementInt8Converter(LibTensor* outT, LibTensor* inT) {
+inline void fwdLibElementInt8Converter(LibTensor* outT, LibTensor* inT,
+                                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   srcType imm_value = 0x80;
-  fwdLibElementImmLogic<srcType, Xor>(outT, inT, imm_value);
+  fwdLibElementImmLogic<srcType, Xor>(outT, inT, imm_value, flags, minionOffset, assignedMinions);
 }
   
 } // namespace inlining

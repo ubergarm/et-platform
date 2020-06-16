@@ -38,7 +38,8 @@ inline void uint32_to_ascii_hex(char *s, uint32_t value) {
 }
 
 template <ElemKind elK>
-inline void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
+inline void fwdLibChecksumInst(LibTensor* inT, uint64_t flags,
+                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
   // The checksum is the u32 addition of all the non-padding bytes of the tensor
@@ -53,10 +54,9 @@ inline void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   size_t typeSize = getsize<srcType>();
   unsigned int srcNumElems = actIndex[0] * actPitch[0];
@@ -96,6 +96,7 @@ inline void fwdLibChecksum(LibTensor* inT, uint64_t flags) {
   // Reduce CheckSum across active minions
   // TODO: make this general for non power of two active shires
   size_t level = 4;
+  
   for (size_t i = 1; i < ACTIVE_SHIRES; i *= 2)
     ++level;
   for (size_t i = 0; i <= level; i++)

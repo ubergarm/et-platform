@@ -33,13 +33,12 @@ namespace inlining {
 template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* outT,
                                                                    LibTensor* in1T,
-                                                                   LibTensor* in2T) {
+                                                                   LibTensor* in2T,
+                                                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId > 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* outT --> dst  in1T--> src   in2T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
@@ -131,13 +130,13 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* ou
 
 template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
-            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
+            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* outT --> dst  in1T--> src   in2T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
@@ -376,13 +375,13 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, const float* scale,
-           const int32_t* offset, uint64_t flags) {
+           const int32_t* offset, uint64_t flags,
+           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* outT --> dst  in1T--> src   in2T--> indices */
   /* maintain compatibility through the new Iface Libtensor */

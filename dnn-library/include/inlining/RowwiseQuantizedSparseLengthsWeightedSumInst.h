@@ -30,17 +30,16 @@ namespace dnn_lib {
 
 namespace inlining {
 template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
     LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-    LibTensor* in4T, LibTensor* in5T, LibTensor* in6T) {
+    LibTensor* in4T, LibTensor* in5T, LibTensor* in6T,
+    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out->dst in1T-> data in2T-> weight in3T-> indices in4T-> lengths */
   /* in5T-> scale in6T-> offset */
@@ -108,17 +107,17 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   }
 }
 template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
              LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags) {
+             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
+             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out->dst in1T-> data in2T-> weight in3T-> indices in4T-> lengths */
@@ -197,7 +196,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
 }
 
 template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
              LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
              LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {

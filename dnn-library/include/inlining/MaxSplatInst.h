@@ -33,12 +33,11 @@ namespace inlining {
 // This function copies a matrix replacing all the elements which are < splatVal
 // and replaces them with splatVal
 template <ElemKind elK>
-inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) {
+inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal,
+                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+
+  if (get_minion_id() != minionOffset) return;
 
   srcType* const dstT = outT->getRawDataPointer<srcType>();
   srcType* const srcT = inT->getRawDataPointer<srcType>();
@@ -59,11 +58,10 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal) 
   
 }
 template <ElemKind elK>
-inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal) {
+inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal,
+                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   static_assert( elK == Int64ITy);
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   int64_t* const dstT = outT->getRawDataPointer<int64_t>();
   int64_t* const srcT = inT->getRawDataPointer<int64_t>();
@@ -76,12 +74,14 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, int64_t splatVal
 
 template <ElemKind elK>
 inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
-                                            float splatVal, uint64_t flags) {
+                                       float splatVal, uint64_t flags,
+                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
@@ -146,13 +146,15 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
 
 template <ElemKind elK>
 inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
-                                       int64_t splatVal, uint64_t flags) {
+                                       int64_t splatVal, uint64_t flags,
+                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
 
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
@@ -327,13 +329,13 @@ inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const floa
 
 template <ElemKind elK>
 inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
-                                         float splatVal, uint64_t flags) {
+                                         float splatVal, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
@@ -440,13 +442,13 @@ inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
 
 template <ElemKind elK>
 inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                             float splatVal, uint64_t flags) {
+                                             float splatVal, uint64_t flags,
+                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   uintptr_t dstAddr;
   uintptr_t srcAddr;

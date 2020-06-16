@@ -31,12 +31,11 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
+inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT,
+                                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
@@ -63,13 +62,14 @@ inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
 }
 
 template <ElemKind elK>
-void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32;
-  if (minionId >= activeMinions) return;
-
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions || minionId >= 32) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();  
   void* plengths = inT->getRawDataPointer<void>();

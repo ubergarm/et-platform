@@ -27,13 +27,12 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT) {
+inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT,
+                                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();

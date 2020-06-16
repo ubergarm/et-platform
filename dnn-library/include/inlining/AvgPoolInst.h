@@ -32,12 +32,12 @@ namespace inlining {
 
 template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-                              void *pkernels, void *pstrides, void *ppads) {
+                              void *pkernels, void *pstrides, void *ppads,
+                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+
+  if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
 
@@ -107,13 +107,14 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
 template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       void *pkernels, void *pstrides,
-                                      void *ppads, uint64_t flags) {
+                                      void *ppads, uint64_t flags,
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();

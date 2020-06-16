@@ -31,13 +31,12 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* outT --> dst  in1--> act in2-> weight*/
   void* dst = outT->getRawDataPointer<void>();

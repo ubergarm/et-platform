@@ -32,14 +32,13 @@ namespace inlining {
 
 template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
-                                   LibTensor* in1T, LibTensor* in2T) {
+                                   LibTensor* in1T, LibTensor* in2T,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using indexType = typename elemKind2elemTy<indexElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out-> dst out2T--> dest2(lengths) in1T--> src in2T--> rangesT*/
   void* dstT = outT->getRawDataPointer<void>();
@@ -139,13 +138,14 @@ inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
 template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor* out2T,
                                            LibTensor* in1T, LibTensor* in2T,
-                                           uint64_t flags) {
+                                           uint64_t flags,
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using indexType = typename elemKind2elemTy<indexElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */

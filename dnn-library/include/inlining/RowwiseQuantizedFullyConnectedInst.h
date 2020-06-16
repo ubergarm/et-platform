@@ -32,15 +32,14 @@ namespace inlining {
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInst(
                   LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                  LibTensor* in3T, LibTensor* in4T, LibTensor* in5T) {
+                  LibTensor* in3T, LibTensor* in4T, LibTensor* in5T,
+                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
-         
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dst in1T->data in2T-> weight in3T->bias in4T->scale in5T->offset */
   
@@ -101,13 +100,14 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInst(
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(
            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-           LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
+           LibTensor* in4T, LibTensor* in5T, uint64_t flags,
+           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
@@ -205,14 +205,16 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(
      LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-     LibTensor* in3T, LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
+     LibTensor* in3T, LibTensor* in4T, LibTensor* in5T, uint64_t flags,
+     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
+
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dst in1T->data in2T-> weight in3T->bias in4T->scale in5T->offset */
 
@@ -384,13 +386,14 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(
 
 inline void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-           LibTensor* in4T, LibTensor* in5T, uint64_t flags) {
+           LibTensor* in4T, LibTensor* in5T, uint64_t flags,
+           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   void *pdst = outT->getRawDataPointer<void>();

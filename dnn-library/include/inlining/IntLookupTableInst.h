@@ -31,15 +31,14 @@ namespace dnn_lib {
 namespace inlining {
 
 inline void fwdLibIntLookupTableInst(LibTensor* outT, LibTensor* in1T,
-                                     LibTensor* in2T) {
+                                     LibTensor* in2T,
+                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
   
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
 
   // int8_t *ptrDstT = (int8_t *)dstT;
@@ -91,15 +90,15 @@ inline void fwdLibIntLookupTableInst(LibTensor* outT, LibTensor* in1T,
 inline void fwdLibIntLookupTableInstThreaded(LibTensor* outT,
                                              LibTensor* in1T,
                                              LibTensor* in2T,
-                                             uint64_t flags) {
+                                             uint64_t flags,
+                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
   
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();

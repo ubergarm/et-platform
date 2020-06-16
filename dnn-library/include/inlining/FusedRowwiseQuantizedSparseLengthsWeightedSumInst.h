@@ -47,15 +47,13 @@ template <ElemKind elK>
 inline __attribute((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst(
                    LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                   LibTensor* in3T, LibTensor* in4T) {
+                   LibTensor* in3T, LibTensor* in4T,
+                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   assert(elK == FloatTy || elK == Float16Ty);
   using dstType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  
-  if (minionId != 0) {
-    return;
-  }
+
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT-> dst in1T->data in2T->weight in3T->indices in4T->lengths */

@@ -31,11 +31,12 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
-  using srcType = typename elemKind2elemTy<elK>::type;  
-  unsigned int minionId = get_minion_id();
-  if (minionId > 0)
-    return;
+inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
+  if (get_minion_id() != minionOffset) return;
+
   const auto pLengthsSize = in2T->dims()[0];
   /* outT --> dst  in1T--> src   in2T--> length */
   /* maintain compatibility through the new Iface Libtensor */
@@ -117,12 +118,13 @@ inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in
 
 template <ElemKind elK>
 inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                         LibTensor* in2T, uint64_t flags) {
+                                         LibTensor* in2T, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  
-  unsigned int minion_id = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
-  if (minion_id >= activeMinions) return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* outT --> dst  in1T--> src in2T--> index*/
   /* maintain compatibility through the new Iface Libtensor */
@@ -154,7 +156,7 @@ inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
 
   // We give to each minion an initial address and the number of positions that it must work on (maxRead).
   unsigned int initialAddr, maxRead;
-  getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minion_id, activeMinions);
+  getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0) return;
 
   // We move the initialAddr to the next non-padding position

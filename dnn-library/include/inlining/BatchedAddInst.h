@@ -32,14 +32,13 @@ namespace inlining {
 
 template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
 inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
-                                 LibTensor* in2T) {
+                                 LibTensor* in2T,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using batchType = typename elemKind2elemTy<batchElK>::type;
   using sliceType = typename elemKind2elemTy<sliceElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */
@@ -102,15 +101,16 @@ inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
 
 template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
 inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                         LibTensor* in2T, uint64_t flags) {
+                                         LibTensor* in2T, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using batchType = typename elemKind2elemTy<batchElK>::type;
   using sliceType = typename elemKind2elemTy<sliceElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */

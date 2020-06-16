@@ -35,11 +35,11 @@ template <ElemKind elK>
 inline __attribute__((always_inline))
 void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pcoord,
                             unsigned int count, unsigned int axis,
-                            uint64_t flags, const uint32_t minionOffset = 0) {
+                            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id() - minionOffset;
-  if (minionId != 0)
-    return;
+  
+  if (get_minion_id() != minionOffset) return;
+
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();

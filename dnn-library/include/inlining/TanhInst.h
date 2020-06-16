@@ -32,11 +32,11 @@ namespace inlining {
 
 // TODO Check corner cases
 template <ElemKind elK>
-inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
+inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT,
+                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  
+  if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
   void* src = inT->getRawDataPointer<void>();
@@ -93,12 +93,14 @@ inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
 }
 
 template <ElemKind elK>
-inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* src = inT->getRawDataPointer<void>();

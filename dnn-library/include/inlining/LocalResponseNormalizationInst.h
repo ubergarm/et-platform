@@ -33,12 +33,13 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInst(
     LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
-    unsigned int halfWindowSize, float alpha, float beta, float k) {
+    unsigned int halfWindowSize, float alpha, float beta, float k,
+    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0
+                                                 ) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
 
@@ -127,12 +128,13 @@ inline void fwdLibLocalResponseNormalizationInst(
 template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
           LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize,
-          float alpha, float beta, float k, uint64_t flags) {
+          float alpha, float beta, float k, uint64_t flags,
+          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
@@ -227,14 +229,16 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
 
 template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
-    LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
-    float beta, float k, uint64_t flags) {
+                  LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
+                  float beta, float k, uint64_t flags,
+                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
-
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
 

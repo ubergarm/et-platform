@@ -32,8 +32,12 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim){
+inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim,
+                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0){
   using srcType = typename elemKind2elemTy<elK>::type;
+  
+  if (get_minion_id() != minionOffset) return;
+
   /* maintain compatibility through the new Iface Libtensor */
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();

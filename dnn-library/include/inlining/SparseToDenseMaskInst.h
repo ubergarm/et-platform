@@ -37,10 +37,13 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in4T,
                                         unsigned int pdefaultSize,
                                         unsigned int pLengthsSize,
-                                        void *pmask, unsigned int pMaskSize) {
+                                        void *pmask, unsigned int pMaskSize,
+                                        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0
+                                        ) {
 
     using srcType = typename elemKind2elemTy<elK>::type;
-
+    if (get_minion_id() != minionOffset) return;
+    
   /* maintain compatibility through the new Iface Libtensor */
   /* out--> dest in1T->val in2T->dft in3T->idx in4T->len*/
   void* pdst = outT->getRawDataPointer<void>();
@@ -127,11 +130,12 @@ inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T
                                                 unsigned int pdefaultSize,
                                                 unsigned int pLengthsSize,
                                                 void *pmask, unsigned int pMaskSize,
-                                                uint64_t flags) {
+                                                uint64_t flags,
+                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */

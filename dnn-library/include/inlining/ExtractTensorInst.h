@@ -32,11 +32,10 @@ namespace inlining {
 
 template <ElemKind elK>
 inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
-                                    void *pcoord) {
+                                    void *pcoord,
+                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
@@ -95,12 +94,13 @@ inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
 
 template <ElemKind elK>
 inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                            void *pcoord, uint64_t flags) {
+                                            void *pcoord, uint64_t flags,
+                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();

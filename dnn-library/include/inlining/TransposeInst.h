@@ -31,12 +31,11 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle) {
+inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle,
+                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
@@ -99,12 +98,13 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle)
 
 template <ElemKind elK>
 inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
-                                        void *pshuffle, uint64_t flags) {
+                                        void *pshuffle, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
@@ -202,12 +202,13 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t
 
 template <ElemKind elK>
 inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
-                                          void *pshuffle, uint64_t flags) {
+                                          void *pshuffle, uint64_t flags,
+                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void *>();
@@ -363,13 +364,14 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
 
 template <ElemKind elK>
 inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                              void *pshuffle, uint64_t flags) {
+                                              void *pshuffle, uint64_t flags,
+                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;  
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
 
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
