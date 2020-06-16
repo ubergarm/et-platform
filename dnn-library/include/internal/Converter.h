@@ -14,26 +14,24 @@
 
 namespace dnn_lib {
 
-template <typename SRC, typename DST> class Converter {
+template <ElemKind srcElK, ElemKind dstElK> class Converter {
 public:
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
   Converter(){};
 
   // TODO Do proper conversion (currently we convert fp16 and int64 through
   // int32)
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float>::value &&
-                                        std::is_same<D, int64_t>::value,
-                                    std::size_t>::type = 0>
-  DST convert(SRC s) {
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == FloatTy && DST == Int64ITy,dstType>::type
+  convert(srcType s) {
     int32_t tmp = (int32_t)s;
-    return (DST)tmp;
+    return (dstType)tmp;
   }
 
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float>::value &&
-                                        std::is_same<D, int64_t>::value,
-                                    std::size_t>::type = 0>
-  void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *,  int32_t *) {
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == FloatTy && DST == Int64ITy,void>::type
+  convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *,  int32_t *) {
     const int32_t gatherValues1[] __attribute__((aligned(32))) = {0, 0, 4, 4, 8, 8, 12, 12};
     float scratch0, scratch1, scratch2;
     __asm__ __volatile__("fxor.pi    %[op0], %[op0], %[op0] \n"
@@ -59,20 +57,16 @@ public:
                          );
   }
 
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float>::value &&
-                                        std::is_same<D, float16>::value,
-                                    std::size_t>::type = 0>
-  float convert(float s) {
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == FloatTy && DST == Float16Ty,float>::type
+  convert(float s) {
 
     return s;
   }
-
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float>::value &&
-                                        std::is_same<D, float16>::value,
-                                    std::size_t>::type = 0>
-  void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *, int32_t *scatterValues) {
+  
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == FloatTy && DST == Float16Ty, void>::type
+  convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *, int32_t *scatterValues) {
     float op0, op1;
     __asm__ __volatile__("flw.ps %[op1], %[scatterValues]\n"
                          "flw.ps %[op0], %[srcAddr] \n"
@@ -86,21 +80,17 @@ public:
                            [ scatterValues ] "m"( *(const int32_t (*)[8])scatterValues)
                          );
   }
+  
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == FloatTy && DST == FloatTy,dstType>::type
+  convert(srcType s) {
 
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float>::value &&
-                                        std::is_same<D, float>::value,
-                                    std::size_t>::type = 0>
-  DST convert(SRC s) {
-
-    return (DST)s;
+    return (dstType)s;
   }
-
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float>::value &&
-                                        std::is_same<D, float>::value,
-                                    std::size_t>::type = 0>
-  void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues, int32_t *scatterValues) {
+  
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == FloatTy && DST == FloatTy, void>::type
+  convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues, int32_t *scatterValues) {
     float scratch;
     __asm__ __volatile__("flw.ps %[scratch], %[srcAddr]\n"
                          "fsw.ps %[scratch], %[dstAddr]\n"
@@ -110,20 +100,15 @@ public:
                          );
   }
 
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float16>::value &&
-                                        std::is_same<D, float>::value,
-                                    std::size_t>::type = 0>
-  float convert(float s) {
-
-    return (float)s;
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Float16Ty && DST == FloatTy,float>::type
+  convert(float s) {
+    return s;
   }
-
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float16>::value &&
-                                        std::is_same<D, float>::value,
-                                    std::size_t>::type = 0>
-  void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues, int32_t *scatterValues) {
+  
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Float16Ty && DST == FloatTy, void>::type
+  convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues, int32_t *scatterValues) {
     float op0, op1;
     __asm__ __volatile__("flw.ps %[op0], %[gatherValues] \n"
                          "fgh.ps %[op1], %[op0](%[srcAddr]) \n"
@@ -137,21 +122,16 @@ public:
                            "m"  ( * (char (*)[16]) srcAddr)
                          );
   }
-
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float16>::value &&
-                                        std::is_same<D, float16>::value,
-                                    std::size_t>::type = 0>
-  DST convert(SRC s) {
-
-    return (DST)s;
+  
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Float16Ty && DST == Float16Ty,dstType>::type
+  convert(srcType s) {
+    return (dstType)s;
   }
-
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, float16>::value &&
-                                        std::is_same<D, float16>::value,
-                                    std::size_t>::type = 0>
-  void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues, int32_t *) {
+  
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Float16Ty && DST == Float16Ty, void>::type
+  convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues, int32_t *) {
     float op0, op1;
     __asm__ __volatile__("flw.ps %[op0], %[gatherValues]\n"
                          "fgh.ps  %[op1], %[op0](%[srcAddr]) \n"
@@ -164,21 +144,16 @@ public:
 
   // TODO Do proper conversion (currently we convert fp16 and int64 through
   // int32)
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, int64_t>::value &&
-                                        std::is_same<D, float>::value,
-                                    std::size_t>::type = 0>
-  DST convert(SRC s) {
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Int64ITy && DST == FloatTy, dstType>::type
+  convert(srcType s) {
     int32_t tmp = (int32_t)s;
-    return (DST)tmp;
+    return (dstType)tmp;
   }
 
-
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, int64_t>::value &&
-                                        std::is_same<D, float>::value,
-                                    std::size_t>::type = 0>
-  void convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues,  int32_t *scatterValues) {
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Int64ITy && DST == FloatTy, void>::type
+  convertVect(uintptr_t srcAddr, uintptr_t dstAddr, int32_t *gatherValues,  int32_t *scatterValues) {
     float op0, op1;
     __asm__ __volatile__("flw.ps %[op0], %[gatherValues]\n"
                          "fgw.ps %[op1], %[op0](%[srcAddr]) \n"
@@ -191,21 +166,16 @@ public:
                          :
                            "memory");  //TODO: replace memory clobber with input or/and output memory operands if gather/scatter max offset is known
   }
-
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, int64_t>::value &&
-                                        std::is_same<D, int64_t>::value,
-                                    std::size_t>::type = 0>
-  DST convert(SRC s) {
-
-    return (DST)s;
+  
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Int64ITy && DST == Int64ITy,dstType>::type
+  convert(srcType s) {
+    return (dstType)s;
   }
 
-  template <typename S = SRC, typename D = DST,
-            typename std::enable_if<std::is_same<S, int64_t>::value &&
-                                        std::is_same<D, int64_t>::value,
-                                    std::size_t>::type = 0>
-  void convertVect(uintptr_t srcAddr, uintptr_t dstAddr,  int32_t *, int32_t *) {
+  template < ElemKind SRC = srcElK, ElemKind DST = dstElK>
+  typename std::enable_if<SRC == Int64ITy && DST == Int64ITy,void>::type
+  convertVect(uintptr_t srcAddr, uintptr_t dstAddr,  int32_t *, int32_t *) {
     int32_t gatherValues1[] = {0, 8, 16, 24, 32, 40, 48, 56};
     int32_t gatherValues2 []= {4, 12, 20, 28, 36, 44, 52, 60};
     float gv1,gv2;

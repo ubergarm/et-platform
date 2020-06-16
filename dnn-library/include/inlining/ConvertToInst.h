@@ -58,7 +58,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
   Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
 
-  Converter<srcType, dstType> converter;
+  Converter<srcElK, dstElK> converter;
 
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    [&](size_t addrDst, size_t addrSrc) {
@@ -100,7 +100,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
 
   Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
   const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
-  Converter<srcType, dstType> converter;
+  Converter<srcElK, dstElK> converter;
   
   // and loop
 #if 0
@@ -149,7 +149,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   outT->partitionCL(minionId, activeMinions, first, count);
   if (unlikely(count == 0)) return; // minion has no work to do
 
-  Converter<srcType, dstType> converter;
+  Converter<srcElK, dstElK> converter;
   int32_t gatherValues[8], scatterValues[8];
   for (unsigned int i = 0; i < 8; i++) {
     gatherValues[i] = i * getsize<srcType>();
@@ -157,25 +157,16 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   }
   // and loop
 
-  //  srcType* srcP = inT->getRawDataPointer<srcType>();
-  //  dstType* dstP = outT->getRawDataPointer<dstType>();
-  //FIXME:  dstType=float16? cannot use as pointers to storage! should be uint16_, this is just a temporary fix
-  
-  using srcStorage_t = typename std::conditional<std::is_same<srcType, float16>::value,
-                                                 uint16_t, srcType>::type;
-  using dstStorage_t = typename std::conditional<std::is_same<dstType, float16>::value,
-                                                 uint16_t, dstType>::type;
-
-  srcStorage_t * const  srcP = inT->getRawDataPointer<srcStorage_t>();
-  dstStorage_t * const  dstP = outT->getRawDataPointer<dstStorage_t>();
+  srcType * const  srcP = inT->getRawDataPointer<srcType>();
+  dstType * const  dstP = outT->getRawDataPointer<dstType>();
   
   const size_t ndims = outT->ndims();
   const dim_t lastDim = outT->dims()[ndims-1];
   constexpr dim_t step=8; // ConvertVect works with 8 elements at a time
 
   // get iterators to loop through all the dimensions except the last one
-  auto out = outT->getHandle<dstStorage_t>().getIterator(first);
-  auto in = inT->getHandle<srcStorage_t>().getIterator(out.coords());
+  auto out = outT->getHandle<dstType>().getIterator(first);
+  auto in = inT->getHandle<srcType>().getIterator(out.coords());
   
 #if 0
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
