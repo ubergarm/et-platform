@@ -3,7 +3,6 @@
 
 #include "LibTypes.h"
 #include <utility>
-#include "Float16.h"
 
 namespace dnn_lib{
 
@@ -20,15 +19,13 @@ namespace dnn_lib{
   
   using TypeRef = const Type *;
   
-  using float16_t = float16;
-
   template <class ElemTy> class Handle;
   
   template<ElemKind elK>
   struct elemKind2elemTy {
     using type =
       typename std::conditional<elK == ElemKind::FloatTy, float,
-       typename std::conditional<elK == ElemKind::Float16Ty, float16,
+       typename std::conditional<elK == ElemKind::Float16Ty, uint16_t,
         typename std::conditional<elK == ElemKind::Int8QTy, int8_t,
          typename std::conditional<elK == ElemKind::UInt8QTy, uint8_t,
           typename std::conditional<elK == ElemKind::Int16QTy, int16_t,

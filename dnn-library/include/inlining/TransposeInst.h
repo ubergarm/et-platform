@@ -30,8 +30,8 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
-inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle,
+  template <ElemKind elK, size_t N>
+inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<size_t, N> &shuffle,
                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   if (get_minion_id() != minionOffset) return;
@@ -51,9 +51,6 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle,
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
-
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -96,9 +93,9 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle,
   }
 }
 
-template <ElemKind elK>
+  template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
-                                        void *pshuffle, uint64_t flags,
+                                        const std::array<size_t, N> &shuffle, uint64_t flags,
                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -121,9 +118,6 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
-
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
@@ -200,9 +194,9 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t
 
 
 
-template <ElemKind elK>
+  template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
-                                          void *pshuffle, uint64_t flags,
+                                          const std::array<size_t, N> &shuffle, uint64_t flags,
                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -223,9 +217,6 @@ inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
-
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -362,9 +353,9 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
 
 
 
-template <ElemKind elK>
+  template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                              void *pshuffle, uint64_t flags,
+                                              const std::array<size_t, N> &shuffle, uint64_t flags,
                                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;  
 
@@ -388,9 +379,6 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
   
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
-
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];

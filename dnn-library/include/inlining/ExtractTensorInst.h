@@ -30,9 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
+  template <ElemKind elK>
 inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
-                                    void *pcoord,
+                                    const dim_array_t &coord,
                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   if (get_minion_id() != minionOffset) return;
@@ -53,8 +53,6 @@ inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = inT->strides().data();
   
-  unsigned int *coord = (unsigned int *)pcoord;
-
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
@@ -92,9 +90,10 @@ inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
   }
 }
 
-template <ElemKind elK>
+  template <ElemKind elK>
 inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                            void *pcoord, uint64_t flags,
+                                            const dim_array_t &coord,
+                                            uint64_t flags, 
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -118,8 +117,6 @@ inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = inT->strides().data();
   
-  unsigned int *coord = (unsigned int *)pcoord;
-
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];

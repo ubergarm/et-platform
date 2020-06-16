@@ -101,11 +101,11 @@ inline void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_v
 
   // and instance for Int8Converter
 template <ElemKind elK>
-inline void fwdLibElementInt8Converter(LibTensor* outT, LibTensor* inT,
+inline void fwdLibInt8ConverterInst(LibTensor* outT, LibTensor* inT,
                                        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   srcType imm_value = 0x80;
-  fwdLibElementImmLogic<srcType, Xor>(outT, inT, imm_value, flags, minionOffset, assignedMinions);
+  inlining::fwdLibElementImmLogic<srcType, Xor>(outT, inT, imm_value, flags, minionOffset, assignedMinions);
 }
   
 } // namespace inlining

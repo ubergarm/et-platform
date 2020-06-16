@@ -45,8 +45,4 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
-template void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // dnn_lib

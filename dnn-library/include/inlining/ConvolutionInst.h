@@ -68,10 +68,13 @@ struct accumulatorType {
  * @param[in] scale The scale for the quantization.
  * @param[in] offset The offset for the quantization.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                  LibTensor* in3T, void *pkernels, void *pstrides,
-                                  void *ppads, unsigned int group,
+                                  LibTensor* in3T,
+                                  const std::array<uint32_t, N> &kernels,
+                                  const std::array<uint32_t, N> &strides,
+                                  const std::array<uint32_t, N> &pads,
+                                  unsigned int group,
                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
@@ -106,11 +109,6 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
-  
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides; 
-  unsigned int *pads = (unsigned int *)ppads; 
-
   
   assert(actIndex[3] % group == 0 &&
          "Input channels must be divisible by group.");
@@ -407,10 +405,14 @@ inline void convolutionStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N>
 inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
-             LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
-             void *ppads, unsigned int group, uint64_t flags,
+                                          LibTensor* in2T, LibTensor* in3T,
+                                          const std::array<uint32_t, N> &kernels,
+                                          const std::array<uint32_t, N> &strides,
+                                          const std::array<uint32_t, N> &pads,
+                                          unsigned int group,
+                                          uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
@@ -437,10 +439,6 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   const dim_t *actPitch = in1T->strides().data();
   const dim_t *weightPitch = in2T->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides; 
-  unsigned int *pads = (unsigned int *)ppads; 
-
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
@@ -584,13 +582,14 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
  *  we can't take 8 elements at the same time.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
-                            src1Type, float>::value, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, size_t N,
+          typename std::enable_if<std::is_same<
+                                    src1Type, float>::value, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -698,13 +697,14 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *
  * @overload
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
-                            src1Type, float16>::value, std::size_t>::type = 0>
+template <typename src1Type, typename src2Type, typename dstType, size_t N,
+          typename std::enable_if<std::is_same<
+                                      src1Type, float16>::value, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -838,15 +838,16 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] mask It has no relevance in this function.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<(!std::is_same<
+template <typename src1Type, typename src2Type, typename dstType, size_t N,
+            typename std::enable_if<(!std::is_same<
                             src1Type, float>::value) /*&& (!std::is_same<
                             src1Type, float16>::value) && (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
   const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
@@ -877,15 +878,16 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *
  * @overload
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if</*(!std::is_same<
+  template <typename src1Type, typename src2Type, typename dstType, size_t N,
+          typename std::enable_if</*(!std::is_same<
                             src1Type, float>::value) && */(!std::is_same<
                             src1Type, float16>::value) /*&& (!std::is_same<
                             src1Type, int8_t>::value)*/, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
   const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
@@ -912,16 +914,16 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 }
 
 
-template <typename src1Type, typename src2Type, typename dstType>
+template <typename src1Type, typename src2Type, typename dstType, size_t N>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
   const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
-      for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
+    for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
         ssize_t ox = x + fx;
         ssize_t oy = y + fy;
 
@@ -974,12 +976,13 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N>
 inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
-                                            void *pkernels, void *pstrides,
-                                            void *ppads, unsigned int group,
-                                            const float *scale, const int32_t *offset,
+                                            const std::array<uint32_t, N> &kernels,
+                                            const std::array<uint32_t, N> &strides,
+                                            const std::array<uint32_t, N> &pads,
+                                            unsigned int group,
                                             uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
@@ -1013,12 +1016,10 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
+
+  float scale[] = { in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
+  int32_t offset[] = { in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides; // Jump between convols
-  unsigned int *pads = (unsigned int *)ppads; // 0 added to avoid loss of dims
-
-
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<src1Type>();

@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind out0Type, ElemKind in0Type>
   void fwdLibDequantizeInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibDequantizeInst<FloatTy,Int8QTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibDequantizeInst<out0Type, in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind out0Type, ElemKind in0Type>
   void fwdLibDequantizeInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibDequantizeInstThreaded<FloatTy,Int8QTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibDequantizeInstThreaded<out0Type, in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

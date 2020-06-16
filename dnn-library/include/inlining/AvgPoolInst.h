@@ -30,9 +30,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind dstElK, ElemKind srcElK>
+template <ElemKind dstElK, ElemKind srcElK, size_t N>
 inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-                              void *pkernels, void *pstrides, void *ppads,
+                              std::array<uint32_t, N> kernels,
+                              std::array<uint32_t, N> strides,
+                              std::array<uint32_t, N> pads,
                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
@@ -57,10 +59,6 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data();
-
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
 
   float filterArea = kernels[0] * kernels[1];
   float invFilter;
@@ -104,10 +102,12 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   }       // N
 }
 
-template <ElemKind dstElK, ElemKind srcElK>
+template <ElemKind dstElK, ElemKind srcElK, size_t N>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
-                                      void *pkernels, void *pstrides,
-                                      void *ppads, uint64_t flags,
+                                      std::array<uint32_t, N> kernels,
+                                      std::array<uint32_t, N> strides,
+                                      std::array<uint32_t, N> pads,
+                                      uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
@@ -133,10 +133,6 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
-
   float filterArea = kernels[0] * kernels[1];
   float invFilter;
   fpReciprocalSingleElement(filterArea, invFilter);

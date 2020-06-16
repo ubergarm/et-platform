@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibTanhInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibTanhInst<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibTanhInst<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibTanhInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibTanhInstThreaded<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibTanhInstThreaded<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

@@ -941,8 +941,8 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-    fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, true>
-      (outT, nullptr, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
+  inlining::fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, true>
+    (outT, nullptr, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining

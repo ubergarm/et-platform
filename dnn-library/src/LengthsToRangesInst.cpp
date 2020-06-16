@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibLengthsToRangesInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibLengthsToRangesInst<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibLengthsToRangesInst<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibLengthsToRangesInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibLengthsToRangesInstThreaded<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibLengthsToRangesInstThreaded<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

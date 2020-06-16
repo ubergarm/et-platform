@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSoftMaxInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSoftMaxInst<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSoftMaxInst<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSoftMaxInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSoftMaxInstVectorized(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSoftMaxInstVectorized<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSoftMaxInstVectorized<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +39,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSoftMaxInstThreaded1(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -49,7 +49,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSoftMaxInstVectorized1(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -59,7 +59,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSoftMaxInst2(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSoftMaxInst2<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSoftMaxInst2<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -69,7 +69,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSoftMaxInstThreaded2(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

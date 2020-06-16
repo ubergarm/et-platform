@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind out0Type>
   void fwdLibFusedRowwiseQuantizedSparseLengthsSumInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInst<FloatTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInst<out0Type>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind out0Type>
   void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded<FloatTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded<out0Type>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ namespace dnn_lib {
   template <ElemKind out0Type>
   void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstVectorized<FloatTy>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstVectorized<out0Type>(out0, in0, in1, in2, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

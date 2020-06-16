@@ -7,9 +7,9 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
  
   template <ElemKind in0Type>
-  void fwdLibTopKInst(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  void fwdLibTopKInst(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibTopKInst<FloatTy>(out0, out1, in0, K, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibTopKInst<in0Type>(out0, out1, in0, TopK, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -17,62 +17,24 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
 
   template <ElemKind in0Type>
-  void fwdLibTopKInstThreaded_all(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  void fwdLibTopKInstThreaded(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibTopKInstThreaded_all<FloatTy>(out0, out1, in0, K, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibTopKInstThreaded<in0Type>(out0, out1, in0, TopK, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
-
-  template <ElemKind in0Type>
-  void fwdLibTopKInstThreaded_k4(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
-  {
-    dnn_lib::inlining::fwdLibTopKInstThreaded_k4<FloatTy>(out0, out1, in0, K, flags, minionOffset, assignedMinions);
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////
-  // Template specializations (declared with 'extern template' in LibNodes.h)
-  ////////////////////////////////////////////////////////////////////////////////
-
-  template <ElemKind in0Type>
-  void fwdLibTopKInstThreaded_k8(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
-  {
-    dnn_lib::inlining::fwdLibTopKInstThreaded_k8<FloatTy>(out0, out1, in0, K, flags, minionOffset, assignedMinions);
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////
-  // Template specializations (declared with 'extern template' in LibNodes.h)
-  ////////////////////////////////////////////////////////////////////////////////
-template void fwdLibTopKInst<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInst<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInst<Int8QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInst<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInst<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInst<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_all<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_all<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_all<Int8QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_all<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_all<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_all<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int8QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int8QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k4<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k8<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k8<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k8<Int8QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k8<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k8<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTopKInstThreaded_k8<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInst<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInst<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInst<Int8QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInst<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInst<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInst<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInstThreaded<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInstThreaded<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInstThreaded<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTopKInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // dnn_lib

@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibElementExpInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibElementExpInst<FloatTy>(out0, in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibElementExpInst<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

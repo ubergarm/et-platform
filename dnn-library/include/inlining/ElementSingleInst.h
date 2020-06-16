@@ -284,19 +284,19 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
 template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibElementLogInst(LibTensor* outT, LibTensor* inT,
                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  fwdLibElementSingleInst<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
+  inlining::fwdLibElementSingleInst<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
 }
 
-template <ElemKind dstElK, ElemKind srcElK, typename opType>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibElementLogInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  fwdLibElementSingleInstThreaded<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
+  inlining::fwdLibElementSingleInstThreaded<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
 }
 
-  template <ElemKind dstElK, ElemKind srcElK, typename opType>
-  inline void fwdLibElementLogInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
+template <ElemKind dstElK, ElemKind srcElK>
+inline void fwdLibElementLogInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-    fwdLibElementSingleInstVectorized<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
+    inlining::fwdLibElementSingleInstVectorized<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
 }
   
 } // namespace inlining

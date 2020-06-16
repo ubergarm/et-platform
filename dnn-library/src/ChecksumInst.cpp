@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibChecksumInst(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibChecksumInst<FloatTy>(in0, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibChecksumInst<in0Type>(in0, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

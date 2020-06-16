@@ -32,7 +32,7 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord,
+inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim_array_t &coord,
                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -59,8 +59,6 @@ inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord,
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
     
-  long unsigned int *coord = (long unsigned int *)pcoord;
-
   // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
   int offsetIn = 0;
 
@@ -115,7 +113,7 @@ inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord,
 
 template <ElemKind elK>
 inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
-                                         void *pcoord, uint64_t flags,
+                                         const dim_array_t &coord, uint64_t flags,
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -145,7 +143,6 @@ inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
-  long unsigned int *coord = (long unsigned int *)pcoord;
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddrOut, maxRead;
@@ -260,7 +257,7 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
 
 template <ElemKind elK>
 inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
-                                           void *pcoord, uint64_t flags,
+                                           const dim_array_t & coord, uint64_t flags,
                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -290,7 +287,6 @@ inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
-  long unsigned int *coord = (long unsigned int *)pcoord;
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddrOut, maxRead;

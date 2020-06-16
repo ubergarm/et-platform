@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind in0Type, ElemKind in1Type>
   void fwdLibElementCmpLTEInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibElementCmpLTEInst<FloatTy,FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibElementCmpLTEInst<in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind in0Type, ElemKind in1Type>
   void fwdLibElementCmpLTEInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibElementCmpLTEInstThreaded<FloatTy,FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibElementCmpLTEInstThreaded<in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ namespace dnn_lib {
   template <ElemKind in0Type, ElemKind in1Type>
   void fwdLibElementCmpLTEInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibElementCmpLTEInstVectorized<FloatTy,FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibElementCmpLTEInstVectorized<in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

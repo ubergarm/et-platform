@@ -47,12 +47,8 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal,
 
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    [&](size_t addrDst, size_t addrSrc) {
-                     if (std::is_same<srcType, float>::value) {
-                       dstT[addrDst] = (srcT[addrSrc] > splatVal) ? srcT[addrSrc] : splatVal;
-                     } else {
-                       auto src = ptrSrcT[addrSrc];
-                       ptrDstT[addrDst] = src > splatVal ? src : splatVal;
-                     }
+                     float src = ptrSrcT[addrSrc];
+                     ptrDstT[addrDst] = src > splatVal ? src : splatVal;
                    } );
 
   

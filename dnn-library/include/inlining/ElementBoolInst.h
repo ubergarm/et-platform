@@ -364,20 +364,22 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   ////////////////////////////////////////////////////////////////////////////////
 #define EltWiseInst(name, opType)                                                                                        \
   template <ElemKind src1ElK, ElemKind src2ElK> inline void                                                              \
-  fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                            \
+  fwdLib ## name ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                              \
                            uint64_t flags, const uint32_t minionOffset = 0,                                              \
                            const uint32_t assignedMinions = 0) {                                                         \
-    fwdLibElementBoolInst<src1ElK, src2ElK, opType> (outT, in1T,in2T, flags, minionOffset, assignedMinions);             \
+    inlining::fwdLibElementBoolInst<src1ElK, src2ElK, opType> (outT, in1T,in2T, flags, minionOffset, assignedMinions);   \
   }                                                                                                                      \
   template <ElemKind src1ElK, ElemKind src2ElK>  inline void                                                             \
-  fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                    \
+  fwdLib ## name ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                \
-    fwdLibElementBoolInstThreaded<src1ElK, src2ElK, opType>  (outT, in1T, in2T,flags, minionOffset, assignedMinions);    \
+    inlining::fwdLibElementBoolInstThreaded<src1ElK, src2ElK, opType>  (outT, in1T, in2T,flags,                          \
+                                                                        minionOffset, assignedMinions);                  \
   }                                                                                                                      \
   template <ElemKind src1ElK, ElemKind src2ElK>  inline void                                                             \
-  fwdLib ## opType ## Vectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
+  fwdLib ## name ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                    \
                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {            \
-    fwdLibElementBoolInstVectorized<src1ElK, src2ElK, opType> (outT, in1T,  in2T, flags, minionOffset, assignedMinions); \
+    inlining::fwdLibElementBoolInstVectorized<src1ElK, src2ElK, opType> (outT, in1T,  in2T,                              \
+                                                                         flags, minionOffset, assignedMinions);          \
   }
   
   EltWiseInst(ElementCmpEQ, CmpEQ)

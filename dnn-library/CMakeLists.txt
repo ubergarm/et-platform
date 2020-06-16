@@ -160,7 +160,7 @@ add_library(dnn_lib STATIC
   src/ElementSelectInst.cpp
   src/EmbeddingBagInst.cpp
   src/ExtractTensorInst.cpp
-  src/FlipInst.cpp
+#  src/FlipInst.cpp
   src/FullyConnectedInst.cpp
   src/FusedRowwiseQuantizedSparseLengthsSumInst.cpp
   src/FusedRowwiseQuantizedSparseLengthsWeightedSumInst.cpp

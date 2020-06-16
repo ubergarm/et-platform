@@ -50,7 +50,7 @@ namespace inlining {
  */
 template <ElemKind elK>
 inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
-                                        unsigned int off) {
+                                        unsigned int off, uint64_t flags) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   uint32_t hart = get_hart_id();

@@ -374,8 +374,8 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
-           LibTensor* outT, LibTensor* in1T, LibTensor* in2T, const float* scale,
-           const int32_t* offset, uint64_t flags,
+           LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+           uint64_t flags,
            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -383,6 +383,8 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
+  float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
+  int32_t offset[] = { in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
   /* outT --> dst  in1T--> src   in2T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 

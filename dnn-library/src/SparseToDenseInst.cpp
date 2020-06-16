@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSparseToDenseInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseInst<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseInst<in0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSparseToDenseInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<in0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ namespace dnn_lib {
   template <ElemKind in0Type>
   void fwdLibSparseToDenseInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<in0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

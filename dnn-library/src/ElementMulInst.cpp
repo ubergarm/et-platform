@@ -9,7 +9,7 @@ namespace dnn_lib {
   template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
   void fwdLibElementMulInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibElementMulInst<FloatTy,FloatTy,FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibElementMulInst<out0Type, in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ namespace dnn_lib {
   template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
   void fwdLibElementMulInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibElementMulInstThreaded<FloatTy,FloatTy,FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibElementMulInstThreaded<out0Type, in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -29,7 +29,7 @@ namespace dnn_lib {
   template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
   void fwdLibElementMulInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibElementMulInstVectorized<FloatTy,FloatTy,FloatTy>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibElementMulInstVectorized<out0Type, in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

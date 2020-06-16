@@ -89,7 +89,7 @@ namespace dnn_lib {
        1,  // # ins
        {mbAxis}, // members
        2, // template param mask
-       {"Threaded", "Int8", "Int8Threaded"} // impl versions
+       {"Threaded"} // impl versions
      },
      /**** ET_batchonehot ****/
      { "BatchOneHot", // name
@@ -385,7 +385,7 @@ namespace dnn_lib {
        4,  // # ins
        {}, // members
        1, // template param mask
-       {"FloatTy", "FloatTyThreaded", "FloatTyVectorized", "FloatTyVectorized"} // impl versions
+       {"Threaded", "Vectorized"} // impl versions
      },
      /**** ET_fusedrowwisequantizedsparselengthssum ****/
      { "FusedRowwiseQuantizedSparseLengthsSum", // name
@@ -468,12 +468,12 @@ namespace dnn_lib {
        {"Threaded"} // impl versions
      },
      /**** ET_maxpoolwithargmax ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
-       {}, // members
-       0, // template param mask
-       {} // impl versions
+     { "MaxPoolWithArgMax", // name
+       2, // # outs
+       1,  // # ins
+       {mbKernels, mbStrides, mbPads}, // members
+       5, // template param mask
+       {"Threaded"} // impl versions
      },
      /**** ET_modulo ****/
      { "Modulo", // name
@@ -588,11 +588,11 @@ namespace dnn_lib {
        {} // impl versions
      },
      /**** ET_syncopy ****/
-     { "Syncopy", // name
-       1, // # outs
-       1,  // # ins
-       {mbSyncOffset}, // members
-       2, // template param mask
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
        {} // impl versions
      },
      /**** ET_tanh ****/
@@ -605,7 +605,7 @@ namespace dnn_lib {
      },
      /**** ET_tensorview ****/
      { "TensorView", // name
-       0, // # outs
+       1, // # outs
        1,  // # ins
        {mbOffsets}, // members
        1, // template param mask

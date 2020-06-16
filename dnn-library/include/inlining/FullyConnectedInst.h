@@ -942,8 +942,6 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
 inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
                                                LibTensor* in2T, LibTensor* in3T,
-                                               const float* scale,
-                                               const int32_t* offset,
                                                uint64_t flags,
                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   
@@ -951,10 +949,12 @@ inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
   using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
-    unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
+  float scale[] = { in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
+  int32_t offset[] = { in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT --> dst  in1T--> inActT  in2T--> inWeighT in3T-->inBiasT */

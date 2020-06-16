@@ -213,8 +213,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
     
     //// First iterate until completing the first feature dimension (in case initial coordinates are in the middle)
     for(; ( out.coords()[ndims-1] != 0 ||  ndims == 1) && out.offset() < endOffset; out+=step, in+=step) {
-    dim_t valid = lastDim - out.coords()[ndims-1];
 #ifndef  CONVERTTO_OK_TO_WRITE_PADDING
+      dim_t valid = lastDim - out.coords()[ndims-1];
     // set and restore the mask if we are in the boundary before and after the conversion
     if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
 #endif

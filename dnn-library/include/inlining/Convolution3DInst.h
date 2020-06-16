@@ -30,11 +30,13 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
+  template <ElemKind elK, size_t N>
 inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
                                     LibTensor* in2T, LibTensor* in3T,
-                                    void *pkernels, void *pstrides,
-                                    void *ppads, unsigned int group,
+                                    const std::array<uint32_t, N> &kernels,
+                                    const std::array<uint32_t, N> &strides,
+                                    const std::array<uint32_t, N> &pads,
+                                    unsigned int group,
                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -66,10 +68,6 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
-
   assert(actIndex[4] % group == 0 &&
          "Input channels must be divisible by group.");
   assert(dstIndex[4] % group == 0 &&
@@ -138,11 +136,13 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   }           // N
 }
 
-template <ElemKind elK>
+  template <ElemKind elK, size_t N>
 inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
-                                            void *pkernels, void *pstrides,
-                                            void *ppads, unsigned int group,
+                                            const std::array<uint32_t, N> &kernels,
+                                            const std::array<uint32_t, N> &strides,
+                                            const std::array<uint32_t, N> &pads,
+                                            unsigned int group,
                                             uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
@@ -178,10 +178,6 @@ inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
-
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();

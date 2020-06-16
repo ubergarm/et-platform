@@ -383,21 +383,23 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   // individual functions per operator (forwarding call to the previous ones with
   // the proper parameters)
   ////////////////////////////////////////////////////////////////////////////////
-#define EltWiseInst(name, opType)                                       \
-  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                                 \
-  fwdLib ## opType ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                                \
-                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {            \
-    fwdLibElementInst<dstElK, src1ElK, src2ElK, opType>(outT, in1T, in2T, flags, minionOffset, assignedMinions);             \
-  }                                                                                                                          \
-  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>inline void                                                  \
-  fwdLib ## opType ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                        \
-                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                    \
-    fwdLibElementInstThreaded<dstElK, src1ElK, src2ElK, opType>  (outT, in1T, in2T,flags, minionOffset, assignedMinions);    \
-  }                                                                                                                          \
-  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                                 \
-  fwdLib ## opType ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
-                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                  \
-    fwdLibElementInstVectorized <dstElK, src1ElK, src2ElK, opType>(outT, in1T,  in2T, flags, minionOffset, assignedMinions); \
+#define EltWiseInst(name, opType)                                                                                          \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
+  fwdLib ## name ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                                \
+                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {          \
+    inlining::fwdLibElementInst<dstElK, src1ElK, src2ElK, opType>(outT, in1T, in2T, flags, minionOffset, assignedMinions); \
+  }                                                                                                                        \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>inline void                                                \
+  fwdLib ## name ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                        \
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                  \
+    inlining::fwdLibElementInstThreaded<dstElK, src1ElK, src2ElK, opType>  (outT, in1T, in2T,                              \
+                                                                            flags, minionOffset, assignedMinions);         \
+  }                                                                                                                        \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
+  fwdLib ## name ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
+                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                \
+    inlining::fwdLibElementInstVectorized <dstElK, src1ElK, src2ElK, opType>(outT, in1T,  in2T,                            \
+  flags, minionOffset, assignedMinions);                                                                                   \
   }
 
 

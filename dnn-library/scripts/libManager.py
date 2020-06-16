@@ -44,13 +44,13 @@ class LibManagerSheet:
                       "SignFollowDivisor": "bool",
                       "Axis": "dim_t",
                       "KeepDims": "bool",
-                      "Kernels": "std::array<uint32_t, default_kernels_size>",
-                      "Strides": "std::array<uint32_t, default_kernels_size>",
-                      "Pads": "std::array<uint32_t, default_kernels_size>",
+                      "Kernels": "const std::array<uint32_t, default_kernels_size> &",
+                      "Strides": "const std::array<uint32_t, default_kernels_size> &",
+                      "Pads": "const std::array<uint32_t, default_kernels_size> &",
                       "Group": "uint32_t",
-                      "Offsets": "std::array<size_t, max_tensor_dimensions>",
-                      "Shuffle": "std::array<size_t, max_tensor_dimensions>",
-                      "Mask": "std::array<uint64_t, default_mask_size>",
+                      "Offsets": "const dim_array_t &",
+                      "Shuffle": "const std::array<size_t, max_tensor_dimensions> &",
+                      "Mask": "const std::array<uint64_t, default_mask_size>&",
                       "BatchDims": "uint32_t",
                       "Count": "uint32_t",
                       "SyncOffset": "uint32_t",
@@ -63,7 +63,6 @@ class LibManagerSheet:
     memberExtraTpl = { "Kernels": "size_t KN",
                        "Strides":  "size_t KN",
                        "Pads": "size_t KN",
-                       "Offsets": "size_t N",
                        "Shuffle": "size_t N",
                        "Mask": "size_t MN"
     }
@@ -210,7 +209,10 @@ class LibManagerSheet:
         operator = { "gen": False}
         for h,cell in zip(LibManagerSheet.headerKeys, row):
             operator[h] = cell.value
-                
+            
+        if operator["Operator"][0] == "#": #disabled from sheet
+            return
+        
         enum = "ET_" + operator["Operator"].lower()
         self.__configs[enum] = operator
         
@@ -222,8 +224,9 @@ class LibManagerSheet:
             elif i >= len(LibManagerSheet.instHeader):
                 v = cell.value
                 if v:
-                    instances.append(v)
-        if op == 0: #ignoring empty
+                    if v[0] != "#": #ignore commented out specializations
+                        instances.append(v)
+        if op == 0 or op[0] == "#" : #ignoring empty or disabled
             return
 
         enum = "ET_" + op.lower()                    
@@ -431,7 +434,7 @@ namespace dnn_lib {
     dnn_lib::inlining::%s%s(%s);
   }
 """
-                                % (fnc, i['fname'], i['templateInst'], i['callInst']))
+                                % (fnc, i['fname'], i['templateFwd'], i['callInst']))
                         created[fnc] = True
                         f.write("""
   ////////////////////////////////////////////////////////////////////////////////
@@ -441,7 +444,7 @@ namespace dnn_lib {
                 created = {}
                 for i in fncs[op]:
                     decl = "template void %s%s(%s);\n" % (i['fname'], i['templateInst'], i['callDecl'])
-                    if fnc not in created:
+                    if fnc not in created and len(i['templateInst']) > 0:
                         f.write(decl);
                         created[decl] = True
 
@@ -460,6 +463,7 @@ namespace dnn_lib {
                  'opname': opname,
                  'templateDecl' : [],
                  'templateInst': tplInst,
+                 'templateFwd': [],
                  'callDecl': [],
                  'callInst':[]}
 
@@ -469,12 +473,14 @@ namespace dnn_lib {
             info['callInst'].append("out%d" % i)            
             if i in tensorTpl:
                 info['templateDecl'].append('ElemKind out%dType' % i)
+                info['templateFwd'].append('out%dType' % i)                
                 
         for i in range(conf["nrInTensors"]):
             info['callDecl'].append("LibTensor* in%d" % i)
             info['callInst'].append("in%d" % i)            
             if i + conf["nrOutTensors"] in tensorTpl:
                 info['templateDecl'].append('ElemKind in%dType' % i)
+                info['templateFwd'].append('in%dType' % i)                
 
             
         for i in members:
@@ -499,8 +505,10 @@ namespace dnn_lib {
         info['callInst'] = ', '.join(info['callInst'])
         if len(info['templateDecl']) == 0:
             info['templateDecl'] = ""
+            info['templateFwd'] = ""
         else:
             info['templateDecl'] = "template <%s>" % (', '.join(info['templateDecl']))
+            info['templateFwd'] = "<%s>" % (', '.join(info['templateFwd']))
 
         return info
 

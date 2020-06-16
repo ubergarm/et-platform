@@ -29,7 +29,7 @@
 namespace dnn_lib {
 
 namespace inlining {
-
+  
 template <ElemKind elK>
 inline __attribute__((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded(
@@ -46,10 +46,23 @@ inline __attribute__((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstVectorized(
         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, false>
+  dnn_lib::inlining::fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, false>
     (outT, nullptr, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
 }
 
+template <ElemKind elK>
+inline __attribute__((always_inline))
+void fwdLibFusedRowwiseQuantizedSparseLengthsSumInst(
+        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  // there's no single node version => forward call to threaded implementation
+  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded<elK>(outT, in1T, in2T, in3T,
+                                                                                  flags, minionOffset, assignedMinions);
+}
+
+
+
+  
 } // namespace inlining
 
 } // namespace dnn_lib
