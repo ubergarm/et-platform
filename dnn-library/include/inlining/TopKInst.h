@@ -148,6 +148,7 @@ inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT, un
   }
 }
 
+  
 template <ElemKind elK>
 inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
                                        LibTensor* inT, unsigned int k,
@@ -275,10 +276,6 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
   long long *indT = out2T->getRawDataPointer<long long>();
   // srcType *valT = (srcType *)dstT;
 
-  // unsigned int *valuesIndex = (unsigned int *)dstDims;
-  const dim_t *valuesIndex = outT->dims().data();
-  // unsigned int *indIndex = (unsigned int *)dst2Dims;
-  const dim_t *indIndex = out2T->dims().data();
   // unsigned int *inputIndex = (unsigned int *)srcDims;
   const dim_t *inputIndex = inT->dims().data();
 
@@ -289,11 +286,11 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
   // unsigned int *inputPitch = (unsigned int *)srcPitches;
   const dim_t *inputPitch = inT->strides().data();
   
-  uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
    
   unsigned int row_length = inputIndex[srcDimNum - 1];
   unsigned int rows = 1;
-  for (size_t i = 0; i < srcDimNum - 1; i++)
+  for (size_t i = 0; i < size_t(srcDimNum - 1); i++)
     rows *= inputIndex[i];
   unsigned int max_minionsperrow =
       std::min(activeMinions / rows, row_length / 4);
@@ -671,6 +668,21 @@ inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTens
   }
 }
 
+
+template <ElemKind elK>
+inline void fwdLibTopKInstThreaded(LibTensor* outT, LibTensor* out2T,
+                                   LibTensor* inT, const uint32_t k,
+                                   uint64_t flags,
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  if (k > 8)
+    fwdLibTopKInstThreaded_all<elK>(outT, out2T, inT, k, flags, minionOffset, assignedMinions);
+  else if ( k > 4)
+    fwdLibTopKInstThreaded_k8<elK>(outT, out2T, inT, k, flags, minionOffset, assignedMinions);
+  else
+    fwdLibTopKInstThreaded_k4<elK>(outT, out2T, inT, k, flags, minionOffset, assignedMinions);
+}
+
+  
 } // namespace inlining
 
 } // namespace dnn_lib
