@@ -13,19 +13,22 @@
 
 namespace dnn_lib {
 
-template <ElemKind elKind>  
-void fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
-			    LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-			    uint64_t flags) {
+template <ElemKind elKind, ElemKind accumKind>  
+void fwdLibEmbeddingBagByteRowwiseOffsetsInst(LibTensor* outT, LibTensor *in1T, 
+					      LibTensor* in2T, LibTensor* in3T, 
+					      LibTensor* in4T, 
+					      bool hasEndOffset, 
+					      uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibEmbeddingBagInst<elKind>(outT, in1T, in2T, in3T, 
-						    in4T, hasEndOffset, flags);
+  dnn_lib::inlining::fwdLibEmbeddingBagByteRowwiseOffsetsInst<elKind, accumKind>(outT, in1T, 
+				      in2T, in3T, in4T, hasEndOffset, flags);
 }
 
 #include "GenInstances.h"
 
-GEN_INSTANCES_OP_FLT_FLT16_ELK(template, fwdLibEmbeddingBagInst, LibTensor* outT, 
-			       LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-			       LibTensor* in4T, bool hasEndOffset, uint64_t flags);
+GEN_INSTANCES_OP_FLT_FLT16_ELK(template, fwdLibEmbeddingBagByteRowwiseOffsetsInst, 
+			       LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
+			       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset, 
+			       uint64_t flags);
 
 } // namespace dnn_lib

@@ -203,6 +203,14 @@
   void functionName(__VA_ARGS__);                                                     \
   GEN_INSTANCES_OP_ELK(extern template, functionName, __VA_ARGS__)
 
+#define GEN_INSTANCES_OP_FLT_FLT16_ELK(template, functionName, ...)             \
+  template void functionName<FloatTy>(__VA_ARGS__);                             \
+  template void functionName<Float16Ty>(__VA_ARGS__); 
+
+#define GEN_OP_FLT_FLT16_ELK(functionName, ...)                                 \
+  template <ElemKind elKind>                                                    \
+  GEN_INSTANCES_OP_FLT_FLT16_ELK(extern template, functionName, __VA_ARGS__)
+
 #define GEN_INSTANCES_OP_ELK_UINT32_ARR(functionName)	    \
   template <ElemKind elKind, size_t N>						\
   void functionName(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &axes, uint64_t flags);                                                     \

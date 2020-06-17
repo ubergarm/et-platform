@@ -47,7 +47,6 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedAddInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceAddInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceMinInst.h"
-#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedPairwiseDotProductInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Checksum.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ConvertToInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Convolution3DInst.h"
@@ -66,6 +65,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementSelectInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementSingleInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagInst.h"
+#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagByteRowwiseOffsetsInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ExtractTensorInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h"    
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FullyConnectedInst.h"
@@ -93,6 +93,8 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SoftMaxInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SoftMaxInst1.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SoftMaxInst2.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SpaceToDepthInst.h"
+#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseLengthsSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseLengthsWeightedSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseMaskInst.h"
@@ -143,7 +145,6 @@ add_library(dnn_lib STATIC
   src/BatchedAddInst.cpp
   src/BatchedReduceAddInst.cpp
   src/BatchedReduceMinInst.cpp
-#  src/BatchedPairwiseDotProductInst.cpp
   src/BatchOneHotInst.cpp
   src/Checksum.cpp
   src/ConvertToInst.cpp
@@ -162,6 +163,7 @@ add_library(dnn_lib STATIC
   src/ElementSelectInst.cpp
   src/ElementSingleInst.cpp
   src/EmbeddingBagInst.cpp
+#  src/EmbeddingBagByteRowwiseOffsetsInst.cpp
   src/ExtractTensorInst.cpp
 #  src/FlipInst.cpp
   src/FullyConnectedInst.cpp
@@ -190,6 +192,8 @@ add_library(dnn_lib STATIC
   src/SoftMaxInst1.cpp
   src/SoftMaxInst2.cpp
   src/SoftMaxInst.cpp
+  src/SpaceToDepthInst.cpp
+#  src/SparseLengthsSumInst.cpp
   src/SparseLengthsWeightedSumInst.cpp
   src/SparseToDenseInst.cpp
   src/SparseToDenseMaskInst.cpp

@@ -730,6 +730,9 @@ public:
     std::fill(this->begin(), this->end(), value); 
   }
 
+  void zero(void) {
+    clear(0);
+  }
   /*@brief return reference to a meaningful data element. This method skip
    *padding elements.
    */
@@ -747,10 +750,25 @@ public:
     return data[index];
   }
 
+  /*@brief specific case use strides from outside of tensor */
   template<size_t N>
   ElemTy &at(std::array<dim_t, N> indices, const dim_array_t &extStrides, 
             size_t ndx) {
     size_t index = getElementPtr(indices, extStrides, ndx);
+    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    return data[index];
+  }
+
+  /*@brief returns the element at position offset \p idx without any size
+   * of calculation. The returned element can be a pad element.*/
+  ElemTy &raw(size_t index) {
+    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    return data[index];
+  }
+
+  /*@brief returns the element at position offset \p idx without any size
+   * of calculation. The returned element can be a pad element.*/
+  const ElemTy &raw(size_t index) const {
     auto *data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }

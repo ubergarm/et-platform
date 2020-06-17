@@ -19,90 +19,182 @@
 #include <cstring>
 
 #include "Float16.h"
-#include "Writer.h" // From include/internal path
-#include "Addresser.h" // From include/internal path
-#include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+#include "LibTypes.h"
 #include "LibTensor.h"
+#include "LibCommon.h"
 
 namespace dnn_lib {
 
 namespace inlining {
 
-// Notes :
-//
-// dim_t in glow is expected to be uint64_t
-// sdim_t in glow is expected to be sint64_t
-//
-//
-// dst tensor first dimension should be >= dimension of offset tensor
-// dst tensor second+ dimensions should match data tensor second+ dimensions
-// 
-// As there is no checks in the implementation at the moment only data,
-// indices and offsets tensors dimensions are required.
-//
-
-inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
-                                          LibTensor* in2T, LibTensor* in3T,
-                                          LibTensor* in4T, uint64_t dataDim1Pitch) {
-
-  uint32_t minionId = get_minion_id();
-  if (minionId != 0)
+/**
+ * @brief Convert a length vector to a range sequence. 
+ *
+ * For example, input=[4,3,1], the output would be [0,1,2,3,0,1,2,0].
+ *
+ * Currently It only solves Int32ITy ElemKind following InstGen.cpp
+ * Interpreter.cpp and isOpSupported at ETSOC.cpp specification.
+ *
+ * @tparam Elemkind the kind of the element which hast to be resolved.
+ * @param[out] outT LibTensor destination. It holds the expected data.
+ * @param[in] in1T LibTensor input. It keeps the Data to being handle.
+ * @param[in] in2T LibTensor input. It keeps the Weights to being handle.
+ * @param[in] in3T LibTensor input. It keeps the indices to being handle.
+ * @param[in] in4T LibTensor input. It keeps the offsets to being handle.
+ * @param[in] hasEndOffset bool type mark the end of the last segment.
+ * @param[flags] flags Gives the information of the Active Shires and the
+ *  type of evict required.
+ */
+template <ElemKind elKind>
+inline typename std::enable_if_t<(elKind == Float16Ty), void>
+fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
+		       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+		       uint64_t flags) {
+  unsigned int minionId = get_minion_id();
+  if (minionId != 0) //if (minionId != minionOffset)
     return;
 
-  /* maintain compatibility through the new Iface Libtensor */
-  // float *dst     = (float *) pdst;
-  float *dst = outT->getRawDataPointer<float>();
-  // float *data    = (float *) pdata;
-  float *data = in1T->getRawDataPointer<float>();
-  // float *weights = (float *) pweights;
-  float *weights = in2T->getRawDataPointer<float>();
-  // uint64_t *indices = (uint64_t *) pindices;
-  uint64_t *indices = in3T->getRawDataPointer<uint64_t>();
-  // uint64_t *offsets = (uint64_t *) poffsets;
-  uint64_t *offsets = in4T->getRawDataPointer<uint64_t>();
+  assert(in1T->getElementType() == outT->getElementType());
+  assert(in1T->getElementType() == Float16Ty);
+  assert((in3T->getElementType() == Int64ITy) && (in3T->getElementType() == in4T->getElementType()));
 
-  // const size_t segments    = offsetsSize;
-    const dim_t segments = in4T->dims().data()[0];
-  // const size_t totalLength = indicesSize;
-  const dim_t totalLength = in3T->dims().data()[0];
+  using elkType = typename elemKind2elemTy<elKind>::type;
 
-  // NOTE : Pitch is passed as the number of elements, not as bytes.
-  const size_t lineSize = dataDim1Pitch;
-  //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works. 
-  //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize());
-  
-  uint64_t curIdx = 0;
-  for (uint64_t i = 0; i < segments; i++) {
-    uint64_t start = offsets[i];
-    uint64_t end = (i == (segments - 1)) ? totalLength : offsets[i + 1];
-    // Unroll the first iteration as the dst tensor needs to be
-    // initialized.
+  auto outH = outT->getHandle<elkType>();
+  auto dataH = in1T->getHandle<elkType>();
+  auto weightH = in2T->getHandle<elkType>();
+  auto indxH = in3T->getHandle<int64_t>();
+  auto offH = in4T->getHandle<int64_t>();
 
-    // The offsets can be defined so that a segment is empty with
-    // the effect of forcing to zero the output segment.
-    const float  weight    = (start < end) ? weights[curIdx] : 0;
-    size_t       offsetIn  = indices[curIdx] * lineSize;
-    size_t       offsetOut = i * lineSize;
-    if (start < end)
-      curIdx++;
+  outH.zero();
 
-    for (uint64_t k = 0; k < lineSize; k++)
-      dst[offsetOut++] = data[offsetIn++] * weight;
+  const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
+  const dim_t numIndices = in3T->dims()[0];
 
-    for (uint64_t j = (start + 1); j < end; j++) {
-      const float weight    = weights[curIdx];
-      size_t      offsetIn  = indices[curIdx++] * lineSize;
-      size_t      offsetOut = i * lineSize;
-      for (size_t k = 0; k < lineSize; k++) 
-        dst[offsetOut++] += data[offsetIn++] * weight;
+/*   // NOTE : Pitch is passed as the number of elements, not as bytes. */
+/*   const size_t lineSize = dataDim1Pitch; */
+/*   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works.  */
+/*   //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize()); */
+  dim_t lineSize = in1T->strides()[0];
+  //dim_t lineSize = in1T->actualSize() / in1T->getElementSize();
+
+  dim_t curIdx = 0;
+  for (dim_t i = 0; i < segments; i++) {
+    dim_t start = offH.raw(i);
+    dim_t end;
+    if(!hasEndOffset) {
+      // Note that in this case we have to use numIndices to find the end of
+      // the last segment. This is an issue though because it relies on knowing
+      // the total length of the indices tensor which may not be possible.
+      // Future implementations of this operator should always give an end
+      // offset so eventually this case should be removed.
+      end = (i == (segments-1))? numIndices : offH.raw(i + 1);
+    }
+    else {
+      end = offH.raw(i + 1);
+    }
+
+    if (start == end) {
+      continue;
+    }
+    else if (start > end) {
+      break;
+    }
+
+    for (dim_t j = start; j < end; j++) {
+
+      float weightfl;
+      convertFp16ToFp32(static_cast<uint16_t>(weightH.raw(curIdx)), weightfl);
+      dim_t offsetIn = indxH.raw(curIdx++) * lineSize;
+      dim_t offsetOut = i * lineSize;
+      for (dim_t k = 0; k < lineSize; k++) {
+	float datafl = 0;
+	float outfl = 0;
+	uint16_t out16 = 0;
+	convertFp16ToFp32(static_cast<uint16_t>(dataH.raw(offsetIn++)), datafl);
+	convertFp16ToFp32(static_cast<uint16_t>(outH.raw(offsetOut)), outfl);
+	outfl += datafl * weightfl;
+	convertFp32ToFp16(outfl,out16);
+	outH.raw(offsetOut++) = out16;
+      }
     }
   }
+
+  outT->evict(DO_EVICTS);
+}
+
+template <ElemKind elKind>
+inline typename std::enable_if_t<(elKind == FloatTy), void>
+fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
+		       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+		       uint64_t flags) { 
+
+  unsigned int minionId = get_minion_id();
+  if (minionId != 0) //if (minionId != minionOffset)
+    return;
+
+  assert(in1T->getElementType() == outT->getElementType());
+  assert(in1T->getElementType() == FloatTy);
+  assert((in3T->getElementType() == Int64ITy) && (in3T->getElementType() == in4T->getElementType()));
+
+  using elkType = typename elemKind2elemTy<elKind>::type;
+
+  auto outH = outT->getHandle<elkType>();
+  auto dataH = in1T->getHandle<elkType>();
+  auto weightH = in2T->getHandle<elkType>();
+  auto indxH = in3T->getHandle<int64_t>();
+  auto offH = in4T->getHandle<int64_t>();
+
+  outH.zero();
+
+  const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
+  const dim_t numIndices = in3T->dims()[0];
+
+/*   // NOTE : Pitch is passed as the number of elements, not as bytes. */
+/*   const size_t lineSize = dataDim1Pitch; */
+/*   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works.  */
+/*   //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize()); */
+  dim_t lineSize = in1T->strides()[0];
+  //dim_t lineSize = in1T->actualSize() / in1T->getElementSize();
+
+  dim_t curIdx = 0;
+  for (dim_t i = 0; i < segments; i++) {
+    dim_t start = offH.raw(i);
+    dim_t end;
+    if(!hasEndOffset) {
+      // Note that in this case we have to use numIndices to find the end of
+      // the last segment. This is an issue though because it relies on knowing
+      // the total length of the indices tensor which may not be possible.
+      // Future implementations of this operator should always give an end
+      // offset so eventually this case should be removed.
+      end = (i == (segments-1))? numIndices : offH.raw(i + 1);
+    }
+    else {
+      end = offH.raw(i + 1);
+    }
+
+    if (start == end) {
+      continue;
+    }
+    else if (start > end) {
+      break;
+    }
+
+    for (dim_t j = start; j < end; j++) {
+      elkType weight = weightH.raw(curIdx);      
+      dim_t offsetIn = indxH.raw(curIdx++) * lineSize;
+      dim_t offsetOut = i * lineSize;
+      for (dim_t k = 0; k < lineSize; k++) {
+	outH.raw(offsetOut++) += dataH.raw(offsetIn++) * weight;
+      }
+    }
+  }
+
+  outT->evict(DO_EVICTS);
 }
 
 } // namespace inlining
-
 } // namespace dnn_lib
 
 #endif // _EMBEDDING_BAG_INST_H_

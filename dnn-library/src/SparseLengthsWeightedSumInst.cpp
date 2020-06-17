@@ -13,40 +13,26 @@
 
 namespace dnn_lib {
 
-template <typename srcType>
+template <ElemKind elKind, ElemKind idxKind>
 void fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in2T, LibTensor* in3T,
                                         LibTensor* in4T,
-                                        unsigned int pLengthsSize) {
+					uint64_t flags) {
 
-  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInst<srcType>(outT, in1T,
+  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInst<elKind, idxKind>(outT, in1T,
                                                                  in2T, in3T,
-                                                                 in4T,
-                                                                 pLengthsSize);
+                                                                 in4T, flags);
 }
 
-template <typename srcType>
+template <ElemKind elKind, ElemKind idxKind>     
 void fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T,
                                                 LibTensor* in2T, LibTensor* in3T,
                                                 LibTensor* in4T,
-                                                unsigned int pLengthsSize,
                                                 uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInstThreaded<srcType>(outT, in1T,
+                     
+  dnn_lib::inlining::fwdLibSparseLengthsWeightedSumInstThreaded<elKind, idxKind>(outT, in1T,
                                                                          in2T, in3T,
-                                                                         in4T,
-                                                                         pLengthsSize,
-                                                                         flags);
+                                                                         in4T, flags);
 }
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInst, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                 LibTensor* in4T, unsigned int pLengthsSize);
-
-GEN_INSTANCES_OP(template, fwdLibSparseLengthsWeightedSumInstThreaded, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-                 unsigned int pLengthsSize, uint64_t flags);
 
 } // namespace dnn_lib

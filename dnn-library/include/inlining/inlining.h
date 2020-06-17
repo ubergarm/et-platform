@@ -36,6 +36,7 @@
 #include "ElementSelectInst.h" // From include/inlining path
 #include "ElementSingleInst.h" // From include/inlining path
 #include "EmbeddingBagInst.h" // From include/inlining path
+//#include "EmbeddingBagByteRowwiseOffsetsInst.h" // From include/inlining path
 #include "ExtractTensorInst.h" // From include/inlining path
 //TODO: RESTORE#include "FlipInst.h" // From include/inlining path
 #include "FullyConnectedInst.h" // From include/inlining path
@@ -62,6 +63,8 @@
 #include "ScatterDataInst.h" // From include/inlining path
 #include "SigmoidInst.h" // From include/inlining path
 #include "SoftMaxInst.h" // From include/inlining path
+#include "SpaceToDepthInst.h" // From include/inlining path
+//#include "SparseLengthsSumInst.h" // From include/inlining path
 #include "SparseLengthsWeightedSumInst.h" // From include/inlining path
 #include "SparseToDenseInst.h" // From include/inlining path
 #include "SparseToDenseMaskInst.h" // From include/inlining path

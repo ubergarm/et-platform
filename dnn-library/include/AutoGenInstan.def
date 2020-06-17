@@ -164,7 +164,6 @@ GEN_OP(fwdLibBatchedReduceAddInst, LibTensor* outT, LibTensor* inT, unsigned int
 GEN_OP(fwdLibBatchedReduceAddInstThreaded, LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags);
 GEN_OP_ELK_UINT32_ARR(fwdLibBatchedReduceMinInst);
 GEN_OP_ELK_FLOAT_ARR(fwdLibResizeNearestInst);
-GEN_OP_ELK(fwdLibBatchedPairwiseDotProductInst, LibTensor* outT,  uint32_t numInputs, uint32_t vectorSize, uint64_t flags);
 GEN_OP(fwdLibTransposeInst, LibTensor* outT, LibTensor intT, void *pshuffle);
 GEN_OP(fwdLibTransposeInstThreaded, LibTensor* outT, LibTensor* inT, void *pshuffle, uint64_t flags);
 GEN_OP(fwdLibTransposeInstVectorized, LibTensor* outT, LibTensor* inT, void *pshuffle, uint64_t flags);
@@ -227,12 +226,6 @@ GEN_CONVERT(fwdLibConvertToInstThreaded, LibTensor* inT, LibTensor* outT, uint64
 GEN_CONVERT(fwdLibConvertToInstVectorized, LibTensor* inT, LibTensor* outT, uint64_t flags);
 GEN_INTONLY_OP(fwdLibModuloInst, LibTensor* outT, LibTensor* inT, long long divisor, bool signFollowDivisor);
 GEN_INTONLY_OP(fwdLibModuloInstThreaded, LibTensor* outT, LibTensor* inT, long long divisor, bool signFollowDivisor, uint64_t flags);
-GEN_OP(fwdLibSparseLengthsWeightedSumInst, LibTensor* outT, LibTensor* in1T,
-                                           LibTensor* in2T, LibTensor* in3T,
-                                           LibTensor* in4T, unsigned int pLengthsSize);
-GEN_OP(fwdLibSparseLengthsWeightedSumInstThreaded, LibTensor* outT, LibTensor* in1T,
-                                                   LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-                                                   unsigned int pLengthsSize, uint64_t flags);
 GEN_1TYPEFP(fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized,
             LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t numShires = 0);
@@ -259,6 +252,12 @@ GEN_RQSLWS_V(fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized
 GEN_OP(fwdLibFlipInst, LibTensor* inT, LibTensor* outT, unsigned int axis);
 
 GEN_OP_ELK(fwdLibLengthsRangeFillInst, LibTensor* outT, LibTensor* inT, uint64_t flags);
+
+GEN_OP_ELK(fwdLibEmbeddingBagInst, LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+				   LibTensor* in3T, LibTensor* in4T, bool hasEndOffset, 
+				   uint64_t flags);
+
+GEN_OP_ELK(fwdLibSpaceToDepthInst, LibTensor* outT, LibTensor* inT, uint32_t blockSize, uint64_t flags);
 
 #undef GEN_INSTANCES
 #undef GEN_OP
