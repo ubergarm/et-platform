@@ -38,7 +38,7 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
                                     const std::array<uint32_t, N> &pads,
                                     unsigned int group,
                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+    //  using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
 
@@ -48,12 +48,12 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   // float *tBias = (float *)bias;
   float* tBias = in3T->getRawDataPointer<float>();
 
@@ -158,12 +158,12 @@ inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   // float *tBias = (float *)bias;
   float* tBias = in3T->getRawDataPointer<float>();
  

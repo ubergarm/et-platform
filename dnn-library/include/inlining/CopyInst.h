@@ -49,7 +49,7 @@ namespace inlining {
  */
 template <ElemKind elK>
 inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != minionOffset) return;
 
@@ -58,10 +58,10 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, cons
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(src, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, inT->getScale(), inT->getOffset());
 
   //  unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
@@ -127,10 +127,10 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(src, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, inT->getScale(), inT->getOffset());
 
   // uint8_t *dst8 = (uint8_t *)dst;
   // uint8_t *src8 = (uint8_t *)src;
@@ -230,10 +230,10 @@ inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
  
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(src, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, inT->getScale(), inT->getOffset());
   
   //  unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();

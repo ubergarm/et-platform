@@ -47,9 +47,9 @@ inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
                                      LibTensor* in2T, LibTensor* in3T,
                                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  using dstType  = typename elemKind2elemTy<dstElK>::type;
-  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+  //  using dstType  = typename elemKind2elemTy<dstElK>::type;
+  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
   if (get_minion_id() != minionOffset) return;
     
@@ -62,10 +62,9 @@ inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
   // float *tBias = (float *)bias;
   float *tBias = in3T->getRawDataPointer<float>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  const Addresser<src1Type> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  const Addresser<src2Type> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -113,12 +112,12 @@ inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <typename srcType,
-          typename std::enable_if<std::is_same<srcType, int64_t>::value, std::size_t>::type = 0>
+template <ElemKind srcElK,
+          typename std::enable_if<srcElK == Int64ITy, std::size_t>::type = 0>
 inline void matmulStep (int64_t *sum,
-                        const Addresser<srcType> &tAInput,
+                        const Addresser<srcElK> &tAInput,
                         void * tAInputPtr,
-                        const Addresser<srcType> &tWInput,
+                        const Addresser<srcElK> &tWInput,
                         void * tWInputPtr,
                         size_t aCols,
                         size_t actOffset,
@@ -156,12 +155,12 @@ inline void matmulStep (int64_t *sum,
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <typename srcType,
-          typename std::enable_if<std::is_same<srcType, int32_t>::value, std::size_t>::type = 0>
+template <ElemKind srcElK,
+          typename std::enable_if<srcElK == Int32ITy, std::size_t>::type = 0>
 inline void matmulStep (int32_t *sum,
-                        const Addresser<srcType> &tAInput,
+                        const Addresser<srcElK> &tAInput,
                         void * tAInputPtr,
-                        const Addresser<srcType> &tWInput,
+                        const Addresser<srcElK> &tWInput,
                         void * tWInputPtr,
                         size_t aCols,
                         size_t actOffset,
@@ -199,11 +198,11 @@ inline void matmulStep (int32_t *sum,
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <typename srcType>
+template <ElemKind srcElK>
 inline void matmulStep (float *sum,
-                        const Addresser<srcType> &tAInput,
+                        const Addresser<srcElK> &tAInput,
                         void * tAInputPtr,
-                        const Addresser<srcType> &tWInput,
+                        const Addresser<srcElK> &tWInput,
                         void * tWInputPtr,
                         size_t aCols,
                         size_t actOffset,
@@ -212,7 +211,7 @@ inline void matmulStep (float *sum,
                         size_t elems) {
 
   // Float version
-  if (std::is_same<srcType, float>::value) {
+  if (srcElK == FloatTy) {
     char * tAAddr = (char *) tAInputPtr;
     tAAddr += actOffset * 4;
     char * tWAddr = (char *) tWInputPtr;
@@ -251,7 +250,7 @@ inline void matmulStep (float *sum,
     );
   }
   // Float16 version
-  else if (std::is_same<srcType, float16>::value) {
+  else if (srcElK == Float16Ty) {
     char * tAAddr = (char *) tAInputPtr;
     tAAddr += actOffset * 2;
     char * tWAddr = (char *) tWInputPtr;
@@ -331,7 +330,7 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   
   using dstType  = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -344,9 +343,9 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   void *weights = in2T->getRawDataPointer<void>();
   float *tBias = in3T->getRawDataPointer<float>();
   
-  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  const Addresser<src1Type> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  const Addresser<src2Type> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = in1T->dims().data();
@@ -394,7 +393,7 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
     }
 
     // Computes one result as efficient as possible
-    matmulStep <src1Type> (sum, tAInput, activations, tWInput, weights, actIndex[1], coord[0] * actPitch[0], coord[1], weightPitch[0], elems);
+    matmulStep <src1ElK> (sum, tAInput, activations, tWInput, weights, actIndex[1], coord[0] * actPitch[0], coord[1], weightPitch[0], elems);
 
     // Moves to next result
     for (size_t i = 0; i < elems; i++) {

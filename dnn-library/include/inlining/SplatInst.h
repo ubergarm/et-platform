@@ -49,7 +49,7 @@ void fwdLibSplatInst(LibTensor *outT, float splatVal,
 
   // transform splatVal to srcType, and replicate to fit up to 64 bits
   srcType splatValType;
-  Addresser <srcType> valAd(&splatValType, outT->getScale(), outT->getOffset());
+  Addresser<elK> valAd(&splatValType, outT->getScale(), outT->getOffset());
   valAd[0] = splatVal;
   uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
   for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){
@@ -162,7 +162,7 @@ inline void fwdLibSplatInstVectorized(LibTensor* outT, float splatVal, uint64_t 
 
   // transform splatVal to srcType, and replicate to fit up to 64 bits
   srcType splatValType;
-  Addresser <srcType> valAd(&splatValType, outT->getScale(), outT->getOffset());
+  Addresser<elK> valAd(&splatValType, outT->getScale(), outT->getOffset());
   valAd[0] = splatVal;
   uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
   for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){

@@ -53,8 +53,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
+  Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<srcElK> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
 
   Converter<srcElK, dstElK> converter;
 
@@ -74,8 +74,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
 template <ElemKind dstElK, ElemKind srcElK>
 inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags,
                                                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<srcElK>::type;
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -96,8 +96,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-  Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
+  const Addresser<srcElK> tAInput(src, inT->getScale(), inT->getOffset());
   Converter<srcElK, dstElK> converter;
   
   // and loop

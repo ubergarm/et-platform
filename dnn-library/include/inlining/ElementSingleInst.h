@@ -33,8 +33,8 @@ namespace inlining {
 template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<srcElK>::type;
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -42,10 +42,10 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
   void* src = outT->getRawDataPointer<void>();
   void* dst = inT->getRawDataPointer<void>();
  
-  // const Addresser<srcType> aSrcT1(src, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> aDstT(dstT, scale[2], offset[2]);
-  Addresser<dstType> aDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> aSrcT1(src, scale[0], offset[0]);
+  const Addresser<srcElK> aSrcT1(src, inT->getScale(), inT->getOffset());
+  // Addresser<srcElK> aDstT(dstT, scale[2], offset[2]);
+  Addresser<dstElK> aDstT(dst, outT->getScale(), outT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -68,7 +68,7 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
 
   uint64_t addrSrc1, addrDst;
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
+  Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<srcElK>, opType> op;
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -93,7 +93,7 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
 template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -104,10 +104,10 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
   
-  // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> aDstT(dstT, scale[2], offset[2]);
-  Addresser<dstType> aDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> aSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<srcElK> aSrcT1(src, inT->getScale(), inT->getOffset());
+  // Addresser<srcElK> aDstT(dstT, scale[2], offset[2]);
+  Addresser<dstElK> aDstT(dst, outT->getScale(), outT->getOffset());
 
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
@@ -118,7 +118,7 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
 
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
+  Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<srcElK>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
@@ -158,7 +158,7 @@ template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<srcElK>::type;
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -183,7 +183,7 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
   
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<dstType>, opType> op;
+  Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<dstElK>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
  

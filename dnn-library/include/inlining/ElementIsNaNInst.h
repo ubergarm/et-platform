@@ -44,7 +44,7 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT,
                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   
   if (get_minion_id() != minionOffset) return;
   
@@ -52,8 +52,8 @@ inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT,
   bool* ptrDstT = outT->getRawDataPointer<bool>();  
   void* srcT1 = inT->getRawDataPointer<void>();
   // bool *ptrDstT = (bool *)dstT;  
-  // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
+  // const Addresser<elK> aSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<elK> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -114,7 +114,7 @@ template <ElemKind elK>
 inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
                                            uint64_t flags,
                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -124,8 +124,8 @@ inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
 
   void* srcT1 = inT->getRawDataPointer<void>();
   
-  // const Addresser<srcType> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
+  // const Addresser<elK> aSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<elK> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
 
   // bool *aDstT = (bool *)dstT;
   bool* aDstT = outT->getRawDataPointer<bool>();

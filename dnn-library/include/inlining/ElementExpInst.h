@@ -45,7 +45,7 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT,
                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   
   if (get_minion_id() != minionOffset) return;
 
@@ -53,10 +53,10 @@ inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT,
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
  
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
-  const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);  
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);  
+  const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);  
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();

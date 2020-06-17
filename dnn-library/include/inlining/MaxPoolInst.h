@@ -37,8 +37,8 @@ inline void maxPoolImpl(bool argMax, LibTensor* outT, LibTensor* out2T,
                               const std::array<uint32_t, N> &strides,
                               const std::array<uint32_t, N> &pads,
                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<srcElK>::type;
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -47,10 +47,10 @@ inline void maxPoolImpl(bool argMax, LibTensor* outT, LibTensor* out2T,
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<srcElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
   // int64_t *tOutput2 = (int64_t *)dst2Matrix;
   int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 
@@ -133,7 +133,7 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
                                 const std::array<uint32_t, N> &pads,
                                 uint64_t flags,
                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
+    //  using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -145,10 +145,10 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = inT->getRawDataPointer<void>();
   
-  // Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
   // int64_t *tOutput2 = (int64_t *)dst2Matrix;  
   int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 

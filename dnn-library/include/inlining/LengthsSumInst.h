@@ -33,7 +33,7 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
 
@@ -43,12 +43,12 @@ inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(pdst, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
   // int32_t *lengths = (int32_t *)plengths;
   int32_t *lengths = in2T->getRawDataPointer<int32_t>();
 
@@ -131,12 +131,12 @@ inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(pdst, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
   // int32_t *lengths = (int32_t *)plengths;
   int32_t *lengths = in2T->getRawDataPointer<int32_t>();
   

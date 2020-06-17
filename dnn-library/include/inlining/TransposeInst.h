@@ -33,17 +33,15 @@ namespace inlining {
   template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<size_t, N> &shuffle,
                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());  
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());  
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
@@ -107,10 +105,8 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex =  outT->dims().data();

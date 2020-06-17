@@ -34,7 +34,7 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT,
                            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   
   if (get_minion_id() != minionOffset) return;
   
@@ -42,10 +42,10 @@ inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT,
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> ptrSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<elK> ptrSrcT1(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale[1], offset[1]);
+  Addresser<elK> ptrDstT(dst, outT->getScale(), outT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -106,10 +106,10 @@ inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t fla
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> aSrcT1(src, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> aSrcT1(src, scale[0], offset[0]);
+  const Addresser<elK> aSrcT1(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> ptrDstT(dst, scale[1], offset[1]);
+  Addresser<elK> ptrDstT(dst, outT->getScale(), outT->getOffset());
  
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();

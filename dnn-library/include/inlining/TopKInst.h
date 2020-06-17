@@ -72,7 +72,7 @@ inline int partition(void *vals, void *inds, int low, int high) {
 template <ElemKind elK>
 inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT, unsigned int k,
                            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   
   if (get_minion_id() != minionOffset) return;
   
@@ -80,10 +80,8 @@ inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT, un
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  const Addresser<srcType> inputT(srcT, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
-  Addresser<srcType> valuesT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
+  Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
 
   // long long *indT = (long long *)dstT2;
   long long *indT = out2T->getRawDataPointer<long long>();
@@ -166,10 +164,8 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  const Addresser<srcType> inputT(srcT, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
-  Addresser<srcType> valuesT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
+  Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
   
   // long long *indT = (long long *)dstT2;
   long long *indT = out2T->getRawDataPointer<long long>();
@@ -255,7 +251,7 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
                                       LibTensor* inT, unsigned int k,
                                       uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -267,10 +263,8 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  const Addresser<srcType> inputT(srcT, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
-  Addresser<srcType> valuesT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
+  Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
 
   //  long long *indT = (long long *)dstT2;
   long long *indT = out2T->getRawDataPointer<long long>();
@@ -455,7 +449,7 @@ template <ElemKind elK>
 inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
                                       unsigned int k, uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -465,10 +459,8 @@ inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTens
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
   
-  // const Addresser<srcType> inputT(srcT, scale[0], offset[0]);
-  const Addresser<srcType> inputT(srcT, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> valuesT(dstT, scale[3], offset[3]);
-  Addresser<srcType> valuesT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
+  Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
   
   //long long *indT = (long long *)dstT2;
   long long *indT = out2T->getRawDataPointer<long long>();

@@ -36,8 +36,6 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
                               std::array<uint32_t, N> strides,
                               std::array<uint32_t, N> pads,
                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<srcElK>::type;
-  using dstType = typename elemKind2elemTy<dstElK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -46,10 +44,10 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<srcElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -109,7 +107,6 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       std::array<uint32_t, N> pads,
                                       uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -119,10 +116,10 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
   
-  // Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), outT->getOffset());
+  // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(src, inT->getScale(), outT->getOffset());
  
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -139,7 +136,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)

@@ -29,18 +29,14 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT,
                                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
-
   if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
   
-  // dnn_lib::Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const dnn_lib::Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(srcT, inT->getScale(), inT->getOffset());
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<elK> tAInput(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();  

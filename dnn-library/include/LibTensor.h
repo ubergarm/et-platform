@@ -230,7 +230,7 @@ struct Type final {
      case dnn_lib::ElemKind::FloatTy:
        return std::is_same<ElemTy, float>::value;
      case dnn_lib::ElemKind::Float16Ty:
-       return std::is_same<ElemTy, float16_t>::value;
+       return std::is_same<ElemTy, uint16_t>::value;
      case dnn_lib::ElemKind::Int8QTy:
        return std::is_same<ElemTy, int8_t>::value;
      case dnn_lib::ElemKind::UInt8QTy:

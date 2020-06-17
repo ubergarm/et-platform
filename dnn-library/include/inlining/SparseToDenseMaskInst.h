@@ -39,7 +39,7 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
                                         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0
                                         ) {
 
-    using srcType = typename elemKind2elemTy<elK>::type;
+    //    using srcType = typename elemKind2elemTy<elK>::type;
     if (get_minion_id() != minionOffset) return;
     
   /* maintain compatibility through the new Iface Libtensor */
@@ -49,12 +49,12 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   void* pdefault = in2T->getRawDataPointer<void>();
   //  unsigned int pdefaultSize = in2T->size();
   unsigned int pLengthsSize = in4T->size();
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(pdst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(pdata, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tDefVInput(pdefault, scale[1], offset[1]);
-  const Addresser<srcType> tDefVInput(pdefault, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
+  Addresser<elK> tOutput(pdst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<elK> tAInput(pdata, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tDefVInput(pdefault, scale[1], offset[1]);
+  const Addresser<elK> tDefVInput(pdefault, in2T->getScale(), in2T->getOffset());
   // long long *indices = (long long *)pindices;
   size_t *indices = in3T->getRawDataPointer<size_t>();
   // int32_t *lengths = (int32_t *)plengths;
@@ -142,12 +142,12 @@ inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T
   //  unsigned int pdefaultSize = in2T->size();
   unsigned int pLengthsSize = in4T->size();
   
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(pdst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(pdata, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tDefVInput(pdefault, scale[1], offset[1]);
-  const Addresser<srcType> tDefVInput(pdefault, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
+  Addresser<elK> tOutput(pdst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<elK> tAInput(pdata, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tDefVInput(pdefault, scale[1], offset[1]);
+  const Addresser<elK> tDefVInput(pdefault, in2T->getScale(), in2T->getOffset());
   // long long *indices = (long long *)pindices;
   size_t *indices = in3T->getRawDataPointer<size_t>();
   // int32_t *lengths = (int32_t *)plengths;

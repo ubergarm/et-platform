@@ -49,8 +49,8 @@ template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
                                   LibTensor* in2T,
                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+//  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+//  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -58,8 +58,8 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
   void* srcT1 = in1T->getRawDataPointer<void>();
   void* srcT2 = in2T->getRawDataPointer<void>();
   
-  const Addresser<src1Type> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
-  const Addresser<src2Type> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
+  const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   // bool *aDstT = (bool *)dstT;
   bool* aDstT = outT->getRawDataPointer<bool>();
   
@@ -89,7 +89,7 @@ inline void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T,
 
   uint64_t addrSrc1, addrSrc2, addrDst;
 
-  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<bool>, opType> op;
+  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<BoolTy>, opType> op;
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -138,8 +138,8 @@ template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
                                           LibTensor* in2T, uint64_t flags,
                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
   
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -151,8 +151,8 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   void* srcT2 = in2T->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
   
-  const Addresser<src1Type> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
-  const Addresser<src2Type> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
+  const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   bool *aDstT = outT->getRawDataPointer<bool>();
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
@@ -166,7 +166,7 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
-  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<bool>, opType> op;
+  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<BoolTy>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
@@ -243,7 +243,7 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   const int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
   
   using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
 
   /* maintain compatibility through the new Iface Libtensor */
@@ -266,7 +266,7 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
 
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
-  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<src2Type>, opType> op;
+  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<src2ElK>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 

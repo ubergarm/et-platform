@@ -36,7 +36,7 @@ inline void fwdLibLocalResponseNormalizationInst(
     unsigned int halfWindowSize, float alpha, float beta, float k,
     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0
                                                  ) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -47,12 +47,12 @@ inline void fwdLibLocalResponseNormalizationInst(
   void *dst2Matrix = out2T->getRawDataPointer<void>();
   void *activations = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());  
+  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());  
 
   // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t *actIndex = inT->dims().data();  
@@ -142,12 +142,12 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
   void *dst2Matrix = out2T->getRawDataPointer<void>();
   void *activations = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = out1T->dims().data();
@@ -248,12 +248,12 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
 
   // uintptr_t srcAddr = (uintptr_t)activations;
   uintptr_t srcAddr = reinterpret_cast<uintptr_t>(activations);
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = out1T->dims().data();

@@ -41,8 +41,8 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   
-  // Addresser<dstType> ptrDstT(dstT, scale, offset);
-  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale, offset);
+  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   // float *ptrSrcT = (float *)srcT;
   float *ptrSrcT = inT->getRawDataPointer<float>();
 
@@ -105,8 +105,8 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
     
-  // Addresser<dstType> ptrDstT(dstT, scale, offset);
-  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale, offset);
+  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   // float *ptrSrcT = (float *)srcT;
   float *ptrSrcT = inT->getRawDataPointer<float>();
   

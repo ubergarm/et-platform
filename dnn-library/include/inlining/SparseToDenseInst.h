@@ -35,7 +35,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* ou
                                                                    LibTensor* in1T,
                                                                    LibTensor* in2T,
                                                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -45,12 +45,12 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* ou
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT = in1T->getRawDataPointer<void>();
 
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
   long long *tIndex = in2T->getRawDataPointer<long long>();
   
@@ -144,10 +144,10 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT = in1T->getRawDataPointer<void>();
 
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
   long long *tIndex = in2T->getRawDataPointer<long long>();
   

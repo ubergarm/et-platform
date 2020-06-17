@@ -158,8 +158,8 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   /* outT-> dst in1T->data in2T->weight in3T->indices in4T->lengths */
 
   // float *tOutput = (float *)pdst;
-  const Addresser<dstType> tOutputRd(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
-  Addresser<dstType> tOutput(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
+  const Addresser<elK> tOutputRd(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
+  Addresser<elK> tOutput(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
   // uint8_t *tAInput = (uint8_t *)pdata;
   uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
   // float *tWInput = (float *)pweights;

@@ -33,7 +33,7 @@ namespace inlining {
 template <ElemKind elK>
 void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -43,12 +43,12 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   void* src = in1T->getRawDataPointer<void>();
   void* wei = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(wei, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK> tWInput(wei, in2T->getScale(), in2T->getOffset());
 
   //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -95,12 +95,13 @@ void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   void* src = in1T->getRawDataPointer<void>();
   void* wei = in2T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(wei, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK>
+    tWInput(wei, in2T->getScale(), in2T->getOffset());
   
   //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();

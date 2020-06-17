@@ -42,8 +42,8 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, float splatVal,
   srcType* const dstT = outT->getRawDataPointer<srcType>();
   srcType* const srcT = inT->getRawDataPointer<srcType>();
   
-  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
+  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<elK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
 
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    [&](size_t addrDst, size_t addrSrc) {
@@ -83,10 +83,10 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> ptrSrcT(src, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> ptrDstT(dst, scale[1], offset[1]);
+  Addresser<elK> ptrDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> ptrSrcT(src, scale[0], offset[0]);
+  const Addresser<elK> ptrSrcT(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();

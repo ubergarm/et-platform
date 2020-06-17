@@ -36,7 +36,7 @@ template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT,
                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using dstType = typename elemKind2elemTy<dstElK>::type; //TODO: use to support float16 as well (SW-3267)
-  using srcType = typename elemKind2elemTy<srcElK>::type;
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != minionOffset)
     return;
@@ -46,8 +46,8 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT,
   
   // float *ptrDstT = (float *)dstT;
   float *ptrDstT = outT->getRawDataPointer<float>();
-  // const Addresser<srcType> ptrSrcT(srcT, scale, offset);
-  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
+  // const Addresser<srcElK> ptrSrcT(srcT, scale, offset);
+  const Addresser<srcElK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -107,8 +107,8 @@ inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64
  
   // float *ptrDstT = (float *)dstT;
   float *ptrDstT = outT->getRawDataPointer<float>();
-  // const Addresser<srcType> ptrSrcT(srcT, scale, offset);
-  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
+  // const Addresser<srcElK> ptrSrcT(srcT, scale, offset);
+  const Addresser<srcElK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();

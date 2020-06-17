@@ -35,7 +35,7 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst
     ( LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -44,12 +44,12 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, in1T->getScale(), in1T->getOffset());
   // long long *tLabels = (long long *)labelsT;
   long long *tLabels = in2T->getRawDataPointer<long long>();
   
@@ -82,7 +82,7 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
                                                                               LibTensor* in2T,
                                                                               uint64_t flags,
                                                                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -92,12 +92,12 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, in1T->getScale(), in1T->getOffset());
   // long long *tLabels = (long long *)labelsT;
   long long *tLabels = in2T->getRawDataPointer<long long>();
   

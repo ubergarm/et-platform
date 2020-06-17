@@ -44,10 +44,10 @@ inline __attribute__((always_inline))
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tSmallInput(src2, scale[0], offset[0]);
-  const Addresser<srcType> tSmallInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tSmallInput(src2, scale[0], offset[0]);
+  const Addresser<elK> tSmallInput(src, inT->getScale(), inT->getOffset());
   
   const dim_array_t &eDims = inT->dims();
   const dim_array_t &eDstPitch = outT->strides();
@@ -112,8 +112,8 @@ inline __attribute__((always_inline))
 //                                             unsigned int axis, const float *scale,
 //                                             const int32_t *offset, uint64_t flags) {
 //  using srcType = typename elemKind2elemTy<elK>::type;
-//  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-//  const Addresser<srcType> tAInput(src2, scale[0], offset[0]);
+//  Addresser<elK> tOutput(dst, scale[1], offset[1]);
+//  const Addresser<elK> tAInput(src2, scale[0], offset[0]);
 //
 //  unsigned int *dstIndex = (unsigned int *)dstDims;
 //  unsigned int *actIndex = (unsigned int *)src2Dims;
@@ -331,10 +331,10 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   }
 
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src2, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(src2, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();

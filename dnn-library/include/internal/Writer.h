@@ -16,50 +16,35 @@
 #include "LibCommon.h"
 
 namespace dnn_lib {
-
-template <typename T> class Writer {
+#define ONLY_FOR(cond) template <ElemKind U = elK, typename std::enable_if< cond, size_t>::type = 0>
+  
+template <ElemKind elK> class Writer {
+  using T = typename elemKind2elemTy<elK>::type;
+  const float scale_;
+  const int32_t offset_;
+  T* const ptr_;
 public:
-  uint16_t *ptrfp16_;
-  int8_t *ptri8_;
-  uint8_t *ptrui8_;
-  int16_t *ptri16_;
-  float scale_;
-  int32_t offset_;
+  Writer(T* ptr, float scale = 1.0, int32_t offset = 0 ) : scale_(scale), offset_(offset), ptr_(ptr)
+  {}
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, float16>::value,
-                                    std::size_t>::type = 0>
+  ONLY_FOR(U == Float16Ty)
   Writer &operator=(float value) {
     uint16_t v;
     dnn_lib::convertFp32ToFp16(value, v);
-    *ptrfp16_ = v;
+    *ptr_ = v;
     return *this;
   }
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int8_t>::value,
-                                    std::size_t>::type = 0>
+  ONLY_FOR( U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
   Writer &operator=(float value) {
-    *ptri8_ = dnn_lib::quantize<int8_t>(value, scale_, offset_);
+    *ptr_ = dnn_lib::quantize<T>(value, scale_, offset_);
     return *this;
   }
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, uint8_t>::value,
-                                    std::size_t>::type = 0>
-  Writer &operator=(float value) {
-    *ptrui8_ = dnn_lib::quantize<uint8_t>(value, scale_, offset_);
-    return *this;
-  }
-
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int16_t>::value,
-                                    std::size_t>::type = 0>
-  Writer &operator=(float value) {
-    *ptri16_ = dnn_lib::quantize<int16_t>(value, scale_, offset_);
-    return *this;
-  }
 };
+
+
+#undef ONLY_FOR
 
 } // namespace dnn_lib
 
