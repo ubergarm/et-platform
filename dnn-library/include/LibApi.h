@@ -9,6 +9,7 @@ namespace dnn_lib {
    mbAlpha,
    mbBeta,
    mbK,
+   mbTopK,
    mbDivisor,
    mbSignFollowDivisor,
    mbAxis,
@@ -615,9 +616,9 @@ namespace dnn_lib {
      { "TopK", // name
        2, // # outs
        1,  // # ins
-       {mbK}, // members
+       {mbTopK}, // members
        4, // template param mask
-       {"Threaded_all", "Threaded_k4", "Threaded_k4", "Threaded_k8"} // impl versions
+       {"Threaded"} // impl versions
      },
      /**** ET_touch ****/
      { "notImplemented", // name

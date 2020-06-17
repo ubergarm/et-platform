@@ -40,17 +40,18 @@ class LibManagerSheet:
                       "Alpha": "float",
                       "Beta": "float",
                       "K": "float",
+                      "TopK": "uint32_t",
                       "Divisor": "uint64_t",
                       "SignFollowDivisor": "bool",
                       "Axis": "dim_t",
                       "KeepDims": "bool",
-                      "Kernels": "const std::array<uint32_t, default_kernels_size> &",
-                      "Strides": "const std::array<uint32_t, default_kernels_size> &",
-                      "Pads": "const std::array<uint32_t, default_kernels_size> &",
+                      "Kernels": "std::array<uint32_t, default_kernels_size> &",
+                      "Strides": "std::array<uint32_t, default_kernels_size> &",
+                      "Pads": "std::array<uint32_t, default_kernels_size> &",
                       "Group": "uint32_t",
-                      "Offsets": "const dim_array_t &",
-                      "Shuffle": "const std::array<size_t, max_tensor_dimensions> &",
-                      "Mask": "const std::array<uint64_t, default_mask_size>&",
+                      "Offsets": "dim_array_t &",
+                      "Shuffle": "std::array<size_t, max_tensor_dimensions> &",
+                      "Mask": "std::array<uint64_t, default_mask_size>&",
                       "BatchDims": "uint32_t",
                       "Count": "uint32_t",
                       "SyncOffset": "uint32_t",
@@ -484,7 +485,7 @@ namespace dnn_lib {
 
             
         for i in members:
-            info['callDecl'].append(self.memberType(i, tpl) + " " + i)
+            info['callDecl'].append("const %s %s" % (self.memberType(i, tpl), i))
             info['callInst'].append(i)
             ##if i in LibManagerSheet.memberExtraTpl:
             ##    t = LibManagerSheet.memberExtraTpl[i]
