@@ -3,7 +3,6 @@
 
 #include "LibTypes.h"
 #include <utility>
-#include "Float16.h"
 
 namespace dnn_lib{
 
@@ -20,8 +19,6 @@ namespace dnn_lib{
   
   using TypeRef = const Type *;
   
-  using float16_t = float16;
-
   template <class ElemTy> class Handle;
   
   template<ElemKind elK>

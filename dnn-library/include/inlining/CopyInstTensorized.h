@@ -58,12 +58,12 @@ namespace inlining {
  * @param[in] minionOffset The first minion that is assigned to this node.
  * @param[in] assignedMinions Amount of minions avaliable.
  */
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
                                      uint64_t flags,
                                      const uint32_t minionOffset = 0,
                                      const uint32_t assignedMinions = 0) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if ((minionId >= activeMinions) || (minionId >= activeMinions))

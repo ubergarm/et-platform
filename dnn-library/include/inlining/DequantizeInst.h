@@ -32,10 +32,13 @@ namespace inlining {
 
 /// Dequantize integer tensor. Scale and Offset are based
 /// on the source tensor type.
-template <typename srcType>
-inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
+template <ElemKind dstElK, ElemKind srcElK>
+inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type; //TODO: use to support float16 as well (SW-3267)
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
   unsigned int minionId = get_minion_id();
-  if (minionId != 0)
+  if (minionId != minionOffset)
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
@@ -43,8 +46,8 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
   
   // float *ptrDstT = (float *)dstT;
   float *ptrDstT = outT->getRawDataPointer<float>();
-  // const Addresser<srcType> ptrSrcT(srcT, scale, offset);
-  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
+  // const Addresser<srcElK> ptrSrcT(srcT, scale, offset);
+  const Addresser<srcElK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -88,13 +91,15 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
-inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+template <ElemKind dstElK, ElemKind srcElK>
+inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type; //TODO: use to support float16 as well (SW-3267)
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* srcT = inT->getRawDataPointer<void>();
@@ -102,8 +107,8 @@ inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64
  
   // float *ptrDstT = (float *)dstT;
   float *ptrDstT = outT->getRawDataPointer<float>();
-  // const Addresser<srcType> ptrSrcT(srcT, scale, offset);
-  const Addresser<srcType> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
+  // const Addresser<srcElK> ptrSrcT(srcT, scale, offset);
+  const Addresser<srcElK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();

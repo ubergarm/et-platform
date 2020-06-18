@@ -1,60 +1,72 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "TransposeInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibTransposeInst(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibTransposeInst<in0Type>(out0, in0, Shuffle, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void* pshuffle) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibTransposeInst<srcType>(outT, inT, pshuffle);
-}
+  template <ElemKind in0Type>
+  void fwdLibTransposeInstThreaded(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibTransposeInstThreaded<in0Type>(out0, in0, Shuffle, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
-                                 void* pshuffle, uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibTransposeInstThreaded<srcType>(outT, inT, pshuffle,
-                                                          flags);
-}
+  template <ElemKind in0Type>
+  void fwdLibTransposeInstVectorized(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibTransposeInstVectorized<in0Type>(out0, in0, Shuffle, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
-                                   void* pshuffle, uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibTransposeInstVectorized<srcType>(outT, inT,
-                                                            pshuffle, flags);
-}
+  template <ElemKind in0Type>
+  void fwdLibTransposeInstAligned32Bytes(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibTransposeInstAligned32Bytes<in0Type>(out0, in0, Shuffle, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                          void* pshuffle, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibTransposeInstAligned32Bytes<srcType>(outT, inT,
-                                                                pshuffle, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibTransposeInst, LibTensor* outT,
-                 LibTensor* inT, void* pshuffle);
-
-GEN_INSTANCES_OP(template, fwdLibTransposeInstThreaded, LibTensor* outT,
-                 LibTensor* inT, void* pshuffle, uint64_t flags);
-
-GEN_INSTANCES_OP(template, fwdLibTransposeInstVectorized, LibTensor* outT,
-                   LibTensor* inT, void* pshuffle, uint64_t flags);
-
-GEN_INSTANCES_OP(template, fwdLibTransposeInstAligned32Bytes, LibTensor* outT,
-                 LibTensor* inT, void* pshuffle, uint64_t flags);
-  
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibTransposeInst<FloatTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstThreaded<Int64ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstThreaded<Int32ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstVectorized<FloatTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstVectorized<Float16Ty>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstVectorized<Int8QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstVectorized<Int64ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstVectorized<Int32ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstVectorized<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstAligned32Bytes<FloatTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstAligned32Bytes<Float16Ty>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstAligned32Bytes<Int8QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstAligned32Bytes<Int64ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstAligned32Bytes<Int32ITy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibTransposeInstAligned32Bytes<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<size_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

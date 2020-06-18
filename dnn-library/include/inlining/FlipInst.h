@@ -30,14 +30,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename ElemTy>
-inline void fwdLibFlipInst(LibTensor* inT, LibTensor* outT, unsigned int axis) {
-
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
-  //@TODO  static_assert(max_tensor_dimensions == 6,"Loops below assume max_tensor_dimensions = 6.");
+template <ElemKind elK>
+inline void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis,
+                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using ElemTy = typename elemKind2elemTy<elK>::type;
+  if (get_minion_id() != minionOffset) return;
 
   dim_t newDims[max_tensor_dimensions] = {0,};
   dim_t currDims[max_tensor_dimensions] = {0,};

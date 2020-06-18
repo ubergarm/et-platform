@@ -30,14 +30,15 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType, typename indexType>
+template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                             unsigned int batchedDims) {
+                             unsigned int batchedDims,
+                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
+  //  using indexType = typename elemKind2elemTy<indexElK>::type;
   
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dst  in1T--> src  in2T--> index*/
   void* dstT = outT->getRawDataPointer<void>();
@@ -45,11 +46,11 @@ inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   void* indexT = in2T->getRawDataPointer<void>();
   
   // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
   // const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
-  const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
+  const Addresser<indexElK> tIndices(indexT, in2T->getScale(), in2T->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -105,14 +106,16 @@ inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
 // tIndices tensor must be integers between 0 and di - 1, so they are valid
 // index values for the i-th dimension of the source tensor tInput.
 
-template <typename srcType, typename indexType>
+template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                     
-                                     unsigned int batchedDims, uint64_t flags) {
-
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+                                     unsigned int batchedDims, uint64_t flags,
+                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  //  using indexType = typename elemKind2elemTy<indexElK>::type;
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dst  in1T--> src  in2T--> index*/
@@ -120,12 +123,9 @@ inline void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor
   void* srcT = in1T->getRawDataPointer<void>();
   void* indexT = in2T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
-  const Addresser<indexType> tIndices(indexT, in2T->getScale(), in2T->getOffset());
+  Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  const Addresser<indexElK> tIndices(indexT, in2T->getScale(), in2T->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = in1T->dims().data();

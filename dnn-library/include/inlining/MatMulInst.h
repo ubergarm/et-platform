@@ -30,25 +30,25 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+template <ElemKind elK>
+void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* outT --> dst  in1--> act in2-> weight*/
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
   void* wei = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(wei, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK> tWInput(wei, in2T->getScale(), in2T->getOffset());
 
   //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -78,10 +78,11 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
                               uint64_t flags, const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -94,12 +95,13 @@ void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   void* src = in1T->getRawDataPointer<void>();
   void* wei = in2T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(wei, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK>
+    tWInput(wei, in2T->getScale(), in2T->getOffset());
   
   //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -395,11 +397,12 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 // since all the tensors involved are 2D. It is necessary to assume this at least for the
 // wgt and dst tensors, so we can use vectorization.
 
-template <typename srcType>
+template <ElemKind elK>
 void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
                                 LibTensor* in2T, uint64_t flags,
                                 const uint32_t minionOffset,
                                 const uint32_t assignedMinions) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;

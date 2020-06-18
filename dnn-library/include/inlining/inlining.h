@@ -19,7 +19,7 @@
 #include "BatchedReduceAddInst.h" // From include/inlining path
 #include "BatchedReduceMinInst.h" // From include/inlining path
 #include "BatchOneHotInst.h" // From include/inlining path
-#include "Checksum.h" // From include/inlining path
+#include "ChecksumInst.h" // From include/inlining path
 #include "ConvertToInst.h" // From include/inlining path
 #include "Convolution3DInst.h" // From include/inlining path
 #include "ConvolutionInst.h" // From include/inlining path
@@ -38,10 +38,10 @@
 #include "EmbeddingBagInst.h" // From include/inlining path
 //#include "EmbeddingBagByteRowwiseOffsetsInst.h" // From include/inlining path
 #include "ExtractTensorInst.h" // From include/inlining path
-//TODO: RESTORE#include "FlipInst.h" // From include/inlining path
+//#include "FlipInst.h" // From include/inlining path
 #include "FullyConnectedInst.h" // From include/inlining path
-#include "FusedRowwiseQuantizedSparseLengthsSum.h" // From include/inlining path error:template overload fix when finish
-#include "FusedRowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining path  error:template overload fix when finish
+#include "FusedRowwiseQuantizedSparseLengthsSumInst.h" // From include/inlining path error:template overload fix when finish
+#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path  error:template overload fix when finish
 #include "GatherInst.h" // From include/inlining path
 #include "GatherRangesInst.h" // From include/inlining path
 #include "InsertTensorInst.h" // From include/inlining path
@@ -51,15 +51,14 @@
 #include "LengthsToRangesInst.h" // From include/inlining path
 #include "LocalResponseNormalizationInst.h" // From include/inlining path
 #include "MatMulInst.h" // From include/inlining path
- #include "MatMulInstTransposed.h" // From include/inlining path
 #include "MaxPoolInst.h" // From include/inlining path
 #include "MaxSplatInst.h" // From include/inlining path
 #include "ModuloInst.h" // From include/inlining path
 #include "QuantizeInst.h" // From include/inlining path
 #include "RescaleQuantizedInst.h" // From include/inlining path
 #include "ResizeNearestInst.h" // From include/inlining path
-#include "RowwiseQuantizedFullyConnected.h" // From include/inlining path
-#include "RowwiseQuantizedSparseLengthsWeightedSum.h" // From include/inlining path
+#include "RowwiseQuantizedFullyConnectedInst.h" // From include/inlining path
+#include "RowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path
 #include "ScatterDataInst.h" // From include/inlining path
 #include "SigmoidInst.h" // From include/inlining path
 #include "SoftMaxInst.h" // From include/inlining path
@@ -69,7 +68,7 @@
 #include "SparseToDenseInst.h" // From include/inlining path
 #include "SparseToDenseMaskInst.h" // From include/inlining path
 #include "SplatInst.h" // From include/inlining path
-#include "SyncopyInstTensorized.h" // From include/inlining path
+#include "SyncopyInst.h" // From include/inlining path
 #include "TanhInst.h" // From include/inlining path
 #include "TensorViewInst.h" // From include/inlining path
 #include "TopKInst.h" // From include/inlining path

@@ -30,13 +30,15 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType, typename indexType>
+template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
-                                   LibTensor* in1T, LibTensor* in2T) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+                                   LibTensor* in1T, LibTensor* in2T,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
+  using indexType = typename elemKind2elemTy<indexElK>::type;
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out-> dst out2T--> dest2(lengths) in1T--> src in2T--> rangesT*/
   void* dstT = outT->getRawDataPointer<void>();
@@ -44,14 +46,11 @@ inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
   void* srcT = in1T->getRawDataPointer<void>();
   void* prangesT = in2T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
-  Addresser<indexType> tRanges(prangesT, in2T->getScale(), in2T->getOffset());  
-  // Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
-  Addresser<indexType> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
+  Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  Addresser<indexElK> tRanges(prangesT, in2T->getScale(), in2T->getOffset());  
+  // Addresser<indexElK> tLengths(dst2T, scale[2], offset[2]);
+  Addresser<indexElK> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   //  const dim_t *srcIndex = in1T->dims().data();
@@ -133,13 +132,17 @@ inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
 // which the copy will start, and the element ranges[i,j,1] is the length of the copy, that is, the amount
 // of batches of the source tensor that will be copied.
 
-template <typename srcType, typename indexType>
+template <ElemKind srcElK, ElemKind indexElK>
 inline void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor* out2T,
                                            LibTensor* in1T, LibTensor* in2T,
-                                           uint64_t flags) {
+                                           uint64_t flags,
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  using indexType = typename elemKind2elemTy<indexElK>::type;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
@@ -148,14 +151,14 @@ inline void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor* out2T,
   void* srcT = in1T->getRawDataPointer<void>();
   void* prangesT = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstT, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<indexType> tRanges(prangesT, scale[1], offset[1]);
-  Addresser<indexType> tRanges(prangesT, in2T->getScale(), in2T->getOffset());
-  // Addresser<indexType> tLengths(dst2T, scale[2], offset[2]);
-  Addresser<indexType> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
+  // Addresser<srcElK> tOutput(dstT, scale[3], offset[3]);
+  Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<indexElK> tRanges(prangesT, scale[1], offset[1]);
+  Addresser<indexElK> tRanges(prangesT, in2T->getScale(), in2T->getOffset());
+  // Addresser<indexElK> tLengths(dst2T, scale[2], offset[2]);
+  Addresser<indexElK> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = in1T->dims().data();

@@ -30,25 +30,26 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(LibTensor* outT,
-                                                                      LibTensor* in1T,
-                                                                      LibTensor* in2T) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+template <ElemKind elK>
+inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst
+    ( LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* outT --> dst  in1T--> src in2T--> index*/
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, in1T->getScale(), in1T->getOffset());
   // long long *tLabels = (long long *)labelsT;
   long long *tLabels = in2T->getRawDataPointer<long long>();
   
@@ -74,28 +75,29 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(LibTensor*
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
                                                                               LibTensor* outT,
                                                                               LibTensor* in1T,
                                                                               LibTensor* in2T,
-                                                                              uint64_t flags) {
+                                                                              uint64_t flags,
+                                                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, in1T->getScale(), in1T->getOffset());
   // long long *tLabels = (long long *)labelsT;
   long long *tLabels = in2T->getRawDataPointer<long long>();
   

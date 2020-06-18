@@ -18,146 +18,68 @@
 
 namespace dnn_lib {
 
-template <typename T> class Addresser {
-  T *ptrT_;
-  uint16_t *ptrfp16_;
-  Writer<T> writer;
-  float16 utilfp16;
+#define ONLY_FOR(cond) template <ElemKind U = elK, typename std::enable_if< (cond), size_t>::type = 0>
 
-  float scale_;
-  int32_t offset_;
-
+  
+template <ElemKind elK> class Addresser {
+  using T = typename elemKind2elemTy<elK>::type;
 public:
-  Addresser(void *ptr, float scale = 1.0, int32_t offset = 0) {
-    if (std::is_same<T, float16>::value == true) {
-      ptrfp16_ = (uint16_t *)ptr;
-    } else if (std::is_same<T, int8_t>::value == true) {
-      scale_ = scale;
-      offset_ = offset;
-      writer.scale_ = scale;
-      writer.offset_ = offset;
-      ptrT_ = (T *)ptr;
-    } else if (std::is_same<T, uint8_t>::value == true) {
-      scale_ = scale;
-      offset_ = 0;
-      writer.scale_ = scale;
-      writer.offset_ = 0;
-      ptrT_ = (T *)ptr;
-    } else if (std::is_same<T, int16_t>::value == true) {
-      scale_ = scale;
-      offset_ = offset;
-      writer.scale_ = scale;
-      writer.offset_ = offset;
-      ptrT_ = (T *)ptr;
-    } else {
-      ptrT_ = (T *)ptr;
-    }
+  Addresser(void *ptr, float scale = 1.0, int32_t offset = 0):
+    scale_(scale),
+    offset_(offset),
+    ptr_( reinterpret_cast<T*>(ptr) )
+  { }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // READ
+  ////////////////////////////////////////////////////////////////////////////////
+  // direct read from pointer
+  ONLY_FOR( U == FloatTy || U == Int64ITy || U == Int32ITy || U == BoolTy)
+  const T operator[](const size_t index) const {
+    return ptr_[index];
   }
 
-  // READ
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, float16>::value,
-                                    std::size_t>::type = 0>
-  float operator[](const size_t index) const {
+  // Float16 => converts to float 
+  ONLY_FOR( U == Float16Ty)
+  const float operator[](const size_t index) const {
     float f;
-    dnn_lib::convertFp16ToFp32(ptrfp16_[index], f);
+    dnn_lib::convertFp16ToFp32(ptr_[index], f);
     return f;
   }
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, float>::value,
-                                    std::size_t>::type = 0>
-  const T &operator[](const size_t index) const {
-    return ptrT_[index];
-  }
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int8_t>::value,
-                                    std::size_t>::type = 0>
-  float operator[](const size_t index) const {
-    float i32 = dnn_lib::dequantize<int8_t>(ptrT_[index], scale_, offset_);
-    return i32;
-  }
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, uint8_t>::value,
-                                    std::size_t>::type = 0>
-  float operator[](const size_t index) const {
-    float i32 = dnn_lib::dequantize<uint8_t>(ptrT_[index], scale_, offset_);
-    return i32;
-  }
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int16_t>::value,
-                                    std::size_t>::type = 0>
-  float operator[](const size_t index) const {
-    float i32 = dnn_lib::dequantize<int16_t>(ptrT_[index], scale_, offset_);
-    return i32;
-  }
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int64_t>::value,
-                                    std::size_t>::type = 0>
-  const T &operator[](const size_t index) const {
-    return ptrT_[index];
-  }
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int32_t>::value,
-                                    std::size_t>::type = 0>
-  const T &operator[](const size_t index) const {
-    return ptrT_[index];
+  // Integer quantized types: converts to float
+  ONLY_FOR( U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
+  const float operator[](const size_t index) const {
+    return dnn_lib::dequantize<T>(ptr_[index], scale_, offset_);
   }
 
-  // write
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, float16>::value,
-                                    std::size_t>::type = 0>
-  Writer<T> &operator[](const size_t index) {
-    writer.ptrfp16_ = &ptrfp16_[index];
-    return writer;
-  }
+  
+  ////////////////////////////////////////////////////////////////////////////////
+  // WRITE
+  ////////////////////////////////////////////////////////////////////////////////
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, float>::value,
-                                    std::size_t>::type = 0>
+  // direct write: return reference
+  ONLY_FOR( U == FloatTy  || U == Int64ITy || U == Int32ITy || U == BoolTy)
   T &operator[](const size_t index) {
-    return ptrT_[index];
+    return ptr_[index];
   }
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int8_t>::value,
-                                    std::size_t>::type = 0>
-  Writer<T> &operator[](const size_t index) {
-    writer.ptri8_ = &ptrT_[index];
-    return writer;
+  // other types: return a writer to write via float
+  ONLY_FOR( U == Float16Ty || U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
+  Writer<elK> operator[](const size_t index) {
+    return Writer<elK>(ptr_ + index);
   }
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, uint8_t>::value,
-                                    std::size_t>::type = 0>
-  Writer<T> &operator[](const size_t index) {
-    writer.ptrui8_ = &ptrT_[index];
-    return writer;
-  }
 
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int16_t>::value,
-                                    std::size_t>::type = 0>
-  Writer<T> &operator[](const size_t index) {
-    writer.ptri16_ = &ptrT_[index];
-    return writer;
-  }
-
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int64_t>::value,
-                                    std::size_t>::type = 0>
-  T &operator[](const size_t index) {
-    return ptrT_[index];
-  }
-  template <typename U = T,
-            typename std::enable_if<std::is_same<U, int32_t>::value,
-                                    std::size_t>::type = 0>
-  T &operator[](const size_t index) {
-    return ptrT_[index];
-  }
+private:
+  const float scale_;
+  const int32_t offset_;
+  T* ptr_;
+  
 };
 
+#undef ONLY_FOR
+  
 } // dnn_lib
 
 #endif /* ADDRESSER_H */

@@ -31,25 +31,24 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+  template <ElemKind elK>
 inline __attribute__((always_inline))
-void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pcoord,
+  void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const dim_array_t offsets,
                             unsigned int count, unsigned int axis,
-                            uint64_t flags, const uint32_t minionOffset = 0) {
+                            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
+  if (get_minion_id() != minionOffset) return;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  if (minionId != 0)
-    return;
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tSmallInput(src2, scale[0], offset[0]);
-  const Addresser<srcType> tSmallInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tSmallInput(src2, scale[0], offset[0]);
+  const Addresser<elK> tSmallInput(src, inT->getScale(), inT->getOffset());
   
-  const unsigned int *eOffsets = (unsigned int *)pcoord;
   const dim_array_t &eDims = inT->dims();
   const dim_array_t &eDstPitch = outT->strides();
   const dim_array_t &eSrcPitch = inT->strides();
@@ -67,12 +66,12 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pco
             for (size_t q = 0; q < eDims[4]; q++) {
               for (size_t r = 0; r < eDims[5]; r++) {
 
-                idx = (eOffsets[0] + x) * eDstPitch[0] +
-                  (eOffsets[1] + y) * eDstPitch[1] +
-                  (eOffsets[2] + z) * eDstPitch[2] +
-                  (eOffsets[3] + w) * eDstPitch[3] +
-                  (eOffsets[4] + q) * eDstPitch[4] +
-                  (eOffsets[5] + r) * eDstPitch[5] + advanceOnAxis;
+                idx = (offsets[0] + x) * eDstPitch[0] +
+                  (offsets[1] + y) * eDstPitch[1] +
+                  (offsets[2] + z) * eDstPitch[2] +
+                  (offsets[3] + w) * eDstPitch[3] +
+                  (offsets[4] + q) * eDstPitch[4] +
+                  (offsets[5] + r) * eDstPitch[5] + advanceOnAxis;
 
                 tOutput[idx] = tSmallInput[x * eSrcPitch[0] + y * eSrcPitch[1] +
                                            z * eSrcPitch[2] + w * eSrcPitch[3] +
@@ -104,7 +103,7 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pco
 
 //FIXME This version fits the small cases that currently are not vectorized,
 //but it still fails some tests.
-//template <typename srcType>
+//template <ElemKind elK>
 //void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
 //                                             void *dstPitches,
 //                                             unsigned int dstDimNum, void *src2,
@@ -112,8 +111,9 @@ void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const uint32_t *pco
 //                                             void *poffsets, unsigned int count,
 //                                             unsigned int axis, const float *scale,
 //                                             const int32_t *offset, uint64_t flags) {
-//  Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-//  const Addresser<srcType> tAInput(src2, scale[0], offset[0]);
+//  using srcType = typename elemKind2elemTy<elK>::type;
+//  Addresser<elK> tOutput(dst, scale[1], offset[1]);
+//  const Addresser<elK> tAInput(src2, scale[0], offset[0]);
 //
 //  unsigned int *dstIndex = (unsigned int *)dstDims;
 //  unsigned int *actIndex = (unsigned int *)src2Dims;
@@ -299,14 +299,15 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline))
 void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                    const uint32_t *poffsets, unsigned int count,
+                                    const dim_array_t &coord,
+                                    unsigned int count,
                                     unsigned int axis, uint64_t flags,
                                     const uint32_t minionOffset = 0,
                                     const  uint32_t assignedMinions = 0) {
-
+  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) :  assignedMinions;
   if (minionId >= activeMinions)
@@ -324,16 +325,16 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
 
   if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
-    inlining::fwdLibInsertTensorInst<srcType>(outT, inT, poffsets, count, axis,
+    inlining::fwdLibInsertTensorInst<elK>(outT, inT, coord, count, axis,
                                     flags, minionOffset);
     return;
   }
 
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src2, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(src2, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -342,8 +343,6 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)src2Pitches;
   const dim_t *actPitch = inT->strides().data();
  
-  unsigned int *coord = (unsigned int *)poffsets;
-
   // We compute the offset address
   unsigned int offsetNum = coord[0] * dstPitch[0];
   for (unsigned int i = 1; i < dstDimNum; i++)

@@ -30,23 +30,24 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind dstElK, ElemKind srcElK, size_t N>
 inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-                              void *pkernels, void *pstrides, void *ppads) {
+                              std::array<uint32_t, N> kernels,
+                              std::array<uint32_t, N> strides,
+                              std::array<uint32_t, N> pads,
+                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<srcElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -56,10 +57,6 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data();
-
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
 
   float filterArea = kernels[0] * kernels[1];
   float invFilter;
@@ -103,23 +100,26 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   }       // N
 }
 
-template <typename srcType, typename dstType>
+template <ElemKind dstElK, ElemKind srcElK, size_t N>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
-                                      void *pkernels, void *pstrides,
-                                      void *ppads, uint64_t flags) {
+                                      std::array<uint32_t, N> kernels,
+                                      std::array<uint32_t, N> strides,
+                                      std::array<uint32_t, N> pads,
+                                      uint64_t flags,
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
   
-  // Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), outT->getOffset());
+  // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(src, inT->getScale(), outT->getOffset());
  
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -130,17 +130,13 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
-
   float filterArea = kernels[0] * kernels[1];
   float invFilter;
   fpReciprocalSingleElement(filterArea, invFilter);
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)

@@ -1,56 +1,44 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "LocalResponseNormalizationInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out1Type>
+  void fwdLibLocalResponseNormalizationInst(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibLocalResponseNormalizationInst<out1Type>(out0, out1, in0, HalfWindowSize, Alpha, Beta, K, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTensor* out2T,
-        LibTensor* inT, unsigned int halfWindowSize, float alpha, float beta,
-        float k) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibLocalResponseNormalizationInst<srcType>(out1T, out2T,
-                                           inT, halfWindowSize, alpha, beta, k);
-}
+  template <ElemKind out1Type>
+  void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibLocalResponseNormalizationInstThreaded<out1Type>(out0, out1, in0, HalfWindowSize, Alpha, Beta, K, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
-    LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
-    float beta, float k, uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibLocalResponseNormalizationInstThreaded<srcType>(
-    out1T, out2T, inT, halfWindowSize, alpha, beta, k, flags);
-}
+  template <ElemKind out1Type>
+  void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibLocalResponseNormalizationInstVectorized<out1Type>(out0, out1, in0, HalfWindowSize, Alpha, Beta, K, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
-    LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
-    float beta, float k, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibLocalResponseNormalizationInstVectorized<srcType>(
-                out1T, out2T, inT, halfWindowSize, alpha, beta, k, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInst,
-                 LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
-                 unsigned int halfWindowSize, float alpha, float beta, float k);
-
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstThreaded,
-                 LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
-                 unsigned int halfWindowSize, float alpha, float beta, float k, uint64_t flags);
-
-GEN_INSTANCES_OP(template, fwdLibLocalResponseNormalizationInstVectorized, LibTensor* out1T,
-                 LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
-                 float beta, float k, uint64_t flags);
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibLocalResponseNormalizationInst<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibLocalResponseNormalizationInst<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibLocalResponseNormalizationInstThreaded<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibLocalResponseNormalizationInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibLocalResponseNormalizationInstVectorized<FloatTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibLocalResponseNormalizationInstVectorized<Float16Ty>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t HalfWindowSize, const float Alpha, const float Beta, const float K, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

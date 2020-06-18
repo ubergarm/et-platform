@@ -36,13 +36,14 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType, typename dstType>
-inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT) {
-  // FIXME: single thread convertto fails when combined with multi-threaded
+template <ElemKind dstElK, ElemKind srcElK>
+inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT,
+                                                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  
   // operators
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(inT->dims() == outT->dims());
   
@@ -52,12 +53,10 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  // Addresser<dstType> ptrDstT(dstT, scalexo[1], offset[1]);
-  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
+  Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<srcElK> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
 
-  Converter<srcType, dstType> converter;
+  Converter<srcElK, dstElK> converter;
 
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    [&](size_t addrDst, size_t addrSrc) {
@@ -72,13 +71,15 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
 
 }
 
-template <typename srcType, typename dstType>
-inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags) {
+template <ElemKind dstElK, ElemKind srcElK>
+inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags,
+                                                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  size_t activeMinions =  MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   ////////////////////////////////////////////////////////////////////////////////
   // partition work between minions in multiples of CL
@@ -95,9 +96,9 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-  Addresser<dstType> tOutput(dst, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
-  Converter<srcType, dstType> converter;
+  Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
+  const Addresser<srcElK> tAInput(src, inT->getScale(), inT->getOffset());
+  Converter<srcElK, dstElK> converter;
   
   // and loop
 #if 0
@@ -126,14 +127,17 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
 }
 
   
-template <typename srcType, typename dstType>
-inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTensor* inT,  LibTensor*outT, uint64_t flags){
-  const unsigned int minionId = get_minion_id();
-  const unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  assume(activeMinions<=1024);
-  if (minionId >= activeMinions)
-    return;
+template <ElemKind dstElK, ElemKind srcElK>
+inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTensor* inT,  LibTensor*outT, uint64_t flags,
+                                                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0){
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assume(activeMinions<=1024);
+  if (minionId >= activeMinions) return;
+  
   ////////////////////////////////////////////////////////////////////////////////
   // partition work between minions in multiples of CL
   ////////////////////////////////////////////////////////////////////////////////  
@@ -143,7 +147,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   outT->partitionCL(minionId, activeMinions, first, count);
   if (unlikely(count == 0)) return; // minion has no work to do
 
-  Converter<srcType, dstType> converter;
+  Converter<srcElK, dstElK> converter;
   int32_t gatherValues[8], scatterValues[8];
   for (unsigned int i = 0; i < 8; i++) {
     gatherValues[i] = i * getsize<srcType>();
@@ -151,25 +155,16 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   }
   // and loop
 
-  //  srcType* srcP = inT->getRawDataPointer<srcType>();
-  //  dstType* dstP = outT->getRawDataPointer<dstType>();
-  //FIXME:  dstType=float16? cannot use as pointers to storage! should be uint16_, this is just a temporary fix
-  
-  using srcStorage_t = typename std::conditional<std::is_same<srcType, float16>::value,
-                                                 uint16_t, srcType>::type;
-  using dstStorage_t = typename std::conditional<std::is_same<dstType, float16>::value,
-                                                 uint16_t, dstType>::type;
-
-  srcStorage_t * const  srcP = inT->getRawDataPointer<srcStorage_t>();
-  dstStorage_t * const  dstP = outT->getRawDataPointer<dstStorage_t>();
+  srcType * const  srcP = inT->getRawDataPointer<srcType>();
+  dstType * const  dstP = outT->getRawDataPointer<dstType>();
   
   const size_t ndims = outT->ndims();
   const dim_t lastDim = outT->dims()[ndims-1];
   constexpr dim_t step=8; // ConvertVect works with 8 elements at a time
 
   // get iterators to loop through all the dimensions except the last one
-  auto out = outT->getHandle<dstStorage_t>().getIterator(first);
-  auto in = inT->getHandle<srcStorage_t>().getIterator(out.coords());
+  auto out = outT->getHandle<dstType>().getIterator(first);
+  auto in = inT->getHandle<srcType>().getIterator(out.coords());
   
 #if 0
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
@@ -218,8 +213,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
     
     //// First iterate until completing the first feature dimension (in case initial coordinates are in the middle)
     for(; ( out.coords()[ndims-1] != 0 ||  ndims == 1) && out.offset() < endOffset; out+=step, in+=step) {
-    dim_t valid = lastDim - out.coords()[ndims-1];
 #ifndef  CONVERTTO_OK_TO_WRITE_PADDING
+      dim_t valid = lastDim - out.coords()[ndims-1];
     // set and restore the mask if we are in the boundary before and after the conversion
     if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
 #endif

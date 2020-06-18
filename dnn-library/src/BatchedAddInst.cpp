@@ -1,52 +1,40 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "BatchedAddInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibBatchedAddInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibBatchedAddInst<out0Type, in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibBatchedAddInst<srcType>(outT, in1T, in2T);
-}
+  template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
+  void fwdLibBatchedAddInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibBatchedAddInstThreaded<out0Type, in0Type, in1Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                  LibTensor* in2T, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibBatchedAddInstThreaded<srcType>(outT, in1T,
-                                                           in2T, flags);
-}
-
-// TODO: Special implementation to support int8_t + int32_t sum, as a quick fix
-// we implement this function to support it, the correct way is extend the
-// BatchedAdd templatized op and the Operator class in order to support 2
-// different templates
-void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
-
-  dnn_lib::inlining::fwdLibBatchedAddInsti8i32(outT, in1T, in2T);
-}
-
-void fwdLibBatchedAddInsti8i32Threaded(LibTensor* outT, LibTensor* in1T,
-                                       LibTensor* in2T, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibBatchedAddInsti8i32Threaded(outT, in1T, in2T, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibBatchedAddInst, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T);
-
-GEN_INSTANCES_OP(template, fwdLibBatchedAddInstThreaded, LibTensor* outT,
-                 LibTensor* in1T, LibTensor* in2T, uint64_t flags);
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibBatchedAddInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInst<Int8QTy,Int8QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInst<Int16QTy,Int16QTy,Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInst<Int16QTy,Int16QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInstThreaded<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInstThreaded<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInstThreaded<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInstThreaded<Int8QTy,Int8QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInstThreaded<Int16QTy,Int16QTy,Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedAddInstThreaded<Int16QTy,Int16QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

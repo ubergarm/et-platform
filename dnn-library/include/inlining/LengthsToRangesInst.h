@@ -30,20 +30,21 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+template <ElemKind elK>
+inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT,
+                                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
+
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   void* plengths = inT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
-  const Addresser<srcType> lengths(plengths, inT->getScale(), inT->getOffset());
-  // // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> lengths(plengths, scale[0], offset[0]);
+  const Addresser<elK> lengths(plengths, inT->getScale(), inT->getOffset());
+  // // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
@@ -60,21 +61,23 @@ inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
-void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+template <ElemKind elK>
+void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-   unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = 32;
-  if (minionId >= activeMinions) return;
-
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions || minionId >= 32) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();  
   void* plengths = inT->getRawDataPointer<void>();
  
-  // const Addresser<srcType> lengths(plengths, scale[0], offset[0]);
-  const Addresser<srcType> lengths(plengths, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> lengths(plengths, scale[0], offset[0]);
+  const Addresser<elK> lengths(plengths, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
+  Addresser<elK>    tOutput(dstT, outT->getScale(), outT->getOffset());
 
   int level = -1;
   for (unsigned int j = 1; j < activeMinions; j*=2)

@@ -48,10 +48,12 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  * @param[in] off offset applied to ensure tensor starting at CL
  */
-template <typename srcType>
-inline void fwdLibSyncopyInstTensorized(LibTensor* outT, LibTensor* inT,
-                                        unsigned int off,
-                                        const uint32_t assignedMinions = 0) {
+
+template <ElemKind elK>
+inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
+                              unsigned int off, uint64_t flags,
+                              const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   uint32_t hart = get_hart_id();
   uint32_t threadId = hart & 1;

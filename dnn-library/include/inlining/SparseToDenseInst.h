@@ -30,26 +30,27 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* outT,
                                                                    LibTensor* in1T,
-                                                                   LibTensor* in2T) {
-  unsigned int minionId = get_minion_id();
-  if (minionId > 0)
-    return;
+                                                                   LibTensor* in2T,
+                                                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* outT --> dst  in1T--> src   in2T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT = in1T->getRawDataPointer<void>();
 
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
   long long *tIndex = in2T->getRawDataPointer<long long>();
   
@@ -127,14 +128,15 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* ou
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
-            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
+            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* outT --> dst  in1T--> src   in2T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
@@ -142,10 +144,10 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT = in1T->getRawDataPointer<void>();
 
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
   long long *tIndex = in2T->getRawDataPointer<long long>();
   
@@ -370,16 +372,19 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 }
 
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
-           LibTensor* outT, LibTensor* in1T, LibTensor* in2T, const float* scale,
-           const int32_t* offset, uint64_t flags) {
+           LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+           uint64_t flags,
+           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
+  float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
+  int32_t offset[] = { in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
   /* outT --> dst  in1T--> src   in2T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 

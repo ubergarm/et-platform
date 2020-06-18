@@ -31,16 +31,18 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim){
+template <ElemKind elK>
+inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim,
+                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0){
+  
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
   
   // cast src parameters to objects we can handle
-  // const Addresser<srcType> in(src, srcScale, srcOffset);
-  const Addresser<srcType> in(src, inT->getScale(), inT->getOffset());
+  const Addresser<elK> in(src, inT->getScale(), inT->getOffset());
   // unsigned int *inPitch = static_cast<unsigned int *>(srcPitches);
   const dim_t *inPitch = inT->strides().data();
   // unsigned int *inDims = static_cast<unsigned int *>(srcDims);

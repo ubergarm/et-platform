@@ -1,33 +1,32 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "SigmoidInst.h" // From include/inlining path
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibSigmoidInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibSigmoidInst<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibSigmoidInstThreaded<srcType>(outT, inT, flags);
-}
+  template <ElemKind in0Type>
+  void fwdLibSigmoidInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibSigmoidInstThreaded<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
-
-  dnn_lib::inlining::fwdLibSigmoidInst<srcType>(outT, inT);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibSigmoidInst, LibTensor* outT, LibTensor* inT);
-GEN_INSTANCES_OP(template, fwdLibSigmoidInstThreaded, LibTensor* outT, LibTensor* inT, uint64_t flags);
-
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibSigmoidInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSigmoidInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSigmoidInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSigmoidInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

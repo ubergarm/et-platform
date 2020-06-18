@@ -27,11 +27,9 @@ namespace inlining {
 template <ElemKind elKind, ElemKind idxKind>
 inline typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind==Float16Ty)), void>
 fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-				   LibTensor* in3T, LibTensor* in4T, uint64_t flags) {
-
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+                                   LibTensor* in3T, LibTensor* in4T, 
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  if (get_minion_id() != minionOffset) return;
 
   assert(in1T->getElementType() == outT->getElementType());
   assert((in3T->getElementType() == Int64ITy) || (in3T->getElementType() == Int32ITy));
@@ -49,6 +47,7 @@ fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   outH.zero();
 
   size_t segments = in4T->dims()[0];
+
   size_t totalLength = 0;
   for (size_t i = 0; i < segments; i++) {
     totalLength += lengthH.raw(i);
@@ -106,11 +105,10 @@ template <ElemKind elKind, ElemKind idxKind>
 inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
 				  (elKind != Float16Ty) && (elKind != BoolTy)), void>
 fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-				   LibTensor* in3T, LibTensor* in4T, uint64_t flags) {
+                                   LibTensor* in3T, LibTensor* in4T,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(in1T->getElementType() == outT->getElementType());
   assert((in3T->getElementType() == Int64ITy) || (in3T->getElementType() == Int32ITy));
@@ -152,16 +150,16 @@ fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   outT->evict(DO_EVICTS);
 }
 
-
 template <ElemKind elKind, ElemKind idxKind>
 inline typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
 fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-					   LibTensor* in3T, LibTensor* in4T, uint64_t flags) {
+                                           LibTensor* in3T, LibTensor* in4T, uint64_t flags,
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;				  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
 
   ////////////////////////////////////////////////////////////////////////////////
   // partition work between minions in multiples of CL
@@ -179,12 +177,12 @@ template <ElemKind elKind, ElemKind idxKind>
 inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
 				  (elKind != Float16Ty) && (elKind != BoolTy)), void>
 fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-					   LibTensor* in3T, LibTensor* in4T, uint64_t flags) {
+                                           LibTensor* in3T, LibTensor* in4T, uint64_t flags,
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   ////////////////////////////////////////////////////////////////////////////////
   // partition work between minions in multiples of CL

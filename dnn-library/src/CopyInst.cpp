@@ -1,113 +1,72 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "CopyInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type>
+  void fwdLibCopyInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibCopyInst<out0Type>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-/**
- * @brief Copies the src matrix to the dst matrix.
- *
- * It makes a copy of the tensor src into the dst tensor, which may not
- * have the same pitches or dimensions, so it allows a reshaping. In this
- * version all the work is done by the same minion.
- * 
- * @tparam srcType The type of the elements in the tensor.
- * @param[out] dst Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] src Pointer to the input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] scale, offset Parameters for the quantization.
- */
-template <typename srcType>
-void fwdLibCopyInst(LibTensor* outT, LibTensor* inT) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibCopyInst<srcType>(outT, inT);
-}
+  template <ElemKind out0Type>
+  void fwdLibCopyInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibCopyInstThreaded<out0Type>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-/**
- * @brief Copies the src matrix to the dst matrix.
- *
- * It makes a copy of the tensor src into the dst tensor, which may not
- * have the same pitches or dimensions, so it allows a reshaping. This is
- * the threaded version for this operator, so several minions are used.
- * 
- * @tparam srcType The type of the elements in the tensor.
- * @param[out] dst Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] src Pointer to the input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] scale, offset Parameters for the quantization.
- * @param[in] flags Gives the information of the Active Shires and the
- *  type of evict required.
- * @param[in] minionOffset The first minion that is assigned to this node.
- * @param[in] assignedMinions Amount of minions avaliable.
- */
-template <typename srcType>
-void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
-                            uint64_t flags,
-                            const uint32_t minionOffset,
-                            const uint32_t assignedMinions) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibCopyInstThreaded<srcType>(outT, inT, flags, minionOffset,
-                                                     assignedMinions);
-}
+  template <ElemKind out0Type>
+  void fwdLibCopyInstVectorized(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibCopyInstVectorized<out0Type>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-/**
- * @brief Copies the src matrix to the dst matrix.
- *
- * It makes a copy of the tensor src into the dst tensor, which may not
- * have the same pitches or dimensions, so it allows a reshaping. This is
- * the threaded and vectorized version for this operator.
- *
- * @Warning It is assumed that the destination tensor starts at the beginning
- *  of a cacheline.
- * 
- * @tparam srcType The type of the elements in the tensor.
- * @param[out] dst Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] src Pointer to the input matrix.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
- * @param[in] scale, offset Parameters for the quantization.
- * @param[in] flags Gives the information of the Active Shires and the
- *  type of evict required.
- * @param[in] minionOffset The first minion that is assigned to this node.
- * @param[in] assignedMinions Amount of minions avaliable.
- */
-template <typename srcType>
-void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                              const uint32_t minionOffset,
-                              const uint32_t assignedMinions) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibCopyInstVectorized<srcType>(outT, inT, flags,
-                                                       minionOffset, assignedMinions);
-}
+  template <ElemKind out0Type>
+  void fwdLibCopyInstTensorized(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibCopyInstTensorized<out0Type>(out0, in0, flags, minionOffset, assignedMinions);
+  }
 
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibCopyInst, LibTensor* outT, LibTensor* inT);
-
-GEN_INSTANCES_OP(template, fwdLibCopyInstThreaded, LibTensor* outT, LibTensor* inT,
-                 uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-
-GEN_INSTANCES_OP(template, fwdLibCopyInstVectorized, LibTensor* outT, LibTensor* inT,
-                 uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-  
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibCopyInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstThreaded<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstThreaded<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstVectorized<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstVectorized<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstVectorized<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstVectorized<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstVectorized<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstVectorized<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstTensorized<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstTensorized<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstTensorized<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstTensorized<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstTensorized<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCopyInstTensorized<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

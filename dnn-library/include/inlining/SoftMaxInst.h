@@ -32,24 +32,24 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT) {
-    
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+template <ElemKind elK>
+inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
+                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   
   srcType* dstT = outT->getRawDataPointer<srcType>();
   srcType* srcT = inT->getRawDataPointer<srcType>();
   
-  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> acumInt(dstT, scale[1], offset[1]);
-  const Addresser<srcType> acumInt(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> acumInt(dstT, scale[1], offset[1]);
+  const Addresser<elK> acumInt(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcTDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -85,37 +85,39 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
-inline void fwdLibSoftMaxInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+template <ElemKind elK>
+inline void fwdLibSoftMaxInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
   const dim_t *srcPitch = inT->strides().data();
 
   size_t typeSize = getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded1<elK>(outT, inT, flags, minionOffset, assignedMinions);
   else if (cll%srcPitch[0] == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<elK>(outT, inT, flags, minionOffset, assignedMinions);
   else
-    dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(outT, inT);
+    dnn_lib::inlining::fwdLibSoftMaxInst2<elK>(outT, inT, flags, minionOffset, assignedMinions);
 
 }
 
-template <typename srcType>
-inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags) {
-
+template <ElemKind elK>
+inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
   // unsigned int *srcPitch = (unsigned int *)srcTPitches;
   const dim_t *srcPitch = inT->strides().data();
  
   size_t typeSize = getsize<srcType>();
   unsigned int cll = CACHE_LINE_BYTES/typeSize;
   if (srcPitch[0]%cll == 0)
-    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstVectorized1<elK>(outT, inT, flags, minionOffset, assignedMinions);
   else if (cll%srcPitch[0] == 0) // TODO: vectorize v2.
-    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<srcType>(outT, inT, flags);
+    dnn_lib::inlining::fwdLibSoftMaxInstThreaded2<elK>(outT, inT, flags, minionOffset, assignedMinions);
   else
-    dnn_lib::inlining::fwdLibSoftMaxInst2<srcType>(outT, inT); 
+    dnn_lib::inlining::fwdLibSoftMaxInst2<elK>(outT, inT, minionOffset, assignedMinions); 
 }
 
 } // namespace inlining

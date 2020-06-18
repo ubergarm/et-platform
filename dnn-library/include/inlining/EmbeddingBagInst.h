@@ -49,11 +49,10 @@ namespace inlining {
 template <ElemKind elKind>
 inline typename std::enable_if_t<(elKind == Float16Ty), void>
 fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-		       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-		       uint64_t flags) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+                       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  
+  if (get_minion_id() != minionOffset) return;
 
   assert(in1T->getElementType() == outT->getElementType());
   assert(in1T->getElementType() == Float16Ty);
@@ -128,11 +127,9 @@ template <ElemKind elKind>
 inline typename std::enable_if_t<(elKind == FloatTy), void>
 fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
 		       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-		       uint64_t flags) { 
+		       uint64_t flags const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(in1T->getElementType() == outT->getElementType());
   assert(in1T->getElementType() == FloatTy);

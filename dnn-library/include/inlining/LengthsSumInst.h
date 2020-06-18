@@ -30,23 +30,25 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, unsigned int pLengthsSize) {
-  unsigned int minionId = get_minion_id();
-  if (minionId > 0)
-    return;
+template <ElemKind elK>
+inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
+  if (get_minion_id() != minionOffset) return;
+
+  const auto pLengthsSize = in2T->dims()[0];
   /* outT --> dst  in1T--> src   in2T--> length */
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(pdst, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
   // int32_t *lengths = (int32_t *)plengths;
   int32_t *lengths = in2T->getRawDataPointer<int32_t>();
 
@@ -114,25 +116,27 @@ inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                         LibTensor* in2T, uint64_t flags) {
+                                         LibTensor* in2T, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minion_id = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE*ACTIVE_SHIRES;
-  if (minion_id >= activeMinions) return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* outT --> dst  in1T--> src in2T--> index*/
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = in1T->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(pdst, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, in1T->getScale(), in1T->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(pdst, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
   // int32_t *lengths = (int32_t *)plengths;
   int32_t *lengths = in2T->getRawDataPointer<int32_t>();
   
@@ -152,7 +156,7 @@ inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
 
   // We give to each minion an initial address and the number of positions that it must work on (maxRead).
   unsigned int initialAddr, maxRead;
-  getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minion_id, activeMinions);
+  getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0) return;
 
   // We move the initialAddr to the next non-padding position
