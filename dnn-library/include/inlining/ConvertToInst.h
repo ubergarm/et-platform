@@ -37,7 +37,7 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind dstElK, ElemKind srcElK>
-inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, LibTensor* outT,
+inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* outT, LibTensor* inT,
                                                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
@@ -72,7 +72,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* inT, L
 }
 
 template <ElemKind dstElK, ElemKind srcElK>
-inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* inT, LibTensor* outT, uint64_t flags,
+inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using dstType = typename elemKind2elemTy<dstElK>::type;
   //  using srcType = typename elemKind2elemTy<srcElK>::type;
@@ -128,7 +128,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
 
   
 template <ElemKind dstElK, ElemKind srcElK>
-inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTensor* inT,  LibTensor*outT, uint64_t flags,
+inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTensor* outT,  LibTensor*inT, uint64_t flags,
                                                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0){
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
