@@ -442,7 +442,7 @@ namespace dnn_lib {
      { "InsertTensor", // name
        1, // # outs
        1,  // # ins
-       {mbOffsets, mbCount}, // members
+       {mbOffsets, mbCount, mbAxis}, // members
        2, // template param mask
        {"Threaded"} // impl versions
      },
