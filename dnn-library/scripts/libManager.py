@@ -65,7 +65,7 @@ class LibManagerSheet:
     # if not, just rename one of them
     memberExtraTpl = { "Kernels": "size_t KN",
                        "Strides":  "size_t KN",
-                       "Pads": "size_t KN",
+                       "Pads": "size_t PN",
                        "Shuffle": "size_t N",
                        "Mask": "size_t MN"
     }
