@@ -144,7 +144,7 @@ add_library(dnn_lib STATIC
   src/AvgPoolInst.cpp
   src/BatchedAddInst.cpp
   src/BatchedReduceAddInst.cpp
-#TODO: RESTORE RAFA  src/BatchedReduceMinInst.cpp
+  src/BatchedReduceMinInst.cpp
   src/BatchOneHotInst.cpp
   src/ChecksumInst.cpp
   src/ConvertToInst.cpp
@@ -152,7 +152,7 @@ add_library(dnn_lib STATIC
   src/ConvolutionInst.cpp
   src/CopyInst.cpp
   src/CrossEntropyLossInst.cpp
-#TODO: RESTORE RAFA  src/CumSumInst.cpp
+  src/CumSumInst.cpp
   src/DequantizeInst.cpp
   src/ElementAddInst.cpp
   src/ElementCmpEQInst.cpp

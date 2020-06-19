@@ -7,7 +7,7 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
  
   template <ElemKind in0Type>
-  void fwdLibCumSumInst(LibTensor* out0, LibTensor* in0, const uint32_t Exclusive, const uint32_t Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  void fwdLibCumSumInst(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
     dnn_lib::inlining::fwdLibCumSumInst<in0Type>(out0, in0, Exclusive, Reverse, flags, minionOffset, assignedMinions);
   }
@@ -15,8 +15,8 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
-template void fwdLibCumSumInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint32_t Exclusive, const uint32_t Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibCumSumInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint32_t Exclusive, const uint32_t Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibCumSumInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint32_t Exclusive, const uint32_t Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibCumSumInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint32_t Exclusive, const uint32_t Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCumSumInst<FloatTy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCumSumInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCumSumInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibCumSumInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // dnn_lib

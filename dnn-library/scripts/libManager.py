@@ -56,8 +56,8 @@ class LibManagerSheet:
                       "Count": "uint32_t",
                       "SyncOffset": "uint32_t",
                       "Value": "float",
-                      "Exclusive": "uint32_t",
-                      "Reverse": "uint32_t"
+                      "Exclusive": "bool",
+                      "Reverse": "bool"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)

@@ -100,7 +100,7 @@ namespace dnn_lib {
        1,  // # ins
        {mbAxis}, // members
        2, // template param mask
-       {"Threaded"} // impl versions
+       {} // impl versions
      },
      /**** ET_batchonehot ****/
      { "BatchOneHot", // name
