@@ -39,8 +39,8 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
   if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
-  void* src = outT->getRawDataPointer<void>();
-  void* dst = inT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
  
   // const Addresser<srcElK> aSrcT1(src, scale[0], offset[0]);
   const Addresser<srcElK> aSrcT1(src, inT->getScale(), inT->getOffset());
@@ -68,7 +68,7 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
 
   uint64_t addrSrc1, addrDst;
 
-  Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<srcElK>, opType> op;
+  Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<dstElK>, opType> op;
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {

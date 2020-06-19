@@ -649,9 +649,9 @@ extern template void fwdLibElementPowInstVectorized<Float16Ty,Float16Ty,Float16T
 *  ElementSelect implementations
 ****************************************************************************/
 // declarations
-template <ElemKind in0Type>
+template <ElemKind out0Type>
 void fwdLibElementSelectInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind in0Type>
+template <ElemKind out0Type>
 void fwdLibElementSelectInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations

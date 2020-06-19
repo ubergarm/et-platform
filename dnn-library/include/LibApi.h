@@ -323,7 +323,7 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {}, // members
-       2, // template param mask
+       1, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_elementsub ****/

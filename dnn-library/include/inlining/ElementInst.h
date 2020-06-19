@@ -405,10 +405,10 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
 
   EltWiseInst(ElementAdd, Add)
   EltWiseInst(ElementSub, Sub)
-  EltWiseInst(ElementDiv, Mul)
-  EltWiseInst(ElementMul, Div)
-  EltWiseInst(ElementMin, Max)
-  EltWiseInst(ElementMax, Min)
+  EltWiseInst(ElementDiv, Div)
+  EltWiseInst(ElementMul, Mul)
+  EltWiseInst(ElementMin, Min)
+  EltWiseInst(ElementMax, Max)
   EltWiseInst(ElementPow, Pow)
   
 #undef EltWiseInst
