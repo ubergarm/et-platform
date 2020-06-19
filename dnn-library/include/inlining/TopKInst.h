@@ -26,11 +26,8 @@
 #include "utils.h" // From include/internal path
 
 namespace dnn_lib {
-
-void partialQuicksort(void *vals, void *inds, int low, int high, int m);
-
 namespace inlining {
-
+  
 inline void swap(void *vals, void *inds, int i, int j) {
   float *fVals = (float *)vals;
   long long *lInds = (long long *)inds;
@@ -65,7 +62,17 @@ inline int partition(void *vals, void *inds, int low, int high) {
   dnn_lib::inlining::swap(vals, inds, i + 1, high);
   return (i + 1);
 }
-
+  
+static void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
+  if (low < high) {
+    int pidx = dnn_lib::inlining::partition(vals, inds, low, high);
+    partialQuicksort(vals, inds, low, pidx - 1, m);
+    if (pidx < m) {
+      partialQuicksort(vals, inds, pidx + 1, high, m);
+    }
+  }
+}
+  
 // In this implementation we suppose that the dstPitches (1 and 2) have padding
 // which ensures the dstPitches[n-2] being multiple of cacheline length if not,
 // it needs sore global or reduce
