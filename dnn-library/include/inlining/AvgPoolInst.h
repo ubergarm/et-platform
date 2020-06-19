@@ -30,11 +30,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind dstElK, ElemKind srcElK, size_t N>
+  template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
 inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-                              std::array<uint32_t, N> kernels,
-                              std::array<uint32_t, N> strides,
-                              std::array<uint32_t, N> pads,
+                              const std::array<uint32_t, N> &kernels,
+                              const std::array<uint32_t, N> &strides,
+                              const std::array<uint32_t, PN> &pads,
                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
@@ -100,11 +100,11 @@ inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
   }       // N
 }
 
-template <ElemKind dstElK, ElemKind srcElK, size_t N>
+  template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
-                                      std::array<uint32_t, N> kernels,
-                                      std::array<uint32_t, N> strides,
-                                      std::array<uint32_t, N> pads,
+                                      const std::array<uint32_t, N> &kernels,
+                                      const std::array<uint32_t, N> &strides,
+                                      const std::array<uint32_t, PN> &pads,
                                       uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;

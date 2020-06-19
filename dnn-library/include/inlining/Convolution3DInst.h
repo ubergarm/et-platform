@@ -30,12 +30,12 @@ namespace dnn_lib {
 
 namespace inlining {
 
-  template <ElemKind elK, size_t N>
+  template <ElemKind elK, size_t N, size_t PN>
 inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
                                     LibTensor* in2T, LibTensor* in3T,
                                     const std::array<uint32_t, N> &kernels,
                                     const std::array<uint32_t, N> &strides,
-                                    const std::array<uint32_t, N> &pads,
+                                    const std::array<uint32_t, PN> &pads,
                                     unsigned int group,
                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
     //  using srcType = typename elemKind2elemTy<elK>::type;
@@ -136,12 +136,12 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   }           // N
 }
 
-  template <ElemKind elK, size_t N>
+  template <ElemKind elK, size_t N, size_t PN>
 inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
                                             const std::array<uint32_t, N> &kernels,
                                             const std::array<uint32_t, N> &strides,
-                                            const std::array<uint32_t, N> &pads,
+                                            const std::array<uint32_t, PN> &pads,
                                             unsigned int group,
                                             uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {

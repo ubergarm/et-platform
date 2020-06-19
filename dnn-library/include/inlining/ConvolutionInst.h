@@ -68,12 +68,12 @@ struct accumulatorType {
  * @param[in] scale The scale for the quantization.
  * @param[in] offset The offset for the quantization.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                   LibTensor* in3T,
                                   const std::array<uint32_t, N> &kernels,
                                   const std::array<uint32_t, N> &strides,
-                                  const std::array<uint32_t, N> &pads,
+                                  const std::array<uint32_t, PN> &pads,
                                   unsigned int group,
                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using dstType = typename elemKind2elemTy<dstElK>::type;
@@ -188,7 +188,7 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-  template <ElemKind srcElK,
+template <ElemKind srcElK,
           typename std::enable_if<srcElK == Int64ITy, std::size_t>::type = 0>
 inline void convolutionStep (int64_t *sum,
                              const Addresser<srcElK> &tAInput,
@@ -231,7 +231,7 @@ inline void convolutionStep (int64_t *sum,
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-  template <ElemKind srcElK,
+template <ElemKind srcElK,
           typename std::enable_if<srcElK == Int32ITy, std::size_t>::type = 0>
 inline void convolutionStep (int32_t *sum,
                              const Addresser<srcElK> &tAInput,
@@ -405,12 +405,12 @@ inline void convolutionStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
                                           LibTensor* in2T, LibTensor* in3T,
                                           const std::array<uint32_t, N> &kernels,
                                           const std::array<uint32_t, N> &strides,
-                                          const std::array<uint32_t, N> &pads,
+                                          const std::array<uint32_t, PN> &pads,
                                           unsigned int group,
                                           uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
@@ -906,7 +906,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 }
 
 
-  template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, size_t N>
+  template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, size_t N, size_t PN>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                            const dim_t *actPitch, const dim_t *weightPitch,
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
@@ -968,12 +968,12 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
                                             const std::array<uint32_t, N> &kernels,
                                             const std::array<uint32_t, N> &strides,
-                                            const std::array<uint32_t, N> &pads,
+                                            const std::array<uint32_t, PN> &pads,
                                             unsigned int group,
                                             uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
