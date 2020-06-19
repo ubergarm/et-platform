@@ -31,7 +31,7 @@ namespace dnn_lib {
 namespace inlining {
 
   template <ElemKind elK, size_t N>
-inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<size_t, N> &shuffle,
+inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &shuffle,
                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
   if (get_minion_id() != minionOffset) return;
@@ -93,7 +93,7 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::arra
 
   template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
-                                        const std::array<size_t, N> &shuffle, uint64_t flags,
+                                        const std::array<uint32_t, N> &shuffle, uint64_t flags,
                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -192,7 +192,7 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t
 
   template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
-                                          const std::array<size_t, N> &shuffle, uint64_t flags,
+                                          const std::array<uint32_t, N> &shuffle, uint64_t flags,
                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -351,7 +351,7 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
 
   template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                              const std::array<size_t, N> &shuffle, uint64_t flags,
+                                              const std::array<uint32_t, N> &shuffle, uint64_t flags,
                                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;  
 

@@ -50,7 +50,7 @@ class LibManagerSheet:
                       "Pads": "std::array<uint32_t, default_kernels_size> &",
                       "Group": "uint32_t",
                       "Offsets": "dim_array_t &",
-                      "Shuffle": "std::array<size_t, max_tensor_dimensions> &",
+                      "Shuffle": "std::array<uint32_t, max_tensor_dimensions> &",
                       "Mask": "std::array<uint64_t, default_mask_size>&",
                       "BatchDims": "uint32_t",
                       "Count": "uint32_t",
