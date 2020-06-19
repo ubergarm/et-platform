@@ -67,7 +67,7 @@ public:
   // other types: return a writer to write via float
   ONLY_FOR( U == Float16Ty || U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
   Writer<elK> operator[](const size_t index) {
-    return Writer<elK>(ptr_ + index);
+    return Writer<elK>(ptr_ + index, scale_, offset_);
   }
 
 

@@ -59,6 +59,8 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/DequantizeInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxSplatInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementBoolInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementImmLogic.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementInst.h"  
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementExpInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementIsNaNInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementSelectInst.h"
@@ -142,7 +144,7 @@ add_library(dnn_lib STATIC
   src/AvgPoolInst.cpp
   src/BatchedAddInst.cpp
   src/BatchedReduceAddInst.cpp
-  src/BatchedReduceMinInst.cpp
+#TODO: RESTORE RAFA  src/BatchedReduceMinInst.cpp
   src/BatchOneHotInst.cpp
   src/ChecksumInst.cpp
   src/ConvertToInst.cpp
@@ -150,7 +152,7 @@ add_library(dnn_lib STATIC
   src/ConvolutionInst.cpp
   src/CopyInst.cpp
   src/CrossEntropyLossInst.cpp
-  src/CumSumInst.cpp
+#TODO: RESTORE RAFA  src/CumSumInst.cpp
   src/DequantizeInst.cpp
   src/ElementAddInst.cpp
   src/ElementCmpEQInst.cpp
@@ -167,7 +169,7 @@ add_library(dnn_lib STATIC
   src/ElementExpInst.cpp
   src/ElementIsNaNInst.cpp
   src/ElementSelectInst.cpp
-  src/EmbeddingBagInst.cpp
+#TODO: RESTORE RAFA  src/EmbeddingBagInst.cpp
 #  src/EmbeddingBagByteRowwiseOffsetsInst.cpp
   src/ExtractTensorInst.cpp
 #  src/FlipInst.cpp
@@ -178,7 +180,7 @@ add_library(dnn_lib STATIC
   src/GatherRangesInst.cpp
   src/InsertTensorInst.cpp
   src/IntLookupTableInst.cpp
-  src/LengthsRangeFillInst.cpp
+#TODO: RESTORE RAFA  src/LengthsRangeFillInst.cpp
   src/LengthsSumInst.cpp
   src/LengthsToRangesInst.cpp
   src/LocalResponseNormalizationInst.cpp
@@ -188,13 +190,13 @@ add_library(dnn_lib STATIC
   src/ModuloInst.cpp
   src/QuantizeInst.cpp
   src/RescaleQuantizedInst.cpp
-  src/ResizeNearestInst.cpp
+#TODO: RESTORE RAFA  src/ResizeNearestInst.cpp
   src/RowwiseQuantizedFullyConnectedInst.cpp
   src/RowwiseQuantizedSparseLengthsWeightedSumInst.cpp
   src/ScatterDataInst.cpp
   src/SigmoidInst.cpp
   src/SoftMaxInst.cpp
-  src/SpaceToDepthInst.cpp
+#TODO: RESTORE RAFA  src/SpaceToDepthInst.cpp
 #  src/SparseLengthsSumInst.cpp
   src/SparseLengthsWeightedSumInst.cpp
   src/SparseToDenseInst.cpp

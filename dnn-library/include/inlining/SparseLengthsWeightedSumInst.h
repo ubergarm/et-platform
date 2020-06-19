@@ -137,7 +137,7 @@ fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   
   size_t curIdx = 0;
   for (size_t i = 0; i < segments; i++) {
-    for (size_t j = 0; j < lengthH.at(std::array<size_t,1>{i}); j++) {
+    for (size_t j = 0; j < (size_t)lengthH.at(std::array<size_t,1>{i}); j++) {
       elkType weight = weightH.at(std::array<size_t,1>{curIdx});
       size_t offsetIn = idxH.at(std::array<size_t,1>{curIdx++}) * lineSize;
       size_t offsetOut = i * lineSize;
@@ -178,7 +178,7 @@ inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) &&
 				  (elKind != Float16Ty) && (elKind != BoolTy)), void>
 fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                            LibTensor* in3T, LibTensor* in4T, uint64_t flags,
-                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {) {
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -219,7 +219,6 @@ fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, Lib
 
   assert(totalLength <= in4T->dims()[0]);
 
-  size_t lineSize = in1T->size() / in1T->dims()[0];
 
   auto out = outT->getHandle<elkType>().getIterator(first);
   auto in = in1T->getHandle<elkType>().getIterator(out.coords());
@@ -227,7 +226,6 @@ fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, Lib
   dim_array_t coord = outT->offset2Coord(first);
   
   for(; out.offset() < first + count;++out, ++in) {
-    size_t curIdx = 0;
     size_t segment_begin = ranges[coord[0]];
     size_t segment_end = segment_begin + lengthH.at(std::array<size_t,1>{coord[0]});
 

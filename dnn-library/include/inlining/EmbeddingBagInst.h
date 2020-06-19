@@ -126,8 +126,8 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
 template <ElemKind elKind>
 inline typename std::enable_if_t<(elKind == FloatTy), void>
 fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-		       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-		       uint64_t flags const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

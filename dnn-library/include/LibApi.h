@@ -25,6 +25,8 @@ namespace dnn_lib {
    mbCount,
    mbValue,
    mbSyncOffset,
+   mbExclusive,
+   mbReverse,
    mbMaxMembers
   };
 
@@ -86,6 +88,14 @@ namespace dnn_lib {
      },
      /**** ET_batchedreduceadd ****/
      { "BatchedReduceAdd", // name
+       1, // # outs
+       1,  // # ins
+       {mbAxis}, // members
+       2, // template param mask
+       {"Threaded"} // impl versions
+     },
+     /**** ET_batchedreducemin ****/
+     { "BatchedReduceMin", // name
        1, // # outs
        1,  // # ins
        {mbAxis}, // members
@@ -163,6 +173,14 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"} // impl versions
+     },
+     /**** ET_cumsum ****/
+     { "CumSum", // name
+       1, // # outs
+       1,  // # ins
+       {mbExclusive, mbReverse}, // members
+       2, // template param mask
+       {} // impl versions
      },
      /**** ET_deallocactivation ****/
      { "notImplemented", // name
@@ -332,6 +350,14 @@ namespace dnn_lib {
        0, // template param mask
        {} // impl versions
      },
+     /**** ET_embeddingbagbyterowwiseoffsets ****/
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
+       {} // impl versions
+     },
      /**** ET_emptyoperator ****/
      { "notImplemented", // name
        0, // # outs
@@ -428,6 +454,14 @@ namespace dnn_lib {
        0, // template param mask
        {"Threaded"} // impl versions
      },
+     /**** ET_lengthsrangefill ****/
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
+       {} // impl versions
+     },
      /**** ET_lengthssum ****/
      { "LengthsSum", // name
        1, // # outs
@@ -508,6 +542,14 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"} // impl versions
      },
+     /**** ET_resizenearest ****/
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
+       {} // impl versions
+     },
      /**** ET_rowwisequantizedfullyconnected ****/
      { "RowwiseQuantizedFullyConnected", // name
        1, // # outs
@@ -548,12 +590,28 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded", "Vectorized", "Threaded1", "Vectorized1", "2", "Threaded2"} // impl versions
      },
+     /**** ET_spacetodepth ****/
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
+       {} // impl versions
+     },
+     /**** ET_sparselengthssum ****/
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
+       {} // impl versions
+     },
      /**** ET_sparselengthsweightedsum ****/
      { "SparseLengthsWeightedSum", // name
        1, // # outs
        4,  // # ins
        {}, // members
-       2, // template param mask
+       10, // template param mask
        {"Threaded"} // impl versions
      },
      /**** ET_sparsetodense ****/

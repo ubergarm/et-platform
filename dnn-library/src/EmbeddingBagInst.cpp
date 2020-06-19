@@ -12,7 +12,6 @@ namespace dnn_lib {
     dnn_lib::inlining::fwdLibEmbeddingBagInst(out0, in0, in1, in2, in3, flags, minionOffset, assignedMinions);
   }
 
-
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////

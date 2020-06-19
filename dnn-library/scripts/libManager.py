@@ -55,7 +55,9 @@ class LibManagerSheet:
                       "BatchDims": "uint32_t",
                       "Count": "uint32_t",
                       "SyncOffset": "uint32_t",
-                      "Value": "float"
+                      "Value": "float",
+                      "Exclusive": "uint32_t",
+                      "Reverse": "uint32_t"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)
@@ -526,13 +528,13 @@ namespace dnn_lib {
 if __name__ == "__main__":
     # parse command line options
     parser = argparse.ArgumentParser("Create Operator test")
-    parser.add_argument("--hostsw-dir", help="host-sw root dir", required = True) 
-    parser.add_argument("--glow-dir", help="esperanto-glow root dir")
+    parser.add_argument("--swplatform-root", help="sw-platform root dir", required = True) 
     parser.add_argument("--excel", help="Excel file to use", required = True)
     args = parser.parse_args()
-    sys.path.append(os.path.join (args.hostsw_dir, 'scripts/testing/operatorTests/'))
+    sys.path.append(os.path.join (args.swplatform_root, 'scripts/testing/operatorTests/'))
     from instructionGenParser import InstructionGenParser
 
-    
-    sheet = LibManagerSheet(args.excel, args.hostsw_dir, args.glow_dir)
+    hostsw_dir = os.path.join (args.swplatform_root,'host-software/host-sw/')
+    glow_dir = os.path.join (args.swplatform_root,'host-software/glow/')
+    sheet = LibManagerSheet(args.excel, hostsw_dir, glow_dir)
 
