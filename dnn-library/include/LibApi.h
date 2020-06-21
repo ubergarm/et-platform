@@ -27,6 +27,9 @@ namespace dnn_lib {
    mbSyncOffset,
    mbExclusive,
    mbReverse,
+   mbBlockSize,
+   mbAxes,
+   mbRszScale,
    mbMaxMembers
   };
 
@@ -98,7 +101,7 @@ namespace dnn_lib {
      { "BatchedReduceMin", // name
        1, // # outs
        1,  // # ins
-       {mbAxis}, // members
+       {mbAxes}, // members
        2, // template param mask
        {} // impl versions
      },
@@ -543,11 +546,11 @@ namespace dnn_lib {
        {"Threaded"} // impl versions
      },
      /**** ET_resizenearest ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
-       {}, // members
-       0, // template param mask
+     { "ResizeNearest", // name
+       1, // # outs
+       1,  // # ins
+       {mbRszScale}, // members
+       1, // template param mask
        {} // impl versions
      },
      /**** ET_rowwisequantizedfullyconnected ****/
@@ -591,11 +594,11 @@ namespace dnn_lib {
        {"Threaded", "Vectorized", "Threaded1", "Vectorized1", "2", "Threaded2"} // impl versions
      },
      /**** ET_spacetodepth ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
-       {}, // members
-       0, // template param mask
+     { "SpaceToDepth", // name
+       1, // # outs
+       1,  // # ins
+       {mbBlockSize}, // members
+       1, // template param mask
        {} // impl versions
      },
      /**** ET_sparselengthssum ****/

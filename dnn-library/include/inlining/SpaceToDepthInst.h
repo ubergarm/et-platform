@@ -47,11 +47,12 @@ namespace inlining {
  * type of evict required.
  */ 
 template <ElemKind elKind>
-inline void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, uint32_t blockSize, uint64_t flags) { 
+inline void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, 
+				   const uint32_t blockSize, uint64_t flags, 
+				   const uint32_t minionOffset = 0,
+				   const uint32_t assignedMinions = 0) { 
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) 
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(inT->getElementType() == outT->getElementType());
   assert(((inT->getElementType() == FloatTy)||(inT->getElementType() == Int64ITy)));

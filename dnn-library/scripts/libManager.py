@@ -57,7 +57,10 @@ class LibManagerSheet:
                       "SyncOffset": "uint32_t",
                       "Value": "float",
                       "Exclusive": "bool",
-                      "Reverse": "bool"
+                      "Reverse": "bool",
+                      "BlockSize": "uint32_t",
+                      "Axes": "std::array<uint32_t, default_axes_size> &",
+                      "RszScale": "std::array<float, default_rszscale_size> &"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)
@@ -67,7 +70,9 @@ class LibManagerSheet:
                        "Strides":  "size_t KN",
                        "Pads": "size_t PN",
                        "Shuffle": "size_t N",
-                       "Mask": "size_t MN"
+                       "Mask": "size_t MN",
+                       "Axes": "size_t N",
+                       "RszScale": "size_t RSZN"
     }
 
 
@@ -408,6 +413,8 @@ class LibManagerSheet:
 namespace dnn_lib {
 static constexpr size_t default_kernels_size = 2;
 static constexpr size_t default_mask_size = max_tensor_dimensions;
+static constexpr size_t default_axes_size = max_tensor_dimensions;
+static constexpr size_t default_rszscale_size = max_tensor_dimensions;
 %s
 } // namespace dnn_lib
 

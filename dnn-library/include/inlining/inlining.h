@@ -63,7 +63,6 @@
 #include "SigmoidInst.h" // From include/inlining path
 #include "SoftMaxInst.h" // From include/inlining path
 #include "SpaceToDepthInst.h" // From include/inlining path
-//#include "SparseLengthsSumInst.h" // From include/inlining path
 #include "SparseLengthsWeightedSumInst.h" // From include/inlining path
 #include "SparseToDenseInst.h" // From include/inlining path
 #include "SparseToDenseMaskInst.h" // From include/inlining path

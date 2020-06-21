@@ -41,12 +41,10 @@ template <ElemKind elKind, size_t N>
 inline typename std::enable_if_t<(isQuantizedElemKind(elKind)||(elKind==Float16Ty)), void>
 fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT,
 			   const std::array<uint32_t, N> &axes, 
-			   uint64_t flags) {
+			   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /*@TODO NOT TESTED.*/
   assert(inT->getElementType() == outT->getElementType());
   assert(inT->getElementType() == Float16Ty);
@@ -73,6 +71,7 @@ fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT,
   elkType* outRawData = outT->getRawDataPointer<elkType>();
   elkType* inRawData = inT->getRawDataPointer<elkType>();
 
+
   /* At dims_loop 1st param is where the loop acts (tipically one of the tensors), */
   /* 2nd and 3th. param are the strides which generate the input params (at the same order) */
   /* of func/lambda needs to work */
@@ -81,12 +80,12 @@ fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT,
 
 		     float dst, dst2, value = 0;		     
 		     if (elKind == Float16Ty) {
-		       convertFp16ToFp32(static_cast<uint16_t>(inRawData(addrSrc)), dst);
-		       convertFp16ToFp32(static_cast<uint16_t>(outRawData(addrDst)), dst2);		       
+		       convertFp16ToFp32(static_cast<uint16_t>(inRawData[addrSrc]), dst);
+		       convertFp16ToFp32(static_cast<uint16_t>(outRawData[addrDst]), dst2);		       
 		     }
 		     else {
-		       dst = dequantize<elkType>(inRawData(addrSrc), inT->getScale(), inT->getOffset());
-		       dst2 = dequantize<elkType>(outRawData(addrSrc), outT->getScale(), outT->getOffset());		     
+		       dst = dequantize<elkType>(inRawData[addrSrc], inT->getScale(), inT->getOffset());
+		       dst2 = dequantize<elkType>(outRawData[addrSrc], outT->getScale(), outT->getOffset());		     
 		     }	     
 
 		     value = (dst2 < dst)? dst2 : dst;
@@ -109,11 +108,9 @@ inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) &&
 				  (elKind != Float16Ty) && (elKind != BoolTy)), void>
 fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT, 
 			   const std::array<uint32_t, N> &axes, 
-			   uint64_t flags) {
+			   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(inT->getElementType() == outT->getElementType());
 

@@ -41,15 +41,14 @@ namespace inlining {
  * @param[flags] flags Gives the information of the Active Shires and the
  * type of evict required.
  */
-template <ElemKind elKind, size_t N>
+  template <ElemKind elKind, size_t N>
 inline typename std::enable_if_t<(elKind != BoolTy), void>
 fwdLibResizeNearestInst(LibTensor* outT, LibTensor* inT, 
 			const std::array<float, N> &rszScale, 
-			uint64_t flags) {
+			uint64_t flags, const uint32_t minionOffset = 0, 
+			const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(inT->getElementType() == outT->getElementType());
 

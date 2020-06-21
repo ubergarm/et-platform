@@ -190,14 +190,13 @@ add_library(dnn_lib STATIC
   src/ModuloInst.cpp
   src/QuantizeInst.cpp
   src/RescaleQuantizedInst.cpp
-#TODO: RESTORE RAFA  src/ResizeNearestInst.cpp
+  src/ResizeNearestInst.cpp
   src/RowwiseQuantizedFullyConnectedInst.cpp
   src/RowwiseQuantizedSparseLengthsWeightedSumInst.cpp
   src/ScatterDataInst.cpp
   src/SigmoidInst.cpp
   src/SoftMaxInst.cpp
-#TODO: RESTORE RAFA  src/SpaceToDepthInst.cpp
-#  src/SparseLengthsSumInst.cpp
+  src/SpaceToDepthInst.cpp
   src/SparseLengthsWeightedSumInst.cpp
   src/SparseToDenseInst.cpp
   src/SparseToDenseMaskInst.cpp
