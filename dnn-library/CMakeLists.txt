@@ -81,6 +81,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LengthsToRangesInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LocalResponseNormalizationInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInstTransposed.h"  
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxPoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ModuloInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/QuantizeInst.h"
