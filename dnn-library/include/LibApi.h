@@ -30,6 +30,7 @@ namespace dnn_lib {
    mbBlockSize,
    mbAxes,
    mbRszScale,
+   mbHasEndOffset,
    mbMaxMembers
   };
 
@@ -349,8 +350,8 @@ namespace dnn_lib {
      { "EmbeddingBag", // name
        1, // # outs
        4,  // # ins
-       {}, // members
-       0, // template param mask
+       {mbHasEndOffset}, // members
+       1, // template param mask
        {} // impl versions
      },
      /**** ET_embeddingbagbyterowwiseoffsets ****/
@@ -458,11 +459,11 @@ namespace dnn_lib {
        {"Threaded"} // impl versions
      },
      /**** ET_lengthsrangefill ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
+     { "LengthsRangeFill", // name
+       1, // # outs
+       1,  // # ins
        {}, // members
-       0, // template param mask
+       1, // template param mask
        {} // impl versions
      },
      /**** ET_lengthssum ****/

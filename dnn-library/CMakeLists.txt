@@ -94,7 +94,6 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SoftMaxInst1.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SoftMaxInst2.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SpaceToDepthInst.h"
-#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseLengthsSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseLengthsWeightedSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseMaskInst.h"
@@ -169,7 +168,7 @@ add_library(dnn_lib STATIC
   src/ElementExpInst.cpp
   src/ElementIsNaNInst.cpp
   src/ElementSelectInst.cpp
-#TODO: RESTORE RAFA  src/EmbeddingBagInst.cpp
+  src/EmbeddingBagInst.cpp
 #  src/EmbeddingBagByteRowwiseOffsetsInst.cpp
   src/ExtractTensorInst.cpp
 #  src/FlipInst.cpp
@@ -180,7 +179,7 @@ add_library(dnn_lib STATIC
   src/GatherRangesInst.cpp
   src/InsertTensorInst.cpp
   src/IntLookupTableInst.cpp
-#TODO: RESTORE RAFA  src/LengthsRangeFillInst.cpp
+  src/LengthsRangeFillInst.cpp
   src/LengthsSumInst.cpp
   src/LengthsToRangesInst.cpp
   src/LocalResponseNormalizationInst.cpp

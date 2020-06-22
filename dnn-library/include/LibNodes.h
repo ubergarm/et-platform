@@ -694,10 +694,12 @@ extern template void fwdLibElementSubInstVectorized<Int64ITy,Int64ITy,Int64ITy>(
 *  EmbeddingBag implementations
 ****************************************************************************/
 // declarations
-
-void fwdLibEmbeddingBagInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibEmbeddingBagInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
+extern template void fwdLibEmbeddingBagInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibEmbeddingBagInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  MaxSplat implementations
@@ -922,6 +924,16 @@ void fwdLibIntLookupTableInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, c
 void fwdLibIntLookupTableInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
+
+/****************************************************************************
+*  LengthsRangeFill implementations
+****************************************************************************/
+// declarations
+template <ElemKind out0Type>
+void fwdLibLengthsRangeFillInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibLengthsRangeFillInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  LengthsSum implementations

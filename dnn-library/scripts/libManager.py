@@ -60,7 +60,8 @@ class LibManagerSheet:
                       "Reverse": "bool",
                       "BlockSize": "uint32_t",
                       "Axes": "std::array<uint32_t, default_axes_size> &",
-                      "RszScale": "std::array<float, default_rszscale_size> &"
+                      "RszScale": "std::array<float, default_rszscale_size> &",
+                      "HasEndOffset": "bool"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)
