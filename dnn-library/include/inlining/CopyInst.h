@@ -26,6 +26,8 @@
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 
+#include "CopyInstTensorized.h" 
+
 namespace dnn_lib {
 
 namespace inlining {
@@ -48,7 +50,7 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <ElemKind elK>
-inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, bool tensorsAligned, uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != minionOffset) return;
@@ -112,7 +114,7 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, cons
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <ElemKind elK>
-inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
+inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT, bool tensorsAligned,
                                    uint64_t flags,
                                    const uint32_t minionOffset = 0,
                                    const uint32_t assignedMinions = 0) {
@@ -216,10 +218,14 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <ElemKind elK>
-inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
+inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT, bool tensorsAligned,
                                      uint64_t flags,
                                      const uint32_t minionOffset = 0,
                                      const uint32_t assignedMinions = 0) {
+  if (tensorsAligned)
+    fwdLibCopyInstTensorized<elK>(outT, inT, tensorsAligned, flags, minionOffset, assignedMinions);
+
+  
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -414,7 +420,7 @@ inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
-
+  
 } // namespace inlining
 
 } // namespace dnn_lib

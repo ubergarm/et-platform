@@ -61,7 +61,9 @@ class LibManagerSheet:
                       "BlockSize": "uint32_t",
                       "Axes": "std::array<uint32_t, default_axes_size> &",
                       "RszScale": "std::array<float, default_rszscale_size> &",
-                      "HasEndOffset": "bool"
+                      "HasEndOffset": "bool",
+                      "Transposed": "bool",
+                      "TensorsAligned": "bool"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)
@@ -276,24 +278,35 @@ class LibManagerSheet:
             members = []
             versions = []
             template = 0
+            
             if conf["members"]:
                 members = ["mb" + i.replace(" ", "") for i in conf["members"].split(',')]
+                
             if conf["extraImpl"]:
                 versions = ['"' + i.replace(" ", "") + '"' for i in conf["extraImpl"].split(',')]
+                
             if conf["templateElk"] == None:
                 raise Exception("empty tenplate definition for %s. Use NONE if the fnc doesn't use templates" % op)
             elif conf["templateElk"] != "NONE":
                 template = functools.reduce( lambda a,b : a | (1 << int(b)), str(conf["templateElk"]).split(','), 0) ;
-
+                
+            if conf["implSel"] == "default":
+                implSel = "false"
+            elif conf["implSel"] == "custom":
+                implSel = "true"
+            else:
+                raise Exception("implSel has to be either 'default' or 'custom' for op %s" % op)
+                
             return { "enum": op,
                      "name" : conf["Operator"],
                      "nrOutputTensors": conf["nrOutTensors"],
                      "nrInputTensors": conf["nrInTensors"],
                      "members": "{%s}" % ", ".join(members),
                      "template": template,
-                     "versions":  "{%s}" % ", ".join(versions)
+                     "versions":  "{%s}" % ", ".join(versions),
+                     "implSel": implSel
             }
-                     #TODO: add implSel
+
         else:
             print("WARN: Could not find spreadsheet row for %s" % op, file = sys.stderr)
             return {"enum": op,
@@ -302,9 +315,9 @@ class LibManagerSheet:
                     "nrInputTensors": 0,
                     "members": "{}",
                     "template": 0,
-                    "versions": "{}"
+                    "versions": "{}",
+                    "implSel": "false"
             }
-                       #TODO: add implSel
 
 
     def formatTable(self, table):
@@ -314,7 +327,8 @@ class LibManagerSheet:
        $nrInputTensors,  // # ins
        $members, // members
        $template, // template param mask
-       $versions // impl versions
+       $versions, // impl versions
+       $implSel // custom impl selector
      }''')
         entries = [ s.substitute(e) for e in table]        
         return ",\n".join(entries)

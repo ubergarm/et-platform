@@ -30,7 +30,7 @@ namespace dnn_lib {
 
 namespace inlining {
 
-  template <ElemKind elK, size_t N>
+template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &shuffle,
                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
@@ -442,6 +442,31 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
     if (clperminion > 0)
       fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
   }
+}
+
+
+
+
+template <ElemKind elK, size_t N>
+inline void fwdLibTransposeInstBest(const int desired, LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &shuffle,
+                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  switch(desired){
+  case 1: fwdLibTransposeInst(outT,inT, shuffle, flags, minionOffset, assignedMinions); break;
+  case 2: fwdLibTransposeInstThreaded(outT,inT, shuffle, flags, minionOffset, assignedMinions); break;
+  case 3: fwdLibTransposeInstVectorized(outT,inT, shuffle, flags, minionOffset, assignedMinions); break;
+  default:
+    {
+      const size_t batchDim = inT->ndims() - 2;
+      if ( inT->ndims() >= 2 &&
+           (outT->strides()[batchDim] * outT->getElementSize() )% 32 == 0  &&
+           (inT->strides()[batchDim] * inT->getElementSize() ) % 32 == 0 )
+        fwdLibTransposeInstAligned32Bytes(outT,inT, shuffle, flags, minionOffset, assignedMinions);
+      else
+        fwdLibTransposeInstVectorized(outT,inT, shuffle, flags, minionOffset, assignedMinions); 
+    }
+    break;
+  }
+  
 }
 
 } // namespace inlining

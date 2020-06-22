@@ -25,14 +25,18 @@
 #include "Operator.h"
 #include "utils.h"
 #include "LibTensor.h"
+#include "MatMulInstTransposed.h" // From include/inlining path
 
 namespace dnn_lib {
 
 namespace inlining {
 
 template <ElemKind elK>
-void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, bool transposed,
                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  
+  if (transposed) return  fwdLibMatMulInstTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
+  
   //  using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
@@ -79,9 +83,12 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
 }
 
 template <ElemKind elK>
-void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, 
+void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,  bool transposed,
                               uint64_t flags, const uint32_t minionOffset,
                               const uint32_t assignedMinions) {
+  
+  if (transposed) return  fwdLibMatMulInstThreadedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
+  
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -399,9 +406,12 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 
 template <ElemKind elK>
 void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                LibTensor* in2T, uint64_t flags,
+                                LibTensor* in2T, bool transposed,
+                                uint64_t flags,
                                 const uint32_t minionOffset,
                                 const uint32_t assignedMinions) {
+  if (transposed) return  fwdLibMatMulInstVectorizedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
+  
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
