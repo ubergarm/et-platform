@@ -33,7 +33,7 @@ namespace inlining {
 
 template <ElemKind elK>
 void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, bool transposed,
-                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                      const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   
   if (transposed) return  fwdLibMatMulInstTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   
@@ -84,8 +84,8 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, bool tr
 
 template <ElemKind elK>
 void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,  bool transposed,
-                              uint64_t flags, const uint32_t minionOffset,
-                              const uint32_t assignedMinions) {
+                              const uint64_t flags, const uint32_t minionOffset = 0,
+                              const uint32_t assignedMinions = 0) {
   
   if (transposed) return  fwdLibMatMulInstThreadedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   
@@ -407,9 +407,9 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 template <ElemKind elK>
 void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
                                 LibTensor* in2T, bool transposed,
-                                uint64_t flags,
-                                const uint32_t minionOffset,
-                                const uint32_t assignedMinions) {
+                                const uint64_t flags,
+                                const uint32_t minionOffset = 0,
+                                const uint32_t assignedMinions = 0) {
   if (transposed) return  fwdLibMatMulInstVectorizedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   
   using srcType = typename elemKind2elemTy<elK>::type;
