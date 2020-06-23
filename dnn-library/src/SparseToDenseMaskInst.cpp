@@ -6,20 +6,20 @@ namespace dnn_lib {
   // Forward call to corresponding dnn_lib::inlining implementations
   ////////////////////////////////////////////////////////////////////////////////
  
-  template <ElemKind in0Type>
+  template <ElemKind out0Type>
   void fwdLibSparseToDenseMaskInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const std::array<uint64_t, default_mask_size>& Mask, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseMaskInst<in0Type>(out0, in0, in1, in2, in3, Mask, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseMaskInst<out0Type>(out0, in0, in1, in2, in3, Mask, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
 
-  template <ElemKind in0Type>
+  template <ElemKind out0Type>
   void fwdLibSparseToDenseMaskInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const std::array<uint64_t, default_mask_size>& Mask, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseMaskInstThreaded<in0Type>(out0, in0, in1, in2, in3, Mask, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseMaskInstThreaded<out0Type>(out0, in0, in1, in2, in3, Mask, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

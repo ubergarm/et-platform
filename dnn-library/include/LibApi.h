@@ -705,7 +705,7 @@ namespace dnn_lib {
        1, // # outs
        4,  // # ins
        {mbMask}, // members
-       2, // template param mask
+       1, // template param mask
        {"Threaded"}, // impl versions
        false // custom impl selector
      },
