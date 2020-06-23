@@ -66,7 +66,7 @@ inline void maxPoolImpl(bool argMax, LibTensor* outT, LibTensor* out2T,
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data();
   
-  const std::array<size_t, 3> srcPitchNoPadding = {inT->dims()[2]*inT->dims()[1], inT->dims()[1], 1};
+  auto srcPitchNoPadding = inT->stridesNoPadding();
 
   // For each input in the batch:
   for (size_t n = 0; n < dstIndex[0]; n++) {
@@ -164,7 +164,7 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data(); 
 
-  const std::array<size_t, 3> srcPitchNoPadding = {inT->dims()[2]*inT->dims()[1], inT->dims()[1], 1};
+  auto srcPitchNoPadding = inT->stridesNoPadding();
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;

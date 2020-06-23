@@ -433,6 +433,17 @@ class LibTensor final {
    */
   const dim_array_t &strides() const { return type_.strides_;}
 
+  /*@brief returns strides as if there were no padding
+   */
+  const dim_array_t stridesNoPadding() const {
+    dim_array_t v;
+    v[ndims()-1] = 1;
+    for (int64_t i = ndims()-2; i >=0; i--){
+      v[i] = v[i+1] * dims()[i+1];
+    }
+    return v;
+  }
+  
   /*@brief returns the number of real menaingful elements in the tensor. Does
    *not take strides into account.
    */
