@@ -31,12 +31,27 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-void fwdLibSplatInst(LibTensor *outT, float splatVal,
+inline uint64_t extendSplatValue64(const LibTensor *outT, const float splatVal){
+  using srcType = typename elemKind2elemTy<elK>::type;
+  // convert splatVal to srcType
+  srcType splatValType;
+  Addresser<elK> valAd(&splatValType, outT->getScale(), outT->getOffset());
+  valAd[0] = splatVal;
+  //  and replicate to fit up to 64 bits
+  uint64_t splatVal64 = bitwise_lsb_copy<uint64_t> (splatValType);
+  for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i<<=1, j++){
+    splatVal64 = splatVal64  | splatVal64 << (j*sizeof(srcType)*8);
+  }
+  return splatVal64;
+}
+  
+template <ElemKind elK>
+void fwdLibSplatInst(LibTensor *outT, const float splatVal,
                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
-  
+
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   
@@ -48,13 +63,7 @@ void fwdLibSplatInst(LibTensor *outT, float splatVal,
   size_t numElems = dstIndex[0] * dstPitch[0];
 
   // transform splatVal to srcType, and replicate to fit up to 64 bits
-  srcType splatValType;
-  Addresser<elK> valAd(&splatValType, outT->getScale(), outT->getOffset());
-  valAd[0] = splatVal;
-  uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
-  for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){
-    splatVal64 = splatVal64  | splatVal64 << (j*sizeof(srcType)*8);
-  }
+  uint64_t splatVal64 = extendSplatValue64<elK>(outT, splatVal);
   
   uint64_t *dst64 = static_cast<uint64_t*>(dst);
   // splatVal has the data replicated as many times as to fill a uint64 
@@ -63,15 +72,16 @@ void fwdLibSplatInst(LibTensor *outT, float splatVal,
   static_assert( (ratio64 & (ratio64 - 1)) == 0, "ratio to 64b word is not power of 2" );
 
 
-  for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i+=ratio64, dst64++) 
+  for (size_t i = 0 ; i < (static_cast<size_t>(numElems) & (~mask)); i+=ratio64, dst64++) {
     *dst64 = splatVal64;
+  }
 
   memcpy(dst64, &splatVal64, (numElems & mask) * sizeof(srcType));
 
 }
 
 template <ElemKind elK>
-inline void fwdLibSplatInstThreaded(LibTensor* outT, float splatVal,
+inline void fwdLibSplatInstThreaded(LibTensor* outT, const float splatVal,
                                     uint64_t flags,
                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
@@ -126,7 +136,7 @@ inline void fwdLibSplatInstThreaded(LibTensor* outT, float splatVal,
 }
 
 template <ElemKind elK>
-inline void fwdLibSplatInstVectorized(LibTensor* outT, float splatVal, uint64_t flags,
+inline void fwdLibSplatInstVectorized(LibTensor* outT, const float splatVal, uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -161,14 +171,8 @@ inline void fwdLibSplatInstVectorized(LibTensor* outT, float splatVal, uint64_t 
   dstPtr += offsetOut;
 
   // transform splatVal to srcType, and replicate to fit up to 64 bits
-  srcType splatValType;
-  Addresser<elK> valAd(&splatValType, outT->getScale(), outT->getOffset());
-  valAd[0] = splatVal;
-  uint64_t splatVal64 = bitwise_lsb_copy<srcType> (splatValType);
-  for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i>>=1, j++){
-    splatVal64 = splatVal64  | splatVal64 << (j*sizeof(srcType)*8);
-  }
-
+  uint64_t splatVal64 = extendSplatValue64<elK>(outT, splatVal);
+  
   
   if (regsperMinion > 0){
     //TODO: it writes in padding! check if that's alright!

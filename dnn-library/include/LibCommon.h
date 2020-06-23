@@ -40,10 +40,14 @@ template <typename T, typename U>
 inline T bitwise_lsb_copy(const U &x)
 {
     static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value, "pseudo_cast can't handle types which are not trivially copyable");
-    static_assert(sizeof(U) >= sizeof(T), "src type has to be equal or wider than dst type");
 
     T to;
-    memcpy(&to, &x, sizeof(T));
+    if (sizeof(U) >= sizeof(T))
+      memcpy(&to, &x, sizeof(T));
+    else {
+      to = 0;
+      memcpy(&to, &x, sizeof(U));
+    }
     return to;
 }
 
