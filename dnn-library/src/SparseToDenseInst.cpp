@@ -6,30 +6,30 @@ namespace dnn_lib {
   // Forward call to corresponding dnn_lib::inlining implementations
   ////////////////////////////////////////////////////////////////////////////////
  
-  template <ElemKind in0Type>
+  template <ElemKind out0Type>
   void fwdLibSparseToDenseInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseInst<in0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseInst<out0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
 
-  template <ElemKind in0Type>
+  template <ElemKind out0Type>
   void fwdLibSparseToDenseInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<in0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseInstThreaded<out0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
 
-  template <ElemKind in0Type>
+  template <ElemKind out0Type>
   void fwdLibSparseToDenseInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<in0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSparseToDenseInstVectorized<out0Type>(out0, in0, in1, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

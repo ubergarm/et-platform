@@ -39,32 +39,32 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* ou
 
   if (get_minion_id() != minionOffset) return;
   
-  /* outT --> dst  in1T--> src   in2T--> indices */
+  /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
+  void* srcT = in2T->getRawDataPointer<void>();
 
   // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
-  const Addresser<elK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  const Addresser<elK> tInput(srcT, in2T->getScale(), in2T->getOffset());
   // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
   const Addresser<elK> tTmp(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in2T->getRawDataPointer<long long>();
+  long long *tIndex = in1T->getRawDataPointer<long long>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indIndex = (unsigned int *)indDims;
-  const dim_t *indIndex = in2T->dims().data();
+  const dim_t *indIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in2T->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
   
   // Convert sparse representation to dense representation by taking
   // slices of output and values and accumulating the value slice into
@@ -138,30 +138,30 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  /* outT --> dst  in1T--> src   in2T--> indices */
+  /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
+  void* srcT = in2T->getRawDataPointer<void>();
 
   // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
-  const Addresser<elK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  const Addresser<elK> tInput(srcT, in2T->getScale(), in2T->getOffset());
   // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in2T->getRawDataPointer<long long>();
+  long long *tIndex = in1T->getRawDataPointer<long long>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indIndex = (unsigned int *)indDims;
-  const dim_t *indIndex = in2T->dims().data();  
+  const dim_t *indIndex = in1T->dims().data();  
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in2T->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
@@ -383,27 +383,27 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
-  int32_t offset[] = { in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
-  /* outT --> dst  in1T--> src   in2T--> indices */
+  float scale[] = { in2T->getScale(), in1T->getScale(), outT->getScale()};
+  int32_t offset[] = { in2T->getOffset(), in1T->getOffset(), outT->getOffset()};
+  /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
+  void* srcT = in2T->getRawDataPointer<void>();
   // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in2T->getRawDataPointer<long long>();
+  long long *tIndex = in1T->getRawDataPointer<long long>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indIndex = (unsigned int *)indDims;
-  const dim_t *indIndex = in2T->dims().data();
+  const dim_t *indIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in2T->strides().data();
   
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
   
   uintptr_t dstAddr = (uintptr_t)dstT;    
   uintptr_t srcAddr = (uintptr_t)srcT;

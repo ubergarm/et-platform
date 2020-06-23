@@ -1274,11 +1274,11 @@ extern template void fwdLibSparseLengthsWeightedSumInstThreaded<Int16QTy, Int64I
 *  SparseToDense implementations
 ****************************************************************************/
 // declarations
-template <ElemKind in0Type>
+template <ElemKind out0Type>
 void fwdLibSparseToDenseInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind in0Type>
+template <ElemKind out0Type>
 void fwdLibSparseToDenseInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind in0Type>
+template <ElemKind out0Type>
 void fwdLibSparseToDenseInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
