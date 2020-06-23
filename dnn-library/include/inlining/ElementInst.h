@@ -399,9 +399,26 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   fwdLib ## name ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                \
     inlining::fwdLibElementInstVectorized <dstElK, src1ElK, src2ElK, opType>(outT, in1T,  in2T,                            \
-  flags, minionOffset, assignedMinions);                                                                                   \
+                                                                             flags, minionOffset, assignedMinions);        \
+  }                                                                                                                        \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
+  fwdLib ## name ## InstBest(const int desired,LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                          \
+                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {        \
+    switch (desired){                                                                                                      \
+    case 1: inlining::fwdLib ## name ## Inst<dstElK, src1ElK, src2ElK>                                                     \
+    (outT, in1T, in2T, flags, minionOffset, assignedMinions); break;                                                       \
+    case 2: inlining::fwdLib ## name ## InstThreaded<dstElK, src1ElK, src2ElK>                                             \
+    (outT, in1T, in2T, flags, minionOffset, assignedMinions); break;                                                       \
+    default:                                                                                                               \
+      if ( (dstElK == FloatTy || dstElK == Float16Ty || dstElK == Int8QTy) &&                                              \
+           in1T->strides()[0] == in2T->strides()[0] )                                                                      \
+        inlining::fwdLib ## name ## InstVectorized<dstElK, src1ElK, src2ElK>                                               \
+          (outT, in1T, in2T, flags, minionOffset, assignedMinions);                                                        \
+      else                                                                                                                 \
+        inlining::fwdLib ## name ## InstThreaded<dstElK, src1ElK, src2ElK>                                                 \
+          (outT, in1T, in2T, flags, minionOffset, assignedMinions);                                                        \
+    }                                                                                                                      \
   }
-
 
   EltWiseInst(ElementAdd, Add)
   EltWiseInst(ElementSub, Sub)

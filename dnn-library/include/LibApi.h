@@ -239,7 +239,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementandi ****/
      { "notImplemented", // name
@@ -284,7 +284,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementexp ****/
      { "ElementExp", // name
@@ -320,7 +320,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementmin ****/
      { "ElementMin", // name
@@ -329,7 +329,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementmul ****/
      { "ElementMul", // name
@@ -338,7 +338,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementori ****/
      { "notImplemented", // name
@@ -356,7 +356,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementselect ****/
      { "ElementSelect", // name
@@ -374,7 +374,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementxori ****/
      { "notImplemented", // name
