@@ -257,7 +257,7 @@ namespace dnn_lib {
        {}, // members
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementcmplte ****/
      { "ElementCmpLTE", // name
@@ -266,7 +266,7 @@ namespace dnn_lib {
        {}, // members
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementcmplt ****/
      { "ElementCmpLT", // name
@@ -275,7 +275,7 @@ namespace dnn_lib {
        {}, // members
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_elementdiv ****/
      { "ElementDiv", // name
