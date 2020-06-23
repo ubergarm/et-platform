@@ -77,13 +77,12 @@ public:
     float  scratch0, scratch1, scratch2;
     __asm__ __volatile__("flw.ps %[op1], %[gatherValues]\n"
                          "fgh.ps  %[op0], %[op1](%[src1]) \n"
-                         "fcvt.ps.f16 %[op0], %[op0] \n"
-                         "fgh.ps  %[op1], %[op1](%[src2]) \n"
-                         "fcvt.ps.f16 %[op1], %[op1] \n"
-                         "fadd.ps %[op0], %[op0], %[op1] \n"
+                         "fcvt.ps.f16 %[op0], %[op0]\n"
+                         "fgh.ps  %[op2], %[op1](%[src2]) \n"
+                         "fcvt.ps.f16 %[op2], %[op2] \n"
+                         "fadd.ps %[op0], %[op0], %[op2] \n"
                          "fcvt.f16.ps %[op0], %[op0] \n"
                          "fsch.ps  %[op0], %[op1](%[dst]) \n"
-
                          : [op0] "=&f" (scratch0),
                            [op1] "=&f" (scratch1),
                            [op2] "=&f" (scratch2)
@@ -91,7 +90,7 @@ public:
                            [ src1 ] "r"(srcAddr1),
                            [ src2 ] "r"(srcAddr2),
                            [ dst ] "r" (dstAddr)
-                         :  "memory");  //TODO: replace memory clobber with output operand if gather/scatter max offset is known
+                         :  "memory");
   }
 
 
