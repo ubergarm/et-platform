@@ -33,15 +33,19 @@ namespace inlining {
 template <ElemKind elK>
 inline uint64_t extendSplatValue64(const LibTensor *outT, const float splatVal){
   using srcType = typename elemKind2elemTy<elK>::type;
+  printf("Float: %f\n", splatVal);
   // convert splatVal to srcType
   srcType splatValType;
   Addresser<elK> valAd(&splatValType, outT->getScale(), outT->getOffset());
   valAd[0] = splatVal;
+  printf("quant: %x\n",(unsigned) splatValType );
   //  and replicate to fit up to 64 bits
   uint64_t splatVal64 = bitwise_lsb_copy<uint64_t> (splatValType);
   for( size_t i = 1, j = 1; i < sizeof(uint64_t) / sizeof(srcType); i<<=1, j++){
-    splatVal64 = splatVal64  | splatVal64 << (j*sizeof(srcType)*8);
+    splatVal64 = splatVal64  | splatVal64 << (i*sizeof(srcType)*8);
+    printf("c[%lu]: %lx\n", i, splatVal64 );
   }
+  printf("repl: %lx\n", splatVal64 );
   return splatVal64;
 }
   
