@@ -127,10 +127,16 @@ inline void fwdLibSplatInstThreaded(LibTensor* outT, const float splatVal,
   for (unsigned int j = 0; j < k; j++) {
     offsetOut += dstPitch[j] * coord[j];
   }
+
+  // convert splatValue to destination type ( just doing it once instead of N times with addresser => using pointer instead)
+  srcType splatValType;
+  Addresser<elK> valAd(&splatValType, outT->getScale(), outT->getOffset());
+  valAd[0] = splatVal;
+  
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   while (!done && (offsetOut < posMax)) {
-    tOutput[offsetOut] = splatVal;
+    tOutput[offsetOut] = splatValType;
     done = getOffsets(dstDimNum, coord, offsetOut, dstIndex, dstPitch);
   }
   if (!DO_EVICTS)
