@@ -37,9 +37,7 @@ inline __attribute__((always_inline))
                             unsigned int count, unsigned int axis,
                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  
   if (get_minion_id() != minionOffset) return;
-
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
@@ -307,6 +305,15 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                                     unsigned int axis, uint64_t flags,
                                     const uint32_t minionOffset = 0,
                                     const  uint32_t assignedMinions = 0) {
+
+  // threaded version only works for CL aligned output tensors
+  // otherwise, call the single thread version
+  // checking size is multiple of 64B => assuming start is CL aligned
+  if (outT->getSizeInBytes() % CACHE_LINE_BYTES != 0) {
+    inlining::fwdLibInsertTensorInst<elK>(outT, inT, coord, count, axis, flags, minionOffset, assignedMinions);
+    return;
+  }
+  
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) :  assignedMinions;
