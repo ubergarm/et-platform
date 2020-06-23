@@ -1177,7 +1177,7 @@ extern template void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorize
 *  ScatterData implementations
 ****************************************************************************/
 // declarations
-template <ElemKind in0Type>
+template <ElemKind out0Type>
 void fwdLibScatterDataInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
