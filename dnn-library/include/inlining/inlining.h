@@ -38,7 +38,7 @@
 #include "EmbeddingBagInst.h" // From include/inlining path
 //#include "EmbeddingBagByteRowwiseOffsetsInst.h" // From include/inlining path
 #include "ExtractTensorInst.h" // From include/inlining path
-//#include "FlipInst.h" // From include/inlining path
+#include "FlipInst.h" // From include/inlining path
 #include "FullyConnectedInst.h" // From include/inlining path
 #include "FusedRowwiseQuantizedSparseLengthsSumInst.h" // From include/inlining path error:template overload fix when finish
 #include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path  error:template overload fix when finish

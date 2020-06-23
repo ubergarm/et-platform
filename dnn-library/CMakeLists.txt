@@ -68,7 +68,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagInst.h"
 #  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagByteRowwiseOffsetsInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ExtractTensorInst.h"
-#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h"    
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h"    
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FullyConnectedInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h"
@@ -172,7 +172,7 @@ add_library(dnn_lib STATIC
   src/EmbeddingBagInst.cpp
 #  src/EmbeddingBagByteRowwiseOffsetsInst.cpp
   src/ExtractTensorInst.cpp
-#  src/FlipInst.cpp
+  src/FlipInst.cpp
   src/FullyConnectedInst.cpp
   src/FusedRowwiseQuantizedSparseLengthsSumInst.cpp
   src/FusedRowwiseQuantizedSparseLengthsWeightedSumInst.cpp

@@ -224,30 +224,29 @@ inline void expandDimsToMax(dim_t* newDims, dim_t* currDims, unsigned int numDim
  *It works up to max_tensor_dimensions=6
  */
 template <typename ElemTy>
-inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, dim_t *newDims, unsigned int axis) {
+inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, const dim_array_t &newDims, unsigned int axis) {
 
-  dim_t indicesDest[max_tensor_dimensions] = {0,};
-  dim_t indicesSrc[max_tensor_dimensions] = {0,};
+  dim_array_t indicesDest = {0,};
+  dim_array_t indicesSrc = {0,};
   dim_t ndx[max_tensor_dimensions] = {0,};
   
   
-  for (ndx[0] = 0; ndx[0] < newDims[0]; ndx[0]++)
-    for (ndx[1] = 0; ndx[1] < newDims[1]; ndx[1]++)
-      for (ndx[2] = 0; ndx[2] < newDims[2]; ndx[2]++)
-        for (ndx[3] = 0; ndx[3] < newDims[3]; ndx[3]++)
-          for (ndx[4] = 0; ndx[4] < newDims[4]; ndx[4]++)
-            for (ndx[5] = 0; ndx[5] < newDims[5]; ndx[5]++) {
+  for (ndx[0] = 0; ndx[0] < newDims.data()[0]; ndx[0]++)
+    for (ndx[1] = 0; ndx[1] < newDims.data()[1]; ndx[1]++)
+      for (ndx[2] = 0; ndx[2] < newDims.data()[2]; ndx[2]++)
+        for (ndx[3] = 0; ndx[3] < newDims.data()[3]; ndx[3]++)
+          for (ndx[4] = 0; ndx[4] < newDims.data()[4]; ndx[4]++)
+            for (ndx[5] = 0; ndx[5] < newDims.data()[5]; ndx[5]++) {
 
               for (uint8_t i = 0; i < max_tensor_dimensions; i++) {
-                indicesSrc[i] = ndx[i];
+                indicesSrc.data()[i] = ndx[i];
                 if ( i != axis)
-                  indicesDest[i] = ndx[i];
+                  indicesDest.data()[i] = ndx[i];
                 else                  
-                  indicesDest[i] = newDims[i]-1-ndx[i];
+                  indicesDest.data()[i] = newDims.data()[i]-1-ndx[i];
               }
                 
-              destH.at(indicesDest, max_tensor_dimensions) =
-                srcH.at(indicesSrc, max_tensor_dimensions);
+              destH.at(indicesDest) = srcH.at(indicesSrc);
             }
  
 }
