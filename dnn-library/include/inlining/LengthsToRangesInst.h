@@ -67,8 +67,9 @@ void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions || minionId >= 32) return;
+  unsigned int activeMinions = (assignedMinions == 0) ? 32 : assignedMinions;
+  if (activeMinions > 32) activeMinions = 32;
+  if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();  
