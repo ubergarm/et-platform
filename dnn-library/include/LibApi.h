@@ -688,7 +688,7 @@ namespace dnn_lib {
        4,  // # ins
        {}, // members
        10, // template param mask
-       {"Threaded"}, // impl versions
+       {}, // impl versions
        false // custom impl selector
      },
      /**** ET_sparsetodense ****/
