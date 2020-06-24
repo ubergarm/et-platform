@@ -284,7 +284,10 @@ class LibManagerSheet:
                 
             if conf["extraImpl"]:
                 versions = ['"' + i.replace(" ", "") + '"' for i in conf["extraImpl"].split(',')]
-                
+
+            #filter out commented implementations
+            versions = [i for i in versions if i[1] != '#']
+            
             if conf["templateElk"] == None:
                 raise Exception("empty tenplate definition for %s. Use NONE if the fnc doesn't use templates" % op)
             elif conf["templateElk"] != "NONE":
@@ -374,6 +377,9 @@ class LibManagerSheet:
                 versions = [""]
                 if conf["extraImpl"]:
                     versions += [i.replace(" ", "")  for i in conf["extraImpl"].split(',')]
+                #filter out commented implementations
+                versions = [i for i in versions if len(i) == 0 or i[0] != '#']
+                
                 members = []
                 if conf["members"]:
                     members = [ i.replace(" ", "") for i in conf["members"].split(',')]
