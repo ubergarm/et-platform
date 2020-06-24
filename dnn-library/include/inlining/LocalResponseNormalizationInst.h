@@ -232,7 +232,14 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
                   LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
                   float beta, float k, uint64_t flags,
                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
+
+  // only FloatTy is supported => call threaded version instead
+  if ( elK != FloatTy) {
+    inlining::fwdLibLocalResponseNormalizationInstThreaded<elK>(out1T, out2T, inT,
+                                                                halfWindowSize, alpha, beta, k,
+                                                                flags, minionOffset, assignedMinions);
+    return;
+  }
   using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
