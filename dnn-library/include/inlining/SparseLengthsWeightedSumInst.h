@@ -134,19 +134,25 @@ fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   assert(totalLength <= in4T->dims()[0]);
 
   size_t lineSize = in1T->size() / in1T->dims()[0];
-  
-  size_t curIdx = 0;
-  for (size_t i = 0; i < segments; i++) {
-    for (size_t j = 0; j < (size_t)lengthH.at(std::array<size_t,1>{i}); j++) {
-      elkType weight = weightH.at(std::array<size_t,1>{curIdx});
-      size_t offsetIn = idxH.at(std::array<size_t,1>{curIdx++}) * lineSize;
-      size_t offsetOut = i * lineSize;
-      for (dim_t k = 0; k < lineSize; k++) 
-  	outH.at(std::array<size_t,1>{offsetOut++}) += 
-	  dataH.at(std::array<size_t,1>{offsetIn++}) * weight;
+  auto weight = weightH.begin();
+  auto idx = idxH.begin();
+  auto out = outH.begin();
+  auto len = lengthH.begin();
+  dim_array_t inCoords = {0};
+
+  for (size_t i = 0; i < segments; i++, out.step(0), ++len) {
+    for ( int32_t j = 0; j < *len; ++j, ++weight, ++idx){
+      inCoords[0] = *idx;
+      auto dataIn = dataH.getIterator(inCoords);
+      auto dataOut = out;
+      for (dim_t k = 0; k < lineSize; k++) {
+        *dataOut += (*dataIn) * (*weight);
+        ++dataIn;
+        ++dataOut;
+      }
     }
   }
-
+  
   outT->evict(DO_EVICTS);
 }
 
