@@ -459,7 +459,8 @@ inline void fwdLibTransposeInstBest(const int desired, LibTensor* outT, LibTenso
       const size_t batchDim = inT->ndims() - 2;
       if ( inT->ndims() >= 2 &&
            (outT->strides()[batchDim] * outT->getElementSize() )% 32 == 0  &&
-           (inT->strides()[batchDim] * inT->getElementSize() ) % 32 == 0 )
+           (inT->strides()[batchDim] * inT->getElementSize() ) % 32 == 0  &&
+           (elK == FloatTy || elK == Float16Ty || elK==Int8QTy ) )
         inlining::fwdLibTransposeInstAligned32Bytes(outT,inT, shuffle, flags, minionOffset, assignedMinions);
       else
         inlining::fwdLibTransposeInstVectorized(outT,inT, shuffle, flags, minionOffset, assignedMinions); 
