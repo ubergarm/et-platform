@@ -37,8 +37,6 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, bool tr
   
   if (transposed) return  fwdLibMatMulInstTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-
   if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
@@ -89,8 +87,6 @@ void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   
   if (transposed) return  fwdLibMatMulInstThreadedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   
-  using srcType = typename elemKind2elemTy<elK>::type;
-
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
@@ -107,8 +103,7 @@ void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
   const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
   // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
-  const Addresser<elK>
-    tWInput(wei, in2T->getScale(), in2T->getOffset());
+  const Addresser<elK> tWInput(wei, in2T->getScale(), in2T->getOffset());
   
   //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -126,7 +121,7 @@ void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = Type::getElementSize(elK);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -169,22 +164,22 @@ void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Float16Ty, std::size_t>::type = 0>
 void setGatherValues (int32_t gatherValues[]){
   gatherValues[0] = 0;
   for (unsigned int i = 1; i < 8; ++i) gatherValues[i] = gatherValues[i - 1] + 2;
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Int8QTy, std::size_t>::type = 0>
 void setGatherValues (int32_t gatherValues[]){
   gatherValues[0] = 0;
   for (unsigned int i = 1; i < 8; ++i) gatherValues[i] = gatherValues[i - 1] + 1;
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value, std::size_t>::type = 0>
-void setGatherValues (int32_t gatherValues[]){} // includes the case srcType = float.
+template <ElemKind elK, typename std::enable_if<elK != Int8QTy && elK != Float16Ty, std::size_t>::type = 0>
+void setGatherValues (int32_t gatherValues[]){} // includes the case elK = float.
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == FloatTy, std::size_t>::type = 0>
 void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION                           \
@@ -239,7 +234,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Float16Ty, std::size_t>::type = 0>
 void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION                           \
@@ -299,7 +294,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Int8QTy, std::size_t>::type = 0>
 void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define INT8_TO_FP32(_reg, _scl, _off)            \
@@ -396,7 +391,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 #undef SIGN_EXTEND_INT8_REG
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK!=Int8QTy &&  elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
 void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){}
 
 // 2-D MATRIX MULTIPLICATION: THREADED AND VECTORIZED VERSION.
@@ -412,8 +407,6 @@ void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
                                 const uint32_t assignedMinions = 0) {
   if (transposed) return  fwdLibMatMulInstVectorizedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   
-  using srcType = typename elemKind2elemTy<elK>::type;
-
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
@@ -438,7 +431,7 @@ void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = Type::getElementSize(elK);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
@@ -493,7 +486,7 @@ void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int wgtStep = wgtPitch[0]*typeSize;
 
   int32_t gatherValues[8];
-  setGatherValues <srcType>(gatherValues);
+  setGatherValues <elK>(gatherValues);
 
   float scale[3] =  {in1T->getScale(), in2T->getScale(), outT->getScale()};
   int32_t offset[3] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
@@ -505,7 +498,7 @@ void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
     uintptr_t actAddr = (uintptr_t)src + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)wei + typeSize*offsetWIn;
      
-    matmulOp <srcType>(dstAddr, actAddr, wgtAddr, regs, extra, length, wgtStep, gatherValues, scale, offset);
+    matmulOp <elK>(dstAddr, actAddr, wgtAddr, regs, extra, length, wgtStep, gatherValues, scale, offset);
 
     ++currentRow;
     if (currentRow > lastRow) break; // The loop ends when all the minion rows have been covered.
