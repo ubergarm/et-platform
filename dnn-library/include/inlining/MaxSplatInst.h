@@ -212,7 +212,7 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0,
+template <ElemKind elK, typename std::enable_if<elK == FloatTy, std::size_t>::type = 0,
           bool aligned32B = false>
 inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
   float op0, op1;
@@ -231,7 +231,7 @@ inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const floa
 }
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0,
+template <ElemKind elK, typename std::enable_if<elK == Float16Ty, std::size_t>::type = 0,
           bool aligned32B = false >
 inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset){
   // aligned used gather/scatter32, non aligned uses regular ones
@@ -267,7 +267,7 @@ inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const floa
                        );
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,std::size_t>::type = 0,
+template <ElemKind elK, typename std::enable_if<elK == Int8QTy,std::size_t>::type = 0,
           bool aligned32B = false > 
 inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
   // aligned used gather/scatter32, non aligned uses regular ones
@@ -315,9 +315,7 @@ inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const floa
   
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
-                                                    && !std::is_same<srcType, float16>::value
-                                                    && !std::is_same<srcType, float>::value, std::size_t>::type = 0,
+template <ElemKind elK, typename std::enable_if< elK != Int8QTy && elK != Float16Ty && elK!= FloatTy, std::size_t>::type = 0,
           bool aligned32B = false>
 inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
   //FIXME: implementation missing
@@ -407,14 +405,14 @@ inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
     const float scale[2] = {inT->getScale(), outT->getScale()};
     const int32_t offset[2] = {inT->getOffset(), outT->getOffset()}; 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      maxSplatOp <srcType>(dstAddr, srcAddr, splatVal, scale, offset);
+      maxSplatOp <elK>(dstAddr, srcAddr, splatVal, scale, offset);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
 
     if (res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      maxSplatOp <srcType>(dstAddr, srcAddr, splatVal, scale, offset);
+      maxSplatOp <elK>(dstAddr, srcAddr, splatVal, scale, offset);
     }
 
     if (lastRow)
@@ -519,7 +517,7 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
          __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
     else __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
-    maxSplatOp <srcType, true>(dstAddr, srcAddr, splatVal, scale, offset);
+    maxSplatOp <elK, true>(dstAddr, srcAddr, splatVal, scale, offset);
 
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, n_actIndex,
                       n_actPitch, n_dstPitch);
