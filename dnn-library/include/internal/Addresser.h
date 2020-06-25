@@ -33,11 +33,6 @@ public:
   ////////////////////////////////////////////////////////////////////////////////
   // READ
   ////////////////////////////////////////////////////////////////////////////////
-  // direct read from pointer
-  ONLY_FOR( U == FloatTy || U == Int64ITy || U == Int32ITy || U == BoolTy)
-  const T operator[](const size_t index) const {
-    return ptr_[index];
-  }
 
   // Float16 => converts to float 
   ONLY_FOR( U == Float16Ty)
@@ -52,23 +47,31 @@ public:
   const float operator[](const size_t index) const {
     return dnn_lib::dequantize<T>(ptr_[index], scale_, offset_);
   }
+  
+  // none of the above cases (Float, index types...) read directly from ptr
+  ONLY_FOR( U != Float16Ty && U != Int8QTy && U != UInt8QTy && U != Int16QTy && U != Int32QTy)
+  const T operator[](const size_t index) const {
+    return ptr_[index];
+  }
+
 
   
   ////////////////////////////////////////////////////////////////////////////////
   // WRITE
   ////////////////////////////////////////////////////////////////////////////////
 
-  // direct write: return reference
-  ONLY_FOR( U == FloatTy  || U == Int64ITy || U == Int32ITy || U == BoolTy)
-  T &operator[](const size_t index) {
-    return ptr_[index];
-  }
-
-  // other types: return a writer to write via float
+  // quantized and float16: return a writer to write via float
   ONLY_FOR( U == Float16Ty || U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
   Writer<elK> operator[](const size_t index) {
     return Writer<elK>(ptr_ + index, scale_, offset_);
   }
+
+  // other types, direct write: return reference
+  ONLY_FOR( U != Float16Ty && U != Int8QTy && U != UInt8QTy && U != Int16QTy && U != Int32QTy)
+  T &operator[](const size_t index) {
+    return ptr_[index];
+  }
+
 
 
 private:

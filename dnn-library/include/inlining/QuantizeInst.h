@@ -34,7 +34,6 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
   
@@ -78,13 +77,7 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
                                 z * eSrcPitch[2] + w * eSrcPitch[3] +
                                 q * eSrcPitch[4] + r * eDstPitch[5];
               auto val = ptrSrcT[srcAddr];
-              // TODO check if we can use Addresser without breaking all the
-              // other tests that uses int32_t as non quantized type
-              if (std::is_same<dstType, int32_t>::value) {
-                ptrDstT[dstAddr] = quantize<int32_t>(val, outT->getScale(), outT->getOffset());
-              } else {
-                ptrDstT[dstAddr] = val;
-              }
+              ptrDstT[dstAddr] = val;
             }
           }
         }
@@ -126,7 +119,7 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   // We give to each minion an initial address the number of positions that it
   // must work on (maxRead).
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<dstType>();
+  size_t typeSize = sizeof(dstType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -151,16 +144,10 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   // completion.
   bool done = false;
   while (!done) {
-    if (offsetOut >= posMax)
-      break;
+    if (offsetOut >= posMax) break;
     auto val = ptrSrcT[offsetIn];
-    // TODO check if we can use Addresser without breaking all the
-    // other tests that uses int32_t as non quantized type
-    if (std::is_same<dstType, int32_t>::value) {
-      ptrDstT[offsetOut] = quantize<int32_t>(val, outT->getScale(), outT->getOffset());
-    } else {
-      ptrDstT[offsetOut] = val;
-    }
+    ptrDstT[offsetOut] = val;
+
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, srcIndex,
                       srcPitch, dstPitch);
   }
