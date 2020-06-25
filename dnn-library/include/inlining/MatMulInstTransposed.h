@@ -151,7 +151,7 @@ void fwdLibMatMulInstThreadedTransposed(LibTensor* outT, LibTensor* in1T, LibTen
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == FloatTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -201,7 +201,7 @@ inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uint
 #undef MATMUL_ITERATION
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Float16Ty, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -256,7 +256,7 @@ inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uint
 #undef MATMUL_ITERATION
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Int8QTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define INT8_TO_FP32(_reg)                  \
@@ -335,7 +335,7 @@ inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uint
 
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK!= Int8QTy && elK!= Float16Ty&& elK!= FloatTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans (uintptr_t dstAddr, intptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){}
 
 // Version assuming the weights tensor is transposed. Used for CONSTANT tensors
@@ -344,8 +344,7 @@ inline __attribute__((always_inline))
 void fwdLibMatMulInstVectorizedTransposed(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  using srcType = typename elemKind2elemTy<elK>::type;
-  
+ 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
@@ -407,7 +406,7 @@ void fwdLibMatMulInstVectorizedTransposed(LibTensor* outT, LibTensor* in1T, LibT
     uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
     uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)weights + typeSize*offsetWIn;
-    matmulOpTrans <srcType>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValues, scale, offset);
+    matmulOpTrans <elK>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValues, scale, offset);
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {
       offsetWIn += weightPitch[0];

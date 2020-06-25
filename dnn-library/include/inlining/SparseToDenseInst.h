@@ -166,7 +166,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -215,8 +215,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
-std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == FloatTy,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 
@@ -253,8 +252,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
-std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Float16Ty,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
@@ -300,8 +298,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
-std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if< elK == Int8QTy,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -364,9 +361,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 }
 
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
-&& !std::is_same<srcType, float16>::value
-&& !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK!=Int8QTy && elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 }
@@ -412,7 +407,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -479,13 +474,13 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
 
 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      sparseToDenseOp <srcType>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
     if(res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      sparseToDenseOp <srcType>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
     }
     if (lastRow)
       return;

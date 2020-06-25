@@ -146,7 +146,7 @@ inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddrOut, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddrOut, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -223,7 +223,7 @@ inline __attribute__((always_inline)) void
 gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
                    int32_t *gatherValues) {
   float d0,d1;
-  if (getsize<srcType>() == 2) {
+  if (sizeof(srcType) == 2) {
     __asm__ __volatile__
       (
        "mov.m.x m0, %[mask], 0\n"
@@ -238,7 +238,7 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
          [ mask ] "r" (mask)
       );
 
-  } else if (getsize<srcType>() == 1) {
+  } else if (sizeof(srcType) == 1) {
     __asm__ __volatile__(
         "mov.m.x m0, %[mask], 0\n"
         "flw.ps %[d1], %[gatherValues] \n"
@@ -290,7 +290,7 @@ inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddrOut, maxRead;
-  int32_t typeSize = (int32_t) getsize<srcType>();
+  int32_t typeSize = (int32_t) sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddrOut, maxRead,
                         minionId, activeMinions); // Obtain initial addr 4 minions
   if (maxRead == 0)

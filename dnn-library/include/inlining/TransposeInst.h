@@ -119,7 +119,7 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -154,9 +154,8 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if< (getsize<srcType>() <=4), int>::type = 0>
+template <typename srcType, typename std::enable_if< (sizeof(srcType) <=4), int>::type = 0>
 void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t *gatherValues){
-  constexpr size_t size = getsize<srcType>();
   __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        ".if %[size] == 4\n"
                        "    fgw.ps  f0, f31(%[src]) \n"
@@ -178,11 +177,11 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t 
                          [ scatterValues ] "m"(*(const int32_t(*)[8]) scatterValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src),
-                         [ size] "i" (size)
+                         [ size] "i" (sizeof(srcType))
                        : "f0", "f31", "memory");
 }
 
-  template <typename srcType, typename std::enable_if< (getsize<srcType>()>4), int>::type = 0 >
+template <typename srcType, typename std::enable_if< (sizeof(srcType) > 4), int>::type = 0 >
 void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t *gatherValues){
   //FIXME: TODO: implement
 }
@@ -218,7 +217,7 @@ inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -314,9 +313,9 @@ inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
 }
 
 
-template <typename srcType, typename std::enable_if< (getsize<srcType>() <=4), int>::type = 0>
+template <typename srcType, typename std::enable_if< (sizeof(srcType) <=4), int>::type = 0 >
 void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
-  constexpr size_t size = getsize<srcType>();
+  constexpr size_t size = sizeof(srcType);
   constexpr auto g32_conf = size == 2 ? fg32h_conf : fg32b_conf;
   
   __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
@@ -342,7 +341,7 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
                        );
 }
   
-  template <typename srcType, typename std::enable_if< (getsize<srcType>() >4), int>::type = 0>
+template <typename srcType, typename std::enable_if< (sizeof(srcType) > 4), int>::type = 0>
   void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
   //FIXME: not implemented
 }
@@ -379,7 +378,7 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
