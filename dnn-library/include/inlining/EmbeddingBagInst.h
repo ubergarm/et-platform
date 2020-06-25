@@ -70,6 +70,7 @@ inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
 
   // NOTE : Pitch is passed as the number of elements, not as bytes.
   const size_t lineSize = dataDim1Pitch;
+  const size_t outLineSize = outT->strides()[0];
   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works. 
   //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize());
   
@@ -84,7 +85,7 @@ inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
     // the effect of forcing to zero the output segment.
     const float  weight    = (start < end) ? weights[curIdx] : 0;
     size_t       offsetIn  = indices[curIdx] * lineSize;
-    size_t       offsetOut = i * lineSize;
+    size_t       offsetOut = i * outLineSize;
     if (start < end)
       curIdx++;
 
@@ -94,7 +95,7 @@ inline void fwdLibEmbeddingBagInstFloatTy(LibTensor* outT, LibTensor *in1T,
     for (uint64_t j = (start + 1); j < end; j++) {
       const float weight    = weights[curIdx];
       size_t      offsetIn  = indices[curIdx++] * lineSize;
-      size_t      offsetOut = i * lineSize;
+      size_t      offsetOut = i * outLineSize;
       for (size_t k = 0; k < lineSize; k++) 
         dst[offsetOut++] += data[offsetIn++] * weight;
     }
