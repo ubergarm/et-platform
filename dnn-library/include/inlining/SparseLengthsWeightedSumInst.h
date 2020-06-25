@@ -57,45 +57,94 @@ fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
 
   const size_t lineSize = in1T->size() / in1T->dims()[0];
 
-  size_t curIdx = 0;
-  for (size_t i = 0; i < segments; i++) {
-    float accum[lineSize] = {0.0};
-    for (int32_t j = 0; j < lengthH.at(std::array<size_t,1>{i}); j++) {
-      float weight = 0.0;
-      if (elKind == Float16Ty) {
-	float dst = 0.0;
-	convertFp16ToFp32(static_cast<uint16_t>(weightH.at(std::array<size_t,1>{curIdx})), dst);
-	weight = dst;
-      }
-      else
-	weight = dequantize<elkType>(weightH.at(std::array<size_t,1>{curIdx}), 
-				     in2T->getScale(), in2T->getOffset());
-      size_t offsetIn = idxH.at(std::array<size_t,1>{curIdx}) * lineSize;      
+  auto weight = weightH.begin();
+  auto idx = idxH.begin();
+  auto out = outH.begin();
+  auto len = lengthH.begin();
+  dim_array_t inCoords = {0};
+
+  for (size_t i = 0; i < segments; i++, out.step(0), ++len) {
+    for ( int32_t j = 0; j < *len; ++j, ++weight, ++idx) {
+      inCoords[0] = *idx;
+      auto dataIn = dataH.getIterator(inCoords);
+      auto dataOut = out;
       for (dim_t k = 0; k < lineSize; k++) {
+	float wei = 0.0;
+	float dtin = 0.0;
+	float accumDtOut = 0.0;
+	float tmp = 0.0;
 	if (elKind == Float16Ty) {
 	  float dst = 0.0;
-	  convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,1>{offsetIn++})), dst);
-	  accum[k] += weight * dst;
+	  convertFp16ToFp32(static_cast<uint16_t>(*dataIn), dst);
+	  dtin = dst;
+	  convertFp16ToFp32(static_cast<uint16_t>(*weight), dst);
+	  wei = dst;			    
+
+	  convertFp16ToFp32(static_cast<uint16_t>(*dataOut), dst);
+	  accumDtOut = dst;			    
 	}
-	else{
-	  accum[k] += weight * dequantize<elkType>(dataH.at(std::array<size_t,1>{offsetIn++}), 
-						   in1T->getScale(), in1T->getOffset());
+	else {
+	  wei = dequantize<elkType>((*weight), in2T->getScale(), in2T->getOffset());
+	  dtin = dequantize<elkType>((*dataIn), in1T->getScale(), in1T->getOffset());
+
+	  accumDtOut = dequantize<elkType>((*dataOut), outT->getScale(), outT->getOffset());
 	}
-      }
-      curIdx++;
-    }      
-    size_t offsetOut = i * lineSize;
-    for (dim_t k = 0; k < lineSize; k++){
-      if (elKind == Float16Ty) {
-	uint16_t dst = 0;
-	convertFp32ToFp16(accum[k], dst);
-	outH.at(std::array<size_t,1>{offsetOut++}) = dst;
-      }
-      else {
-	outH.at(std::array<size_t,1>{offsetOut++}) = quantize<elkType>(accum[k], outT->getScale(), outT->getOffset());
+	tmp = dtin * wei;
+	if (elKind == Float16Ty) {
+	  uint16_t dst = 0;
+	  accumDtOut += tmp;
+ 	  convertFp32ToFp16(accumDtOut, dst);
+	  *dataOut = dst;
+	}
+	else {
+	  accumDtOut += tmp;
+	  *dataOut = quantize<elkType>(accumDtOut, outT->getScale(), outT->getOffset());
+	}
+	++dataIn;
+	++dataOut;
       }
     }
   }
+
+  /* size_t curIdx = 0; */
+  /* for (size_t i = 0; i < segments; i++) { */
+  /*   float accum[lineSize] = {0.0}; */
+  /*   for (int32_t j = 0; j < lengthH.at(std::array<size_t,1>{i}); j++) { */
+  /*     float weight = 0.0; */
+  /*     if (elKind == Float16Ty) { */
+  /* 	float dst = 0.0; */
+  /* 	convertFp16ToFp32(static_cast<uint16_t>(weightH.at(std::array<size_t,1>{curIdx})), dst); */
+  /* 	weight = dst; */
+  /*     } */
+  /*     else */
+  /* 	weight = dequantize<elkType>(weightH.at(std::array<size_t,1>{curIdx}),  */
+  /* 				     in2T->getScale(), in2T->getOffset()); */
+  /*     size_t offsetIn = idxH.at(std::array<size_t,1>{curIdx}) * lineSize;       */
+  /*     for (dim_t k = 0; k < lineSize; k++) { */
+  /* 	if (elKind == Float16Ty) { */
+  /* 	  float dst = 0.0; */
+  /* 	  convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,1>{offsetIn++})), dst); */
+  /* 	  accum[k] += weight * dst; */
+  /* 	} */
+  /* 	else{ */
+  /* 	  accum[k] += weight * dequantize<elkType>(dataH.at(std::array<size_t,1>{offsetIn++}),  */
+  /* 						   in1T->getScale(), in1T->getOffset()); */
+  /* 	} */
+  /*     } */
+  /*     curIdx++; */
+  /*   }       */
+  /*   size_t offsetOut = i * lineSize; */
+  /*   for (dim_t k = 0; k < lineSize; k++){ */
+  /*     if (elKind == Float16Ty) { */
+  /* 	uint16_t dst = 0; */
+  /* 	convertFp32ToFp16(accum[k], dst); */
+  /* 	outH.at(std::array<size_t,1>{offsetOut++}) = dst; */
+  /*     } */
+  /*     else { */
+  /* 	outH.at(std::array<size_t,1>{offsetOut++}) = quantize<elkType>(accum[k], outT->getScale(), outT->getOffset()); */
+  /*     } */
+  /*   } */
+  /* } */
 
   outT->evict(DO_EVICTS);
 }

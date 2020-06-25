@@ -1,6 +1,6 @@
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../../ --excel libManager.xlsx
-//  cwd=/home/sebastia/Esperanto/sw-platform/host-software/host-sw/dnn_lib/scripts
+//  cwd=/local/home/rafa/WorkSpace/clean_sw-platform/host-software/host-sw/dnn_lib/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
