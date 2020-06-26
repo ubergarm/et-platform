@@ -31,21 +31,21 @@ namespace dnn_lib {
 namespace inlining {
 
 // TODO Check corner cases
-template <typename srcType>
-inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
-
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+template <ElemKind elK>
+inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT,
+                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
+  
+  if (get_minion_id() != minionOffset) return;
   
   /* maintain compatibility through the new Iface Libtensor */
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> ptrSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<elK> ptrSrcT1(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale[1], offset[1]);
+  Addresser<elK> ptrDstT(dst, outT->getScale(), outT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -92,22 +92,24 @@ inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT) {
   }
 }
 
-template <typename srcType>
-inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+template <ElemKind elK>
+inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
+  using srcType = typename elemKind2elemTy<elK>::type;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-  // const Addresser<srcType> aSrcT1(src, scale[0], offset[0]);
-  const Addresser<srcType> aSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcType> ptrDstT(dst, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> aSrcT1(src, scale[0], offset[0]);
+  const Addresser<elK> aSrcT1(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> ptrDstT(dst, scale[1], offset[1]);
+  Addresser<elK> ptrDstT(dst, outT->getScale(), outT->getOffset());
  
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();

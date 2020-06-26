@@ -29,7 +29,7 @@
 namespace dnn_lib {
 
 namespace inlining {
-
+  
 /**
  * @brief Given to tensors, it gives the result of the opType applied elementwise.
  *
@@ -49,19 +49,14 @@ namespace inlining {
  * @param[in] in1T LibTensor pointer to the src1 matrix
  * @param[in] in2T LibTensor pointer to the src2 matrix
  */
-template <typename srcType, typename opType>
-inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T) {
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
+inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
- unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
-  // float scale0 = scale[0];
-  // float scale1 = scale[1];
-  // float scale2 = scale[2];
-  // float offset0 = offset[0];
-  // float offset1 = offset[1];
-  // float offset2 = offset[2];
+  if (get_minion_id() != minionOffset) return;
 
 
   /* maintain compatibility through the new Iface Libtensor */
@@ -70,11 +65,11 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
   void* srcT2 = in2T->getRawDataPointer<void>();
  
   // const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
-  const Addresser<srcType> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());  
+  const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());  
   // const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
-  const Addresser<srcType> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset()); 
+  const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset()); 
   // Addresser<srcType> aDstT(dstT, scale2, offset2);
-  Addresser<srcType> aDstT(dstT, outT->getScale(), outT->getOffset());
+  Addresser<dstElK> aDstT(dstT, outT->getScale(), outT->getOffset());
  
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = in1T->dims().data();
@@ -100,7 +95,7 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
 
   uint64_t addrSrc1, addrSrc2, addrDst;
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, opType> op;
+  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<dstElK>, opType> op;
 
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -150,26 +145,29 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T)
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                      LibTensor* in2T, uint64_t flags) {
+                                      LibTensor* in2T, uint64_t flags,
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
-
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT1 = in1T->getRawDataPointer<void>();
   void* srcT2 = in2T->getRawDataPointer<void>();
   
   // const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
-  const Addresser<src1Type> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
+  const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
-  const Addresser<src2Type> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
+  const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   // Addresser<srcType> aDstT(dstT, scale2, offset2);
-  Addresser<dstType> aDstT(dstT, outT->getScale(), outT->getOffset());
+  Addresser<dstElK> aDstT(dstT, outT->getScale(), outT->getOffset());
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = in1T->dims().data();
@@ -182,7 +180,7 @@ inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
   
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
   
-  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<dstType>, opType> op;
+  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<dstElK>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
@@ -248,16 +246,22 @@ inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename opType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, const float* scale,
-                                        const int32_t* offset, uint64_t flags) {
-
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+                                        LibTensor* in2T, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
+  const float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
+  const int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
+  
+
  /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
@@ -278,12 +282,12 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   uintptr_t srcAddr2 = (uintptr_t)srcT2;
   
 
-  Operator<Addresser<src1Type>, Addresser<src2Type>, Addresser<dstType>, opType> op;
+  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<dstElK>, opType> op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<src1Type>();
+  size_t typeSize = outT->getElementSize();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -373,6 +377,60 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
+
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // individual functions per operator (forwarding call to the previous ones with
+  // the proper parameters)
+  ////////////////////////////////////////////////////////////////////////////////
+#define EltWiseInst(name, opType)                                                                                          \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
+  fwdLib ## name ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                                \
+                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {          \
+    inlining::fwdLibElementInst<dstElK, src1ElK, src2ElK, opType>(outT, in1T, in2T, flags, minionOffset, assignedMinions); \
+  }                                                                                                                        \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>inline void                                                \
+  fwdLib ## name ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                        \
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                  \
+    inlining::fwdLibElementInstThreaded<dstElK, src1ElK, src2ElK, opType>  (outT, in1T, in2T,                              \
+                                                                            flags, minionOffset, assignedMinions);         \
+  }                                                                                                                        \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
+  fwdLib ## name ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
+                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                \
+    inlining::fwdLibElementInstVectorized <dstElK, src1ElK, src2ElK, opType>(outT, in1T,  in2T,                            \
+                                                                             flags, minionOffset, assignedMinions);        \
+  }                                                                                                                        \
+  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
+  fwdLib ## name ## InstBest(const int desired,LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                          \
+                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {        \
+    switch (desired){                                                                                                      \
+    case 1: inlining::fwdLib ## name ## Inst<dstElK, src1ElK, src2ElK>                                                     \
+    (outT, in1T, in2T, flags, minionOffset, assignedMinions); break;                                                       \
+    case 2: inlining::fwdLib ## name ## InstThreaded<dstElK, src1ElK, src2ElK>                                             \
+    (outT, in1T, in2T, flags, minionOffset, assignedMinions); break;                                                       \
+    default:                                                                                                               \
+      if ( (dstElK == FloatTy || dstElK == Float16Ty || dstElK == Int8QTy) &&                                              \
+           in1T->strides()[0] == in2T->strides()[0] )                                                                      \
+        inlining::fwdLib ## name ## InstVectorized<dstElK, src1ElK, src2ElK>                                               \
+          (outT, in1T, in2T, flags, minionOffset, assignedMinions);                                                        \
+      else                                                                                                                 \
+        inlining::fwdLib ## name ## InstThreaded<dstElK, src1ElK, src2ElK>                                                 \
+          (outT, in1T, in2T, flags, minionOffset, assignedMinions);                                                        \
+    }                                                                                                                      \
+  }
+
+  EltWiseInst(ElementAdd, Add)
+  EltWiseInst(ElementSub, Sub)
+  EltWiseInst(ElementDiv, Div)
+  EltWiseInst(ElementMul, Mul)
+  EltWiseInst(ElementMin, Min)
+  EltWiseInst(ElementMax, Max)
+  EltWiseInst(ElementPow, Pow)
+  
+#undef EltWiseInst
+
+  
 } // namespace inlining
 
 } // namespace dnn_lib

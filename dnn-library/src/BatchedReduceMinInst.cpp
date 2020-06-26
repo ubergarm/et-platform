@@ -1,30 +1,24 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "BatchedReduceMinInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibBatchedReduceMinInst(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, default_axes_size> & Axes, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibBatchedReduceMinInst<in0Type>(out0, in0, Axes, flags, minionOffset, assignedMinions);
+  }
 
-
-template <ElemKind elKind, size_t N>
-void fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT, std::array<uint32_t, N> const &axes, uint64_t flags ) {
-
-  dnn_lib::inlining::fwdLibBatchedReduceMinInst<elKind>(outT, inT, axes, flags);
-
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP_ELK_UINT32_ARR(fwdLibBatchedReduceMinInst);
-
-} //dnn_lib
-
-
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibBatchedReduceMinInst<FloatTy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, default_axes_size> & Axes, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceMinInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, default_axes_size> & Axes, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceMinInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, default_axes_size> & Axes, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceMinInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, default_axes_size> & Axes, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceMinInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, default_axes_size> & Axes, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceMinInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, default_axes_size> & Axes, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

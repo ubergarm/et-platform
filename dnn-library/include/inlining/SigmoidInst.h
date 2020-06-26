@@ -30,23 +30,25 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+template <ElemKind elK>
+inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
- 
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
+  
   /* maintain compatibility through the new Iface Libtensor */
 
   void* srcT1 = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
 
-  // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale[1], offset[1]);
+  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> ptrSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<elK> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
 
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
@@ -94,21 +96,21 @@ inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t 
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType>
-inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT) {
-
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+template <ElemKind elK>
+inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT,
+                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
+  
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void* srcT1 = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
   
-  // Addresser<srcType> ptrDstT(dstT, scale[1], offset[1]);
-  Addresser<srcType> ptrDstT(dstT, outT->getScale(), outT->getOffset());  
-  // const Addresser<srcType> ptrSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcType> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale[1], offset[1]);
+  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());  
+  // const Addresser<elK> ptrSrcT1(srcT1, scale[0], offset[0]);
+  const Addresser<elK> ptrSrcT1(srcT1, inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t * srcIndex = inT->dims().data();

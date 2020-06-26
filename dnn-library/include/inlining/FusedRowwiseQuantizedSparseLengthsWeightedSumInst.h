@@ -43,22 +43,23 @@ struct accumulatorType {
 
 #endif
 
+template <ElemKind elK>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst(
                    LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                   LibTensor* in3T, LibTensor* in4T) {
+                   LibTensor* in3T, LibTensor* in4T,
+                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  
-  if (minionId != 0) {
-    return;
-  }
+  assert(elK == FloatTy || elK == Float16Ty);
+  using dstType = typename elemKind2elemTy<elK>::type;
+
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT-> dst in1T->data in2T->weight in3T->indices in4T->lengths */
 
   // float *tOutput = (float *)pdst;
-  float *tOutput = outT->getRawDataPointer<float>();
+  float *tOutput = outT->getRawDataPointer<dstType>();
   // uint8_t *tAInput = (uint8_t *)pdata;
   uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
   // float *tWInput = (float *)pweights;
@@ -137,13 +138,14 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
   }
 }
 
-template<typename DstType>
+template <ElemKind elK>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
                    LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                    LibTensor* in3T, LibTensor* in4T, uint64_t flags,
                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
+  assert(elK == FloatTy || elK == Float16Ty);
+  using dstType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.
   minionId -= minionOffset;
@@ -156,8 +158,8 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   /* outT-> dst in1T->data in2T->weight in3T->indices in4T->lengths */
 
   // float *tOutput = (float *)pdst;
-  const Addresser<DstType> tOutputRd(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
-  Addresser<DstType> tOutput(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
+  const Addresser<elK> tOutputRd(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
+  Addresser<elK> tOutput(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
   // uint8_t *tAInput = (uint8_t *)pdata;
   uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
   // float *tWInput = (float *)pweights;
@@ -227,7 +229,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
       // correctly for float16.
       size_t sizeDstType;
 
-      if (std::is_same<DstType, float>::value) { sizeDstType = 4; }
+      if (std::is_same<dstType, float>::value) { sizeDstType = 4; }
       else                                     { sizeDstType = 2; }
 
       uint8_t *currRowScaleOffsetPtr = &tAInput[offsetIn + inLineSize - (2 * sizeDstType)];
@@ -235,7 +237,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
       float scale;
       float offset;
       // Regular load for float
-      if (std::is_same<DstType, float>::value) {
+      if (std::is_same<dstType, float>::value) {
         float * currRowScaleOffsetPtrFloat = (float *) currRowScaleOffsetPtr;
         scale  = currRowScaleOffsetPtrFloat[0];
         offset = currRowScaleOffsetPtrFloat[1];
@@ -252,7 +254,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
       // For all the elements of the row that the minion processes
       for (size_t k = start; k < end; k++) {
         float d = dequantizeWithFloatOffset(tAInput[offsetIn], scale, offset);
-        typename accumulatorType<DstType>::type sum;
+        typename accumulatorType<dstType>::type sum;
 
         // Need to reset to 0 if first accumulation
         if (j == idxStart) { sum = 0.0f; }
@@ -292,7 +294,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
         float offset;
         memcpy(&scale, currRowScaleOffsetPtr, sizeof(float));
         memcpy(&offset, currRowScaleOffsetPtr + sizeof(float), sizeof(float));
-        typename accumulatorType<DstType>::type sum = tOutputRd[offsetOut];
+        typename accumulatorType<dstType>::type sum = tOutputRd[offsetOut];
         for (size_t k = 0; k < outLineSize; k++) {
 
           float d = dequantizeWithFloatOffset(tAInput[offsetIn], scale, offset);
@@ -312,13 +314,16 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
 // vector f31 should be set to {0, 1, 2, 3, 4, 5, 6, 7}
 // vector f29 should be set to {0, 2, 4, 6, 8, 10, 12, 14}
 //
-template <bool Weighted, bool Float32Dst, bool Float16Dst>
+  template <ElemKind elK>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
+void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
     uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
     uintptr_t dataRowSize, uintptr_t dstElemSize,
-    uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr) { 
+    uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr, const bool Weighted = true) { 
+
+  const bool float32Dst = elK == FloatTy;
+  const bool float16Dst = elK == Float16Ty;
 
   // Clear vector accumulator at the start.
   __asm__ __volatile__ (
@@ -345,7 +350,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
         : "f26"
       );
   
-      if (Float16Dst) {
+      if (float16Dst) {
         __asm__ __volatile__ (
           "fcvt.ps.f16 f26, f26\n"
           :
@@ -364,7 +369,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
      : "f27", "f28"
    );
   
-   if (Float16Dst) {
+   if (float16Dst) {
      __asm__ __volatile__ (
        "fcvt.ps.f16 f27, f27\n"
        "fcvt.ps.f16 f28, f28\n"
@@ -404,7 +409,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     }
   }
   
-  if (Float32Dst) {
+  if (float32Dst) {
     // Store accumulated results.
     __asm__ __volatile__ (
       "fsw.ps f0, (%[dst_ptr])\n"
@@ -414,7 +419,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     );
   }
   
-  if ((not Float32Dst) and Float16Dst) {
+  if ((not float32Dst) and float16Dst) {
     __asm__ __volatile__ (
       "fcvt.f16.ps f0, f0\n"
       "fsch.ps f0, f29(%[dst_ptr])\n"
@@ -426,7 +431,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
 
   dst_ptr  += 8 * dstElemSize;
   
-  if (Float32Dst and Float16Dst) {
+  if (float32Dst and float16Dst) {
     __asm__ __volatile__ (
       "fcvt.f16.ps f0, f0\n"
       "fsch.ps f0, f29(%[dst_ptr])\n"
@@ -439,12 +444,17 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect(
   }
 }
 
-template<bool Weighted, bool Float32Dst, bool Float16Dst>
+ 
+template <ElemKind elK, bool Weighted = true>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    
+  const bool float32Dst = elK == FloatTy;
+  const bool float16Dst = elK == Float16Ty;
 
+  assert(elK == FloatTy || elK == Float16Ty);
   // Get offset of the Minion inside the group of Minions assigned to this Node.
 
   uint64_t minionId = get_minion_id();
@@ -507,9 +517,9 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
 
   // Get size of the output element.
   uintptr_t dstElemSize;
-  if (Float32Dst)  // For dual output use float32 blocking for the tail
+  if (float32Dst)  // For dual output use float32 blocking for the tail
     dstElemSize = 4;
-  else if (Float16Dst)
+  else if (float16Dst)
     dstElemSize = 2;
 
   // Compute the number of 8-element vectors per output cache line.
@@ -578,7 +588,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
 
   // Second output pointer when both float32 and float16 are active.
   uint8_t *dst2_ptr;
-  if (Float32Dst and Float16Dst)
+  if (float32Dst and float16Dst)
     dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
 
   // For all minion assigned work units
@@ -614,7 +624,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
           "f30", "f31"
       );
 
-      if (Float16Dst) {
+      if (float16Dst) {
         // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
         __asm__ __volatile__ (
           "fadd.pi f29, f31, f31\n"
@@ -641,7 +651,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
             : "f26"
           );
 
-          if (Float16Dst) {
+          if (float16Dst) {
             __asm__ __volatile__ (
               "fcvt.ps.f16 f26, f26\n"
               :
@@ -660,7 +670,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
           : "f27", "f28"
         );
 
-        if (Float16Dst) {
+        if (float16Dst) {
           __asm__ __volatile__ (
             "fgb.ps      f25, f31, %[data_ptr]\n"
             "fcvt.ps.f16 f27, f27\n"
@@ -764,7 +774,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         }
       }
 
-      if (Float32Dst) {
+      if (float32Dst) {
         // Store accumulated results.
         __asm__ __volatile__ (
           "fsw.ps f0,    (%[dst_ptr])\n"
@@ -783,7 +793,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         dst_ptr += 64 * dstElemSize;
       }
 
-      if ((not Float32Dst) and (Float16Dst)) {
+      if ((not float32Dst) and (float16Dst)) {
         // Convert and store accumulated results.
         __asm__ __volatile__ (
           "fcvt.f16.ps f0, f0\n"
@@ -816,7 +826,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         );
       }
 
-      if (Float32Dst and (Float16Dst)) {
+      if (float32Dst and (float16Dst)) {
         // Convert and store accumulated results.
         __asm__ __volatile__ (
           "fcvt.f16.ps f0, f0\n"
@@ -860,7 +870,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         currSegmentLength = lengths[minionCurrSegment];
 
         dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
-        if (Float32Dst and Float16Dst)
+        if (float32Dst and float16Dst)
           dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
       }
     }
@@ -882,7 +892,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         : "t0", "f0", "f30", "f31"
       );
 
-      if (Float16Dst) {
+      if (float16Dst) {
         // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
         __asm__ __volatile__ (
           "fadd.pi f29, f31, f31\n"
@@ -893,10 +903,10 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
       }
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-        dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
+          fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
           dataPitches[0], dataRowSize, dstElemSize,
-          tWInput, dst_ptr, dst2_ptr);
+          tWInput, dst_ptr, dst2_ptr, Weighted);
       }
 
       // Set mask for last VReg in group.
@@ -906,10 +916,10 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
         : [tail_mask] "r" (dstRowTailVRegMask)
       );
 
-      dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumVect<Weighted, Float32Dst, Float16Dst>(
+      fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
         minionCurrIndex, currSegmentLength, tAInput, indices,
         dataPitches[0], dataRowSize, dstElemSize,
-        tWInput, dst_ptr, dst2_ptr);
+        tWInput, dst_ptr, dst2_ptr, Weighted);
 
       minionCurrIndex += currSegmentLength;
 
@@ -919,24 +929,20 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
       currSegmentLength = lengths[minionCurrSegment];
 
       dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
-      if (Float32Dst and Float16Dst)
+      if (float32Dst and float16Dst)
         dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
     }
   }
 }
 
-template<typename Type>
+template <ElemKind elK>
 inline __attribute((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  const bool float32Dst = (std::is_same<Type, float>::value);
-  const bool float16Dst = (std::is_same<Type, float16>::value);
-
-  LibTensor* out2T = nullptr;
-  inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized<true, float32Dst, float16Dst>(
-              outT, out2T, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
+  inlining::fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, true>
+    (outT, nullptr, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining

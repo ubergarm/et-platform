@@ -31,22 +31,21 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) {
+template <ElemKind elK>
+inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim_array_t &coord,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
   /* maintain compatibility through the new Iface Libtensor */
 
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(src, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -60,8 +59,6 @@ inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) 
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
     
-  long unsigned int *coord = (long unsigned int *)pcoord;
-
   // assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
   int offsetIn = 0;
 
@@ -114,24 +111,25 @@ inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, void *pcoord) 
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
-                                         void *pcoord, uint64_t flags) {
+                                         const dim_array_t &coord, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
 
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(src, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -145,11 +143,10 @@ inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
-  long unsigned int *coord = (long unsigned int *)pcoord;
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddrOut, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddrOut, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -226,7 +223,7 @@ inline __attribute__((always_inline)) void
 gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
                    int32_t *gatherValues) {
   float d0,d1;
-  if (getsize<srcType>() == 2) {
+  if (sizeof(srcType) == 2) {
     __asm__ __volatile__
       (
        "mov.m.x m0, %[mask], 0\n"
@@ -241,7 +238,7 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
          [ mask ] "r" (mask)
       );
 
-  } else if (getsize<srcType>() == 1) {
+  } else if (sizeof(srcType) == 1) {
     __asm__ __volatile__(
         "mov.m.x m0, %[mask], 0\n"
         "flw.ps %[d1], %[gatherValues] \n"
@@ -258,24 +255,25 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
   return;
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
-                                           void *pcoord, uint64_t flags) {
+                                           const dim_array_t & coord, uint64_t flags,
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return; // Minion not working
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
 
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(src, scale[0], offset[0]);
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -289,11 +287,10 @@ inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
-  long unsigned int *coord = (long unsigned int *)pcoord;
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddrOut, maxRead;
-  int32_t typeSize = (int32_t) getsize<srcType>();
+  int32_t typeSize = (int32_t) sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddrOut, maxRead,
                         minionId, activeMinions); // Obtain initial addr 4 minions
   if (maxRead == 0)

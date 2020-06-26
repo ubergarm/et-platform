@@ -39,11 +39,11 @@ namespace inlining {
  */
 template <ElemKind elKind>
 inline void fwdLibLengthsRangeFillInst(LibTensor* outT, LibTensor* inT, 
-				       uint64_t flags) {
-  
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+				       uint64_t flags, 
+				       const uint32_t minionOffset = 0,
+				       const uint32_t assignedMinions = 0) {
+    
+  if (get_minion_id() != minionOffset) return;
 
   assert(inT->getElementType() == outT->getElementType());
   assert(inT->getElementType() == Int32ITy);

@@ -31,12 +31,11 @@ namespace inlining {
 
 template <ElemKind elKind>
 inline typename std::enable_if_t<(isQuantizedElemKind(elKind)||(elKind==Float16Ty)), void> 
-fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {
+fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   assert(inT->getElementType() == outT->getElementType());
 
   assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
@@ -48,6 +47,7 @@ fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {
 
   auto inH = inT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
+
 
 #define START_IND(a, b, c) (a * c) / b
 #define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1
@@ -118,16 +118,15 @@ fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) {
  
 template <ElemKind elKind>
 inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void> 
-fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags) { 
+fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) { 
 
   assert(inT->getElementType() == outT->getElementType());
 
   assert((inT->getElementType() == FloatTy)||(inT->getElementType() == Int32ITy)||
 	 (inT->getElementType() == Int64ITy));
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) 
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   using elkType = typename elemKind2elemTy<elKind>::type;
 

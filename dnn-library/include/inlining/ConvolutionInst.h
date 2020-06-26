@@ -68,16 +68,21 @@ struct accumulatorType {
  * @param[in] scale The scale for the quantization.
  * @param[in] offset The offset for the quantization.
  */
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                  LibTensor* in3T, void *pkernels, void *pstrides,
-                                    void *ppads, unsigned int group) {
-
+                                  LibTensor* in3T,
+                                  const std::array<uint32_t, N> &kernels,
+                                  const std::array<uint32_t, N> &strides,
+                                  const std::array<uint32_t, PN> &pads,
+                                  unsigned int group,
+                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+  
   // FIXME: going back to single thread until general case is solved with
   // multithread
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
@@ -86,11 +91,11 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   void* weights =  in2T->getRawDataPointer<void>();
 
   // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
   // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   // float *tBias = (float *)bias;
   float *tBias = in3T->getRawDataPointer<float>();
 
@@ -104,11 +109,6 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
-  
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides; 
-  unsigned int *pads = (unsigned int *)ppads; 
-
   
   assert(actIndex[3] % group == 0 &&
          "Input channels must be divisible by group.");
@@ -188,12 +188,12 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <typename srcType,
-          typename std::enable_if<std::is_same<srcType, int64_t>::value, std::size_t>::type = 0>
+template <ElemKind srcElK,
+          typename std::enable_if<srcElK == Int64ITy, std::size_t>::type = 0>
 inline void convolutionStep (int64_t *sum,
-                             const Addresser<srcType> &tAInput,
+                             const Addresser<srcElK> &tAInput,
                              void * tAInputPtr,
-                             const Addresser<srcType> &tWInput,
+                             const Addresser<srcElK> &tWInput,
                              void * tWInputPtr,
                              size_t inCperG,
                              size_t actOffset,
@@ -231,12 +231,12 @@ inline void convolutionStep (int64_t *sum,
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <typename srcType,
-          typename std::enable_if<std::is_same<srcType, int32_t>::value, std::size_t>::type = 0>
+template <ElemKind srcElK,
+          typename std::enable_if<srcElK == Int32ITy, std::size_t>::type = 0>
 inline void convolutionStep (int32_t *sum,
-                             const Addresser<srcType> &tAInput,
+                             const Addresser<srcElK> &tAInput,
                              void * tAInputPtr,
-                             const Addresser<srcType> &tWInput,
+                             const Addresser<srcElK> &tWInput,
                              void * tWInputPtr,
                              size_t inCperG,
                              size_t actOffset,
@@ -274,11 +274,11 @@ inline void convolutionStep (int32_t *sum,
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <typename srcType>
+template <ElemKind srcElK>
 inline void convolutionStep (float *sum,
-                             const Addresser<srcType> &tAInput,
+                             const Addresser<srcElK> &tAInput,
                              void * tAInputPtr,
-                             const Addresser<srcType> &tWInput,
+                             const Addresser<srcElK> &tWInput,
                              void * tWInputPtr,
                              size_t inCperG,
                              size_t actOffset,
@@ -286,7 +286,7 @@ inline void convolutionStep (float *sum,
                              size_t weightPitch,
                              size_t elems) {
   // Float version
-  if (std::is_same<srcType, float>::value) {
+  if (srcElK == FloatTy) {
     char * tAAddr = (char *) tAInputPtr;
     tAAddr += actOffset * 4;
     char * tWAddr = (char *) tWInputPtr;
@@ -327,7 +327,7 @@ inline void convolutionStep (float *sum,
     );
   }
   // Float16 version
-  else if (std::is_same<srcType, float16>::value) {
+  else if (srcElK == Float16Ty) {
     char * tAAddr = (char *) tAInputPtr;
     tAAddr += actOffset * 2;
     char * tWAddr = (char *) tWInputPtr;
@@ -405,16 +405,22 @@ inline void convolutionStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename srcType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
-             LibTensor* in2T, LibTensor* in3T, void *pkernels, void *pstrides,
-             void *ppads, unsigned int group, uint64_t flags) {
-
-  // Gets minion Id and check if minion is active
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+                                          LibTensor* in2T, LibTensor* in3T,
+                                          const std::array<uint32_t, N> &kernels,
+                                          const std::array<uint32_t, N> &strides,
+                                          const std::array<uint32_t, PN> &pads,
+                                          unsigned int group,
+                                          uint64_t flags,
+             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
@@ -422,9 +428,9 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   void* activations = in1T->getRawDataPointer<void>();
   void* weights     = in2T->getRawDataPointer<void>();
 
-  Addresser<srcType>       tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  Addresser<dstElK>       tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   float *tBias = in3T->getRawDataPointer<float>();
 
   const dim_t *dstIndex = outT->dims().data();
@@ -433,13 +439,9 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   const dim_t *actPitch = in1T->strides().data();
   const dim_t *weightPitch = in2T->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides; 
-  unsigned int *pads = (unsigned int *)ppads; 
-
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -494,7 +496,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
     if(elems > featsLeft) { elems = featsLeft; }
 
     // Starts the accumulation with the bias (per Channel)
-    typename accumulatorType<srcType>::type sum[CONVOLUTION_MAX_ELEMS];
+    typename accumulatorType<src1Type>::type sum[CONVOLUTION_MAX_ELEMS];
     for (size_t i = 0; i < elems; i++) {
       sum[i] = tBias[weightC + i];
     }
@@ -536,7 +538,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
         }
 
         // Calls the function that will accumulate all the channels for specific kernel step
-        convolutionStep <srcType> (sum, tAInput, activations, tWInput, weights, inCperG, dataBCKernelOffset, weightKernelStepCOffset, weightPitch[0], elems);
+        convolutionStep <src1ElK> (sum, tAInput, activations, tWInput, weights, inCperG, dataBCKernelOffset, weightKernelStepCOffset, weightPitch[0], elems);
       }
     }
     // Moves to next result
@@ -580,13 +582,13 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
  *  we can't take 8 elements at the same time.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
-                            src1Type, float>::value, std::size_t>::type = 0>
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, size_t N,
+          typename std::enable_if<src1ElK == FloatTy, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -694,13 +696,13 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *
  * @overload
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<std::is_same<
-                            src1Type, float16>::value, std::size_t>::type = 0>
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, size_t N,
+          typename std::enable_if<src1ElK == Float16Ty, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -834,17 +836,15 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] mask It has no relevance in this function.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if<(!std::is_same<
-                            src1Type, float>::value) /*&& (!std::is_same<
-                            src1Type, float16>::value) && (!std::is_same<
-                            src1Type, int8_t>::value)*/, std::size_t>::type = 0>
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, size_t N,
+            typename std::enable_if<src1ElK != FloatTy, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
-  const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
-  const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+  const Addresser<src1ElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<src2ElK> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
       for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
         ssize_t ox = x + fx;
@@ -873,17 +873,15 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *
  * @overload
  */
-template <typename src1Type, typename src2Type, typename dstType, typename std::enable_if</*(!std::is_same<
-                            src1Type, float>::value) && */(!std::is_same<
-                            src1Type, float16>::value) /*&& (!std::is_same<
-                            src1Type, int8_t>::value)*/, std::size_t>::type = 0>
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, size_t N,
+          typename std::enable_if<src1ElK != Float16Ty, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
-  const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
-  const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+  const Addresser<src1ElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<src2ElK> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
       for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
         ssize_t ox = x + fx;
@@ -908,16 +906,16 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 }
 
 
-template <typename src1Type, typename src2Type, typename dstType>
+  template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, size_t N, size_t PN>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                    const dim_t *actPitch, const dim_t *weightPitch,
-                    const dim_t *actIndex, unsigned int *kernels,
-                    unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
-                    ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
-  const Addresser<src1Type> tAInput(activations, scale[0], offset[0]);
-  const Addresser<src2Type> tWInput(weights, scale[1], offset[1]);
+                           const dim_t *actPitch, const dim_t *weightPitch,
+                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
+                           unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
+                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset) {
+  const Addresser<src1ElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<src2ElK> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
-      for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
+    for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
         ssize_t ox = x + fx;
         ssize_t oy = y + fy;
 
@@ -970,18 +968,23 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <typename src1Type, typename src2Type, typename dstType>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
-                                            void *pkernels, void *pstrides,
-                                            void *ppads, unsigned int group,
-                                            const float *scale, const int32_t *offset,
-                                            uint64_t flags) {
+                                            const std::array<uint32_t, N> &kernels,
+                                            const std::array<uint32_t, N> &strides,
+                                            const std::array<uint32_t, PN> &pads,
+                                            unsigned int group,
+                                            uint64_t flags,
+                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using src1Type = typename elemKind2elemTy<src1ElK>::type;
+  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
@@ -990,7 +993,7 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
 
-  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());  
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());  
   // float *tBias = (float *)bias;
   float *tBias = in3T->getRawDataPointer<float>();
   
@@ -1005,12 +1008,10 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   const dim_t *actPitch = in1T->strides().data();
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
+
+  float scale[] = { in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
+  int32_t offset[] = { in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides; // Jump between convols
-  unsigned int *pads = (unsigned int *)ppads; // 0 added to avoid loss of dims
-
-
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<src1Type>();
@@ -1058,9 +1059,9 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
     d = coord[3] * outCperG + coord[4];
 
     auto sum = tBias[d];
-    convolutionOp <src1Type, src2Type, dstType> (activations, weights, coord, actPitch, weightPitch,
-                                                 actIndex, kernels, inCperG, sum, mask, x, y, d,
-                                                 scale, offset);
+    convolutionOp <src1ElK, src2ElK, dstElK> (activations, weights, coord, actPitch, weightPitch,
+                                              actIndex, kernels, inCperG, sum, mask, x, y, d,
+                                              scale, offset);
     tOutput[offsetOut] = sum;
 
     done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);

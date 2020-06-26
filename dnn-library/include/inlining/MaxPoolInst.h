@@ -30,25 +30,27 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,                              
+  template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
+inline void maxPoolImpl(bool argMax, LibTensor* outT, LibTensor* out2T,                              
                               LibTensor* inT, 
-                              void *srcMatrixPitchesNoPadding,
-                              void *pkernels, void *pstrides, void *ppads) {
+                              const std::array<uint32_t, N> &kernels,
+                              const std::array<uint32_t, N> &strides,
+                              const std::array<uint32_t, PN> &pads,
+                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<srcElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
   // int64_t *tOutput2 = (int64_t *)dst2Matrix;
   int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 
@@ -64,11 +66,7 @@ inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data();
   
-  unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
-
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
+  auto srcPitchNoPadding = inT->stridesNoPadding();
 
   // For each input in the batch:
   for (size_t n = 0; n < dstIndex[0]; n++) {
@@ -127,27 +125,30 @@ inline void fwdLibMaxPoolInst(bool argMax, LibTensor* outT, LibTensor* out2T,
   }       // N
 }
 
-template <typename srcType, typename dstType>
-inline void fwdLibMaxPoolInstThreaded(bool argMax, LibTensor* outT,
-                                      LibTensor* out2T, LibTensor* inT,
-                                      void *srcMatrixPitchesNoPadding,
-                                      void *pkernels, void *pstrides,
-                                      void *ppads, uint64_t flags) {
+  template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
+inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
+                                LibTensor* out2T, LibTensor* inT,
+                                const std::array<uint32_t, N> &kernels,
+                                const std::array<uint32_t, N> &strides,
+                                const std::array<uint32_t, PN> &pads,
+                                uint64_t flags,
+                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    //  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
-
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = inT->getRawDataPointer<void>();
   
-  // Addresser<dstType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
   // int64_t *tOutput2 = (int64_t *)dst2Matrix;  
   int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 
@@ -163,11 +164,7 @@ inline void fwdLibMaxPoolInstThreaded(bool argMax, LibTensor* outT,
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data(); 
 
-  unsigned int *srcPitchNoPadding = (unsigned int *)  srcMatrixPitchesNoPadding;
-
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
+  auto srcPitchNoPadding = inT->stridesNoPadding();
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -241,6 +238,62 @@ inline void fwdLibMaxPoolInstThreaded(bool argMax, LibTensor* outT,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Max Pool instruction
+  ////////////////////////////////////////////////////////////////////////////////
+  
+  template <ElemKind out0Type, ElemKind in0Type, size_t N, size_t PN>
+  void fwdLibMaxPoolInst(LibTensor* out0, LibTensor* in0,
+                         const std::array<uint32_t, N> &kernels,
+                         const std::array<uint32_t, N> &strides,
+                         const std::array<uint32_t, PN> &pads,
+                         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    maxPoolImpl<out0Type, in0Type>(false, out0, nullptr, in0,
+                                   kernels, strides, pads,
+                                   flags, minionOffset, assignedMinions);
+  }
+  
+  template <ElemKind out0Type, ElemKind in0Type, size_t N, size_t PN>
+  void fwdLibMaxPoolInstThreaded(LibTensor* out0, LibTensor* in0,
+                                 const std::array<uint32_t, N> &kernels,
+                                 const std::array<uint32_t, N> &strides,
+                                 const std::array<uint32_t, PN> &pads,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    maxPoolImplThreaded<out0Type, in0Type>(false, out0, nullptr, in0,
+                                           kernels, strides, pads,
+                                           flags, minionOffset, assignedMinions);
+  }
+  
+  
+  
+  ////////////////////////////////////////////////////////////////////////////////
+  // Max Pool with ARGMAX instruction
+  ////////////////////////////////////////////////////////////////////////////////
+  
+  template <ElemKind out0Type, ElemKind in0Type, size_t N, size_t PN>
+  void fwdLibMaxPoolWithArgMaxInst(LibTensor* out0, LibTensor* out1, LibTensor* in0,
+                                   const std::array<uint32_t, N> &kernels,
+                                   const std::array<uint32_t, N> &strides,
+                                   const std::array<uint32_t, PN> &pads,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    maxPoolImpl<out0Type, in0Type>(true, out0, out1, in0,
+                                   kernels, strides, pads,
+                                   flags, minionOffset, assignedMinions);
+  }
+  
+  
+  template <ElemKind out0Type, ElemKind in0Type, size_t N, size_t PN>
+  void fwdLibMaxPoolWithArgMaxInstThreaded(LibTensor* out0, LibTensor* out1, LibTensor* in0,
+                                           const std::array<uint32_t, N> &kernels,
+                                           const std::array<uint32_t, N> &strides,
+                                           const std::array<uint32_t, PN> &pads,
+                                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    maxPoolImplThreaded<out0Type, in0Type>(true, out0, out1, in0,
+                                           kernels, strides, pads,
+                                           flags, minionOffset, assignedMinions);
+  }
+  
 } // namespace inlining
 
 } // namespace dnn_lib

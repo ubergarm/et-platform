@@ -30,13 +30,15 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
-                                 LibTensor* in2T) {
-
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
+inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
+                                 LibTensor* in2T,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+//  using dstType = typename elemKind2elemTy<dstElK>::type;
+//  using batchType = typename elemKind2elemTy<batchElK>::type;
+//  using sliceType = typename elemKind2elemTy<sliceElK>::type;
+  
+  if (get_minion_id() != minionOffset) return;
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */
@@ -44,35 +46,19 @@ inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
   void* batchT = in1T->getRawDataPointer<void>();
   void* sliceT = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
-  const Addresser<srcType> tBatch(batchT, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tSlice(sliceT, scale[1], offset[1]);
-  const Addresser<srcType> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
+  Addresser<dstElK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<batchElK> tBatch(batchT, in1T->getScale(), in1T->getOffset());
+  const Addresser<sliceElK> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
 
-  // unsigned int *batchIndex = (unsigned int *)pbatchDims;
-  const dim_t *batchIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
-  const dim_t *batchPitch = in1T->strides().data();
+  assert(in1T->ndims() <= MAX_TENSOR_DIMENSIONS);
 
-  unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
-  //  assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
-  assert(pbatchDimNum <= MAX_TENSOR_DIMENSIONS);
+  const dim_array_t & eBatchDims = in1T->dims();
+  const dim_array_t & eDstPitch = outT->strides();
+  const dim_array_t & eBatchPitch = in1T->strides();
+  const dim_array_t & eSlicePitch = in2T->strides();
 
-  unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eBatchPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
 
-  for (size_t i = 0; i < pbatchDimNum; i++) {
-    eBatchDims[i] = batchIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eBatchPitch[i] = batchPitch[i];
-  }
-
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> op;
+  Operator<Addresser<batchElK>, Addresser<sliceElK>, Addresser<dstElK>, Add> op;
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -87,9 +73,9 @@ inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
               uint64_t srcAddr1 = x * eBatchPitch[0] + y * eBatchPitch[1] +
                                   z * eBatchPitch[2] + w * eBatchPitch[3] +
                                   q * eBatchPitch[4] + r * eBatchPitch[5];
-              uint64_t srcAddr2 = y * eBatchPitch[1] + z * eBatchPitch[2] +
-                                  w * eBatchPitch[3] + q * eBatchPitch[4] +
-                                  r * eBatchPitch[5];
+              uint64_t srcAddr2 = y * eSlicePitch[0] + z * eSlicePitch[1] +
+                                  w * eSlicePitch[2] + q * eSlicePitch[3] +
+                                  r * eSlicePitch[4];              
               op.doOp(tOutput, tBatch, tSlice, dstAddr, srcAddr1, srcAddr2);
             }
           }
@@ -100,14 +86,18 @@ inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
 }
 
 
-template <typename srcType>
-inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                         LibTensor* in2T, uint64_t flags) {
+template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
+inline void fwdLibBatchedAddInstThreadedGeneric(LibTensor* outT, LibTensor* in1T,
+                                         LibTensor* in2T, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+//  using batchType = typename elemKind2elemTy<batchElK>::type;
+//  using sliceType = typename elemKind2elemTy<sliceElK>::type;
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */
@@ -115,12 +105,9 @@ inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
   void* batchT = in1T->getRawDataPointer<void>();
   void* sliceT = in2T->getRawDataPointer<void>();
    
-  // Addresser<srcType> tOutput(pdst, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
-  const Addresser<srcType> tBatch(batchT, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tSlice(pslice, scale[1], offset[1]);
-  const Addresser<srcType> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
+  Addresser<dstElK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  const Addresser<batchElK> tBatch(batchT, in1T->getScale(), in1T->getOffset());
+  const Addresser<sliceElK> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -135,7 +122,7 @@ inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
       dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getUniformCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                                activeMinions);
   if (maxRead == 0)
@@ -157,7 +144,7 @@ inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> op;
+  Operator<Addresser<batchElK>, Addresser<sliceElK>, Addresser<dstElK>, Add> op;
 
   while (!done && (offsetOut < posMax)) {
     uint64_t offsetIn2 = offsetIn - coord[0]*batchPitch[0];
@@ -170,17 +157,18 @@ inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
+
+
 // TODO: Special implementation to support int8_t + int32_t sum, as a quick fix
 // we implement this function to support it, the correct way is extend the
 // BatchedAdd templatized op and the Operator class in order to support 2
 // different templates
 inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
-                                      LibTensor* in2T) {
+                                      LibTensor* in2T,
+                                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */
   // int8_t *tOutput = (int8_t *)pdst;
@@ -189,7 +177,6 @@ inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
   int8_t *tBatch = in1T->getRawDataPointer<int8_t>();
   // int32_t *tSlice = (int32_t *)pslice; // scale[1]
   int32_t *tSlice = in2T->getRawDataPointer<int32_t>();
-  
   // unsigned int *batchIndex = (unsigned int *)pbatchDims;
   const dim_t *batchIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)pdstPitches;
@@ -240,7 +227,6 @@ inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
 
               int32_t batchVal = tBatch[srcAddr1];
               int32_t sliceVal = tSlice[srcAddr2];
-
               int32_t B = nearbyintf(float(batchVal - in1T->getOffset()) *
                                      (in1T->getScale() * invLargeScale));
               int32_t S = nearbyintf(float(sliceVal - in2T->getOffset()) *
@@ -258,12 +244,13 @@ inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
 
 
 inline void fwdLibBatchedAddInsti8i32Threaded(LibTensor* outT, LibTensor* in1T,
-                                              LibTensor* in2T, uint64_t flags) {
+                                              LibTensor* in2T, uint64_t flags,
+                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */
@@ -344,6 +331,27 @@ inline void fwdLibBatchedAddInsti8i32Threaded(LibTensor* outT, LibTensor* in1T,
     return;
   unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
+}
+
+
+template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
+inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
+                                   LibTensor* in2T,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  if ( dstElK == Int8QTy && batchElK == Int8QTy && sliceElK == Int32QTy)
+    inlining::fwdLibBatchedAddInsti8i32(outT, in1T, in2T, flags, minionOffset, assignedMinions);
+  else
+    inlining::fwdLibBatchedAddInstGeneric<dstElK, batchElK, sliceElK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
+}
+
+  template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
+inline void fwdLibBatchedAddInstThreaded(LibTensor* outT, LibTensor* in1T,
+                                   LibTensor* in2T,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  if ( dstElK == Int8QTy && batchElK == Int8QTy && sliceElK == Int32QTy)
+    inlining::fwdLibBatchedAddInsti8i32Threaded(outT, in1T, in2T, flags, minionOffset, assignedMinions);
+  else
+    inlining::fwdLibBatchedAddInstThreadedGeneric<dstElK, batchElK, sliceElK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining

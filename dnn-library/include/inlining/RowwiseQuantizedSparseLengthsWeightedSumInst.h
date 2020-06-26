@@ -29,23 +29,25 @@
 namespace dnn_lib {
 
 namespace inlining {
-
-inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
+template <ElemKind dstElK, ElemKind srcElK>
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
     LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-    LibTensor* in4T, LibTensor* in5T, LibTensor* in6T) {
+    LibTensor* in4T, LibTensor* in5T, LibTensor* in6T,
+    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out->dst in1T-> data in2T-> weight in3T-> indices in4T-> lengths */
   /* in5T-> scale in6T-> offset */
   
   // float *tOutput = (float *)pdst;
-  float *tOutput = outT->getRawDataPointer<float>();
+  float *tOutput = outT->getRawDataPointer<dstType>();
   // uint8_t *tAInput = (uint8_t *)pdata;
-  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  uint8_t *tAInput = in1T->getRawDataPointer<srcType>();
   // float *tScale = (float *)pscale;
   float *tScale = in5T->getRawDataPointer<float>();
   // float *tOffset = (float *)poffset;
@@ -104,24 +106,27 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTy(
     }
   }
 }
-
-inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
+template <ElemKind dstElK, ElemKind srcElK>
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
              LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags) {
+             LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
+             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out->dst in1T-> data in2T-> weight in3T-> indices in4T-> lengths */
   /* in5T-> scale in6T-> offset */
   
   // float *tOutput = (float *)pdst;
-  float *tOutput = outT->getRawDataPointer<float>();
+  float *tOutput = outT->getRawDataPointer<dstType>();
   // uint8_t *tAInput = (uint8_t *)pdata;
-  uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
+  uint8_t *tAInput = in1T->getRawDataPointer<srcType>();
   // float *tScale = (float *)pscale;
   float *tScale = in5T->getRawDataPointer<float>();
   // float *tOffset = (float *)poffset;
@@ -190,12 +195,15 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyThreaded(
   }
 }
 
-template<bool Int8Src, bool Float16Dst>
-inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstFloatTyVectorized(
+template <ElemKind dstElK, ElemKind srcElK>
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
              LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
              LibTensor* in4T, LibTensor* in5T, LibTensor* in6T, uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
+  const bool Int8Src = srcElK == Int8QTy;
+  const bool Float16Dst = dstElK == Float16Ty;
+  
   // Get offset of the Minion inside the group of Minions assigned to this Node.
   uint64_t minionId = get_minion_id();
   if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.

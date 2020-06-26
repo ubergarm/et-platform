@@ -30,21 +30,18 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle) {
-
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+template <ElemKind elK, size_t N>
+inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &shuffle,
+                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());  
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());  
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
@@ -52,9 +49,6 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle)
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
-
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
@@ -97,23 +91,22 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, void *pshuffle)
   }
 }
 
-template <typename srcType>
+  template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
-                                        void *pshuffle, uint64_t flags) {
+                                        const std::array<uint32_t, N> &shuffle, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(src, inT->getScale(), inT->getOffset());
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex =  outT->dims().data();
@@ -122,14 +115,11 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
 
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
-
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -164,9 +154,8 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if< (getsize<srcType>() <=4), int>::type = 0>
+template <typename srcType, typename std::enable_if< (sizeof(srcType) <=4), int>::type = 0>
 void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t *gatherValues){
-  constexpr size_t size = getsize<srcType>();
   __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        ".if %[size] == 4\n"
                        "    fgw.ps  f0, f31(%[src]) \n"
@@ -188,24 +177,27 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t 
                          [ scatterValues ] "m"(*(const int32_t(*)[8]) scatterValues),
                          [ dst ] "r"(dst),
                          [ src ] "r"(src),
-                         [ size] "i" (size)
+                         [ size] "i" (sizeof(srcType))
                        : "f0", "f31", "memory");
 }
 
-  template <typename srcType, typename std::enable_if< (getsize<srcType>()>4), int>::type = 0 >
+template <typename srcType, typename std::enable_if< (sizeof(srcType) > 4), int>::type = 0 >
 void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t *gatherValues){
   //FIXME: TODO: implement
 }
 
 
 
-template <typename srcType>
+
+  template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
-                                          void *pshuffle, uint64_t flags) {
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+                                          const std::array<uint32_t, N> &shuffle, uint64_t flags,
+                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void *>();
@@ -221,14 +213,11 @@ inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
 
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
-
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -324,9 +313,9 @@ inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
 }
 
 
-template <typename srcType, typename std::enable_if< (getsize<srcType>() <=4), int>::type = 0>
+template <typename srcType, typename std::enable_if< (sizeof(srcType) <=4), int>::type = 0 >
 void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
-  constexpr size_t size = getsize<srcType>();
+  constexpr size_t size = sizeof(srcType);
   constexpr auto g32_conf = size == 2 ? fg32h_conf : fg32b_conf;
   
   __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
@@ -352,21 +341,23 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
                        );
 }
   
-  template <typename srcType, typename std::enable_if< (getsize<srcType>() >4), int>::type = 0>
+template <typename srcType, typename std::enable_if< (sizeof(srcType) > 4), int>::type = 0>
   void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
   //FIXME: not implemented
 }
 
 
 
-template <typename srcType>
+  template <ElemKind elK, size_t N>
 inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                              void *pshuffle, uint64_t flags) {
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+                                              const std::array<uint32_t, N> &shuffle, uint64_t flags,
+                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;  
 
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
@@ -383,14 +374,11 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
   
-  // unsigned int *shuffle = (unsigned int *)pshuffle;
-  unsigned int* shuffle = reinterpret_cast<unsigned int*>(pshuffle);
-
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -453,6 +441,32 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
     if (clperminion > 0)
       fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
   }
+}
+
+
+
+
+template <ElemKind elK, size_t N>
+inline void fwdLibTransposeInstBest(const int desired, LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &shuffle,
+                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  switch(desired){
+  case 1: inlining::fwdLibTransposeInst(outT,inT, shuffle, flags, minionOffset, assignedMinions); break;
+  case 2: inlining::fwdLibTransposeInstThreaded(outT,inT, shuffle, flags, minionOffset, assignedMinions); break;
+  case 3: inlining::fwdLibTransposeInstVectorized(outT,inT, shuffle, flags, minionOffset, assignedMinions); break;
+  default:
+    {
+      const size_t batchDim = inT->ndims() - 2;
+      if ( inT->ndims() >= 2 &&
+           (outT->strides()[batchDim] * outT->getElementSize() )% 32 == 0  &&
+           (inT->strides()[batchDim] * inT->getElementSize() ) % 32 == 0  &&
+           (elK == FloatTy || elK == Float16Ty || elK==Int8QTy ) )
+        inlining::fwdLibTransposeInstAligned32Bytes(outT,inT, shuffle, flags, minionOffset, assignedMinions);
+      else
+        inlining::fwdLibTransposeInstVectorized(outT,inT, shuffle, flags, minionOffset, assignedMinions); 
+    }
+    break;
+  }
+  
 }
 
 } // namespace inlining

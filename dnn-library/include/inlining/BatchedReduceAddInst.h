@@ -30,21 +30,21 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
+template <ElemKind elK>
+inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned int axis,
+                                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   void* batchT = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(pdst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
-  const Addresser<srcType> tBatch(batchT, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tBatch(pbatch, scale[0], offset[0]);
+  const Addresser<elK> tBatch(batchT, inT->getScale(), inT->getOffset());
 
   // unsigned int *batchIndex = (unsigned int *)pbatchDims;
   const dim_t *batchIndex = inT->dims().data();
@@ -88,7 +88,7 @@ inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned
     }
   }
 
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> op;
+  Operator<Addresser<elK>, Addresser<elK>, Addresser<elK>, Add> op;
   // We can use this loop for all shapes.
   for (size_t x = 0; x < eBatchDims[0]; x++) {
     for (size_t y = 0; y < eBatchDims[1]; y++) {
@@ -111,22 +111,24 @@ inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
-                                               unsigned int axis,  uint64_t flags) {
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
-  
+                                               unsigned int axis,  uint64_t flags,
+                                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   void* batchT = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(pdst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tBatch(pbatch, scale[0], offset[0]);
-  const Addresser<srcType> tBatch(batchT, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(pdst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tBatch(pbatch, scale[0], offset[0]);
+  const Addresser<elK> tBatch(batchT, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -176,12 +178,12 @@ inline void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   //int sum = 0;
-  Operator<Addresser<srcType>, Addresser<srcType>, Addresser<srcType>, Add> op;
+  Operator<Addresser<elK>, Addresser<elK>, Addresser<elK>, Add> op;
   while (!done && (offsetOut < posMax)) {
     tOutput[offsetOut] = tBatch[offsetIn];
     offsetIn += batchPitch[axis];
     for (size_t i = 1; i < batchIndex[axis]; i++) {
-      Addresser<srcType> tSum = tOutput;
+      Addresser<elK> tSum = tOutput;
       op.doOp(tOutput, tSum, tBatch, offsetOut, offsetOut, offsetIn);
       offsetIn += batchPitch[axis];
     }
@@ -197,12 +199,12 @@ inline void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-inline void fwdLibBatchedReduceAddInstInt8(LibTensor* outT, LibTensor* inT,
-                                           unsigned int axis) {
+  template<>
+  inline void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor* inT,
+                                                  unsigned int axis,
+                                                  uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   
   /* maintain compatibility through the new Iface Libtensor */
@@ -284,17 +286,18 @@ inline void fwdLibBatchedReduceAddInstInt8(LibTensor* outT, LibTensor* inT,
 #undef LOOP_AXIS_CASE
 }
 
+  template<>
+  inline void fwdLibBatchedReduceAddInstThreaded<Int8QTy>(LibTensor* outT,
+                                                          LibTensor* inT,
+                                                          unsigned int axis,
+                                                          uint64_t flags, const uint32_t minionOffset,
+                                                          const uint32_t assignedMinions) {
 
-inline void fwdLibBatchedReduceAddInstInt8Threaded(LibTensor* outT,
-                                                   LibTensor* inT,
-                                                   unsigned int axis,
-                                                   uint64_t flags) {
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
-
+  
   void *dstT = outT->getRawDataPointer<void>();
   
   // int8_t *tOutput = (int8_t *)pdst;

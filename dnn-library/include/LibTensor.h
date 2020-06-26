@@ -221,7 +221,7 @@ struct Type final {
      case dnn_lib::ElemKind::FloatTy:
        return std::is_same<ElemTy, float>::value;
      case dnn_lib::ElemKind::Float16Ty:
-       return std::is_same<ElemTy, float16_t>::value;
+       return std::is_same<ElemTy, uint16_t>::value;
      case dnn_lib::ElemKind::Int8QTy:
        return std::is_same<ElemTy, int8_t>::value;
      case dnn_lib::ElemKind::UInt8QTy:
@@ -433,6 +433,17 @@ class LibTensor final {
    */
   const dim_array_t &strides() const { return type_.strides_;}
 
+  /*@brief returns strides as if there were no padding
+   */
+  const dim_array_t stridesNoPadding() const {
+    dim_array_t v;
+    v[ndims()-1] = 1;
+    for (int64_t i = ndims()-2; i >=0; i--){
+      v[i] = v[i+1] * dims()[i+1];
+    }
+    return v;
+  }
+  
   /*@brief returns the number of real menaingful elements in the tensor. Does
    *not take strides into account.
    */
@@ -453,23 +464,23 @@ class LibTensor final {
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
             const std::array<dim_t, numSizes> &pitches, float scale, int offset)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata ,64))),
       type_(elk, dims, pitches, scale, offset) {}
 
   // constructor for non quant types
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
             const std::array<dim_t, numSizes> &pitches)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
       type_(elk, dims, pitches) {}
 
   // constructor from type
   LibTensor(const Type &type, void* rawdata)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
       type_(type) {}
 
   LibTensor(const Type &&type, void* rawdata)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
+    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
       type_(std::move(type)) {}
 
 
@@ -635,9 +646,9 @@ template <class ElemTy> class Handle final {
 
    /*@brief It has the mult of the sizes for each position to end.
     */
-  const dim_array_t &strides_;
+  const dim_array_t &strides_ __attribute__((aligned(8)));
 
-  const dim_array_t &sizes_;
+  const dim_array_t &sizes_  __attribute__((aligned(8)));
 
   /*@brief the number of dimensions used in the tensor.
    */
@@ -730,6 +741,9 @@ public:
     std::fill(this->begin(), this->end(), value); 
   }
 
+  void zero(void) {
+    clear(0);
+  }
   /*@brief return reference to a meaningful data element. This method skip
    *padding elements.
    */
@@ -747,10 +761,25 @@ public:
     return data[index];
   }
 
+  /*@brief specific case use strides from outside of tensor */
   template<size_t N>
   ElemTy &at(std::array<dim_t, N> indices, const dim_array_t &extStrides, 
             size_t ndx) {
     size_t index = getElementPtr(indices, extStrides, ndx);
+    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    return data[index];
+  }
+
+  /*@brief returns the element at position offset \p idx without any size
+   * of calculation. The returned element can be a pad element.*/
+  ElemTy &raw(size_t index) {
+    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    return data[index];
+  }
+
+  /*@brief returns the element at position offset \p idx without any size
+   * of calculation. The returned element can be a pad element.*/
+  const ElemTy &raw(size_t index) const {
     auto *data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }

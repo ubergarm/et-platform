@@ -1,48 +1,40 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "BatchedReduceAddInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibBatchedReduceAddInst(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibBatchedReduceAddInst<in0Type>(out0, in0, Axis, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned int axis) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibBatchedReduceAddInst<srcType>(outT, inT, axis);
-}
+  template <ElemKind in0Type>
+  void fwdLibBatchedReduceAddInstThreaded(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibBatchedReduceAddInstThreaded<in0Type>(out0, in0, Axis, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibBatchedReduceAddInstThreaded(LibTensor* outT, LibTensor* inT,
-                                        unsigned int axis, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibBatchedReduceAddInstThreaded<srcType>(outT, inT, axis, flags);
-}
-
-void fwdLibBatchedReduceAddInstInt8(LibTensor* outT, LibTensor* inT, unsigned int axis) {
-
-  dnn_lib::inlining::fwdLibBatchedReduceAddInstInt8(outT, inT, axis);
-}
-
-
-void fwdLibBatchedReduceAddInstInt8Threaded(LibTensor* outT, LibTensor* inT,
-                                            unsigned int axis, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibBatchedReduceAddInstInt8Threaded(outT, inT, axis, flags);
-
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInst, LibTensor* outT, LibTensor* inT, unsigned int axis);
-
-GEN_INSTANCES_OP(template, fwdLibBatchedReduceAddInstThreaded, LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags);
-  
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibBatchedReduceAddInst<FloatTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInstThreaded<Int64ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInstThreaded<Int32ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibBatchedReduceAddInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

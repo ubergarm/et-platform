@@ -30,21 +30,21 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+  template <ElemKind elK>
 inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
-                                    void *pcoord) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+                                    const dim_array_t &coord,
+                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    //  using srcType = typename elemKind2elemTy<elK>::type;
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(src, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, inT->getScale(), inT->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -53,8 +53,6 @@ inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = inT->strides().data();
   
-  unsigned int *coord = (unsigned int *)pcoord;
-
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
   unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
@@ -92,23 +90,25 @@ inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
   }
 }
 
-template <typename srcType>
+  template <ElemKind elK>
 inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                            void *pcoord, uint64_t flags) {
+                                            const dim_array_t &coord,
+                                            uint64_t flags, 
+                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dst, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(src, scale[0], offset[0]);
-  const Addresser<srcType> tInput(src, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
+  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(src, scale[0], offset[0]);
+  const Addresser<elK> tInput(src, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -117,8 +117,6 @@ inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = inT->strides().data();
   
-  unsigned int *coord = (unsigned int *)pcoord;
-
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];

@@ -30,12 +30,13 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
-                             bool signFollowDivisor) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+                             bool signFollowDivisor,
+                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
  
@@ -94,24 +95,25 @@ inline void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT,long long divisor,
-                                     bool signFollowDivisor, uint64_t flags) {
+                                     bool signFollowDivisor, uint64_t flags,
+                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
 
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
    
-  // Addresser<srcType> tOutput(dstT, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);  
-  const Addresser<srcType> tInput(srcT, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);  
+  const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());
  
   // unsigned int *dstIndex = (unsigned int *)dstDims;
 

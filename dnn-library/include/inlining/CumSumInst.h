@@ -43,11 +43,9 @@ template <ElemKind elKind>
 inline typename std::enable_if_t<(isQuantizedElemKind(elKind)
 				  ||(elKind==Float16Ty)), void>
 fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
-		 uint64_t flags) {
+		 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(inT->getElementType() == outT->getElementType());
   using elkType = typename elemKind2elemTy<elKind>::type;
@@ -110,11 +108,9 @@ inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) &&
 				  (elKind!=Float16Ty) &&
 				  (elKind!=BoolTy)), void>
 fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
-		 uint64_t flags) {
+		 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0) //if (minionId != minionOffset)
-    return;
+  if (get_minion_id() != minionOffset) return;
 
   assert(inT->getElementType() == outT->getElementType());
   using elkType = typename elemKind2elemTy<elKind>::type;

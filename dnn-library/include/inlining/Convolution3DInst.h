@@ -30,16 +30,17 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+  template <ElemKind elK, size_t N, size_t PN>
 inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
                                     LibTensor* in2T, LibTensor* in3T,
-                                    void *pkernels, void *pstrides,
-                                    void *ppads, unsigned int group) {
+                                    const std::array<uint32_t, N> &kernels,
+                                    const std::array<uint32_t, N> &strides,
+                                    const std::array<uint32_t, PN> &pads,
+                                    unsigned int group,
+                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
@@ -47,12 +48,12 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   // float *tBias = (float *)bias;
   float* tBias = in3T->getRawDataPointer<float>();
 
@@ -67,10 +68,6 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
-
   assert(actIndex[4] % group == 0 &&
          "Input channels must be divisible by group.");
   assert(dstIndex[4] % group == 0 &&
@@ -139,18 +136,21 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   }           // N
 }
 
-template <typename srcType>
+  template <ElemKind elK, size_t N, size_t PN>
 inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
-                                            void *pkernels, void *pstrides,
-                                            void *ppads, unsigned int group,
-                                            uint64_t flags) {
-
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
-
+                                            const std::array<uint32_t, N> &kernels,
+                                            const std::array<uint32_t, N> &strides,
+                                            const std::array<uint32_t, PN> &pads,
+                                            unsigned int group,
+                                            uint64_t flags,
+                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
 
@@ -158,12 +158,12 @@ inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[3], offset[3]);
+  Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
+  const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   // float *tBias = (float *)bias;
   float* tBias = in3T->getRawDataPointer<float>();
  
@@ -178,10 +178,6 @@ inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
   // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
   
-  unsigned int *kernels = (unsigned int *)pkernels;
-  unsigned int *strides = (unsigned int *)pstrides;
-  unsigned int *pads = (unsigned int *)ppads;
-
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();

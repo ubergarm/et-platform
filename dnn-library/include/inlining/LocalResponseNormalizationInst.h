@@ -30,15 +30,16 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInst(
     LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
-    unsigned int halfWindowSize, float alpha, float beta, float k) {
+    unsigned int halfWindowSize, float alpha, float beta, float k,
+    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0
+                                                 ) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
-
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
 
@@ -46,12 +47,12 @@ inline void fwdLibLocalResponseNormalizationInst(
   void *dst2Matrix = out2T->getRawDataPointer<void>();
   void *activations = inT->getRawDataPointer<void>();
   
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());  
+  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());  
 
   // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t *actIndex = inT->dims().data();  
@@ -124,15 +125,16 @@ inline void fwdLibLocalResponseNormalizationInst(
 // version is not correct. Notice that dst2Matrix is only needed for backward
 // pass, i.e. ETSOC won't be using it. Actually, we could skip generating it.
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
           LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize,
-          float alpha, float beta, float k, uint64_t flags) {
+          float alpha, float beta, float k, uint64_t flags,
+          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
@@ -140,12 +142,12 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
   void *dst2Matrix = out2T->getRawDataPointer<void>();
   void *activations = inT->getRawDataPointer<void>();
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = out1T->dims().data();
@@ -225,16 +227,25 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
-    LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
-    float beta, float k, uint64_t flags) {
+                  LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
+                  float beta, float k, uint64_t flags,
+                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
+  // only FloatTy is supported => call threaded version instead
+  if ( elK != FloatTy) {
+    inlining::fwdLibLocalResponseNormalizationInstThreaded<elK>(out1T, out2T, inT,
+                                                                halfWindowSize, alpha, beta, k,
+                                                                flags, minionOffset, assignedMinions);
     return;
-
+  }
+  using srcType = typename elemKind2elemTy<elK>::type;
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
 
@@ -244,12 +255,12 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
 
   // uintptr_t srcAddr = (uintptr_t)activations;
   uintptr_t srcAddr = reinterpret_cast<uintptr_t>(activations);
-  // Addresser<srcType> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<srcType> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<srcType> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<srcType> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
+  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
+  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
+  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
+  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
+  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = out1T->dims().data();

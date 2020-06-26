@@ -30,14 +30,11 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(LibTensor* outT,
-                                                                      LibTensor* in1T,
-                                                                      LibTensor* in2T) {
-
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+template <ElemKind elK>
+inline __attribute__((always_inline))
+void fwdLibMatMulInstTransposed(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  if (get_minion_id() != minionOffset) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT -> dest  in1T->activations in2T->weigths*/
@@ -46,12 +43,9 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(LibTensor*
   void* weights = in2T->getRawDataPointer<void>();
 
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const size_t *dstIndex = outT->dims().data();
@@ -79,14 +73,13 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstTransposed(LibTensor*
   }
 }
 
-template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(LibTensor* outT,
-                                                                              LibTensor* in1T,
-                                                                              LibTensor* in2T,
-                                                                              uint64_t flags) {
-
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+template <ElemKind elK>
+inline __attribute__((always_inline))
+void fwdLibMatMulInstThreadedTransposed(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -98,12 +91,9 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(Li
   void* weights = in2T->getRawDataPointer<void>();
 
 
-  // Addresser<srcType> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcType> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
-  const Addresser<srcType> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
+  const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const size_t *dstIndex = outT->dims().data();
@@ -119,7 +109,7 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(Li
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = outT->getElementSize();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -161,7 +151,7 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstThreadedTransposed(Li
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == FloatTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -211,7 +201,7 @@ inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uint
 #undef MATMUL_ITERATION
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Float16Ty, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -266,7 +256,7 @@ inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uint
 #undef MATMUL_ITERATION
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Int8QTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){
 
 #define INT8_TO_FP32(_reg)                  \
@@ -345,18 +335,18 @@ inline __attribute__((always_inline)) void matmulOpTrans(uintptr_t dstAddr, uint
 
 }
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value && !std::is_same<srcType, float16>::value && !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK!= Int8QTy && elK!= Float16Ty&& elK!= FloatTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void matmulOpTrans (uintptr_t dstAddr, intptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValues[], const float *scale, const int32_t *offset){}
 
 // Version assuming the weights tensor is transposed. Used for CONSTANT tensors
-template <typename srcType>
-inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(LibTensor* outT,
-                                                                                LibTensor* in1T,
-                                                                                LibTensor* in2T,
-                                                                                uint64_t flags) {
+template <ElemKind elK>
+inline __attribute__((always_inline))
+void fwdLibMatMulInstVectorizedTransposed(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                          uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
+ 
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -381,7 +371,7 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = outT->getElementSize();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
@@ -416,7 +406,7 @@ inline __attribute__((always_inline)) void fwdLibMatMulInstVectorizedTransposed(
     uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
     uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)weights + typeSize*offsetWIn;
-    matmulOpTrans <srcType>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValues, scale, offset);
+    matmulOpTrans <elK>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValues, scale, offset);
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {
       offsetWIn += weightPitch[0];

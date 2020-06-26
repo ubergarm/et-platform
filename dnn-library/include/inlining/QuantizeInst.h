@@ -31,17 +31,17 @@ namespace inlining {
 
 /// Quantize floating point tensor. Scale and Offset are based on return type
 /// of the instruction \p I.
-template <typename dstType>
-inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT) {
-  unsigned int minionId = get_minion_id();
-  if (minionId != 0)
-    return;
+template <ElemKind elK>
+inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
+                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
+  if (get_minion_id() != minionOffset) return;
+  
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   
-  // Addresser<dstType> ptrDstT(dstT, scale, offset);
-  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale, offset);
+  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   // float *ptrSrcT = (float *)srcT;
   float *ptrSrcT = inT->getRawDataPointer<float>();
 
@@ -77,13 +77,7 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT) {
                                 z * eSrcPitch[2] + w * eSrcPitch[3] +
                                 q * eSrcPitch[4] + r * eDstPitch[5];
               auto val = ptrSrcT[srcAddr];
-              // TODO check if we can use Addresser without breaking all the
-              // other tests that uses int32_t as non quantized type
-              if (std::is_same<dstType, int32_t>::value) {
-                ptrDstT[dstAddr] = quantize<int32_t>(val, outT->getScale(), outT->getOffset());
-              } else {
-                ptrDstT[dstAddr] = val;
-              }
+              ptrDstT[dstAddr] = val;
             }
           }
         }
@@ -91,19 +85,21 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT) {
     }
   }
 }
-template <typename dstType>
-inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags) {
   
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+template <ElemKind elK>
+inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using dstType = typename elemKind2elemTy<elK>::type;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
     
-  // Addresser<dstType> ptrDstT(dstT, scale, offset);
-  Addresser<dstType> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // Addresser<elK> ptrDstT(dstT, scale, offset);
+  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   // float *ptrSrcT = (float *)srcT;
   float *ptrSrcT = inT->getRawDataPointer<float>();
   
@@ -123,7 +119,7 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   // We give to each minion an initial address the number of positions that it
   // must work on (maxRead).
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<dstType>();
+  size_t typeSize = sizeof(dstType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -148,16 +144,10 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   // completion.
   bool done = false;
   while (!done) {
-    if (offsetOut >= posMax)
-      break;
+    if (offsetOut >= posMax) break;
     auto val = ptrSrcT[offsetIn];
-    // TODO check if we can use Addresser without breaking all the
-    // other tests that uses int32_t as non quantized type
-    if (std::is_same<dstType, int32_t>::value) {
-      ptrDstT[offsetOut] = quantize<int32_t>(val, outT->getScale(), outT->getOffset());
-    } else {
-      ptrDstT[offsetOut] = val;
-    }
+    ptrDstT[offsetOut] = val;
+
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, srcIndex,
                       srcPitch, dstPitch);
   }

@@ -1,40 +1,32 @@
-/*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
- * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved.
- * The program(s) may be used and/or copied only with
- * the written permission of Esperanto Technologies and
- * in accordance with the terms and conditions stipulated in the
- * agreement/contract under which the program(s) have been supplied.
- *-------------------------------------------------------------------------
- */
 
-#include "ModuloInst.h" // From include/inlining
-
+#include "LibNodes.h"
+ 
 namespace dnn_lib {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind in0Type>
+  void fwdLibModuloInst(LibTensor* out0, LibTensor* in0, const uint64_t Divisor, const bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibModuloInst<in0Type>(out0, in0, Divisor, SignFollowDivisor, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor,
-                      bool signFollowDivisor) {
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
-  dnn_lib::inlining::fwdLibModuloInst<srcType>(outT, inT, divisor,
-                                               signFollowDivisor);
-}
+  template <ElemKind in0Type>
+  void fwdLibModuloInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t Divisor, const bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibModuloInstThreaded<in0Type>(out0, in0, Divisor, SignFollowDivisor, flags, minionOffset, assignedMinions);
+  }
 
-template <typename srcType>
-void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT, long long divisor,
-                              bool signFollowDivisor, uint64_t flags) {
-
-  dnn_lib::inlining::fwdLibModuloInstThreaded<srcType>(outT, inT, divisor,
-                                                       signFollowDivisor, flags);
-}
-
-#include "GenInstances.h"
-
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInst, LibTensor* outT, LibTensor* inT,
-                         long long divisor, bool signFollowDivisor);
-
-GEN_INSTANCES_INTONLY_OP(template, fwdLibModuloInstThreaded, LibTensor* outT,
-                         LibTensor* inT, long long divisor, bool signFollowDivisor,
-                         uint64_t flags);
-} // namespace dnn_lib
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibModuloInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint64_t Divisor, const bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibModuloInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t Divisor, const bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibModuloInstThreaded<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint64_t Divisor, const bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibModuloInstThreaded<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t Divisor, const bool SignFollowDivisor, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+} // dnn_lib

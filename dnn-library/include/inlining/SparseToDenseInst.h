@@ -30,40 +30,41 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* outT,
                                                                    LibTensor* in1T,
-                                                                   LibTensor* in2T) {
-  unsigned int minionId = get_minion_id();
-  if (minionId > 0)
-    return;
+                                                                   LibTensor* in2T,
+                                                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  /* outT --> dst  in1T--> src   in2T--> indices */
+  if (get_minion_id() != minionOffset) return;
+  
+  /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
+  void* srcT = in2T->getRawDataPointer<void>();
 
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<srcType> tTmp(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(srcT, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
+  const Addresser<elK> tTmp(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in2T->getRawDataPointer<long long>();
+  long long *tIndex = in1T->getRawDataPointer<long long>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indIndex = (unsigned int *)indDims;
-  const dim_t *indIndex = in2T->dims().data();
+  const dim_t *indIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in2T->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
   
   // Convert sparse representation to dense representation by taking
   // slices of output and values and accumulating the value slice into
@@ -127,44 +128,45 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(LibTensor* ou
   }
 }
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
-            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags) {
+            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
-  /* outT --> dst  in1T--> src   in2T--> indices */
+  /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
+  void* srcT = in2T->getRawDataPointer<void>();
 
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcType> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcType> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<elK> tInput(srcT, in2T->getScale(), in2T->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
+  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in2T->getRawDataPointer<long long>();
+  long long *tIndex = in1T->getRawDataPointer<long long>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indIndex = (unsigned int *)indDims;
-  const dim_t *indIndex = in2T->dims().data();  
+  const dim_t *indIndex = in1T->dims().data();  
 
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in2T->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
   
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -213,8 +215,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float>::value,
-std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == FloatTy,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 
@@ -251,8 +252,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 }
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, float16>::value,
-std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK == Float16Ty,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
@@ -298,8 +298,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 
 
-template <typename srcType, typename std::enable_if<std::is_same<srcType, int8_t>::value,
-std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if< elK == Int8QTy,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
@@ -362,43 +361,44 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 }
 
 
-template <typename srcType, typename std::enable_if<!std::is_same<srcType, int8_t>::value
-&& !std::is_same<srcType, float16>::value
-&& !std::is_same<srcType, float>::value, std::size_t>::type = 0>
+template <ElemKind elK, typename std::enable_if<elK!=Int8QTy && elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 }
 
 
-template <typename srcType>
+template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
-           LibTensor* outT, LibTensor* in1T, LibTensor* in2T, const float* scale,
-           const int32_t* offset, uint64_t flags) {
+           LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+           uint64_t flags,
+           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id();
-  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-  if (minionId >= activeMinions)
-    return;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) return;
 
-  /* outT --> dst  in1T--> src   in2T--> indices */
+  float scale[] = { in2T->getScale(), in1T->getScale(), outT->getScale()};
+  int32_t offset[] = { in2T->getOffset(), in1T->getOffset(), outT->getOffset()};
+  /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
+  void* srcT = in2T->getRawDataPointer<void>();
   // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in2T->getRawDataPointer<long long>();
+  long long *tIndex = in1T->getRawDataPointer<long long>();
   
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *indIndex = (unsigned int *)indDims;
-  const dim_t *indIndex = in2T->dims().data();
+  const dim_t *indIndex = in1T->dims().data();
   
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
+  const dim_t *srcPitch = in2T->strides().data();
   
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
+  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
   
   uintptr_t dstAddr = (uintptr_t)dstT;    
   uintptr_t srcAddr = (uintptr_t)srcT;
@@ -407,7 +407,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions);
   if (maxRead == 0)
@@ -474,13 +474,13 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
 
 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      sparseToDenseOp <srcType>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
     if(res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      sparseToDenseOp <srcType>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
     }
     if (lastRow)
       return;
