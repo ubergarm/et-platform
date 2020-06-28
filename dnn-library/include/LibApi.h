@@ -674,11 +674,11 @@ namespace dnn_lib {
        false // custom impl selector
      },
      /**** ET_sparselengthssum ****/
-     { "notImplemented", // name
-       0, // # outs
-       0,  // # ins
+     { "SparseLengthsSum", // name
+       1, // # outs
+       3,  // # ins
        {}, // members
-       0, // template param mask
+       5, // template param mask
        {}, // impl versions
        false // custom impl selector
      },

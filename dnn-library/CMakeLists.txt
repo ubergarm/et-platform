@@ -95,6 +95,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SoftMaxInst1.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SoftMaxInst2.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SpaceToDepthInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseLengthsSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseLengthsWeightedSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SparseToDenseMaskInst.h"

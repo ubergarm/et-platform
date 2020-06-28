@@ -1248,6 +1248,21 @@ extern template void fwdLibSpaceToDepthInst<Int8QTy>(LibTensor* out0, LibTensor*
 extern template void fwdLibSpaceToDepthInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint32_t BlockSize, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
+*  SparseLengthsSum implementations
+****************************************************************************/
+// declarations
+template <ElemKind out0Type, ElemKind in1Type>
+void fwdLibSparseLengthsSumInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibSparseLengthsSumInst<FloatTy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibSparseLengthsSumInst<FloatTy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibSparseLengthsSumInst<Float16Ty,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibSparseLengthsSumInst<Float16Ty,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibSparseLengthsSumInst<Int8QTy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibSparseLengthsSumInst<Int8QTy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
 *  SparseLengthsWeightedSum implementations
 ****************************************************************************/
 // declarations
