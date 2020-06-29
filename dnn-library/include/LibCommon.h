@@ -235,21 +235,24 @@ inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, const dim_array
   dim_t ndx[max_tensor_dimensions] = {0,};
   
   
-  for (ndx[0] = 0; ndx[0] < newDims.data()[0]; ndx[0]++)
-    for (ndx[1] = 0; ndx[1] < newDims.data()[1]; ndx[1]++)
-      for (ndx[2] = 0; ndx[2] < newDims.data()[2]; ndx[2]++)
-        for (ndx[3] = 0; ndx[3] < newDims.data()[3]; ndx[3]++)
-          for (ndx[4] = 0; ndx[4] < newDims.data()[4]; ndx[4]++)
-            for (ndx[5] = 0; ndx[5] < newDims.data()[5]; ndx[5]++) {
+  for (ndx[0] = 0; ndx[0] < newDims[0]; ndx[0]++)
+    for (ndx[1] = 0; ndx[1] < newDims[1]; ndx[1]++)
+      for (ndx[2] = 0; ndx[2] < newDims[2]; ndx[2]++)
+        for (ndx[3] = 0; ndx[3] < newDims[3]; ndx[3]++)
+          for (ndx[4] = 0; ndx[4] < newDims[4]; ndx[4]++)
+            for (ndx[5] = 0; ndx[5] < newDims[5]; ndx[5]++) {
 
               for (uint8_t i = 0; i < max_tensor_dimensions; i++) {
                 indicesSrc.data()[i] = ndx[i];
                 if ( i != axis)
-                  indicesDest.data()[i] = ndx[i];
+                  indicesDest[i] = ndx[i];
                 else                  
-                  indicesDest.data()[i] = newDims.data()[i]-1-ndx[i];
+                  indicesDest[i] = newDims[i]-1-ndx[i];
               }
-                
+              /* auto x = srcH.getIterator(indicesSrc); */
+	      /* auto y = destH.getIterator(indicesDest); */
+	      //*y = *x;
+	      
               destH.at(indicesDest) = srcH.at(indicesSrc);
             }
  
