@@ -75,7 +75,9 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
 /*   const size_t lineSize = dataDim1Pitch; */
 /*   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works.  */
 /*   //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize()); */
-  dim_t lineSize = in1T->strides()[0];
+
+  const dim_t lineSize = in1T->strides()[0];
+  const dim_t outLineSize = outT->strides()[0];
   //dim_t lineSize = in1T->actualSize() / in1T->getElementSize();
 
   dim_t curIdx = 0;
@@ -106,7 +108,7 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
       float weightfl;
       convertFp16ToFp32(static_cast<uint16_t>(weightH.raw(curIdx)), weightfl);
       dim_t offsetIn = indxH.raw(curIdx++) * lineSize;
-      dim_t offsetOut = i * lineSize;
+      dim_t offsetOut = i * outLineSize;
       for (dim_t k = 0; k < lineSize; k++) {
 	float datafl = 0;
 	float outfl = 0;
@@ -152,7 +154,8 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
 /*   const size_t lineSize = dataDim1Pitch; */
 /*   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works.  */
 /*   //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize()); */
-  dim_t lineSize = in1T->strides()[0];
+  const dim_t lineSize = in1T->strides()[0];
+  const dim_t outLineSize = outT->strides()[0];
   //dim_t lineSize = in1T->actualSize() / in1T->getElementSize();
 
   dim_t curIdx = 0;
@@ -181,7 +184,7 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
     for (dim_t j = start; j < end; j++) {
       elkType weight = weightH.raw(curIdx);      
       dim_t offsetIn = indxH.raw(curIdx++) * lineSize;
-      dim_t offsetOut = i * lineSize;
+      dim_t offsetOut = i * outLineSize;
       for (dim_t k = 0; k < lineSize; k++) {
 	outH.raw(offsetOut++) += dataH.raw(offsetIn++) * weight;
       }
