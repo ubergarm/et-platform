@@ -146,163 +146,162 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(elK == FloatTy || elK == Float16Ty);
   using dstType = typename elemKind2elemTy<elK>::type;
+
+  // If Minion is outside the group assigned to this Node get out.
   unsigned int minionId = get_minion_id();
-  if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.
+  if (minionId < minionOffset) { return; }
   minionId -= minionOffset;
 
   // Get number of Minions assigned to this Node.
   uint64_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
+  if (minionId >= activeMinions) { return; }
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT-> dst in1T->data in2T->weight in3T->indices in4T->lengths */
 
   // float *tOutput = (float *)pdst;
   const Addresser<elK> tOutputRd(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
-  Addresser<elK> tOutput(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
+  //Addresser<elK> tOutput(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
+  uint8_t *tOutput = outT->getRawDataPointer<uint8_t>();
   // uint8_t *tAInput = (uint8_t *)pdata;
   uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
-  // float *tWInput = (float *)pweights;
   float *tWInput = nullptr;
   if (in2T != nullptr) { tWInput = in2T->getRawDataPointer<float>(); }
-  // long long *indices = (long long *)pindices;
   long long *indices = in3T->getRawDataPointer<long long>();
-  // int32_t *lengths = (int32_t *)plengths;
   int32_t *lengths = in4T->getRawDataPointer<int32_t>();
   
-  // unsigned int *dstIndex = (unsigned int *)pdstDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dataIndex = (unsigned int *)pdataDims;
+  // Gets indices and pitches, weight only if defined
+  const dim_t *dstIndex  = outT->dims().data();
   const dim_t *dataIndex = in1T->dims().data();  
-
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
+  const dim_t *dstPitch  = outT->strides().data();
   const dim_t *dataPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
   const dim_t *weightPitch = nullptr;
   if (in2T != nullptr) { weightPitch = in2T->strides().data(); }
 
-  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
-
-  // size_t segments = pLengthsSize;
-  const size_t segments = in4T->dims()[0];
-  size_t ranges[segments];
-  size_t totalLength = 0;
-  for (size_t i = 0; i < segments; i++) {
-    ranges[i] = totalLength;
-    totalLength += lengths[i];
-  }
-
+  // Computes input line size and output line size
   size_t inLineSize = 1;
   size_t outLineSize = 1;
+  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
+
   for (size_t i = 1; i < pdstDimNum; i++) {
     inLineSize *= dataIndex[i];
     outLineSize *= dstIndex[i];
   }
 
-  if (activeMinions > segments) {
-    unsigned int minionsPerRow = activeMinions / segments;
-    unsigned int rowId = minionId / minionsPerRow;
-    unsigned int positionInRow = minionId - rowId * minionsPerRow;
+  // Get number of rows
+  const size_t totalRows = in4T->dims()[0];
 
-    unsigned int total = (outLineSize - 1) / minionsPerRow + 1;
-    unsigned int start = positionInRow * total;
-    unsigned int end = start + total;
-    if (end > outLineSize)
-      end = outLineSize;
-    unsigned int offsetOut = rowId * dstPitch[0];
-    start += offsetOut;
-    end += offsetOut;
+  // Splits the rows across the total minions
+  size_t rowsPerMinion     = ((totalRows - 1) / activeMinions) + 1; // Guarantees at least one row per minion
+  // Guarantees no zero. Also doing ceiling of the division is not correct as well
+  // Because last rows might have less minions than required
+  // 14 rows => 73.1 minions per row. Ceiling 74 minions per row. First minion assigned
+  // to row [13] is 74 * 13 = 962. 1024 - 962 = 62. This unbalancing in last row can generate
+  // elements to not be computed.
+  size_t minionsPerRow     = activeMinions / totalRows;
+  if(minionsPerRow == 0) { minionsPerRow = 1; }                     
+  size_t rowStart          = (minionId / minionsPerRow) * rowsPerMinion;
+  size_t positionInRow     = minionId % minionsPerRow;
+  size_t rowElemsPerMinion = (outLineSize - 1) / minionsPerRow + 1;
+  size_t rowElemStart      = positionInRow * rowElemsPerMinion;
+  size_t rowElemEnd        = rowElemStart + rowElemsPerMinion;
 
-    // Output tensor should be zero at the begin
-    size_t idxStart = ranges[rowId];
-    size_t idxEnd = idxStart + lengths[rowId];
+  // More minions per row than elements, this minion has nothing to compute
+  if (rowElemStart >= outLineSize) { return; }
 
-    // For all the indices to compute a result
-    for (size_t j = idxStart; j < idxEnd; j++) {
-      const float weight = (tWInput != nullptr) ? tWInput[j * weightPitch[0]] : 1.0f;
-      size_t offsetIn = indices[j] * dataPitch[0];
+  // Makes sure that the last minion of a row doesn't go beyond the limits
+  if (rowElemEnd > outLineSize) { rowElemEnd = outLineSize; }
 
-      // Get the scale and offset from the row; go to the current row and offset
-      // into it up until the last 2 elments. Can't use size of as it doesn't work
-      // correctly for float16.
-      size_t sizeDstType;
+  // Computes where the first index is for the rows that the minion needs to compute
+  size_t ranges[totalRows];
+  size_t totalLength = 0;
+  for (size_t i = 0; i < (rowStart + rowsPerMinion); i++) {
+    ranges[i] = totalLength;
+    totalLength += lengths[i];
+  }
 
-      if (std::is_same<dstType, float>::value) { sizeDstType = 4; }
-      else                                     { sizeDstType = 2; }
+  size_t sizeDstType;
 
-      uint8_t *currRowScaleOffsetPtr = &tAInput[offsetIn + inLineSize - (2 * sizeDstType)];
+  if (std::is_same<dstType, float>::value) { sizeDstType = 4; }
+  else                                     { sizeDstType = 2; }
 
-      float scale;
-      float offset;
-      // Regular load for float
-      if (std::is_same<dstType, float>::value) {
-        float * currRowScaleOffsetPtrFloat = (float *) currRowScaleOffsetPtr;
-        scale  = currRowScaleOffsetPtrFloat[0];
-        offset = currRowScaleOffsetPtrFloat[1];
-      }
-      // Upconvert to float for float16
-      else {
-        uint16_t * currRowScaleOffsetPtrUint16 = (uint16_t *) currRowScaleOffsetPtr;
-        dnn_lib::convertFp16ToFp32(currRowScaleOffsetPtrUint16[0], scale);
-        dnn_lib::convertFp16ToFp32(currRowScaleOffsetPtrUint16[1], offset);
-      }
+  // For all the rows that the minion works on
+  for (size_t row = rowStart; row < (rowStart + rowsPerMinion); row++) {
+    // Gets the offset of the outputs and the position of start and end
+    // in the index array for this row
+    size_t offsetOut = row * dstPitch[0];
+    size_t idxStart  = ranges[row];
+    size_t idxEnd    = idxStart + lengths[row];
 
-      offsetIn += positionInRow * total;
+    // For all the elements of the row that the minion processes
+    for (size_t elem = rowElemStart; elem < rowElemEnd; elem++) {
+      volatile typename accumulatorType<dstType>::type sum = 0.0f;
 
-      // For all the elements of the row that the minion processes
-      for (size_t k = start; k < end; k++) {
-        float d = dequantizeWithFloatOffset(tAInput[offsetIn], scale, offset);
-        typename accumulatorType<dstType>::type sum;
+      // Runs through all the indices to compute a result
+      for (size_t idx = idxStart; idx < idxEnd; idx++) {
+        // Gets weight 
+        const float weight = (tWInput != nullptr) ? tWInput[idx * weightPitch[0]] : 1.0f;
 
-        // Need to reset to 0 if first accumulation
-        if (j == idxStart) { sum = 0.0f; }
-        else               { sum = tOutputRd[k]; }
+        // offsetIn now points to the beginning of the row
+        size_t offsetIn = indices[idx] * dataPitch[0];
+        uint8_t *currRowScaleOffsetPtr = &tAInput[offsetIn + inLineSize - (2 * sizeDstType)];
 
-        sum += d * weight;
-        tOutput[k] = sum;
-        offsetIn++;
-      }
-    }
-  } else {
-
-    unsigned int cll = CACHE_LINE_BYTES / sizeof(float);
-    unsigned int rowsperminion = cll / dstPitch[0];
-    unsigned int total_rows = rowsperminion * activeMinions;
-    for (unsigned int i = total_rows; i < segments; i += activeMinions)
-      rowsperminion++;
-    unsigned int row_begin = minionId * rowsperminion;
-    if (row_begin >= segments)
-      return;
-    unsigned int row_end = row_begin + rowsperminion;
-
-    // Output tensor should be zero at the begin
-    size_t curIdx = ranges[row_begin];
-    for (size_t i = row_begin; i < row_end; i++) {
-      for (size_t j = 0, e = lengths[i]; j < e; j++) {
-        const float weight = (tWInput != nullptr) ? tWInput[curIdx * weightPitch[0]] : 1.0f;
-        size_t offsetIn = indices[curIdx] * dataPitch[0];
-        size_t offsetOut = i * dstPitch[0];
-        curIdx++;
-        // Get the scale and offset from the row; go to the current row and offset
-        // into it up until the last 8 bytes. Use memcpy to get the values out to
-        // avoid alignment issues of accessing 4-byte values.
-        const unsigned char *currRowScaleOffsetPtr =
-            &tAInput[0] + offsetIn + inLineSize * sizeof(uint8_t) - 8;
+        // Get the scale and offset for the dense data row; go to the current row and
+        // moves the pointer until the last 2 elements. Can't use size of as it doesn't work
+        // correctly for float16.
         float scale;
         float offset;
-        memcpy(&scale, currRowScaleOffsetPtr, sizeof(float));
-        memcpy(&offset, currRowScaleOffsetPtr + sizeof(float), sizeof(float));
-        typename accumulatorType<dstType>::type sum = tOutputRd[offsetOut];
-        for (size_t k = 0; k < outLineSize; k++) {
-
-          float d = dequantizeWithFloatOffset(tAInput[offsetIn], scale, offset);
-          sum += d * weight;
-          offsetOut++;
-          offsetIn++;
+        // Regular load for float
+        if (std::is_same<dstType, float>::value) {
+          float * currRowScaleOffsetPtrFloat = (float *) currRowScaleOffsetPtr;
+          scale  = currRowScaleOffsetPtrFloat[0];
+          offset = currRowScaleOffsetPtrFloat[1];
         }
-        tOutput[offsetOut] = sum;
+        // Upconvert to float for float16
+        else {
+          uint16_t * currRowScaleOffsetPtrUint16 = (uint16_t *) currRowScaleOffsetPtr;
+          dnn_lib::convertFp16ToFp32(currRowScaleOffsetPtrUint16[0], scale);
+          dnn_lib::convertFp16ToFp32(currRowScaleOffsetPtrUint16[1], offset);
+        }
+
+        // Gets the quantized element and dequantizes it
+        float d = dequantizeWithFloatOffset(tAInput[offsetIn + elem], scale, offset);
+
+        // Accums the dequantized value with the weight and stores it
+        sum += d * weight;
+      }
+
+      // Stores the result, executes a global store to prevent collisions
+      // with other minions
+      uint8_t * tOutputTmp = &tOutput[(offsetOut + elem) * sizeDstType];
+
+      if (sizeDstType == 2) {
+        // Global store of 32 bits
+        __asm__ __volatile__ (
+            "mov.m.x     m0, zero, 0x1\n"
+            "flw.ps      f0, 0(%[data])\n"
+            "fcvt.f16.ps f0, f0\n"
+            "fmvs.x.ps   t1, f0, 0\n"
+            "shg         t1, (%[ptr])\n"
+          :
+          : [data] "r" (&sum),
+            [ptr]  "r" (tOutputTmp)
+          : "t1", "f0"
+        );
+      }
+      else {
+        // Global store of 32 bits
+        __asm__ __volatile__ (
+            "ld      t1, 0(%[data])\n"
+            "shg     t1, (%[ptr])\n"
+            "srli    t1, t1, 16\n"
+            "addi    t0, %[ptr], 2\n"
+            "shg     t1, (t0)\n"
+          :
+          : [data] "r" (&sum),
+            [ptr]  "r" (tOutputTmp)
+          : "t0", "t1"
+        );
       }
     }
   }
