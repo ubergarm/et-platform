@@ -31,7 +31,7 @@ namespace inlining {
 
 /// Quantize floating point tensor. Scale and Offset are based on return type
 /// of the instruction \p I.
-template <ElemKind elK>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
@@ -40,10 +40,10 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   
-  // Addresser<elK> ptrDstT(dstT, scale, offset);
-  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // float *ptrSrcT = (float *)srcT;
-  float *ptrSrcT = inT->getRawDataPointer<float>();
+  // Addresser<dstElK> ptrDstT(dstT, scale, offset);
+  Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // srcElK *ptrSrcT = (srcElK *)srcT;
+  const Addresser<srcElK> ptrSrcT(inT->getRawDataPointer<void>(), inT->getScale(), inT->getOffset());
 
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
@@ -86,10 +86,10 @@ inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
   }
 }
   
-template <ElemKind elK>
+template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<elK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -98,10 +98,10 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
     
-  // Addresser<elK> ptrDstT(dstT, scale, offset);
-  Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // float *ptrSrcT = (float *)srcT;
-  float *ptrSrcT = inT->getRawDataPointer<float>();
+  // Addresser<dstElK> ptrDstT(dstT, scale, offset);
+  Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
+  // srcElK *ptrSrcT = (srcElK *)srcT;
+  const Addresser<srcElK> ptrSrcT(inT->getRawDataPointer<void>(), inT->getScale(), inT->getOffset());
   
   // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
