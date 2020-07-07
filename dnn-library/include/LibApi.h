@@ -391,7 +391,7 @@ namespace dnn_lib {
        4,  // # ins
        {mbHasEndOffset}, // members
        1, // template param mask
-       {}, // impl versions
+       {"Vectorized"}, // impl versions
        false // custom impl selector
      },
      /**** ET_embeddingbagbyterowwiseoffsets ****/

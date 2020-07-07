@@ -47,7 +47,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstVectorized(
         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   dnn_lib::inlining::fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, false>
-    (outT, nullptr, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
+    (outT, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
 }
 
 template <ElemKind elK>

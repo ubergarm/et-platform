@@ -319,7 +319,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
     uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
     uintptr_t dataRowSize, uintptr_t dstElemSize,
-    uint8_t *tWInput, uint8_t *dst_ptr, uint8_t *dst2_ptr, const bool Weighted = true) { 
+    uint8_t *tWInput, uint8_t *dst_ptr, const bool Weighted = true) { 
 
   const bool float32Dst = elK == FloatTy;
   const bool float16Dst = elK == Float16Ty;
@@ -381,15 +381,16 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
    __asm__ __volatile__ (
       // Load a full input cache line (64 elements, 8 vregs)
       "fgb.ps     f25, f31, %[data_ptr]\n"
-      "addi       %[data_ptr], %[data_ptr], 8\n"
       "fand.pi    f25, f25, f30\n"
       "fcvt.ps.pw f25, f25\n"
       "fmadd.ps   f25, f25, f28, f27\n"
-     : [data_ptr]   "+&r" (data_ptr)
-     : [offset_ptr] "r"   (offset_ptr),
+     : 
+     : [data_ptr]   "r" (data_ptr),
+       [offset_ptr] "r"   (offset_ptr),
        [scale_ptr]  "r"   (scale_ptr)
      : "f25"
     );
+
     if (Weighted) {
       __asm__ __volatile__ (
         "fmadd.ps f0, f26, f25, f0\n"
@@ -416,9 +417,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
       : [dst_ptr] "r" (dst_ptr)
       :
     );
-  }
-  
-  if ((not float32Dst) and float16Dst) {
+  } else {    // Float16
     __asm__ __volatile__ (
       "fcvt.f16.ps f0, f0\n"
       "fsch.ps f0, f29(%[dst_ptr])\n"
@@ -427,33 +426,20 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
       : "f0"
     );
   }
-
-  dst_ptr  += 8 * dstElemSize;
-  
-  if (float32Dst and float16Dst) {
-    __asm__ __volatile__ (
-      "fcvt.f16.ps f0, f0\n"
-      "fsch.ps f0, f29(%[dst_ptr])\n"
-      :
-      : [dst_ptr] "r" (dst2_ptr)
-      : "f0"
-    );
-
-    dst2_ptr += 8 * 2;
-  }
 }
 
  
 template <ElemKind elK, bool Weighted = true>
 inline __attribute((always_inline))
 void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
-        LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
     
   const bool float32Dst = elK == FloatTy;
   const bool float16Dst = elK == Float16Ty;
 
   assert(elK == FloatTy || elK == Float16Ty);
+
   // Get offset of the Minion inside the group of Minions assigned to this Node.
 
   uint64_t minionId = get_minion_id();
@@ -521,6 +507,17 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   else if (float16Dst)
     dstElemSize = 2;
 
+  // For *Quantized* Sparse use the input cache line as the minimum
+  // assignment unit per Minion. As the output will always be ofa  larger
+  // type the output assignment is multiple cache lines per minion and
+  // there shouldn't be any problem with coherence.
+  //
+  // NOTE : NOT IMPLEMENTED!!
+  //
+  // If a destination row is smaller than a cache line then multiple rows
+  // should be assigned per minion to avoid coherence issues.
+  //
+
   // Compute the number of 8-element vectors per output cache line.
   uintptr_t dstCacheLineVRegs = CACHE_LINE_BYTES / (dstElemSize * 8);
 
@@ -535,12 +532,6 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
   // Compute the element mask for the tail of the row.
   uint8_t dstRowTailVRegMask = (1 << (((dstRowSize - 1) % 8) + 1)) - 1;
-
-  // Assign work to Minions :
-  //
-  // - Each Minion gets assigned at least 64 output elements or a full output row
-  //   if the row dimension is smaller than 64.
-  //
 
   uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
 
@@ -565,6 +556,10 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
     }
   }
 
+  // No work assigned to this minion.
+  if (minionWorkUnits == 0)
+    return;
+
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
 
@@ -584,11 +579,6 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
   // Initilize output pointer.
   uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
-
-  // Second output pointer when both float32 and float16 are active.
-  uint8_t *dst2_ptr;
-  if (float32Dst and float16Dst)
-    dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
 
   // For all minion assigned work units
   for (uintptr_t i = 0; i < minionWorkUnits; i++) {
@@ -790,9 +780,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         );
 
         dst_ptr += 64 * dstElemSize;
-      }
-
-      if ((not float32Dst) and (float16Dst)) {
+      } else {    // Float16
         // Convert and store accumulated results.
         __asm__ __volatile__ (
           "fcvt.f16.ps f0, f0\n"
@@ -825,39 +813,6 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         );
       }
 
-      if (float32Dst and (float16Dst)) {
-        // Convert and store accumulated results.
-        __asm__ __volatile__ (
-          "fcvt.f16.ps f0, f0\n"
-          "fcvt.f16.ps f1, f1\n"
-          "fcvt.f16.ps f2, f2\n"
-          "fcvt.f16.ps f3, f3\n"
-          "fcvt.f16.ps f4, f4\n"
-          "fcvt.f16.ps f5, f5\n"
-          "fcvt.f16.ps f6, f6\n"
-          "fcvt.f16.ps f7, f7\n"
-          "fsch.ps f0, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f1, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f2, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f3, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f4, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f5, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f6, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f7, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          : [dst_ptr]   "+&r" (dst2_ptr)
-          : 
-          : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"
-        );
-      }
-
       minionCurrIndex += currSegmentLength;
 
       if (minionCurrRowGroup != (dstRowGroups - 1)) {
@@ -869,11 +824,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         currSegmentLength = lengths[minionCurrSegment];
 
         dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
-        if (float32Dst and float16Dst)
-          dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
       }
-    }
-    else {
+    } else {
       volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
       // Initialize mask to clear upper bytes from input load
@@ -905,7 +857,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
           fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
           dataPitches[0], dataRowSize, dstElemSize,
-          tWInput, dst_ptr, dst2_ptr, Weighted);
+          tWInput, dst_ptr, Weighted);
+          dst_ptr += 8 * dstElemSize;
       }
 
       // Set mask for last VReg in group.
@@ -918,7 +871,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
         minionCurrIndex, currSegmentLength, tAInput, indices,
         dataPitches[0], dataRowSize, dstElemSize,
-        tWInput, dst_ptr, dst2_ptr, Weighted);
+        tWInput, dst_ptr, Weighted);
 
       minionCurrIndex += currSegmentLength;
 
@@ -928,8 +881,6 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       currSegmentLength = lengths[minionCurrSegment];
 
       dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
-      if (float32Dst and float16Dst)
-        dst2_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * 2;
     }
   }
 }
@@ -941,7 +892,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   inlining::fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, true>
-    (outT, nullptr, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
+    (outT, in1T, in2T, in3T, in4T, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining
