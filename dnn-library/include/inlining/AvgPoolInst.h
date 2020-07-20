@@ -138,7 +138,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 

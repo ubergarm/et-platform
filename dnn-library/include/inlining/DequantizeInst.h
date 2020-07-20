@@ -127,7 +127,7 @@ inline void fwdLibDequantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
   // We move the initialAddr to the next non-padding position

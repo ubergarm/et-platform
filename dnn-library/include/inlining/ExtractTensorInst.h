@@ -123,7 +123,7 @@ inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialaddrOut, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialaddrOut, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 

@@ -144,7 +144,7 @@ inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<bool>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, aDstT);
   if (maxRead == 0)
     return;
   unsigned int coord[srcDimNum];

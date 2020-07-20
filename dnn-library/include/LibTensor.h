@@ -464,23 +464,23 @@ class LibTensor final {
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
             const std::array<dim_t, numSizes> &pitches, float scale, int offset)
-    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata ,64))),
+    : ptrData_(reinterpret_cast<char*>(rawdata)),
       type_(elk, dims, pitches, scale, offset) {}
 
   // constructor for non quant types
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
             const std::array<dim_t, numSizes> &pitches)
-    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
+    : ptrData_(reinterpret_cast<char*>(rawdata)),
       type_(elk, dims, pitches) {}
 
   // constructor from type
   LibTensor(const Type &type, void* rawdata)
-    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
+    : ptrData_(reinterpret_cast<char*>(rawdata)),
       type_(type) {}
 
   LibTensor(const Type &&type, void* rawdata)
-    : ptrData_(reinterpret_cast<char*>(__builtin_assume_aligned(rawdata,64))),
+    : ptrData_(reinterpret_cast<char*>(rawdata)),
       type_(std::move(type)) {}
 
 
@@ -554,17 +554,40 @@ public:
                    dim_t &offset, dim_t &maxRead) const{
     assume(minionId < 1024);
     size_t elementSize = type_.getElementSize();
-    size_t inCL = (type_.getSizeInBytes() + CACHE_LINE_BYTES -1) / CACHE_LINE_BYTES;
+    // Checks for unaligned tensor
+    size_t ad = (size_t) ptrData_;
+    size_t al = ad % 64;
+    size_t ual = 0; // Amount of unaligned bytes
+    if (al != 0) {
+      ual = CACHE_LINE_BYTES - al;
+      // Special case where cache line is unaligned and all elements
+      // are in this cacheline
+      if (ual > type_.getSizeInBytes()) {
+        if (minionId == 0) {
+          offset  = 0;
+          maxRead = type_.getSizeInBytes() / elementSize;
+        }
+        else
+          maxRead = 0;
+
+        return;
+      }
+    }
+
+    size_t ualOffset  = (minionId == 0) ? 0 : ual;
+    size_t ualMaxRead = (minionId == 0) ? ual : 0;
+
+    size_t inCL = (type_.getSizeInBytes() - ual + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     size_t CLperMin = inCL / activeMinions;
     size_t spare = inCL - CLperMin * activeMinions;
     // all minions will have CLperMin cache lines to process
     // and minions with id < spare will have an extra CL
     if (minionId < spare) {
-      offset = (CLperMin +1) * minionId;
-      maxRead = CLperMin +1;
+      offset = (CLperMin + 1) * minionId + ualOffset;
+      maxRead = CLperMin + 1 + ualMaxRead;
     } else {
-      offset = CLperMin * minionId + spare;
-      maxRead = CLperMin;
+      offset = CLperMin * minionId + spare + ualOffset;
+      maxRead = CLperMin + ualMaxRead;
     }
 
     offset*=CACHE_LINE_BYTES / elementSize;

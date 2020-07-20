@@ -443,7 +443,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 
@@ -1016,7 +1016,7 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<src1Type>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 

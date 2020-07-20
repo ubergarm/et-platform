@@ -358,7 +358,7 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(dstType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 
@@ -981,7 +981,7 @@ inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
   // Gets the total number of elements to work on for the minion
   // initialAddr: is first element to start working on
   // maxRead: number of elements to process
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 

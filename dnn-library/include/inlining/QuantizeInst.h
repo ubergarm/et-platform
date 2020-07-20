@@ -121,7 +121,7 @@ inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(dstType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 

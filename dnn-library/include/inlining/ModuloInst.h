@@ -128,7 +128,7 @@ inline void fwdLibModuloInstThreaded(LibTensor* outT, LibTensor* inT,long long d
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 

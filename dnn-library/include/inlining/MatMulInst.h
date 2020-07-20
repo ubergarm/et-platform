@@ -123,7 +123,7 @@ void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = Type::getElementSize(elK);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -432,7 +432,7 @@ void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = Type::getElementSize(elK);
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 

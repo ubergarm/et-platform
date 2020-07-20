@@ -118,7 +118,7 @@ inline void fwdLibRescaleQuantizedInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr = 0, maxRead; //TODO: review SW-2651
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
 
   // We move the initialAddr to the next non-padding position
   unsigned int coord[srcDimNum]; // Vector of coordinates

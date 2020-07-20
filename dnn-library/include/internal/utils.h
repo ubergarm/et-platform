@@ -183,20 +183,52 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
 inline __attribute__((always_inline)) 
 void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
                            unsigned int &offset, unsigned int &maxRead,
-                           unsigned int minionId, unsigned int activeMinions) {
+                           unsigned int minionId, unsigned int activeMinions,
+                           void * addr) {
 
-  unsigned int cll = CACHE_LINE_BYTES / elementSize;              // Cacheline length
-  unsigned int ncl = (numElems - 1) / cll + 1;      // Amount of cache lines
-  unsigned int mcl = (ncl - 1) / activeMinions + 1; // Amount of cl for a minion
+  unsigned int cll = CACHE_LINE_BYTES / elementSize; // Cacheline length
+
+  // Checks for unaligned tensor
+  unsigned int ad = (unsigned int) ((uint64_t) addr);
+  unsigned int al = ad % 64;
+  unsigned int ual = 0;                              // Amount of unaligned elements
+  if (al != 0) {
+    ual = cll - (al / elementSize);
+    // Special case where cache line is unaligned and all elements
+    // are in this cacheline
+    if (ual >= numElems) {
+      if (minionId == 0) {
+        maxRead = numElems;
+        offset  = 0;
+      }
+      else
+        maxRead = 0;
+
+      return;
+    }
+
+    numElems -= ual;
+  }
+
+  unsigned int ncl = ((numElems - 1) / cll) + 1;       // Amount of cache lines
+  unsigned int mcl = ((ncl - 1) / activeMinions) + 1;  // Amount of cl for a minion
   unsigned int div = ncl / mcl;
 
-  if (minionId < div) {
+  // Minion0 starts at offset0, does regular elements plus the unaligned ones
+  if (minionId == 0) {
+    maxRead = mcl * cll + ual;
+    offset = 0;
+  }
+  // Other minions that do full work
+  else if (minionId < div) {
     maxRead = mcl * cll;
-    offset = maxRead * minionId;
-  } else if (minionId == div) {
+    offset = (maxRead * minionId) + ual;
+  }
+  else if (minionId == div) {
     maxRead = (ncl - div * mcl) * cll;
-    offset = mcl * cll * minionId;
-  } else
+    offset = mcl * cll * minionId + ual;
+  }
+  else
     maxRead = 0;
 }
 

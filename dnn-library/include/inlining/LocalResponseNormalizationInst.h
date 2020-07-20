@@ -178,7 +178,7 @@ inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 
@@ -281,7 +281,7 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 
