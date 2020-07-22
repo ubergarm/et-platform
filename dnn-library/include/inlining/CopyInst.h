@@ -33,20 +33,20 @@ namespace dnn_lib {
 namespace inlining {
 
 /**
- * @brief Copies the src matrix to the dst matrix.
+ * @brief Copies the src tensor to the dst tensor.
  *
  * It makes a copy of the tensor src into the dst tensor, which may not
  * have the same pitches or dimensions, so it allows a reshaping. In this
  * version all the work is done by the same minion.
  * 
  * @tparam srcType The type of the elements in the tensor.
- * @param[out] dst Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] src Pointer to the input matrix.
+ * @param[out] dst Pointer to the output tensor.
+ * @param[in] dstDims The "number of dimensions" of the output tensor.
+ * @param[in] dstPitches Vector of pitches of the output tensor.
+ * @param[in] src Pointer to the input tensor.
  * @param[in] srcDims The vector of dimensions of the input tensor.
  * @param[in] srcPitches Vector of pitches of the input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] srcDimNum The "number of dimensions" of the input tensor.
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <ElemKind elK>
@@ -93,20 +93,105 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, bool tensorsAligned,
 }
 
 /**
- * @brief Copies the src matrix to the dst matrix.
+ * @brief Copies N consecutive bytes from one buffer to another
+ *
+ * This function copies consecutive bytes from one buffer in memory to
+ * another one.
+ * 
+ * @tparam srcType The type of the elements in the matrices.
+ * @param[in] src Pointer to origin buffer to copy from
+ * @param[in] dst Pointer to destination buffer to copy to
+ * @param[in] bytes Number of bytes to copy
+ */
+inline void copyBytes(uint8_t * src,
+                      uint8_t * dst,
+                      size_t bytes) {
+  float  scratch[4];
+  size_t scratch2;
+
+  // A minion has 2 outstanding misses for regular misses. Expectation is that
+  // L1 will miss. Accessing more than 128 bytes at a time is not worth and will
+  // simply overwhelm the dcache
+  while (bytes >= 128) {
+    __asm__ __volatile__ (
+        "flq2 %[d0], 0x00(%[src])\n"
+        "flq2 %[d1], 0x20(%[src])\n"
+        "flq2 %[d2], 0x40(%[src])\n"
+        "flq2 %[d3], 0x60(%[src])\n"
+        "fsq2 %[d0], 0x00(%[dst])\n"
+        "fsq2 %[d1], 0x20(%[dst])\n"
+        "fsq2 %[d2], 0x40(%[dst])\n"
+        "fsq2 %[d3], 0x60(%[dst])\n"
+      : [d0]  "=&f" (scratch[0]),
+        [d1]  "=&f" (scratch[1]),
+        [d2]  "=&f" (scratch[2]),
+        [d3]  "=&f" (scratch[3])
+      : [dst] "r"   (dst),
+        [src] "r"   (src)
+    );
+    src   += 128;
+    dst   += 128;
+    bytes -= 128;
+  }
+
+  // Process the pending blocks of 32 bytes
+  while (bytes >= 32) {
+    __asm__ __volatile__ (
+        "flq2 %[d0], 0x0(%[src])\n"
+        "fsq2 %[d0], 0x0(%[dst])\n"
+      : [d0]  "=&f" (scratch[0])
+      : [dst] "r"   (dst),
+        [src] "r"   (src)
+    );
+    src   += 32;
+    dst   += 32;
+    bytes -= 32;
+  }
+
+  // Process the pending blocks of 8 bytes
+  while (bytes >= 8) {
+    __asm__ __volatile__ (
+        "ld %[d0], 0x0(%[src])\n"
+        "sd %[d0], 0x0(%[dst])\n"
+      : [d0]  "=&r" (scratch2)
+      : [dst] "r"   (dst),
+        [src] "r"   (src)
+    );
+    src   += 8;
+    dst   += 8;
+    bytes -= 8;
+  }
+
+  // Process the pending bytes
+  while (bytes > 0) {
+    __asm__ __volatile__ (
+        "lb %[d0], 0x0(%[src])\n"
+        "sb %[d0], 0x0(%[dst])\n"
+      : [d0]  "=&r" (scratch2)
+      : [dst] "r"   (dst),
+        [src] "r"   (src)
+    );
+    src   += 1;
+    dst   += 1;
+    bytes -= 1;
+  }
+}
+
+/**
+ * @brief Copies the src tensor to the dst tensor.
  *
  * It makes a copy of the tensor src into the dst tensor, which may not
  * have the same pitches or dimensions, so it allows a reshaping. This is
  * the threaded version for this operator, so several minions are used.
  * 
  * @tparam srcType The type of the elements in the tensor.
- * @param[out] dst Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] src Pointer to the input matrix.
+ * @param[out] dst Pointer to the output tensor.
+ * @param[in] dstDims The "number of dimensions" of the output tensor.
+ * @param[in] dstPitches Vector of pitches of the output tensor.
+ * @param[in] src Pointer to the input tensor.
  * @param[in] srcDims The vector of dimensions of the input tensor.
  * @param[in] srcPitches Vector of pitches of the input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] srcDimNum The "number of dimensions" of the input tensor.
  * @param[in] scale, offset Parameters for the quantization.
  * @param[in] flags Gives the information of the Active Shires and the
  *  type of evict required.
@@ -126,29 +211,17 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT, bool tensors
 
   /* maintain compatibility through the new Iface Libtensor */
   
-  void* src = inT->getRawDataPointer<void>();
-  void* dst = outT->getRawDataPointer<void>();
+  uint8_t * src = (uint8_t *) inT->getRawDataPointer<void>();
+  uint8_t * dst = (uint8_t *) outT->getRawDataPointer<void>();
   
-  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(src, scale[0], offset[0]);
-  const Addresser<elK> tInput(src, inT->getScale(), inT->getOffset());
-
-  // uint8_t *dst8 = (uint8_t *)dst;
-  // uint8_t *src8 = (uint8_t *)src;
-
-  //  unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
-  //  unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
   
-  //  unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  //  unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
 
-  unsigned int numElemsDst =
-      dstPitch[0] * dstIndex[0]; // Total number of elements in the tensor
+  // Total number of elements in the tensor
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0]; 
 
   // We give to each minion an initial address and the number of positions that
   // it must work on (maxRead).
@@ -158,16 +231,16 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT, bool tensors
                         minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
+  
 
   // We move the initialAddr to the next non-padding position
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
-  unsigned int k;                  // Amount of non-zero coordinates
+  unsigned int k;                // Amount of non-zero coordinates
   unsigned int coord[srcDimNum]; // Vector of coordinates
 
   /*use overloading WIP sw2400 sw2429*/
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
-
 
   // We get the actual initialAddr, in the input and output.
   unsigned int offsetIn = 0;
@@ -178,14 +251,29 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT, bool tensors
   }
 
   unsigned int posMax = maxRead + initialAddr;
-  // In each iteration we copy a position and switch to the next one, until
-  // completion.
+  // In each iteration we copy a full inner dimension and switch to the next one,
+  // until completion.
   bool done = false;
   while (!done && (offsetOut < posMax)) {
-    tOutput[offsetOut] = tInput[offsetIn];
-    /*use overloading WIP sw2400 sw2429*/
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
-                      actPitch, dstPitch);
+    // Figure out how many elements pending to be copied in current position
+    // Check that it is not copying out of bounds
+    size_t elemsToCopy = dstIndex[srcDimNum - 1] - coord[srcDimNum - 1];
+    if ((offsetOut + elemsToCopy) > posMax) { elemsToCopy = posMax - offsetOut; }
+
+    // Copies all the bytes pending
+    copyBytes(&src[offsetIn * typeSize], &dst[offsetOut * typeSize], elemsToCopy * typeSize);
+
+    // Updates pointers
+    if (coord[srcDimNum - 1] != 0) {
+      // Aligning the highest dimension is only required in the first iteration
+      // We move offsets to the begining of the second to last dimension
+      offsetIn  -= coord[srcDimNum - 1] * actPitch[srcDimNum - 1];
+      offsetOut -= coord[srcDimNum - 1] * dstPitch[srcDimNum - 1];
+      coord[srcDimNum - 1] = 0;
+    }
+    // Increment pointers ignoring the highest dimension as each step takes care
+    // of it
+    done = getOffsets(srcDimNum - 1, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
   }
   if (!DO_EVICTS)
     return;
@@ -194,7 +282,7 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT, bool tensors
 }
 
 /**
- * @brief Copies the src matrix to the dst matrix.
+ * @brief Copies the src tensor to the dst tensor.
  *
  * It makes a copy of the tensor src into the dst tensor, which may not
  * have the same pitches or dimensions, so it allows a reshaping. This is
@@ -204,13 +292,13 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT, bool tensors
  *  of a cacheline.
  * 
  * @tparam srcType The type of the elements in the tensor.
- * @param[out] dst Pointer to the output matrix.
- * @param[in] dstDims The "number of dimensions" of the output matrix.
- * @param[in] dstPitches Vector of pitches of the output matrix.
- * @param[in] src Pointer to the input matrix.
+ * @param[out] dst Pointer to the output tensor.
+ * @param[in] dstDims The "number of dimensions" of the output tensor.
+ * @param[in] dstPitches Vector of pitches of the output tensor.
+ * @param[in] src Pointer to the input tensor.
  * @param[in] srcDims The vector of dimensions of the input tensor.
  * @param[in] srcPitches Vector of pitches of the input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input matrix.
+ * @param[in] srcDimNum The "number of dimensions" of the input tensor.
  * @param[in] scale, offset Parameters for the quantization.
  * @param[in] flags Gives the information of the Active Shires and the
  *  type of evict required.
