@@ -156,7 +156,7 @@ inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
 
   // We give to each minion an initial address and the number of positions that it must work on (maxRead).
   unsigned int initialAddr, maxRead;
-  getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
   if (maxRead == 0) return;
 
   // We move the initialAddr to the next non-padding position

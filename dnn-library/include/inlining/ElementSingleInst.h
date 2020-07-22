@@ -125,7 +125,7 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -190,7 +190,7 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 

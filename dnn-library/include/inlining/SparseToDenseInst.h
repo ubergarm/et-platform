@@ -168,7 +168,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstThreaded(
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
@@ -409,7 +409,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 

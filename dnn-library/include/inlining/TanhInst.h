@@ -125,7 +125,7 @@ inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t fla
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 

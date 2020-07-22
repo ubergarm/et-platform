@@ -148,7 +148,7 @@ inline void fwdLibTensorViewInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddrOut, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddrOut, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -292,7 +292,7 @@ inline void fwdLibTensorViewInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddrOut, maxRead;
   int32_t typeSize = (int32_t) sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddrOut, maxRead,
-                        minionId, activeMinions); // Obtain initial addr 4 minions
+                        minionId, activeMinions, dst); // Obtain initial addr 4 minions
   if (maxRead == 0)
     return; // No work to do for the minion
 

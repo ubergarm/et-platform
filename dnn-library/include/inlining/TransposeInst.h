@@ -121,7 +121,7 @@ inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -219,7 +219,7 @@ inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -380,7 +380,7 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 

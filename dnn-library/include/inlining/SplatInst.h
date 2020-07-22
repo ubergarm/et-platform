@@ -109,7 +109,7 @@ inline void fwdLibSplatInstThreaded(LibTensor* outT, const float splatVal,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
   unsigned int coord[dstDimNum]; // Vector of coordinates

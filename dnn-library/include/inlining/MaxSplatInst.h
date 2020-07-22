@@ -105,7 +105,7 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -177,7 +177,7 @@ inline void fwdLibMaxSplatInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -353,7 +353,7 @@ inline void fwdLibMaxSplatInstVectorized(LibTensor* outT, LibTensor* inT,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -467,7 +467,7 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 

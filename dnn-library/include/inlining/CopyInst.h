@@ -155,7 +155,7 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT, bool tensors
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
@@ -265,7 +265,7 @@ inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT, bool tenso
   // must work on (maxRead).
   unsigned int initialAddr, maxRead;
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
   // We move the initialAddr to the next non-padding position

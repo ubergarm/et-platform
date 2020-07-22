@@ -173,7 +173,7 @@ inline void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<bool>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
@@ -273,7 +273,7 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<src1Type>();
   getCachelinePartition(1, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 

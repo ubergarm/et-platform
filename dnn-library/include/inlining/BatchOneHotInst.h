@@ -149,7 +149,7 @@ inline void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
   unsigned int dstAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, dstAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
 
   if (maxRead == 0)
     return;

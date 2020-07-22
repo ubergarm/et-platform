@@ -194,7 +194,7 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsValues, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 

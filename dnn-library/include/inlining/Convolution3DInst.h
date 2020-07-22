@@ -182,7 +182,7 @@ inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
   assert(actIndex[4] % group == 0 &&

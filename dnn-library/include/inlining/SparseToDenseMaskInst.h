@@ -168,7 +168,7 @@ inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, pdst);
   if (maxRead == 0)
     return;
 

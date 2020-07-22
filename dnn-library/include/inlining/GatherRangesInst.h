@@ -188,7 +188,7 @@ inline void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor* out2T,
 
     unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
 
-    getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions - 1);
+    getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions - 1, dstT);
     if (maxRead == 0)
       return;
 

@@ -111,7 +111,7 @@ void fwdLibMatMulInstThreadedTransposed(LibTensor* outT, LibTensor* in1T, LibTen
   unsigned int initialAddr, maxRead;
   size_t typeSize = outT->getElementSize();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 
@@ -372,7 +372,7 @@ void fwdLibMatMulInstVectorizedTransposed(LibTensor* outT, LibTensor* in1T, LibT
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = outT->getElementSize();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 

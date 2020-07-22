@@ -147,7 +147,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, pdst);
   if (maxRead == 0)
     return;
 
@@ -252,7 +252,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, pdst);
   if (maxRead == 0)
     return;
 
@@ -430,7 +430,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, pdst);
   if (maxRead == 0)
     return;
 

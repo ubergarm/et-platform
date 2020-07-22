@@ -125,7 +125,7 @@ inline void fwdLibIntLookupTableInstThreaded(LibTensor* outT,
 
   unsigned int initialAddr, maxRead;
   getCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions);
+                        minionId, activeMinions, ptrDstT);
   if (maxRead == 0)
     return;
 
