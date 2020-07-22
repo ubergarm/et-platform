@@ -306,6 +306,7 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
   unsigned int row_id = minionId / minionsperrow;
   if (row_id >= rows)
     return;
+
   unsigned int row_minionId = minionId - row_id * minionsperrow;
 
   size_t n = row_length / minionsperrow;
@@ -673,9 +674,11 @@ inline void fwdLibTopKInstThreaded(LibTensor* outT, LibTensor* out2T,
                                    LibTensor* inT, const uint32_t k,
                                    uint64_t flags,
                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  if (k > 8)
+
+  // TODO : For (k < 4) the specialized version is not working, needs to be fixed. 
+  if ((k > 8) or (k < 4))
     fwdLibTopKInstThreaded_all<elK>(outT, out2T, inT, k, flags, minionOffset, assignedMinions);
-  else if ( k > 4)
+  else if (k > 4)
     fwdLibTopKInstThreaded_k8<elK>(outT, out2T, inT, k, flags, minionOffset, assignedMinions);
   else
     fwdLibTopKInstThreaded_k4<elK>(outT, out2T, inT, k, flags, minionOffset, assignedMinions);
