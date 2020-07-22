@@ -860,7 +860,7 @@ static int _vsnprintf(out_fct_type out, char* buffer, const size_t maxlen, const
 ///////////////////////////////////////////////////////////////////////////////
 // functions to avoid minions printing at the same time
 // (and mixing messages in the uart)
-static uint32_t _printf_free = 1;
+__attribute__((aligned(64))) static uint32_t _printf_free[16] = { 1 };
 
 void printf_lock() {
   uint32_t v;
@@ -870,7 +870,7 @@ void printf_lock() {
        "li x31, 1\n"
        "amocmpswapg.w %[v], x0, (%[lock])\n"
        : [v] "+r" (v)
-       : [lock] "r" (&_printf_free)
+       : [lock] "r" (&_printf_free[0])
        : "x31" , "memory"
        );
   } while( v == 0);
@@ -882,7 +882,7 @@ void printf_unlock() {
   __asm__ __volatile__ // just set to mutex to 0
     (
      "amoswapg.w x0, %[v], (%[lock])\n"
-     : : [lock] "r" (&_printf_free), [v] "r" (v): "memory");
+     : : [lock] "r" (&_printf_free[0]), [v] "r" (v): "memory");
 }
 
 #include <syscall.h>
