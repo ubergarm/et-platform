@@ -1,6 +1,6 @@
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../../ --excel libManager.xlsx
-//  cwd=/local/home/vmoya/Esperanto/sw-platform-reference/host-software/host-sw/dnn_lib/scripts
+//  cwd=/local/home/nivard/sw-platform2/host-software/host-sw/dnn_lib/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
