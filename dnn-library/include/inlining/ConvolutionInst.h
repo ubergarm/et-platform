@@ -68,7 +68,7 @@ struct accumulatorType {
  * @param[in] scale The scale for the quantization.
  * @param[in] offset The offset for the quantization.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                   LibTensor* in3T,
                                   const std::array<uint32_t, N> &kernels,
@@ -88,7 +88,8 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = in1T->getRawDataPointer<void>();
-  void* weights =  in2T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
+  void* bias = in3T->getRawDataPointer<void>();
 
   // Addresser<srcType> tOutput(dstMatrix, scale[3], offset[3]);
   Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
@@ -97,7 +98,7 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   // const Addresser<srcType> tWInput(weights, scale[1], offset[1]);
   const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   // float *tBias = (float *)bias;
-  float *tBias = in3T->getRawDataPointer<float>();
+  const Addresser<src3ElK> tBias(bias, in3T->getScale(), in3T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -405,7 +406,7 @@ inline void convolutionStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
                                           LibTensor* in2T, LibTensor* in3T,
                                           const std::array<uint32_t, N> &kernels,
@@ -427,11 +428,12 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
   void* dstMatrix   = outT->getRawDataPointer<void>();
   void* activations = in1T->getRawDataPointer<void>();
   void* weights     = in2T->getRawDataPointer<void>();
+  void* bias        = in3T->getRawDataPointer<void>();
 
   Addresser<dstElK>       tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
   const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
-  float *tBias = in3T->getRawDataPointer<float>();
+  const Addresser<src3ElK> tBias(bias, in3T->getScale(), in3T->getOffset());
 
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = in1T->dims().data();
@@ -968,7 +970,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, size_t N, size_t PN>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, size_t N, size_t PN>
 inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
                                             const std::array<uint32_t, N> &kernels,
@@ -989,13 +991,14 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dest in1T->activations in2T-> weight in3T->bias */
 
-  void *dstMatrix = outT->getRawDataPointer<void>();
+  void *dstMatrix   = outT->getRawDataPointer<void>();
   void *activations = in1T->getRawDataPointer<void>();
-  void *weights = in2T->getRawDataPointer<void>();
+  void *weights     = in2T->getRawDataPointer<void>();
+  void* bias        = in3T->getRawDataPointer<void>();
 
   Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());  
   // float *tBias = (float *)bias;
-  float *tBias = in3T->getRawDataPointer<float>();
+  const Addresser<src3ElK> tBias(bias, in3T->getScale(), in3T->getOffset());
   
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();

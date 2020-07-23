@@ -156,7 +156,7 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {mbKernels, mbStrides, mbPads, mbGroup}, // members
-       7, // template param mask
+       15, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false // custom impl selector
      },
@@ -453,7 +453,7 @@ namespace dnn_lib {
        1, // # outs
        3,  // # ins
        {}, // members
-       7, // template param mask
+       15, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false // custom impl selector
      },

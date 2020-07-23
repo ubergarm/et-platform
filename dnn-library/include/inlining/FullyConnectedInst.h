@@ -42,7 +42,7 @@ struct accumulatorType {
 
 #endif
 
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK>
 inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
                                      LibTensor* in2T, LibTensor* in3T,
                                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
@@ -59,12 +59,12 @@ inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
   void *dstMatrix = outT->getRawDataPointer<void>();
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
-  // float *tBias = (float *)bias;
-  float *tBias = in3T->getRawDataPointer<float>();
+  void *biases = in3T->getRawDataPointer<void>();
   
   Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
   const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  const Addresser<src3ElK> tBias(biases, in3T->getScale(), in3T->getOffset());
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -322,7 +322,7 @@ inline void matmulStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK>
 inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
                                              LibTensor* in2T, LibTensor* in3T,
                                              uint64_t flags,
@@ -341,11 +341,12 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   void *dstMatrix = outT->getRawDataPointer<void>();
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
-  float *tBias = in3T->getRawDataPointer<float>();
+  void *biases = in3T->getRawDataPointer<void>();
   
   Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
   const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
+  const Addresser<src3ElK> tBias(biases, in3T->getScale(), in3T->getOffset());
   
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = in1T->dims().data();
@@ -409,7 +410,7 @@ inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
   }
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == FloatTy, std::size_t>::type = 0>
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == FloatTy, std::size_t>::type = 0>
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -467,7 +468,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 #undef MATMUL_ITERATION
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Float16Ty, std::size_t>::type = 0>
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Float16Ty, std::size_t>::type = 0>
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
 #define MATMUL_ITERATION               \
@@ -530,7 +531,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 #undef MATMUL_ITERATION
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == Int8QTy && dstElK == Int8QTy, std::size_t>::type = 0>
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == Int8QTy && dstElK == Int8QTy, std::size_t>::type = 0>
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
 #define INT8_TO_FP32(_reg)                  \
@@ -734,7 +735,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
     "fbc.ps f17, 0x8(%[scale]) \n"                       \
 
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == Int8QTy && dstElK == Int8QTy, std::size_t>::type = 0>  
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == Int8QTy && dstElK == Int8QTy, std::size_t>::type = 0>  
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
@@ -761,7 +762,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == UInt8QTy && dstElK == Int8QTy, std::size_t>::type = 0>    
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == UInt8QTy && dstElK == Int8QTy, std::size_t>::type = 0>    
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
   __asm__ __volatile__(
     STEP1
@@ -787,7 +788,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == Int8QTy && dstElK == UInt8QTy, std::size_t>::type = 0> 
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == Int8QTy && dstElK == UInt8QTy, std::size_t>::type = 0> 
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
@@ -814,7 +815,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == UInt8QTy && dstElK == UInt8QTy, std::size_t>::type = 0> 
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == Int8QTy && src2ElK == UInt8QTy && dstElK == UInt8QTy, std::size_t>::type = 0> 
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
@@ -841,7 +842,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == Int8QTy && dstElK == UInt8QTy, std::size_t>::type = 0> 
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == Int8QTy && dstElK == UInt8QTy, std::size_t>::type = 0> 
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
@@ -869,7 +870,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == UInt8QTy && dstElK == Int8QTy, std::size_t>::type = 0> 
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == UInt8QTy && dstElK == Int8QTy, std::size_t>::type = 0> 
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset) {
 
   __asm__ __volatile__(
@@ -896,7 +897,7 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 
 }
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == UInt8QTy && dstElK == UInt8QTy, std::size_t>::type = 0>   
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == UInt8QTy && src2ElK == UInt8QTy && dstElK == UInt8QTy, std::size_t>::type = 0>   
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
 
   __asm__ __volatile__(
@@ -935,10 +936,10 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 #undef STEP2
 #undef STEP3
 
-template <ElemKind src1ElK, ElemKind src2ElK, ElemKind dstElK, typename std::enable_if<src1ElK != Int8QTy && src1ElK != Float16Ty && src1ElK != FloatTy && src1ElK != UInt8QTy, std::size_t>::type = 0> 
+template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK != Int8QTy && src1ElK != Float16Ty && src1ElK != FloatTy && src1ElK != UInt8QTy, std::size_t>::type = 0> 
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){}
 
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>
+template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK>
 inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
                                                LibTensor* in2T, LibTensor* in3T,
                                                uint64_t flags,
@@ -958,7 +959,7 @@ inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
   void *dstMatrix = outT->getRawDataPointer<void>();
   void *activations = in1T->getRawDataPointer<void>();
   void *weights = in2T->getRawDataPointer<void>();
-  float *bias = in3T->getRawDataPointer<float>();
+  void *biases = in3T->getRawDataPointer<void>();
 
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
@@ -1011,8 +1012,8 @@ inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
     uintptr_t dstAddr = (uintptr_t)dstMatrix + typeSize*offsetOut;
     uintptr_t actAddr = (uintptr_t)activations + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)weights + typeSize*coord[1];
-    uintptr_t biasAddr = (uintptr_t)bias + 4*coord[1]; // bias is a float vector.
-    fullyConnectedOp <src1ElK, src2ElK, dstElK>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValuesAct,
+    uintptr_t biasAddr = (uintptr_t)biases + 4*coord[1]; // bias is a float vector.
+    fullyConnectedOp <src1ElK, src2ElK, src3ElK, dstElK>(dstAddr, actAddr, wgtAddr, actIndex[1], gatherValuesAct,
                        gatherValuesWgt, wgtRegStep, biasAddr, scale, offset);
     done = getOffsets(2, coord, offsetOut, dstIndex, dstPitch);
     if (coord[1] == 0) {
