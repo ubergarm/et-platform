@@ -145,8 +145,6 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
                    LibTensor* in3T, LibTensor* in4T, uint64_t flags,
                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(elK == FloatTy || elK == Float16Ty);
-  using dstType = typename elemKind2elemTy<elK>::type;
-
   // If Minion is outside the group assigned to this Node get out.
   unsigned int minionId = get_minion_id();
   if (minionId < minionOffset) { return; }
@@ -156,17 +154,20 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   uint64_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) { return; }
 
+  // Some static decoding
+  const bool weighted   = (in2T != nullptr);
+  const bool float16Dst = (elK == Float16Ty);
+  const bool float32Dst = (elK == FloatTy);
+
   /* maintain compatibility through the new Iface Libtensor */
   /* outT-> dst in1T->data in2T->weight in3T->indices in4T->lengths */
 
   // float *tOutput = (float *)pdst;
   const Addresser<elK> tOutputRd(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
-  //Addresser<elK> tOutput(outT->getRawDataPointer<void>(), outT->getScale(), outT->getOffset());
   uint8_t *tOutput = outT->getRawDataPointer<uint8_t>();
-  // uint8_t *tAInput = (uint8_t *)pdata;
   uint8_t *tAInput = in1T->getRawDataPointer<uint8_t>();
   float *tWInput = nullptr;
-  if (in2T != nullptr) { tWInput = in2T->getRawDataPointer<float>(); }
+  if (weighted) { tWInput = in2T->getRawDataPointer<float>(); }
   long long *indices = in3T->getRawDataPointer<long long>();
   int32_t *lengths = in4T->getRawDataPointer<int32_t>();
   
@@ -176,7 +177,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   const dim_t *dstPitch  = outT->strides().data();
   const dim_t *dataPitch = in1T->strides().data();
   const dim_t *weightPitch = nullptr;
-  if (in2T != nullptr) { weightPitch = in2T->strides().data(); }
+  if (weighted) { weightPitch = in2T->strides().data(); }
 
   // Computes input line size and output line size
   size_t inLineSize = 1;
@@ -203,6 +204,10 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   size_t rowStart          = (minionId / minionsPerRow) * rowsPerMinion;
   size_t positionInRow     = minionId % minionsPerRow;
   size_t rowElemsPerMinion = (outLineSize - 1) / minionsPerRow + 1;
+  // Make elements multiple of 8 as we work in vectors of 8
+  if (rowElemsPerMinion % 8) {
+    rowElemsPerMinion += 8 - (rowElemsPerMinion % 8);
+  }
   size_t rowElemStart      = positionInRow * rowElemsPerMinion;
   size_t rowElemEnd        = rowElemStart + rowElemsPerMinion;
 
@@ -222,8 +227,35 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
 
   size_t sizeDstType;
 
-  if (std::is_same<dstType, float>::value) { sizeDstType = 4; }
-  else                                     { sizeDstType = 2; }
+  if (float32Dst) { sizeDstType = 4; }
+  else            { sizeDstType = 2; }
+
+  // Usage of registers
+  // F0 is the accumulator
+  // F25 contains current pass dequantize values of the dense matrix
+  // F26 contains the weights
+  // F27 contains the dequantize offset
+  // F28 contains the dequantize scale
+  // F29 has scatter offsets to write results
+  // F30 has a mask to clear sign extension 24 MSBs
+  // F31 has gather offsets to read 8 consectuive bytes
+  
+  volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+  volatile int32_t scatter_float16_offsets[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
+  volatile int32_t scatter_float32_offsets[] = { 0, 4, 8, 12, 16, 20, 24, 28 };
+
+  // Creates the F30 mask
+  __asm__ __volatile__ (
+      "mov.m.x m0, zero, 0xff\n"
+      "li      t0, 0xff\n"
+      "fbcx.ps f30, t0\n"
+      "flw.ps  f29, 0x0(%[scatter_offsets])\n"
+      "flw.ps  f31, 0x0(%[gather_offsets])\n"
+    :
+    : [gather_offsets]  "r" (gather_offsets),
+      [scatter_offsets] "r" (float32Dst ? scatter_float32_offsets : scatter_float16_offsets)
+    : "t0", "f29", "f30", "f31"
+  );
 
   // For all the rows that the minion works on
   for (size_t row = rowStart; row < (rowStart + rowsPerMinion); row++) {
@@ -234,73 +266,132 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
     size_t idxEnd    = idxStart + lengths[row];
 
     // For all the elements of the row that the minion processes
-    for (size_t elem = rowElemStart; elem < rowElemEnd; elem++) {
-      volatile typename accumulatorType<dstType>::type sum = 0.0f;
+    for (size_t elem = rowElemStart; elem < rowElemEnd; elem += 8) {
+      // Recompute the mask for this pass
+      size_t mask = 0xff;
+      if ((elem + 8) > rowElemEnd) {
+        size_t elemsOff = (elem + 8) - rowElemEnd;
+        mask = mask >> elemsOff;
+      }
+      __asm__ __volatile__ (
+          "mov.m.x m0, %[mask], 0\n"
+        :
+        : [mask] "r" (mask)
+      );
+
+      // Resets the accumulator, creates F30
+      __asm__ __volatile__ (
+          "fxor.pi f0, f0, f0\n"
+        :
+        :
+        : "f0"
+      );
 
       // Runs through all the indices to compute a result
       for (size_t idx = idxStart; idx < idxEnd; idx++) {
-        // Gets weight 
-        const float weight = (tWInput != nullptr) ? tWInput[idx * weightPitch[0]] : 1.0f;
+        // Gets weight
+        if (weighted) {
+          uint8_t * weight_ptr = (uint8_t *) &tWInput[idx * weightPitch[0]];
+          __asm__ __volatile__ (
+              "fbc.ps  f26, 0x0(%[weight_ptr])\n"
+            :
+            : [weight_ptr] "r" (weight_ptr)
+            : "f26"
+          );
 
+          // Need to upconvert to FP32 if stored in FP16
+          if (float16Dst) {
+            __asm__ __volatile__ (
+              "fcvt.ps.f16 f26, f26\n"
+              :
+              :
+              : "f26"
+            );
+          }
+        }
+  
         // offsetIn now points to the beginning of the row
         size_t offsetIn = indices[idx] * dataPitch[0];
         uint8_t *currRowScaleOffsetPtr = &tAInput[offsetIn + inLineSize - (2 * sizeDstType)];
 
-        // Get the scale and offset for the dense data row; go to the current row and
+        // Get the scale and offset for the dense data row: go to the current row and
         // moves the pointer until the last 2 elements. Can't use size of as it doesn't work
         // correctly for float16.
-        float scale;
-        float offset;
-        // Regular load for float
-        if (std::is_same<dstType, float>::value) {
-          float * currRowScaleOffsetPtrFloat = (float *) currRowScaleOffsetPtr;
-          scale  = currRowScaleOffsetPtrFloat[0];
-          offset = currRowScaleOffsetPtrFloat[1];
+        __asm__ __volatile__ (
+            "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+            "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+          :
+          : [offset_ptr] "r" (currRowScaleOffsetPtr + sizeDstType),
+            [scale_ptr]  "r" (currRowScaleOffsetPtr)
+          : "f27", "f28"
+        );
+  
+        // Need to upconvert to FP32 if stored in FP16
+        if (float16Dst) {
+          __asm__ __volatile__ (
+              "fcvt.ps.f16 f27, f27\n"
+              "fcvt.ps.f16 f28, f28\n"
+            :
+            :
+            : "f27", "f28"
+          );
         }
-        // Upconvert to float for float16
+        
+        // Dequantize dense matrix on F25
+        __asm__ __volatile__ (
+            // Load a full input cache line (64 elements, 8 vregs)
+            "fgb.ps     f25, f31, %[data_ptr]\n"
+            // Clears 24 MSBs
+            "fand.pi    f25, f25, f30\n"
+            // Converts to FP32, applies offset and scale
+            "fcvt.ps.pw f25, f25\n"
+            "fmadd.ps   f25, f25, f28, f27\n"
+          :
+          : [data_ptr] "r" (&tAInput[offsetIn + elem])
+          : "f25", "f27", "f28", "f30", "f31"
+        );
+
+        // Accumulates the result. If sparse matrix has weight, applies it before
+        // accumulating, otherwise just adds
+        if (weighted) {
+          __asm__ __volatile__ (
+              "fmadd.ps f0, f26, f25, f0\n"
+            :
+            :
+            : "f0", "f25", "f26"
+          );
+        }
         else {
-          uint16_t * currRowScaleOffsetPtrUint16 = (uint16_t *) currRowScaleOffsetPtr;
-          dnn_lib::convertFp16ToFp32(currRowScaleOffsetPtrUint16[0], scale);
-          dnn_lib::convertFp16ToFp32(currRowScaleOffsetPtrUint16[1], offset);
+          __asm__ __volatile__ (
+              "fadd.ps f0, f25, f0\n"
+            :
+            :
+            : "f0", "f25"
+          );
         }
-
-        // Gets the quantized element and dequantizes it
-        float d = dequantizeWithFloatOffset(tAInput[offsetIn + elem], scale, offset);
-
-        // Accums the dequantized value with the weight and stores it
-        sum += d * weight;
       }
 
       // Stores the result, executes a global store to prevent collisions
       // with other minions
       uint8_t * tOutputTmp = &tOutput[(offsetOut + elem) * sizeDstType];
 
-      if (sizeDstType == 2) {
-        // Global store of 32 bits
+      if (float16Dst) {
+        // Global store of 16 bits
         __asm__ __volatile__ (
-            "mov.m.x     m0, zero, 0x1\n"
-            "flw.ps      f0, 0(%[data])\n"
             "fcvt.f16.ps f0, f0\n"
-            "fmvs.x.ps   t1, f0, 0\n"
-            "shg         t1, (%[ptr])\n"
+            "fschg.ps    f0, f29(%[ptr])\n"
           :
-          : [data] "r" (&sum),
-            [ptr]  "r" (tOutputTmp)
-          : "t1", "f0"
+          : [ptr] "r" (tOutputTmp)
+          : "t0", "f0", "f29"
         );
       }
       else {
         // Global store of 32 bits
         __asm__ __volatile__ (
-            "ld      t1, 0(%[data])\n"
-            "shg     t1, (%[ptr])\n"
-            "srli    t1, t1, 16\n"
-            "addi    t0, %[ptr], 2\n"
-            "shg     t1, (t0)\n"
+            "fscwg.ps f0, f29(%[ptr])\n"
           :
-          : [data] "r" (&sum),
-            [ptr]  "r" (tOutputTmp)
-          : "t0", "t1"
+          : [ptr]  "r" (tOutputTmp)
+          : "f0", "f29"
         );
       }
     }
