@@ -211,6 +211,9 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   size_t rowElemStart      = positionInRow * rowElemsPerMinion;
   size_t rowElemEnd        = rowElemStart + rowElemsPerMinion;
 
+  // If nothing to do by this minion, return
+  if (rowStart >= totalRows) { return; }
+
   // More minions per row than elements, this minion has nothing to compute
   if (rowElemStart >= outLineSize) { return; }
 
@@ -218,11 +221,9 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   if (rowElemEnd > outLineSize) { rowElemEnd = outLineSize; }
 
   // Computes where the first index is for the rows that the minion needs to compute
-  size_t ranges[totalRows];
-  size_t totalLength = 0;
-  for (size_t i = 0; i < (rowStart + rowsPerMinion); i++) {
-    ranges[i] = totalLength;
-    totalLength += lengths[i];
+  size_t idx = 0;
+  for (size_t i = 0; i < rowStart; i++) {
+    idx += lengths[i];
   }
 
   size_t sizeDstType;
@@ -258,12 +259,14 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   );
 
   // For all the rows that the minion works on
-  for (size_t row = rowStart; row < (rowStart + rowsPerMinion); row++) {
+  size_t row = rowStart;
+  while ((row < totalRows) && (row < (rowStart + rowsPerMinion))) {
     // Gets the offset of the outputs and the position of start and end
     // in the index array for this row
     size_t offsetOut = row * dstPitch[0];
-    size_t idxStart  = ranges[row];
+    size_t idxStart  = idx;
     size_t idxEnd    = idxStart + lengths[row];
+    idx              = idxEnd;
 
     // For all the elements of the row that the minion processes
     for (size_t elem = rowElemStart; elem < rowElemEnd; elem += 8) {
@@ -395,6 +398,7 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
         );
       }
     }
+    row++;
   }
 }
 
