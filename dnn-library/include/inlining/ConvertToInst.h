@@ -258,22 +258,25 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   
 }
 
-template <ElemKind dstElK, ElemKind srcElK> inline __attribute__((always_inline))
-void fwdLibConvertToInstBest (const int desired, LibTensor* outT, LibTensor* inT,
-			      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  switch(desired){
-  case 1: inlining::fwdLibConvertToInst<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions); break;
-  case 2: inlining::fwdLibConvertToInstThreaded<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions); break;
-  default:
-    // check for SW-3726
-    if (inT->dims()[inT->ndims()-1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0])
-      inlining::fwdLibConvertToInstThreaded<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
-    else
-      inlining::fwdLibConvertToInstVectorized<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
-    break;
+  template <ElemKind dstElK, ElemKind srcElK>
+  inline __attribute__((always_inline)) void fwdLibConvertToInstBest(const int desired, LibTensor* outT,  LibTensor*inT, uint64_t flags,
+								     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    
+    if (outT->getUntouchable())
+      inlining::fwdLibConvertToInst<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions);
+    
+    switch(desired){
+    case 1: inlining::fwdLibConvertToInst<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions); break;
+    case 2: inlining::fwdLibConvertToInstThreaded<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions); break;
+    default:
+      // check for SW-3726
+      if (inT->dims()[inT->ndims()-1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0])
+	inlining::fwdLibConvertToInstThreaded<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
+      else
+	inlining::fwdLibConvertToInstVectorized<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
+      break;
+    }
   }
-
-}
   
 } // namespace inlining
 

@@ -644,7 +644,26 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   outT->evict(DO_EVICTS);
 }
 
+template <ElemKind elK>
+inline __attribute((always_inline))
+void fwdLibEmbeddingBagInstBest(const int desired, LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
+                                 LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+                                 uint64_t flags, const uint32_t minionOffset = 0,
+                                 const uint32_t assignedMinions = 0) {
 
+  switch(desired){
+  case 1: inlining::fwdLibEmbeddingBagInst<elK>(outT, in1T, in2T, in3T, in4T, hasEndOffset, flags, minionOffset, assignedMinions); break;
+  case 2: inlining::fwdLibEmbeddingBagInstVectorized<elK>(outT, in1T, in2T, in3T, in4T, hasEndOffset, flags, minionOffset, assignedMinions); break;
+  default:
+    {
+      if (outT->getUntouchable())
+        inlining::fwdLibEmbeddingBagInst<elK>(outT, in1T, in2T, in3T, in4T, hasEndOffset, flags, minionOffset, assignedMinions);
+      else
+        inlining::fwdLibEmbeddingBagInstVectorized<elK>(outT, in1T, in2T, in3T, in4T, hasEndOffset, flags, minionOffset, assignedMinions);
+    }
+    break;
+  }
+}
 
 } // namespace inlining
 } // namespace dnn_lib

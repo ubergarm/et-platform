@@ -42,6 +42,10 @@ struct Type final {
     */
    const dim_t numSizes_;
 
+   /*@brief Specifies if padding positions are untouchable
+    */
+   const bool untouch_;
+
    /*@brief On quantized tensors, this represents the scale of the values.
     */
   const float scale_ {};
@@ -53,9 +57,10 @@ struct Type final {
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   template<size_t numSizes>
-  constexpr Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims,  float scale, int32_t offset) :
+  constexpr Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims, bool untouch, float scale, int32_t offset) :
     sizes_(make_dims(dims)),
     elementType_(elk), numSizes_(numSizes),
+    untouch_(untouch),
     scale_(scale), offset_(offset)
   {
     assert( isQuantizedElemKind(elk));
@@ -64,9 +69,10 @@ struct Type final {
   /*@brief Initialize a new non-quantized type.
    */
   template<size_t numSizes>
-  constexpr Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims) :
+  constexpr Type(dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims, bool untouch) :
     sizes_(make_dims(dims)),
-    elementType_(elk), numSizes_(numSizes)
+    elementType_(elk), numSizes_(numSizes),
+    untouch_(untouch)
   {
     assert( !isQuantizedElemKind(elk));
   }
@@ -75,11 +81,12 @@ struct Type final {
    */
   template<size_t numSizes>
   constexpr Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides,
-       float scale, int32_t offset) :
+       bool untouch, float scale, int32_t offset) :
     sizes_(make_dims(dims)),
     strides_(make_strides(strides)),
     elementType_(elk),
     numSizes_(numSizes),
+    untouch_(untouch),
     scale_(scale), offset_(offset)
   {
     assert(isQuantizedElemKind(elk));
@@ -88,11 +95,12 @@ struct Type final {
   /*@brief Initialize a new non-quantized type.
    */
   template<size_t numSizes>
-  constexpr Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides) :
+  constexpr Type(dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides, bool untouch) :
     sizes_(make_dims(dims)),
     strides_(make_strides(strides)),
     elementType_(elk),
-    numSizes_(numSizes)
+    numSizes_(numSizes),
+    untouch_(untouch)
   {
     assert(  !isQuantizedElemKind(elk));
   }
@@ -103,11 +111,12 @@ struct Type final {
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   constexpr Type(dnn_lib::ElemKind elk, size_t numSizes, const dim_array_t &dims, const dim_array_t &strides,
-       float scale, int32_t offset) :
+       bool untouch, float scale, int32_t offset) :
     sizes_(dims),
     strides_(strides),
     elementType_(elk),
     numSizes_(numSizes),
+    untouch_(untouch),
     scale_(scale), offset_(offset)
   {
     assert(isQuantizedElemKind(elk));
@@ -115,11 +124,12 @@ struct Type final {
   
   /*@brief Initialize a new non-quantized type.
    */
-  constexpr Type(dnn_lib::ElemKind elk, size_t numSizes, const dim_array_t &dims, const dim_array_t &strides) :
+  constexpr Type(dnn_lib::ElemKind elk, size_t numSizes, const dim_array_t &dims, const dim_array_t &strides, bool untouch) :
     sizes_(dims),
     strides_(strides),
     elementType_(elk),
-    numSizes_(numSizes)
+    numSizes_(numSizes),
+    untouch_(untouch)
   {
     assert(  !isQuantizedElemKind(elk));
   }
@@ -129,21 +139,21 @@ struct Type final {
    */
   template<size_t numSizes>
   static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims) {
-    if(T.isQuantizedType()) return Type(T.elementType_, dims, T.scale_, T.offset_);
-    else return Type(T.elementType_, dims);
+    if(T.isQuantizedType()) return Type(T.elementType_, dims, T.untouch_, T.scale_, T.offset_);
+    else return Type(T.elementType_, dims, T.untouch_);
   }
 
   /*@brief Reshape existing type and change alignments.
     */
   template<size_t numSizes>
   static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &pitches){
-    if (T.isQuantizedType()) return Type(T.elementType_, dims, pitches, T.scale_, T.offset_);
-    else return Type(T.elementType_, dims, pitches);
+    if (T.isQuantizedType()) return Type(T.elementType_, dims, pitches, T.untouch_, T.scale_, T.offset_);
+    else return Type(T.elementType_, dims, pitches, T.untouch_);
   }
 
   static Type newShape(const Type &T, size_t numSizes, const dim_array_t &dims, const dim_array_t &pitches){
-    if (T.isQuantizedType()) return Type(T.elementType_, numSizes, dims, pitches, T.scale_, T.offset_);
-    else return Type(T.elementType_, numSizes, dims, pitches);
+    if (T.isQuantizedType()) return Type(T.elementType_, numSizes, dims, pitches, T.untouch_, T.scale_, T.offset_);
+    else return Type(T.elementType_, numSizes, dims, pitches, T.untouch_);
   }
 
    /*@brief Reshape existing type by taking shapes and strides of \p shapeType.
@@ -151,9 +161,9 @@ struct Type final {
    static Type newShape(const Type &kindType, const Type shapeType) {
      //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
      if (kindType.isQuantizedType())
-       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
+       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.untouch_, kindType.scale_, kindType.offset_);
      else 
-       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
+       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.untouch_);
 
      //TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate extended
      // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
@@ -162,6 +172,12 @@ struct Type final {
   /* brief returns true if \p other is the same type.
    */
   // bool isEqual(TypeRef other) const { return isEqual(*other); }
+
+  /*@brief returns if padding positions are untouchable.
+   */
+  bool getUntouchable() const {
+    return untouch_;
+  }
 
   /*@brief returns the scale of a quantized type.
    */
@@ -463,16 +479,16 @@ class LibTensor final {
   //constructor for quant types
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
-            const std::array<dim_t, numSizes> &pitches, float scale, int offset)
+            const std::array<dim_t, numSizes> &pitches, bool untouch, float scale, int offset)
     : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(elk, dims, pitches, scale, offset) {}
+      type_(elk, dims, pitches, untouch, scale, offset) {}
 
   // constructor for non quant types
   template<size_t numSizes>
   LibTensor(dnn_lib::ElemKind elk, void* rawdata, const std::array<dim_t, numSizes> &dims,
-            const std::array<dim_t, numSizes> &pitches)
+            const std::array<dim_t, numSizes> &pitches, bool untouch)
     : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(elk, dims, pitches) {}
+      type_(elk, dims, pitches, untouch) {}
 
   // constructor from type
   LibTensor(const Type &type, void* rawdata)
@@ -529,9 +545,10 @@ class LibTensor final {
 
   /*TODO: After re-do sw-2429 (refact operands) are the getters necessary? if not remove them. */
 public:  
-  float   getScale() const  { return type_.getScale(); }
+  bool    getUntouchable() const { return type_.getUntouchable(); }
+  float   getScale() const { return type_.getScale(); }
   int32_t getOffset() const { return type_.getOffset(); }
-  size_t getElementSize() const { return type_.getElementSize(); }  
+  size_t  getElementSize() const { return type_.getElementSize(); }  
 
 
   /*@brief returns a pointer to the raw data, of type \p ElemTy.
