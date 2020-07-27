@@ -140,7 +140,7 @@ namespace dnn_lib {
        {}, // members
        3, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false // custom impl selector
+       true // custom impl selector
      },
      /**** ET_int8converter ****/
      { "Int8Converter", // name
