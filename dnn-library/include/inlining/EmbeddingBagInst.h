@@ -656,9 +656,11 @@ void fwdLibEmbeddingBagInstBest(const int desired, LibTensor* outT, LibTensor *i
   case 2: inlining::fwdLibEmbeddingBagInstVectorized<elK>(outT, in1T, in2T, in3T, in4T, hasEndOffset, flags, minionOffset, assignedMinions); break;
   default:
     {
+#ifdef  SW_3755
       if (outT->getUntouchable())
         inlining::fwdLibEmbeddingBagInst<elK>(outT, in1T, in2T, in3T, in4T, hasEndOffset, flags, minionOffset, assignedMinions);
       else
+#endif
         inlining::fwdLibEmbeddingBagInstVectorized<elK>(outT, in1T, in2T, in3T, in4T, hasEndOffset, flags, minionOffset, assignedMinions);
     }
     break;
