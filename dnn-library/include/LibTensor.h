@@ -736,13 +736,13 @@ public:
    *@return flattened 1D element position.
    */
   template<size_t N>
-  size_t getElementPtr(const std::array<dim_t, N> &indices) {
+  size_t getElementPtr(const std::array<dim_t, N> &indices) const {
     return getFlattenedOffset(indices, strides_);
   }
 
   template<size_t N>
   size_t getElementPtr(const std::array<dim_t, N> &indices, 
-                      const dim_array_t &extStrides, size_t ndx) {
+                      const dim_array_t &extStrides, size_t ndx) const {
     return getFlattenedOffset(indices, strides_, extStrides, ndx);
   }
 

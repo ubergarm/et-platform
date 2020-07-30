@@ -9,8 +9,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef _ELEMENT_INST_H_
-#define _ELEMENT_INST_H_
+#ifndef _ELEMENT_BINARY_INST_H_
+#define _ELEMENT_BINARY_INST_H_
 
 #include <assert.h>
 #include <fenv.h>
@@ -250,9 +250,6 @@ template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in2T, uint64_t flags,
                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using dstType = typename elemKind2elemTy<dstElK>::type;
-  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -268,11 +265,8 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   void* srcT1 = in1T->getRawDataPointer<void>();
   void* srcT2 = in2T->getRawDataPointer<void>();
     
-  // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
   const dim_t *act1Pitch = in1T->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
@@ -383,7 +377,7 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   // individual functions per operator (forwarding call to the previous ones with
   // the proper parameters)
   ////////////////////////////////////////////////////////////////////////////////
-#define EltWiseInst(name, opType)                                                                                          \
+#define EltWiseBinaryInst(name, opType)                                                                                          \
   template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
   fwdLib ## name ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                                \
                            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {          \
@@ -402,13 +396,13 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
                                                                              flags, minionOffset, assignedMinions);        \
   }
 
-  EltWiseInst(ElementAdd, Add)
-  EltWiseInst(ElementSub, Sub)
-  EltWiseInst(ElementDiv, Div)
-  EltWiseInst(ElementMul, Mul)
-  EltWiseInst(ElementMin, Min)
-  EltWiseInst(ElementMax, Max)
-  EltWiseInst(ElementPow, Pow)
+  EltWiseBinaryInst(ElementAdd, Add)
+  EltWiseBinaryInst(ElementSub, Sub)
+  EltWiseBinaryInst(ElementDiv, Div)
+  EltWiseBinaryInst(ElementMul, Mul)
+  EltWiseBinaryInst(ElementMin, Min)
+  EltWiseBinaryInst(ElementMax, Max)
+  EltWiseBinaryInst(ElementPow, Pow)
   
 #undef EltWiseInst
 

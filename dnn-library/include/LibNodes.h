@@ -567,10 +567,14 @@ extern template void fwdLibElementDivInstVectorized<Int64ITy,Int64ITy,Int64ITy>(
 // declarations
 template <ElemKind in0Type>
 void fwdLibElementExpInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind in0Type>
+void fwdLibElementExpInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibElementExpInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibElementExpInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementExpInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementExpInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementIsNaN implementations

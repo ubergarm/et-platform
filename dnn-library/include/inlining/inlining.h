@@ -30,10 +30,8 @@
 #include "CumSumInst.h" // From include/inlining path
 #include "DequantizeInst.h" // From include/inlining path
 #include "ElementBoolInst.h" // From include/inlining path
-#include "ElementExpInst.h" // From include/inlining path
 #include "ElementImmLogic.h" // From include/inlining path
-#include "ElementInst.h" // From include/inlining path
-#include "ElementIsNaNInst.h" // From include/inlining path
+#include "ElementBinaryInst.h" // From include/inlining path
 #include "ElementSelectInst.h" // From include/inlining path
 #include "ElementSingleInst.h" // From include/inlining path
 #include "EmbeddingBagInst.h" // From include/inlining path
@@ -63,7 +61,6 @@
 #include "RowwiseQuantizedFullyConnectedInst.h" // From include/inlining path
 #include "RowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path
 #include "ScatterDataInst.h" // From include/inlining path
-#include "SigmoidInst.h" // From include/inlining path
 #include "SoftMaxInst.h" // From include/inlining path
 #include "SpaceToDepthInst.h" // From include/inlining path
 #include "SparseLengthsSumInst.h" // From include/inlining path
@@ -72,7 +69,6 @@
 #include "SparseToDenseMaskInst.h" // From include/inlining path
 #include "SplatInst.h" // From include/inlining path
 #include "SyncopyInst.h" // From include/inlining path
-#include "TanhInst.h" // From include/inlining path
 #include "TensorViewInst.h" // From include/inlining path
 #include "TopKInst.h" // From include/inlining path
 #include "TransposeInst.h" // From include/inlining path

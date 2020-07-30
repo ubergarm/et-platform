@@ -15,6 +15,8 @@
 #include "LibCommon.h"
 #include "utils.h"
 #include "Operators.h"
+#include "LibTypes.h"
+#include "LibTensor.h"
 
 #define OPERATION_STEP1   \
            "flw.ps f31, %[gatherValues]\n"               \
@@ -1860,13 +1862,40 @@ public:
   template <typename U = opType,
             typename std::enable_if<std::is_same<U, ElementLog>::value,
                                     std::size_t>::type = 0>
-  void doOp(dstType &dst, const src1Type &src1, uint64_t &d, uint64_t &s1) {
-    float op1;
-    float op2 = M_1_LOG2E;
-    fpLog2SingleElement(src1[s1], op1);
-    dst[d] = op1 * op2;
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, uint64_t &d, uint64_t &s) {
+    float op;
+    convertFp16ToFp32(src.raw(s), op);
+    fpLog2SingleElement(op, op);
+    convertFp32ToFp16(op * M_1_LOG2E, dst.raw(d));
   }
 
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementLog>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, dim_array_t &p) {
+    float op;
+    convertFp16ToFp32(src.at(p), op);
+    fpLog2SingleElement(op, op);
+    convertFp32ToFp16(op * M_1_LOG2E, dst.at(p));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementLog>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, uint64_t &d, uint64_t &s) {
+    float op;
+    fpLog2SingleElement(src.raw(s), op);
+    dst.raw(d) = op * M_1_LOG2E;
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementLog>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, dim_array_t &p) {
+    float op;
+    fpLog2SingleElement(src.at(p), op);
+    dst.at(p) = op * M_1_LOG2E;
+  }
   // And Immediate version (src, imm)
   template <typename U = opType,
             typename std::enable_if<std::is_same<U, And>::value,
@@ -1892,6 +1921,161 @@ public:
   void doOp(dstType *dst, const src1Type *src1, src2Type src2, uint64_t &d,
             uint64_t &s1) {
     dst[d] = src1[s1] ^ src2;
+  }
+
+  //// Exp operations ////
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementExp>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, uint64_t &d, uint64_t &s) {
+    float res;
+    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), res);
+    res *= static_cast<float>(M_LOG2E);
+    __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
+    convertFp32ToFp16(res, dst.raw(d));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementExp>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, dim_array_t &p) {
+    float res;
+    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), res);
+    res *= static_cast<float>(M_LOG2E);
+    __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
+    convertFp32ToFp16(res, dst.at(p));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementExp>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, uint64_t &d, uint64_t &s) {
+    float res = static_cast<float>(M_LOG2E) * src.raw(s);
+    __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
+    dst.raw(d) = res;
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementExp>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, dim_array_t &p) {
+    float res = static_cast<float>(M_LOG2E) * src.at(p);
+    __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
+    dst.at(p) = res;
+  }
+
+  //// Tanh operations ////
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Tanh>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, uint64_t &d, uint64_t &s) {
+    float op1, op2;
+    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), op1);
+    op2 = getCosh(op1); op1 = getSinh(op1);
+    fpReciprocalSingleElement(op2, op2);
+    convertFp32ToFp16(op1 * op2, dst.raw(d));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Tanh>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, dim_array_t &p) {
+    float op1, op2;
+    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), op1);
+    op2 = getCosh(op1); op1 = getSinh(op1);
+    fpReciprocalSingleElement(op2, op2);
+    convertFp32ToFp16(op1 * op2, dst.at(p));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Tanh>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, uint64_t &d, uint64_t &s) {
+    float op1 = getSinh(src.raw(s));
+    float op2 = getCosh(src.raw(s));
+    fpReciprocalSingleElement(op2, op2);
+    dst.raw(d) = op1 * op2;
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Tanh>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, dim_array_t &p) {
+    float op1 = getSinh(src.at(p));
+    float op2 = getCosh(src.at(p));
+    fpReciprocalSingleElement(op2, op2);
+    dst.at(p) = op1 * op2;
+  }
+
+  //// IsNaN operations ////
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementIsNaN>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<bool> &dst, const Handle<uint16_t> &src, uint64_t &d, uint64_t &s) {
+    float op;
+    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), op);
+    dst.raw(d) = isnanf(op) ? true : false;
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementIsNaN>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<bool> &dst, const Handle<uint16_t> &src, dim_array_t &p) {
+    float op;
+    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), op);
+    dst.at(p) = isnanf(op) ? true : false;
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementIsNaN>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<bool> &dst, const Handle<float> &src, uint64_t &d, uint64_t &s) {
+    dst.raw(d) = isnanf(src.raw(s)) ? true : false;
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, ElementIsNaN>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<bool> &dst, const Handle<float> &src, dim_array_t &p) {
+    dst.at(p) = isnanf(src.at(p)) ? true : false;
+  }
+
+  //// Sigmoid Operation ////
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Sigmoid>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, uint64_t &d, uint64_t &s) {
+    float op;
+    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), op);
+    fpReciprocalSingleElement(getExp(-op) + 1.0, op);
+    convertFp32ToFp16(op, dst.raw(d));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Sigmoid>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, dim_array_t &p) {
+    float op;
+    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), op);
+    fpReciprocalSingleElement(getExp(-op) + 1.0, op);
+    convertFp32ToFp16(op, dst.at(p));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Sigmoid>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, uint64_t &d, uint64_t &s) {
+    fpReciprocalSingleElement(getExp(-(src.raw(s))) + 1.0, dst.raw(d));
+  }
+
+  template <typename U = opType,
+            typename std::enable_if<std::is_same<U, Sigmoid>::value,
+                                    std::size_t>::type = 0>
+  void doOp(Handle<float> &dst, const Handle<float> &src, dim_array_t &p) {
+    fpReciprocalSingleElement(getExp(-(src.at(p))) + 1.0, dst.at(p));
   }
 };
 

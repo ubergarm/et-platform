@@ -13,6 +13,10 @@ class CmpLT {};
 class Select {};
 class Pow {};
 class ElementLog {};
+class ElementExp {};
+class ElementIsNaN {};
+class Tanh {};
+class Sigmoid {};
 class And {}; // bit-wise
 class Or {}; // bit-wise
 class Xor {}; // bit-wise

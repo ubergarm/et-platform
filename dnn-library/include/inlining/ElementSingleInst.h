@@ -33,55 +33,34 @@ namespace inlining {
 template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using dstType = typename elemKind2elemTy<dstElK>::type;
-  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  void* src = inT->getRawDataPointer<void>();
-  void* dst = outT->getRawDataPointer<void>();
- 
-  // const Addresser<srcElK> aSrcT1(src, scale[0], offset[0]);
-  const Addresser<srcElK> aSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcElK> aDstT(dstT, scale[2], offset[2]);
-  Addresser<dstElK> aDstT(dst, outT->getScale(), outT->getOffset());
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type; 
+  const auto aSrcT1 = inT->getHandle<srcType>();
+  auto aDstT = outT->getHandle<dstType>();
 
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = inT->strides().data();
   
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
   
   unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
 
   for (size_t i = 0; i < srcDimNum; i++) {
     eBatchDims[i] = srcIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrcPitch[i] = srcPitch[i];
   }
 
-  uint64_t addrSrc1, addrDst;
-
-  Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<dstElK>, opType> op;
+  Operator<srcType, srcType, dstType, opType> op;
+  dim_array_t d = {0,0,0,0,0,0};
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
   // We can use this loop for all shapes.
-  for (size_t x = 0; x < eBatchDims[0]; x++) {
-    for (size_t y = 0; y < eBatchDims[1]; y++) {
-      for (size_t z = 0; z < eBatchDims[2]; z++) {
-        for (size_t w = 0; w < eBatchDims[3]; w++) {
-          for (size_t q = 0; q < eBatchDims[4]; q++) {
-            for (size_t r = 0; r < eBatchDims[5]; r++) {
-              addrSrc1 = x * eSrcPitch[0] + y * eSrcPitch[1] +
-                         z * eSrcPitch[2] + w * eSrcPitch[3] +
-                         q * eSrcPitch[4] + r * eSrcPitch[5];
-              addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
-                        w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
-              op.doOp(aDstT, aSrcT1, addrDst, addrSrc1);
+  for (d[0] = 0; d[0] < eBatchDims[0]; d[0]++) {
+    for (d[1] = 0; d[1] < eBatchDims[1]; d[1]++) {
+      for (d[2] = 0; d[2] < eBatchDims[2]; d[2]++) {
+        for (d[3] = 0; d[3] < eBatchDims[3]; d[3]++) {
+          for (d[4] = 0; d[4] < eBatchDims[4]; d[4]++) {
+            for (d[5] = 0; d[5] < eBatchDims[5]; d[5]++) {
+              op.doOp(aDstT, aSrcT1, d);
             }
           }
         }
@@ -93,37 +72,27 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
 template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
+  using dstType = typename elemKind2elemTy<dstElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
   
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = inT->getRawDataPointer<void>();
-  
-  // const Addresser<srcElK> aSrcT1(srcT1, scale[0], offset[0]);
-  const Addresser<srcElK> aSrcT1(src, inT->getScale(), inT->getOffset());
-  // Addresser<srcElK> aDstT(dstT, scale[2], offset[2]);
-  Addresser<dstElK> aDstT(dst, outT->getScale(), outT->getOffset());
+  void *dst = outT->getRawDataPointer<void>();
+  const auto aSrcT1 = inT->getHandle<srcType>();
+  auto aDstT = outT->getHandle<dstType>();
 
-  // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
 
   uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
 
-  Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<srcElK>, opType> op;
-
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dst);
   if (maxRead == 0)
@@ -140,14 +109,17 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
+  Operator<srcType, srcType, dstType, opType> op;
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
   while (!done && (offsetOut < posMax)) {
     op.doOp(aDstT, aSrcT1, offsetOut, offsetIn);
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
                       actPitch, dstPitch);
   }
 
+  /* maintain compatibility through the new Iface Libtensor */
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
@@ -158,7 +130,6 @@ template <ElemKind dstElK, ElemKind srcElK, typename opType>
 inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
-  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -170,11 +141,8 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT1 = inT->getRawDataPointer<void>();
   
-  // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
   
   uintptr_t dstAddr = (uintptr_t)dstT;
@@ -281,16 +249,63 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
 
 
   // instances for particular instructions
+  
 template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibElementLogInst(LibTensor* outT, LibTensor* inT,
                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   inlining::fwdLibElementSingleInst<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
 }
 
+template <ElemKind srcElK>
+inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInst<srcElK, srcElK, ElementExp>(outT, inT, flags, minionOffset, assignedMinions);
+}
+
+template <ElemKind srcElK>
+inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInst<BoolTy, srcElK, ElementIsNaN>(outT, inT, flags, minionOffset, assignedMinions);
+}
+
+template <ElemKind srcElK>
+inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInst<srcElK, srcElK, Sigmoid>(outT, inT, flags, minionOffset, assignedMinions);
+}
+
+template <ElemKind srcElK>
+inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInst<srcElK, srcElK, Tanh>(outT, inT, flags, minionOffset, assignedMinions);
+}
+
 template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibElementLogInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   inlining::fwdLibElementSingleInstThreaded<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
+}
+template <ElemKind srcElK>
+inline void fwdLibElementExpInstThreaded(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInstThreaded<srcElK, srcElK, ElementExp>(outT, inT, flags, minionOffset, assignedMinions);
+}
+template <ElemKind srcElK>
+inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInstThreaded<BoolTy, srcElK, ElementIsNaN>(outT, inT, flags, minionOffset, assignedMinions);
+}
+
+template <ElemKind srcElK>
+inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInstThreaded<srcElK, srcElK, Sigmoid>(outT, inT, flags, minionOffset, assignedMinions);
+}
+
+template <ElemKind srcElK>
+inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inlining::fwdLibElementSingleInstThreaded<srcElK, srcElK, Tanh>(outT, inT, flags, minionOffset, assignedMinions);
 }
 
 template <ElemKind dstElK, ElemKind srcElK>
