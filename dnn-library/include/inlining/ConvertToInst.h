@@ -39,47 +39,35 @@ namespace inlining {
 template <ElemKind dstElK, ElemKind srcElK>
 inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* outT, LibTensor* inT,
                                                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<srcElK>::type;
   
-  // operators
   if (get_minion_id() != minionOffset) return;
 
-  assert(inT->dims() == outT->dims());
-  
+  assert(inT->dims() == outT->dims()); 
 
-  /* maintain compatibility through the new Iface Libtensor */
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  void* srcT = inT->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
-
-  Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  const Addresser<srcElK> ptrSrcT1(srcT, inT->getScale(), inT->getOffset());
-
-  Converter<srcElK, dstElK> converter;
+  auto srcH = inT->getHandle<srcType>();
+  auto dstH = outT->getHandle<dstType>();
 
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    [&](size_t addrDst, size_t addrSrc) {
-                     auto src = ptrSrcT1[addrSrc];
-                     if (std::is_same<srcType, dstType>::value) {
-                       ptrDstT[addrDst] = src;
-                     } else {
-                       auto dst = converter.convert(src);
-                       ptrDstT[addrDst] = dst;
-                     }
+		     dstH.raw(addrDst) = Converter<srcElK, dstElK>::convert(srcH.raw(addrSrc));
                    } );
-
 }
 
 template <ElemKind dstElK, ElemKind srcElK>
 inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using dstType = typename elemKind2elemTy<dstElK>::type;
-  //  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
+
+  assert(inT->dims() == outT->dims()); 
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using srcType = typename elemKind2elemTy<srcElK>::type;
 
   ////////////////////////////////////////////////////////////////////////////////
   // partition work between minions in multiples of CL
@@ -91,15 +79,10 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
 
   if (unlikely(count == 0)) return; // minion has no work to do
   
-  /* maintain compatibility through the new Iface Libtensor */
+  auto srcH = inT->getHandle<srcType>();
+  auto dstH = outT->getHandle<dstType>();
 
-  void* src = inT->getRawDataPointer<void>();
-  void* dst = outT->getRawDataPointer<void>();
-
-  Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
-  const Addresser<srcElK> tAInput(src, inT->getScale(), inT->getOffset());
-  Converter<srcElK, dstElK> converter;
-  
+ 
   // and loop
 #if 0
   auto out = outT->getHandle<dstType>().getIterator(first);
@@ -113,13 +96,10 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor
 #else
 
   auto begin = outT->offset2Coord(first);
-  //  auto end = outT->offset2Coord(first + count);
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    begin, first + count, 
                    [&](size_t addrDst, size_t addrSrc) {
-                     auto inD = tAInput[addrSrc];
-                     auto outD = converter.convert(inD);
-                     tOutput[addrDst] = outD;
+		     dstH.raw(addrDst) = Converter<srcElK, dstElK>::convert(srcH.raw(addrSrc));
                    } );
 #endif
   outT->evict(DO_EVICTS, first, count);
@@ -270,11 +250,16 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
       case 1: inlining::fwdLibConvertToInst<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions); break;
       case 2: inlining::fwdLibConvertToInstThreaded<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions); break;
       default:
-	// check for SW-3726
-	if (inT->dims()[inT->ndims()-1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0])
+ 	// check for SW-3726
+	if ((inT->dims()[inT->ndims()-1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0]) ||
+	    (srcElK == FloatTy && dstElK == Int64ITy ) || ( srcElK == FloatTy && dstElK == Int32ITy) || 
+	    (srcElK == Int32ITy && dstElK == FloatTy) || ( srcElK == Int32ITy && dstElK == Int64ITy) || ( srcElK == Int32ITy && dstElK == Float16Ty) ||
+	    (srcElK == Int64ITy && dstElK == Float16Ty) || ( srcElK == Int64ITy && dstElK == Int32ITy) || 
+	    (srcElK == BoolTy && dstElK == Float16Ty) || ( srcElK == BoolTy && dstElK == FloatTy))
 	  inlining::fwdLibConvertToInstThreaded<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
-	else
-	  inlining::fwdLibConvertToInstVectorized<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
+	else {
+	    inlining::fwdLibConvertToInstVectorized<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
+	}
 	break;
       }
     }

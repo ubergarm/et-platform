@@ -63,7 +63,14 @@ class LibManagerSheet:
                       "RszScale": "std::array<float, default_rszscale_size> &",
                       "HasEndOffset": "bool",
                       "Transposed": "bool",
-                      "TensorsAligned": "bool"
+                      "TensorsAligned": "bool",
+                      "RszScale": "std::array<float, default_rszscale_size> &",
+                      "Dilation": "uint32_t",
+                      "CenterPointBox": "int64_t",
+                      "MaxOutputBoxesPerClass": "int64_t",
+                      "IouThreshold": "float",
+                      "ScoreThreshold": "float",
+                      "IsTFVersion4": "bool"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)

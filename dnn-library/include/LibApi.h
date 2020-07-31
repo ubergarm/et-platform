@@ -33,6 +33,12 @@ namespace dnn_lib {
    mbHasEndOffset,
    mbTransposed,
    mbTensorsAligned,
+   mbDilation,
+   mbCenterPointBox,
+   mbMaxOutputBoxesPerClass,
+   mbIouThreshold,
+   mbScoreThreshold,
+   mbIsTFVersion4,
    mbMaxMembers
   };
 
@@ -151,12 +157,30 @@ namespace dnn_lib {
        {}, // impl versions
        false // custom impl selector
      },
+     /**** ET_channelwisequantizedconvolution ****/
+     { "ChannelWiseQuantizedConvolution", // name
+       1, // # outs
+       7,  // # ins
+       {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
+       9, // template param mask
+       {}, // impl versions
+       false // custom impl selector
+     },
+     /**** ET_channelwisequantizedconvolution3d ****/
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
+       {}, // impl versions
+       false // custom impl selector
+     },
      /**** ET_convolution ****/
      { "Convolution", // name
        1, // # outs
        3,  // # ins
-       {mbKernels, mbStrides, mbPads, mbGroup}, // members
-       15, // template param mask
+       {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
+       9, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false // custom impl selector
      },
@@ -167,6 +191,15 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads, mbGroup}, // members
        1, // template param mask
        {"Threaded"}, // impl versions
+       false // custom impl selector
+     },
+     /**** ET_convtranspose ****/
+     { "ConvTranspose", // name
+       1, // # outs
+       3,  // # ins
+       {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
+       1, // template param mask
+       {}, // impl versions
        false // custom impl selector
      },
      /**** ET_copy ****/
@@ -610,6 +643,15 @@ namespace dnn_lib {
        {"Threaded"}, // impl versions
        false // custom impl selector
      },
+     /**** ET_resizebilinear ****/
+     { "ResizeBilinear", // name
+       1, // # outs
+       1,  // # ins
+       {mbRszScale}, // members
+       1, // template param mask
+       {}, // impl versions
+       false // custom impl selector
+     },
      /**** ET_resizenearest ****/
      { "ResizeNearest", // name
        1, // # outs
@@ -633,7 +675,7 @@ namespace dnn_lib {
        1, // # outs
        6,  // # ins
        {}, // members
-       3, // template param mask
+       33, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false // custom impl selector
      },

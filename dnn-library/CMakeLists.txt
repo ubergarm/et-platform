@@ -48,10 +48,12 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedAddInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceAddInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceMinInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ChannelWiseQuantizedConvolutionInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ChecksumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ConvertToInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Convolution3DInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ConvolutionInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ConvTransposeInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CopyInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CopyInstTensorized.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CrossEntropyLossInst.h"
@@ -84,8 +86,10 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInstTransposed.h"  
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxPoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ModuloInst.h"
+#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/NonMaxSuppressionInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/QuantizeInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RescaleQuantizedInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ResizeBilinearInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ResizeNearestInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RowwiseQuantizedFullyConnectedInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RowwiseQuantizedSparseLengthsWeightedSumInst.h"
@@ -147,10 +151,12 @@ add_library(dnn_lib STATIC
   src/BatchedReduceAddInst.cpp
   src/BatchedReduceMinInst.cpp
   src/BatchOneHotInst.cpp
+  src/ChannelWiseQuantizedConvolutionInst.cpp
   src/ChecksumInst.cpp
   src/ConvertToInst.cpp
   src/Convolution3DInst.cpp
   src/ConvolutionInst.cpp
+  src/ConvTransposeInst.cpp
   src/CopyInst.cpp
   src/CrossEntropyLossInst.cpp
   src/CumSumInst.cpp
@@ -189,8 +195,10 @@ add_library(dnn_lib STATIC
   src/MaxSplatInst.cpp
   src/MaxPoolInst.cpp
   src/ModuloInst.cpp
+#  src/NonMaxSuppressionInst.cpp
   src/QuantizeInst.cpp
   src/RescaleQuantizedInst.cpp
+  src/ResizeBilinearInst.cpp
   src/ResizeNearestInst.cpp
   src/RowwiseQuantizedFullyConnectedInst.cpp
   src/RowwiseQuantizedSparseLengthsWeightedSumInst.cpp

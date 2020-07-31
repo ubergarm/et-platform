@@ -19,10 +19,12 @@
 #include "BatchedReduceAddInst.h" // From include/inlining path
 #include "BatchedReduceMinInst.h" // From include/inlining path
 #include "BatchOneHotInst.h" // From include/inlining path
+#include "ChannelWiseQuantizedConvolutionInst.h" // From include/inlining path
 #include "ChecksumInst.h" // From include/inlining path
 #include "ConvertToInst.h" // From include/inlining path
 #include "Convolution3DInst.h" // From include/inlining path
 #include "ConvolutionInst.h" // From include/inlining path
+#include "ConvTransposeInst.h" // From include/inlining path
 #include "CopyInst.h" // From include/inlining path
 #include "CopyInstTensorized.h" // From include/inlining path
 #include "CrossEntropyLossInst.h" // From include/inlining path
@@ -54,8 +56,10 @@
 #include "MaxPoolInst.h" // From include/inlining path
 #include "MaxSplatInst.h" // From include/inlining path
 #include "ModuloInst.h" // From include/inlining path
+//#include "NonMaxSuppressionInst.h" // From include/inlining path
 #include "QuantizeInst.h" // From include/inlining path
 #include "RescaleQuantizedInst.h" // From include/inlining path
+#include "ResizeBilinearInst.h" // From include/inlining path
 #include "ResizeNearestInst.h" // From include/inlining path
 #include "RowwiseQuantizedFullyConnectedInst.h" // From include/inlining path
 #include "RowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path
