@@ -294,7 +294,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
        9, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       true, // custom impl selector
        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state

@@ -122,7 +122,7 @@ fwdLibConvolutionInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT,
     val = dst;                                                  \
   }                                                             \
   else {                                                        \
-    val = static_cast<size_t>(dequantize<biasType>(from, scl, off)); \
+    val = dequantize<biasType>(from, scl, off);                 \
   }
 
   size_t inCperG = static_cast<size_t>(dataT->dims()[3] / group);
@@ -133,36 +133,24 @@ fwdLibConvolutionInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT,
   auto filterH = filterT->getHandle<elkType>();
   auto biasH = biasT->getHandle<biasType>();
     
-  for (size_t i = 0; i< 10; i++) {
-     float fbias;
-     VALUE_FROM_QUANT_OR_F16_TYPE(biasElK, fbias, 
-				  biasH.at(std::array<size_t, 1>{i}), biasH.getScale(),
-				  biasH.getOffset());
-     printf("encode biasH.at({%lu}) = %x  / decode bias value %f\n",i,biasH.at(std::array<size_t,1>{i}),fbias);
-  }
-
   // For each input in the batch:
   for (size_t n = 0; n < dataT->dims()[0]; n++) {
-    printf("n-->%lu\n",n);
     // For each group of input channels:
     for (size_t g = 0; g < group; g++) {
-      printf("g-->%lu\n",g);
       // For each output channel in the group:
       for (size_t d = g * outCperG; d < (g + 1) * outCperG; d++) {
-	printf("d-->%lu\n",d);
         // For each convolution 'jump' in the input tensor:
         ssize_t x = -ssize_t(pads[0]);
         for (size_t ax = 0; ax < outT->dims()[1]; x += strides[0], ax++) {
           ssize_t y = -ssize_t(pads[1]);
           for(size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
-            printf("ax--> %lu ay --> %lu\n",ax,ay);
             // For each element in the convolution-filter:
             float sum = 0;
             for (size_t fx = 0; fx < kernels[0]; fx++) {
               for (size_t fy = 0; fy < kernels[1]; fy++) {
                 ssize_t ox = x + fx * dilation;
                 ssize_t oy = y + fy * dilation;
-		printf("fx->%lu fy->%lu ox->%lu oy->%lu\n",fx,fy,ox,oy);
+
                 // Ignore index access below zero (this is due to padding)
                 if (ox < 0 || oy < 0 || ox >= static_cast<ssize_t>(dataT->dims()[1]) ||
                     oy >= static_cast<ssize_t>(dataT->dims()[2])) {
@@ -178,8 +166,6 @@ fwdLibConvolutionInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT,
 						     static_cast<size_t>(oy), g * inCperG + fd}), 
 					       dataT->getScale(), dataT->getOffset());		  
 		  sum += static_cast<float>(ffilter *fdata);
-		  printf("fd--> %lu sum --> %f\n",fd,sum);
-
                 }
               }
             }
@@ -188,24 +174,18 @@ fwdLibConvolutionInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT,
 	    VALUE_FROM_QUANT_OR_F16_TYPE(biasElK, fbias, 
 					 biasH.at(std::array<size_t, 1>{d}), biasH.getScale(),
 					 biasH.getOffset());
-
-	    printf("-------------------\n");
-	    printf("biasW.at({%lu}) = %f\n",d,fbias);
 	    sum += fbias;
 
 	    if (dstElK == Float16Ty) {
 	      uint16_t dst = 0;
 	      convertFp32ToFp16(sum, dst);
 	      outH.at(std::array<size_t, 4>{n, ax, ay, d}) = dst;
-	      printf("final vlaue at sum is ----> %f",sum);
-	      printf("outH.at[%lu,%lu,%lu,%lu] = %d\n",n,ax,ay,d,outH.at(std::array<size_t,4>{n,ax,ay,d}));
 	    }
 	    else {
 	      outH.at(std::array<size_t, 4>{n, ax, ay, d}) = quantize<elkType>(sum, 
 									       outT->getScale(),
 									       outT->getOffset());
 	    }
-	    printf("-------------------\n");
           } // W
         }   // H
       }     // C
@@ -1213,6 +1193,36 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
+
+
+  template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN>
+  inline __attribute__((always_inline)) void fwdLibConvertToInstBest(const int desired, LibTensor* outT, LibTensor* dataT, 
+								     LibTensor* filterT, LibTensor* biasT, 
+								     const std::array<uint32_t, N> &kernels,
+								     const std::array<uint32_t, N> &strides, 
+								     const std::array<uint32_t, PN> &pads,
+								     unsigned int group, unsigned int dilation, uint64_t flags, 
+								     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    
+      switch(desired){
+      case 1: inlining::fwdLibConvolutionInst<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads,
+								      group, dilation, flags, minionOffset, assignedMinions); break;
+      case 2: inlining::fwdLibConvolutionInstThreaded<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads,
+									      group, dilation, flags, minionOffset, assignedMinions); break;
+      case 3: inlining::fwdLibConvolutionInstVectorized<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads,
+										group, dilation, flags, minionOffset, assignedMinions); break;
+      default:
+ 	// check for SW-3816
+	if (filterT->dims()[filterT->ndims()-1] < 4 )
+	  inlining::fwdLibConvolutionInstThreaded<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads, group, dilation, 
+									  flags, minionOffset, assignedMinions);
+	else {
+	  inlining::fwdLibConvolutionInstVectorized<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads, group, dilation,
+									    flags, minionOffset, assignedMinions);
+	}
+	break;
+      }
+  }
 
 } // namespace inlining
 
