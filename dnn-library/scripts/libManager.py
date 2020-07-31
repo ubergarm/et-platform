@@ -28,7 +28,8 @@ class LibManagerSheet:
     ################################################################################
     # constants
     ################################################################################
-    headerKeys = ("Operator", "nrOutTensors", "nrInTensors", "members", "templateElk","extraImpl", "implSel")
+    headerKeys = ("Operator", "nrOutTensors", "nrInTensors", "members", "templateElk","extraImpl", "implSel",
+                  "stateL1", "stateL2", "stateCB", "evictAvailable")
     instHeader=("Operator", "nrOutTensors", "nrInTensors", "templateElk")
 
     headerFill = PatternFill(fgColor = "DDDDDD", fill_type = "solid")
@@ -146,6 +147,8 @@ class LibManagerSheet:
             members = [ i['name'] for i in conf['members']]
 
             template_params = "" #empty, will have to be added manually in the spreasheet
+            state =  ", ".join([ "invalid" for i in range(nrOut + nrIn)]) # uninitialized
+            evict =  ", ".join([ 0 for i in range(nrOut + nrIn)]) # uninitialized
             
             if op not in implementations:
                 print("no implementations found for %s: skipping" % op, file = sys.stderr)
@@ -157,7 +160,9 @@ class LibManagerSheet:
                        ', '.join(members),
                        template_params,
                        ', '.join(extraImpl),
-                       "default"]
+                       "default",
+                       state, state, state, evict
+                       ]
             
             self.__addRow(values, LibManagerSheet.operatorFill[self.__row % len(LibManagerSheet.operatorFill) ])
 
@@ -306,6 +311,12 @@ class LibManagerSheet:
                 implSel = "true"
             else:
                 raise Exception("implSel has to be either 'default' or 'custom' for op %s" % op)
+
+            if conf["evictAvailable"] == None :
+                evictMask = 0
+            else:
+                evictMask =  functools.reduce( lambda a,b : int(b)| (a << 1), reversed( str(conf["evictAvailable"]).split(',')), 0) ;
+
                 
             return { "enum": op,
                      "name" : conf["Operator"],
@@ -314,7 +325,11 @@ class LibManagerSheet:
                      "members": "{%s}" % ", ".join(members),
                      "template": template,
                      "versions":  "{%s}" % ", ".join(versions),
-                     "implSel": implSel
+                     "implSel": implSel,
+                     "stateL1": "{%s}" % self.formatStateList(conf["stateL1"], conf["nrOutTensors"] + conf["nrInTensors"], op),
+                     "stateL2": "{%s}" % self.formatStateList(conf["stateL2"], conf["nrOutTensors"] + conf["nrInTensors"], op),
+                     "stateCB": "{%s}" % self.formatStateList(conf["stateCB"], conf["nrOutTensors"] + conf["nrInTensors"], op),
+                     "evictMask": evictMask
             }
 
         else:
@@ -326,10 +341,28 @@ class LibManagerSheet:
                     "members": "{}",
                     "template": 0,
                     "versions": "{}",
-                    "implSel": "false"
+                    "implSel": "false",
+                     "stateL1": "{operandState::invalid}",
+                     "stateL2": "{operandState::invalid}",
+                     "stateCB": "{operandState::invalid}",
+                     "evictMask": 0
             }
 
 
+    def formatStateList(self, v, count, name):
+        if v == None:
+            a = []
+        else:
+            a = [i.replace(" ", "") for i in v.split(',')]
+            if len(a) > count:
+                raise Exception("in operator %s: state list has more element than total number of tensors" % name )
+            a = a[:count]
+            
+        for i in range( len(a), count):
+            a.append("invalid")
+
+        return ", ".join([ "operandState::" + i for i in a])
+        
     def formatTable(self, table):
         s = Template('''     /**** $enum ****/
      { "$name", // name
@@ -338,7 +371,11 @@ class LibManagerSheet:
        $members, // members
        $template, // template param mask
        $versions, // impl versions
-       $implSel // custom impl selector
+       $implSel, // custom impl selector
+       $stateL1, // L1 state
+       $stateL2, // L2 state
+       $stateCB, // CB state
+       $evictMask // evict available mask
      }''')
         entries = [ s.substitute(e) for e in table]        
         return ",\n".join(entries)
