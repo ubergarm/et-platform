@@ -1196,13 +1196,13 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
 
 
   template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN>
-  inline __attribute__((always_inline)) void fwdLibConvertToInstBest(const int desired, LibTensor* outT, LibTensor* dataT, 
-								     LibTensor* filterT, LibTensor* biasT, 
-								     const std::array<uint32_t, N> &kernels,
-								     const std::array<uint32_t, N> &strides, 
-								     const std::array<uint32_t, PN> &pads,
-								     unsigned int group, unsigned int dilation, uint64_t flags, 
-								     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  inline __attribute__((always_inline)) void fwdLibConvolutionInstBest(const int desired, LibTensor* outT, LibTensor* dataT, 
+								       LibTensor* filterT, LibTensor* biasT, 
+								       const std::array<uint32_t, N> &kernels,
+								       const std::array<uint32_t, N> &strides, 
+								       const std::array<uint32_t, PN> &pads,
+								       unsigned int group, unsigned int dilation, uint64_t flags, 
+								       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
     
       switch(desired){
       case 1: inlining::fwdLibConvolutionInst<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads,
