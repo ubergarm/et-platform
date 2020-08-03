@@ -1008,8 +1008,8 @@ namespace dnn_lib {
        6,  // # ins
        {}, // members
        33, // template param mask
-       {}, // impl versions
-       false, // custom impl selector
+       {"Threaded", "Vectorized"}, // impl versions
+       true, // custom impl selector
        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state

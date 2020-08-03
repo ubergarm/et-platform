@@ -54,7 +54,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
     totalLength += lengthsH.raw(i);
   }
   assert(totalLength <= indicesT->dims()[0] && 
-	 "sum(lengths must be equal to len(Indices)");
+         "sum(lengths must be equal to len(Indices)");
 
   size_t lineSize = dataT->size() / dataT->dims()[0];
   
@@ -70,14 +70,14 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
       float offset;
 
       if (dstElK == FloatTy) {
-	weight = weightH.raw(curIdx * weightsT->strides()[0]);
-	scale = scalesH.at(std::array<size_t,1>{rowIdx});
-	offset = offsetsH.at(std::array<size_t,1>{rowIdx});
+        weight = weightH.raw(curIdx * weightsT->strides()[0]);
+        scale = scalesH.at(std::array<size_t,1>{rowIdx});
+        offset = offsetsH.at(std::array<size_t,1>{rowIdx});
       }
       else { //Float16Ty
-	convertFp16ToFp32(static_cast<uint16_t>(weightH.raw(curIdx * weightsT->strides()[0])), weight);
-	convertFp16ToFp32(static_cast<uint16_t>(scalesH.at(std::array<size_t,1>{rowIdx})), scale);
-	convertFp16ToFp32(static_cast<uint16_t>(offsetsH.at(std::array<size_t,1>{rowIdx})), offset);
+        convertFp16ToFp32(static_cast<uint16_t>(weightH.raw(curIdx * weightsT->strides()[0])), weight);
+        convertFp16ToFp32(static_cast<uint16_t>(scalesH.at(std::array<size_t,1>{rowIdx})), scale);
+        convertFp16ToFp32(static_cast<uint16_t>(offsetsH.at(std::array<size_t,1>{rowIdx})), offset);
       }
 
       size_t offsetIn = rowIdx * dataT->strides()[0];
@@ -85,22 +85,22 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
       curIdx++;
 
       for (size_t k = 0; k < lineSize; k++) {
-	float d = dequantizeWithFloatOffset(dataH.raw(offsetIn), scale, offset);
+        float d = dequantizeWithFloatOffset(dataH.raw(offsetIn), scale, offset);
 
-	if (dstElK == FloatTy) {
-	  outH.raw(offsetOut) += d * weight;
-	}
-	else { 
-	  uint16_t dst = 0;
-	  float accum = 0.0;
-	  convertFp16ToFp32(static_cast<uint16_t>(outH.raw(offsetOut)), accum);  
-	  accum += (d * weight);
-	  convertFp32ToFp16(accum, dst);
-	  outH.raw(offsetOut) = dst;
-	}
+        if (dstElK == FloatTy) {
+          outH.raw(offsetOut) += d * weight;
+        }
+        else { 
+          uint16_t dst = 0;
+          float accum = 0.0;
+          convertFp16ToFp32(static_cast<uint16_t>(outH.raw(offsetOut)), accum);  
+          accum += (d * weight);
+          convertFp32ToFp16(accum, dst);
+          outH.raw(offsetOut) = dst;
+        }
 
-	offsetOut++;
-	offsetIn++;
+        offsetOut++;
+        offsetIn++;
       }
     }
   }
@@ -109,8 +109,8 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
 template <ElemKind dstElK, ElemKind indicesElK>
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
              LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, LibTensor* offsetsT, 
-	     LibTensor* weightsT, LibTensor* indicesT, LibTensor* lengthsT,
-	     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+             LibTensor* weightsT, LibTensor* indicesT, LibTensor* lengthsT,
+             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   //  using indxType = typename elemKind2elemTy<indicesElK>::type;
@@ -194,8 +194,8 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
 template <ElemKind dstElK, ElemKind indicesElK>            
 inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
              LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, LibTensor* offsetsT, 
-	     LibTensor* weightsT, LibTensor* indicesT, LibTensor* lengthsT,
-	     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+             LibTensor* weightsT, LibTensor* indicesT, LibTensor* lengthsT,
+             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   const bool Int8Src = true;
   const bool Float16Dst = dstElK == Float16Ty;
@@ -369,7 +369,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
       // For all sparse input rows.
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
-		int64_t            rowIndex   = indices[currIndex];
+                int64_t            rowIndex   = indices[currIndex];
         uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
         float            * scale_ptr  = (float *) &scales[rowIndex];
         float            * offset_ptr = (float *) &offsets[rowIndex];
@@ -407,7 +407,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
 
         if (Int8Src) {
           // Convert to UInt8_t adding 128.
-        	__asm__ __volatile__ (
+                __asm__ __volatile__ (
             "faddi.pi f25, f25, 0x80\n"
             "faddi.pi f24, f24, 0x80\n"
             "faddi.pi f23, f23, 0x80\n"
@@ -560,7 +560,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
           float            * weight_ptr = (float *) &tWInput[currIndex];
 
           __asm__ __volatile__ (
-          	"fbc.ps  f26, 0x0(%[weight_ptr])\n"
+                "fbc.ps  f26, 0x0(%[weight_ptr])\n"
             "fbc.ps  f27, 0x0(%[offset_ptr])\n"
             "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
@@ -649,7 +649,7 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
 
         if (Int8Src) {
           // Convert to UInt8_t adding 128.
-        	__asm__ __volatile__ (
+                __asm__ __volatile__ (
             "faddi.pi f25, f25, 0x80\n"
            :
            : 
@@ -699,6 +699,39 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
     }
   }
 }
+
+ template<ElemKind dstElK, ElemKind indicesElK>
+ inline __attribute__((always_inline)) void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstBest(const int desired,
+                                                              LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, 
+                                                              LibTensor* offsetsT, LibTensor* weightsT, 
+                                                              LibTensor* indicesT, LibTensor* lengthsT,
+                                                              uint64_t flags, const uint32_t minionOffset = 0, 
+                                                              const uint32_t assignedMinions = 0) {
+
+   switch(desired) {
+   case 1: inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst<dstElK, indicesElK>(outT, dataT, scalesT, 
+                                                                          offsetsT, weightsT, indicesT, lengthsT,
+                                                                          flags, minionOffset, assignedMinions); break;
+                     
+   case 2: inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded<dstElK, indicesElK>(outT, dataT, scalesT, 
+                                                                          offsetsT, weightsT, indicesT, lengthsT,
+                                                                          flags, minionOffset, assignedMinions); break;
+   case 3: inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized<dstElK, indicesElK>(outT, dataT, scalesT, 
+                                                                          offsetsT, weightsT, indicesT, lengthsT,
+                                                                          flags, minionOffset, assignedMinions); break;
+   default:
+     // check for SW-3119
+     if (dataT->dims()[dataT->ndims()-1] < 4)
+       inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst<dstElK, indicesElK>(outT, dataT, scalesT, 
+                                                                          offsetsT, weightsT, indicesT, lengthsT,
+                                                                          flags, minionOffset, assignedMinions);
+     else
+       inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized<dstElK, indicesElK>(outT, dataT, scalesT, 
+                                                                          offsetsT, weightsT, indicesT, lengthsT,
+                                                                          flags, minionOffset, assignedMinions);
+     break;
+   }
+ }
 
 } // namespace inlining
 
