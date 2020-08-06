@@ -7,12 +7,12 @@ from string import Template
 import functools
 
 from openpyxl import load_workbook, Workbook
-from openpyxl.styles import colors, PatternFill, Color, Font
+from openpyxl.styles import colors, PatternFill, Color, Font, Alignment
 from openpyxl.utils import get_column_letter
 
 class OperatorsEnum:
     def __init__(self, hostswdir):
-        fname = os.path.join ( hostswdir, 'Neuralizer/inc/IOperators.inc');
+        fname = os.path.join ( hostswdir, 'Neuralizer/inc/public/IOperators.inc');
         regexp = re.compile(r'\s*IOPERATOR_ENUM\((.*)\)\s*')
         self.__enum = []
         with open(fname) as f:
@@ -28,11 +28,11 @@ class LibManagerSheet:
     ################################################################################
     # constants
     ################################################################################
-    headerKeys = ("Operator", "nrOutTensors", "nrInTensors", "members", "templateElk","extraImpl", "implSel",
-                  "stateL1", "stateL2", "stateCB", "evictAvailable")
+    headerKeys = ("Operator", "nrOutTensors", "nrInTensors", "members", "templateElk","extraImpl", "implSel")
     instHeader=("Operator", "nrOutTensors", "nrInTensors", "templateElk")
 
     headerFill = PatternFill(fgColor = "DDDDDD", fill_type = "solid")
+    headerFill2 = PatternFill(fgColor = "AAAAAA", fill_type = "solid")    
     #    operatorFill = [PatternFill(fgColor = "3FBE7E", fill_type = "solid"),
     #                    PatternFill(fgColor = "5F9E9F", fill_type = "solid") ]
     operatorFill = [None]
@@ -91,11 +91,12 @@ class LibManagerSheet:
     # constructor
     ################################################################################
 
-    def __init__(self, spreadsheet, hostswdir = None, glowdir = None):
+    def __init__(self, spreadsheet, cachestate, hostswdir = None, glowdir = None):
 
         enum = OperatorsEnum(hostswdir)
         self.__enum = enum.get()
-        
+        self.__cacheStateFile = cachestate
+
         try:
             self.__wb = load_workbook(spreadsheet, data_only=True)
             self._existing = True
@@ -147,8 +148,6 @@ class LibManagerSheet:
             members = [ i['name'] for i in conf['members']]
 
             template_params = "" #empty, will have to be added manually in the spreasheet
-            state =  ", ".join([ "invalid" for i in range(nrOut + nrIn)]) # uninitialized
-            evict =  ", ".join([ 0 for i in range(nrOut + nrIn)]) # uninitialized
             
             if op not in implementations:
                 print("no implementations found for %s: skipping" % op, file = sys.stderr)
@@ -160,8 +159,7 @@ class LibManagerSheet:
                        ', '.join(members),
                        template_params,
                        ', '.join(extraImpl),
-                       "default",
-                       state, state, state, evict
+                       "default"
                        ]
             
             self.__addRow(values, LibManagerSheet.operatorFill[self.__row % len(LibManagerSheet.operatorFill) ])
@@ -180,12 +178,14 @@ class LibManagerSheet:
                 cell.fill = fill
         self.__row+=1
 
-    def __adjustColumnWidth(self):
-        for column_cells in self.__ws.columns:
+    def __adjustColumnWidth(self, ws = None):
+        if ws == None:
+            ws = self.__ws
+        for column_cells in ws.columns:
             col = column_cells[0].column
             col_letter = get_column_letter(col)
             fit = 6 +  max(len(str(cell.value)) for cell in column_cells)                
-            self.__ws.column_dimensions[col_letter].width = fit
+            ws.column_dimensions[col_letter].width = fit
 
 
     def __findImplementations(self, baseDir):
@@ -223,6 +223,8 @@ class LibManagerSheet:
     def __codeGen(self, hostswdir):
         # load configuration from spreadsheet
         self.loadSheet()
+        # load cache state spreadsheet
+        self.__cacheWb = load_workbook(self.__cacheStateFile, data_only=True)
         # create LibApi table
         self.genLibApi(hostswdir)
         # create non-inline functions and extern template definitions
@@ -269,7 +271,7 @@ class LibManagerSheet:
                     continue
                 parser[i](row)
         
-
+               
     def genLibApi(self, hostswdir):
         # generate table for header file
         table = [ self.tableEntry(i) for i in self.__enum ] 
@@ -312,11 +314,7 @@ class LibManagerSheet:
             else:
                 raise Exception("implSel has to be either 'default' or 'custom' for op %s" % op)
 
-            if conf["evictAvailable"] == None :
-                evictMask = 0
-            else:
-                evictMask =  functools.reduce( lambda a,b : int(b)| (a << 1), reversed( str(conf["evictAvailable"]).split(',')), 0) ;
-
+            cacheState = self.getCacheState(op, versions, conf["nrOutTensors"], conf["nrInTensors"])
                 
             return { "enum": op,
                      "name" : conf["Operator"],
@@ -326,10 +324,10 @@ class LibManagerSheet:
                      "template": template,
                      "versions":  "{%s}" % ", ".join(versions),
                      "implSel": implSel,
-                     "stateL1": "{%s}" % self.formatStateList(conf["stateL1"], conf["nrOutTensors"] + conf["nrInTensors"], op),
-                     "stateL2": "{%s}" % self.formatStateList(conf["stateL2"], conf["nrOutTensors"] + conf["nrInTensors"], op),
-                     "stateCB": "{%s}" % self.formatStateList(conf["stateCB"], conf["nrOutTensors"] + conf["nrInTensors"], op),
-                     "evictMask": evictMask
+                     "stateL1": "{{%s}}" % cacheState["L1"],
+                     "stateL2": "{{%s}}" % cacheState["L2"],
+                     "stateCB": "{{%s}}" % cacheState["CB"],
+                     "evictMask": "{%s}" % cacheState["evictMask"],
             }
 
         else:
@@ -342,27 +340,112 @@ class LibManagerSheet:
                     "template": 0,
                     "versions": "{}",
                     "implSel": "false",
-                     "stateL1": "{operandState::invalid}",
-                     "stateL2": "{operandState::invalid}",
-                     "stateCB": "{operandState::invalid}",
-                     "evictMask": 0
+                    "stateL1": "{{operandState::invalid}}",
+                    "stateL2": "{{operandState::invalid}}",
+                    "stateCB": "{{operandState::invalid}}",
+                    "evictMask": "{0}"
+                    
             }
 
 
-    def formatStateList(self, v, count, name):
-        if v == None:
-            a = []
-        else:
-            a = [i.replace(" ", "") for i in v.split(',')]
-            if len(a) > count:
-                raise Exception("in operator %s: state list has more element than total number of tensors" % name )
-            a = a[:count]
+    def getCacheState(self, op, versions, nrOut, nrIn):
+        versions = ["BaseImpl" ] +  versions
+        data = {}
+        if op not in self.__cacheWb:
+            print ("Cache state for %s not found. Creating worksheet in %s. Edit and rerun" % (op, self.__cacheStateFile))
             
-        for i in range( len(a), count):
-            a.append("invalid")
+            # fill with invalid values
+            invState = [ "invalid" for i in range(nrOut + nrIn)]
+            invEvict = [ 0 for i in range(nrOut + nrIn)]
+             
+            for impl in versions:
+                data[impl] = { "L1": invState,
+                               "L2": invState,
+                               "CB": invState,
+                               "evictAv": invEvict };
+            self.writeCacheState(op, data, nrOut, nrIn)
+            
+        else:
+            data = self.readCacheState(op, versions, nrOut, nrIn)
 
-        return ", ".join([ "operandState::" + i for i in a])
+        # and format the data
+        formatted = {}
+        for st in ["L1", "L2", "CB"]:
+            val = []
+            for impl in versions:
+                val.append(", ".join([ "operandState::" + v for v in data[impl][st] ]))
+            formatted[st] = ",\n        ".join([ "{%s}" % v for v in val])
+
+        mask = []
+        for impl in versions:
+            m = functools.reduce( lambda a,b : int(b)| (a << 1), reversed( data[impl]["evictAv"]), 0)
+            mask.append("0x%x" %m)
+
+        formatted["evictMask"] = ", ".join(mask)
+
+        return formatted
+
+
+
+    def writeCacheState(self, operator, data, nrOut, nrIn):
+        ws = self.__cacheWb.create_sheet(title=operator)
         
+        ws.cell(1,1, operator).fill = LibManagerSheet.headerFill
+        ws.merge_cells('A1:A2')
+        
+        for i,impl in enumerate(data):
+            # fill header
+            fill = LibManagerSheet.headerFill if i % 2 == 1 else LibManagerSheet.headerFill2
+            ws.cell(1, 2 + i*4, impl).fill = fill
+            ws.merge_cells('%s1:%s1' % ( get_column_letter(2 +i*4),
+                                         get_column_letter(5 + i *4)) )
+            ws.cell(1, 2 + i*4).alignment = Alignment(horizontal="center", vertical="center")
+
+
+            for j, f in enumerate(data[impl]):
+                ws.cell(2, 2 + i*4 + j, f).fill = fill
+                ws.cell(2, 2 + i*4 + j, f).alignment = Alignment(horizontal="center")
+            
+            # fill data
+            for op in range(nrOut+ nrIn):
+                ws.cell(3 + op, 2 + i*4, data[impl]["L1"][op])
+                ws.cell(3 + op, 3 + i*4, data[impl]["L2"][op])
+                ws.cell(3 + op, 4 + i*4, data[impl]["CB"][op])
+                ws.cell(3 + op, 5 + i*4, data[impl]["evictAv"][op])
+
+        # add first column
+        for i in range(nrOut):
+            ws.cell(3 + i, 1, "out%d" % i).fill = LibManagerSheet.headerFill
+        for i in range(nrIn):
+            ws.cell(3 + i + nrOut, 1, "in%d" % i).fill = LibManagerSheet.headerFill
+
+        self.__adjustColumnWidth(ws)
+        self.__cacheWb.save(filename = self.__cacheStateFile)
+
+
+    def readCacheState(self, operator, versions, nrOut, nrIn):
+        ws = self.__cacheWb[operator]
+        data = {}
+        for i, impl in enumerate(versions):
+            # check version data is available
+            v = ws.cell(1, 2+i*4).value
+            if v != impl:
+                raise Exception("in %s sheet %s, cell %d,%d => expecting %s but %s found instead" %
+                                (self.__cacheStateFile, operator, 1, 2+i*4, impl, v ))
+            data[impl] = {}
+            for j,field in enumerate(["L1", "L2", "CB", "evictAv"]):
+                f = ws.cell(2, 2 + i*4 + j).value
+                if f != field:
+                    raise Exception("in %s sheet %s, cell %d,%d => expecting %s but %s found instead" %
+                                    (self.__cacheStateFile, operator, 2, 2+i*4 + j, field, f ))
+                data[impl][field] = []
+                for op in range(nrOut + nrIn):
+                    data[impl][field].append(ws.cell(3 +op, 2+ i*4+j).value)
+            data[impl]["evictAv"] = [ int(v) for v in data[impl]["evictAv"] ]
+
+        return data
+    
+       
     def formatTable(self, table):
         s = Template('''     /**** $enum ****/
      { "$name", // name
@@ -372,9 +455,12 @@ class LibManagerSheet:
        $template, // template param mask
        $versions, // impl versions
        $implSel, // custom impl selector
-       $stateL1, // L1 state
-       $stateL2, // L2 state
-       $stateCB, // CB state
+       // L1 states per impl
+       $stateL1,
+       // L2 states per impl
+       $stateL2,
+       // CB states per impl
+       $stateCB,
        $evictMask // evict available mask
      }''')
         entries = [ s.substitute(e) for e in table]        
@@ -599,14 +685,15 @@ namespace dnn_lib {
         
 if __name__ == "__main__":
     # parse command line options
-    parser = argparse.ArgumentParser("Create Operator test")
+    parser = argparse.ArgumentParser("Create libApi tables")
     parser.add_argument("--swplatform-root", help="sw-platform root dir", required = True) 
     parser.add_argument("--excel", help="Excel file to use", required = True)
+    parser.add_argument("--cacheState", help="Excel file to use with the cache state", required = True)
     args = parser.parse_args()
     sys.path.append(os.path.join (args.swplatform_root, 'scripts/testing/operatorTests/'))
     from instructionGenParser import InstructionGenParser
 
     hostsw_dir = os.path.join (args.swplatform_root,'host-software/host-sw/')
     glow_dir = os.path.join (args.swplatform_root,'host-software/glow/')
-    sheet = LibManagerSheet(args.excel, hostsw_dir, glow_dir)
+    sheet = LibManagerSheet(args.excel, args.cacheState, hostsw_dir, glow_dir)
 

@@ -57,58 +57,61 @@ namespace dnn_lib {
     std::array<char[maxInstrConfigStrLen], maxImplVersions> versions;
     bool customImplSel;
 
-    std::array<operandState, maxNrOperands> stateL1;
-    std::array<operandState, maxNrOperands> stateL2;
-    std::array<operandState, maxNrOperands> stateCB;
-    uint64_t evictAvailableMask;
+
+    using operandStateArray = std::array<operandState, maxNrOperands>;
+    using implStateArray = std::array<operandStateArray, maxImplVersions + 1>;
+    implStateArray stateL1;
+    implStateArray stateL2;
+    implStateArray stateCB;
+    std::array<uint64_t,maxImplVersions + 1>  evictAvailableMask;
     
     // functions to retrieve operand information
-    operandState getOperandStateL1(size_t idx) {
-      assert( idx < nrOutputTensors + nrInputTensors);
-      return stateL1[idx];
+    operandState getOperandStateL1(size_t implIdx, size_t operand) {
+      assert( operand < nrOutputTensors + nrInputTensors);
+      return stateL1[implIdx][operand];
     } 
-    operandState getOperandStateL2(size_t idx) {
-      assert( idx < nrOutputTensors + nrInputTensors);
-      return stateL2[idx];
+    operandState getOperandStateL2(size_t implIdx, size_t operand) {
+      assert( operand < nrOutputTensors + nrInputTensors);
+      return stateL2[implIdx][operand];
     }
-    operandState getOperandStateCB(size_t idx) {
-      assert( idx < nrOutputTensors + nrInputTensors);
-      return stateCB[idx];
+    operandState getOperandStateCB(size_t implIdx, size_t operand) {
+      assert( operand < nrOutputTensors + nrInputTensors);
+      return stateCB[implIdx][operand];
     }
-    bool getOperandAutoEvict(size_t idx) {
-      assert( idx < nrOutputTensors + nrInputTensors);
-      return ((evictAvailableMask >> idx) & 1);
+    bool getOperandAutoEvict(size_t implIdx, size_t operand) {
+      assert( operand < nrOutputTensors + nrInputTensors);
+      return ((evictAvailableMask[implIdx] >> operand) & 1);
     }
     
     // and same as before, but index is either input or output
-    operandState getSrcStateL1(size_t idx) {
-      return getOperandStateL1(idx + nrOutputTensors);
+    operandState getSrcStateL1(size_t implIdx, size_t idx) {
+      return getOperandStateL1(implIdx, idx + nrOutputTensors);
     }
-    operandState getSrcStateL2(size_t idx) {
-      return getOperandStateL1(idx + nrOutputTensors);
+    operandState getSrcStateL2(size_t implIdx, size_t idx) {
+      return getOperandStateL1(implIdx, idx + nrOutputTensors);
     }
-    operandState getSrcStateCB(size_t idx) {
-      return getOperandStateL1(idx + nrOutputTensors);
+    operandState getSrcStateCB(size_t implIdx, size_t idx) {
+      return getOperandStateL1(implIdx, idx + nrOutputTensors);
     }
-    bool getSrcAutoEvict(size_t idx) {
-      return getOperandAutoEvict(idx + nrOutputTensors);
+    bool getSrcAutoEvict(size_t implIdx, size_t idx) {
+      return getOperandAutoEvict(implIdx, idx + nrOutputTensors);
     }
 
-    operandState getDstStateL1(size_t idx) {
+    operandState getDstStateL1(size_t implIdx, size_t idx) {
       assert( idx < nrOutputTensors );
-      return getOperandStateL1(idx);
+      return getOperandStateL1(implIdx, idx);
     }
-    operandState getDstStateL2(size_t idx) {
+    operandState getDstStateL2(size_t implIdx, size_t idx) {
       assert( idx < nrOutputTensors );
-      return getOperandStateL1(idx);
+      return getOperandStateL1(implIdx, idx);
     }
-    operandState getDstStateCB(size_t idx) {
+    operandState getDstStateCB(size_t implIdx, size_t idx) {
       assert( idx < nrOutputTensors );
-      return getOperandStateL1(idx);
+      return getOperandStateL1(implIdx, idx);
     }
-    bool getDstAutoEvict(size_t idx) {
+    bool getDstAutoEvict(size_t implIdx, size_t idx) {
       assert( idx < nrOutputTensors );
-      return getOperandAutoEvict(idx);
+      return getOperandAutoEvict(implIdx, idx);
     }
 
 
@@ -126,10 +129,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_allocactivation ****/
      { "notImplemented", // name
@@ -139,10 +145,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_argmax ****/
      { "ArgMax", // name
@@ -152,10 +161,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_avgpool ****/
      { "AvgPool", // name
@@ -165,10 +177,16 @@ namespace dnn_lib {
        3, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_batchedadd ****/
      { "BatchedAdd", // name
@@ -178,10 +196,16 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_batchedreduceadd ****/
      { "BatchedReduceAdd", // name
@@ -191,10 +215,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_batchedreducemin ****/
      { "BatchedReduceMin", // name
@@ -204,10 +234,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_batchonehot ****/
      { "BatchOneHot", // name
@@ -217,10 +250,16 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_checksum ****/
      { "Checksum", // name
@@ -230,10 +269,13 @@ namespace dnn_lib {
        1, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_convertto ****/
      { "ConvertTo", // name
@@ -243,10 +285,19 @@ namespace dnn_lib {
        3, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_int8converter ****/
      { "Int8Converter", // name
@@ -256,10 +307,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_channelwisequantizedconvolution ****/
      { "ChannelWiseQuantizedConvolution", // name
@@ -269,10 +323,13 @@ namespace dnn_lib {
        9, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_channelwisequantizedconvolution3d ****/
      { "notImplemented", // name
@@ -282,10 +339,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_convolution ****/
      { "Convolution", // name
@@ -295,10 +355,19 @@ namespace dnn_lib {
        9, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_convolution3d ****/
      { "Convolution3D", // name
@@ -308,10 +377,16 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_convtranspose ****/
      { "ConvTranspose", // name
@@ -321,10 +396,13 @@ namespace dnn_lib {
        1, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_copy ****/
      { "Copy", // name
@@ -334,10 +412,19 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_crc ****/
      { "notImplemented", // name
@@ -347,10 +434,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_crossentropyloss ****/
      { "CrossEntropyLoss", // name
@@ -360,10 +450,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_cumsum ****/
      { "CumSum", // name
@@ -373,10 +469,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_deallocactivation ****/
      { "notImplemented", // name
@@ -386,10 +485,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_debugprint ****/
      { "notImplemented", // name
@@ -399,10 +501,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_dequantize ****/
      { "Dequantize", // name
@@ -412,10 +517,16 @@ namespace dnn_lib {
        3, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_elementadd ****/
      { "ElementAdd", // name
@@ -425,10 +536,19 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementandi ****/
      { "notImplemented", // name
@@ -438,10 +558,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_elementcmpeq ****/
      { "ElementCmpEQ", // name
@@ -451,10 +574,19 @@ namespace dnn_lib {
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementcmplte ****/
      { "ElementCmpLTE", // name
@@ -464,10 +596,19 @@ namespace dnn_lib {
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementcmplt ****/
      { "ElementCmpLT", // name
@@ -477,10 +618,19 @@ namespace dnn_lib {
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementdiv ****/
      { "ElementDiv", // name
@@ -490,10 +640,19 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementexp ****/
      { "ElementExp", // name
@@ -503,10 +662,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_elementisnan ****/
      { "ElementIsNaN", // name
@@ -516,10 +678,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_elementlog ****/
      { "ElementLog", // name
@@ -529,10 +697,19 @@ namespace dnn_lib {
        3, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementmax ****/
      { "ElementMax", // name
@@ -542,10 +719,19 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementmin ****/
      { "ElementMin", // name
@@ -555,10 +741,19 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementmul ****/
      { "ElementMul", // name
@@ -568,10 +763,19 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementori ****/
      { "notImplemented", // name
@@ -581,10 +785,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_elementpow ****/
      { "ElementPow", // name
@@ -594,10 +801,19 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementselect ****/
      { "ElementSelect", // name
@@ -607,10 +823,16 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_elementsub ****/
      { "ElementSub", // name
@@ -620,10 +842,19 @@ namespace dnn_lib {
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_elementxori ****/
      { "notImplemented", // name
@@ -633,10 +864,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_embeddingbag ****/
      { "EmbeddingBag", // name
@@ -646,10 +880,16 @@ namespace dnn_lib {
        1, // template param mask
        {"Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_embeddingbagbyterowwiseoffsets ****/
      { "notImplemented", // name
@@ -659,10 +899,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_emptyoperator ****/
      { "notImplemented", // name
@@ -672,10 +915,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_maxsplat ****/
      { "MaxSplat", // name
@@ -685,10 +931,22 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded", "Vectorized", "Aligned32Bytes"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_extracttensor ****/
      { "ExtractTensor", // name
@@ -698,10 +956,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_flip ****/
      { "Flip", // name
@@ -711,10 +975,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_flushL3 ****/
      { "notImplemented", // name
@@ -724,10 +991,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_fullyconnected ****/
      { "FullyConnected", // name
@@ -737,10 +1007,19 @@ namespace dnn_lib {
        15, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_fusedrowwisequantizedsparselengthsweightedsum ****/
      { "FusedRowwiseQuantizedSparseLengthsWeightedSum", // name
@@ -750,10 +1029,19 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_fusedrowwisequantizedsparselengthssum ****/
      { "FusedRowwiseQuantizedSparseLengthsSum", // name
@@ -763,10 +1051,19 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_gather ****/
      { "Gather", // name
@@ -776,10 +1073,16 @@ namespace dnn_lib {
        6, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_gatherranges ****/
      { "GatherRanges", // name
@@ -789,10 +1092,16 @@ namespace dnn_lib {
        12, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_inserttensor ****/
      { "InsertTensor", // name
@@ -802,10 +1111,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_intlookuptable ****/
      { "IntLookupTable", // name
@@ -815,10 +1130,16 @@ namespace dnn_lib {
        0, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_lengthsrangefill ****/
      { "LengthsRangeFill", // name
@@ -828,10 +1149,13 @@ namespace dnn_lib {
        1, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_lengthssum ****/
      { "LengthsSum", // name
@@ -841,10 +1165,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_lengthstoranges ****/
      { "LengthsToRanges", // name
@@ -854,10 +1184,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_localresponsenormalization ****/
      { "LocalResponseNormalization", // name
@@ -867,10 +1203,19 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_matmul ****/
      { "MatMul", // name
@@ -880,10 +1225,19 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_maxpool ****/
      { "MaxPool", // name
@@ -893,10 +1247,16 @@ namespace dnn_lib {
        3, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_maxpoolwithargmax ****/
      { "MaxPoolWithArgMax", // name
@@ -906,10 +1266,16 @@ namespace dnn_lib {
        5, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_modulo ****/
      { "Modulo", // name
@@ -919,10 +1285,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_quantizationprofile ****/
      { "notImplemented", // name
@@ -932,10 +1304,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_quantize ****/
      { "Quantize", // name
@@ -945,10 +1320,16 @@ namespace dnn_lib {
        3, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_rescalequantized ****/
      { "RescaleQuantized", // name
@@ -958,10 +1339,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_resizebilinear ****/
      { "ResizeBilinear", // name
@@ -971,10 +1358,13 @@ namespace dnn_lib {
        1, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_resizenearest ****/
      { "ResizeNearest", // name
@@ -984,10 +1374,13 @@ namespace dnn_lib {
        1, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_rowwisequantizedfullyconnected ****/
      { "RowwiseQuantizedFullyConnected", // name
@@ -997,10 +1390,22 @@ namespace dnn_lib {
        0, // template param mask
        {"Threaded", "Vectorized", "Aligned32Bytes"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_rowwisequantizedsparselengthsweightedsum ****/
      { "RowwiseQuantizedSparseLengthsWeightedSum", // name
@@ -1010,10 +1415,19 @@ namespace dnn_lib {
        33, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        true, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_scatterdata ****/
      { "ScatterData", // name
@@ -1023,10 +1437,13 @@ namespace dnn_lib {
        1, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_sigmoid ****/
      { "Sigmoid", // name
@@ -1036,10 +1453,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_softmax ****/
      { "SoftMax", // name
@@ -1049,10 +1472,19 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_spacetodepth ****/
      { "SpaceToDepth", // name
@@ -1062,10 +1494,13 @@ namespace dnn_lib {
        1, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_sparselengthssum ****/
      { "SparseLengthsSum", // name
@@ -1075,10 +1510,13 @@ namespace dnn_lib {
        5, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_sparselengthsweightedsum ****/
      { "SparseLengthsWeightedSum", // name
@@ -1088,10 +1526,13 @@ namespace dnn_lib {
        10, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_sparsetodense ****/
      { "SparseToDense", // name
@@ -1101,10 +1542,19 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_sparsetodensemask ****/
      { "SparseToDenseMask", // name
@@ -1114,10 +1564,16 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_splat ****/
      { "Splat", // name
@@ -1127,10 +1583,19 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid},
+        {operandState::invalid},
+        {operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid},
+        {operandState::invalid},
+        {operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid},
+        {operandState::invalid},
+        {operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_sync ****/
      { "notImplemented", // name
@@ -1140,10 +1605,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_syncopy ****/
      { "Syncopy", // name
@@ -1153,10 +1621,13 @@ namespace dnn_lib {
        2, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_tanh ****/
      { "Tanh", // name
@@ -1166,10 +1637,16 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_tensorview ****/
      { "TensorView", // name
@@ -1179,10 +1656,19 @@ namespace dnn_lib {
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_topk ****/
      { "TopK", // name
@@ -1192,10 +1678,16 @@ namespace dnn_lib {
        4, // template param mask
        {"Threaded"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_touch ****/
      { "notImplemented", // name
@@ -1205,10 +1697,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_traceevent ****/
      { "notImplemented", // name
@@ -1218,10 +1713,13 @@ namespace dnn_lib {
        0, // template param mask
        {}, // impl versions
        false, // custom impl selector
-       {operandState::invalid}, // L1 state
-       {operandState::invalid}, // L2 state
-       {operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      },
      /**** ET_transpose ****/
      { "Transpose", // name
@@ -1231,10 +1729,19 @@ namespace dnn_lib {
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
        false, // custom impl selector
-       {operandState::invalid, operandState::invalid}, // L1 state
-       {operandState::invalid, operandState::invalid}, // L2 state
-       {operandState::invalid, operandState::invalid}, // CB state
-       0 // evict available mask
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0, 0x0} // evict available mask
      }
      // INSTR_CONFIG_TABLE_END
     };
