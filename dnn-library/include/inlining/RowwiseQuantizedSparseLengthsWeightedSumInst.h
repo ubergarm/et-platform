@@ -700,38 +700,6 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
   }
 }
 
- template<ElemKind dstElK, ElemKind indicesElK>
- inline __attribute__((always_inline)) void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstBest(const int desired,
-                                                              LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, 
-                                                              LibTensor* offsetsT, LibTensor* weightsT, 
-                                                              LibTensor* indicesT, LibTensor* lengthsT,
-                                                              uint64_t flags, const uint32_t minionOffset = 0, 
-                                                              const uint32_t assignedMinions = 0) {
-
-   switch(desired) {
-   case 1: inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst<dstElK, indicesElK>(outT, dataT, scalesT, 
-                                                                          offsetsT, weightsT, indicesT, lengthsT,
-                                                                          flags, minionOffset, assignedMinions); break;
-                     
-   case 2: inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded<dstElK, indicesElK>(outT, dataT, scalesT, 
-                                                                          offsetsT, weightsT, indicesT, lengthsT,
-                                                                          flags, minionOffset, assignedMinions); break;
-   case 3: inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized<dstElK, indicesElK>(outT, dataT, scalesT, 
-                                                                          offsetsT, weightsT, indicesT, lengthsT,
-                                                                          flags, minionOffset, assignedMinions); break;
-   default:
-     // check for SW-3119
-     if (dataT->dims()[dataT->ndims()-1] < 4)
-       inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst<dstElK, indicesElK>(outT, dataT, scalesT, 
-                                                                          offsetsT, weightsT, indicesT, lengthsT,
-                                                                          flags, minionOffset, assignedMinions);
-     else
-       inlining::fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized<dstElK, indicesElK>(outT, dataT, scalesT, 
-                                                                          offsetsT, weightsT, indicesT, lengthsT,
-                                                                          flags, minionOffset, assignedMinions);
-     break;
-   }
- }
 
 } // namespace inlining
 

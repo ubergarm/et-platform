@@ -272,6 +272,9 @@ class LibManagerSheet:
         
                
     def genLibApi(self, hostswdir):
+        # prepare list of expected implementation selectors
+        self.__implSel = []
+        
         # generate table for header file
         table = [ self.tableEntry(i) for i in self.__enum ] 
         tableStr = self.formatTable(table)
@@ -283,6 +286,9 @@ class LibManagerSheet:
 
         # and create output
         self.outputLibApi(hostswdir, tableStr)
+
+        # and create implSel
+        self.checkImplSel(hostswdir)
             
     def tableEntry(self, op):
         if op in self.__configs:
@@ -307,9 +313,10 @@ class LibManagerSheet:
                 template = functools.reduce( lambda a,b : a | (1 << int(b)), str(conf["templateElk"]).split(','), 0) ;
                 
             if conf["implSel"] == "default":
-                implSel = "false"
+                implSel = "implSel::defaultSel<%d>" % (len(versions) + 1)
             elif conf["implSel"] == "custom":
-                implSel = "true"
+                implSel = "implSel::" + conf["Operator"]
+                self.__implSel.append({"versions": versions, "name": conf["Operator"]})
             else:
                 raise Exception("implSel has to be either 'default' or 'custom' for op %s" % op)
 
@@ -338,7 +345,7 @@ class LibManagerSheet:
                     "members": "{}",
                     "template": 0,
                     "versions": "{}",
-                    "implSel": "false",
+                    "implSel": "nullptr",
                     "stateL1": "{{operandState::invalid}}",
                     "stateL2": "{{operandState::invalid}}",
                     "stateCB": "{{operandState::invalid}}",
@@ -680,7 +687,33 @@ namespace dnn_lib {
         # expected exception if member not found
         return LibManagerSheet.memberTypeMap[m]
 
+    def checkImplSel(self, hostswdir):
+        fname = os.path.join ( hostswdir, 'dnn_lib/include/LibApiImplSel.h');
+        
+        # read file contents and get the existing implementation selectors
+        regexp = re.compile(r'^\s*static\s+size_t\s+([^\(]+)\s*\(')
+        found = []
+        with open(fname) as f:
+            for line in f:
+                m = regexp.match( line )
+                if m:
+                    found.append(m.group(1))
 
+        # and issue a warning with the missing implementation selectors
+        for i in self.__implSel:
+            if i["name"] not in found:
+                retvalues=["//   0: base implementation"] + [ "//   %d: %s"%(r + 1,v) for r,v in enumerate(i["versions"])]
+                print("""
+WARNING: missing implementation selector for %s. Add the following to LibApiImplSel.h and fill:
+
+// Best implementation selector for operator %s. Return values are:
+%s 
+static size_t %s(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+  //TODO: fill
+  return 0;
+}
+""" %  (i["name"], i["name"], "\n".join(retvalues), i["name"]) )
+                    
         
 if __name__ == "__main__":
     # parse command line options

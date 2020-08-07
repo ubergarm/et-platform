@@ -1,6 +1,10 @@
 #ifndef _LIB_API_H_
 #define _LIB_API_H_
+
+#include "LibApiImplSel.h"
+
 namespace dnn_lib {
+  
   enum instrMembers
   {
    mbInvalid,
@@ -47,6 +51,9 @@ namespace dnn_lib {
   enum class operandState { stale, dirty, clean, invalid};
   
   struct instrConfig {
+    using operandStateArray = std::array<operandState, maxNrOperands>;
+    using implStateArray = std::array<operandStateArray, maxImplVersions + 1>;
+    using sel_fnc_t = size_t (*)(std::vector<LibTensor*> &, std::vector<LibTensor*> &);
     
     char name[maxInstrConfigStrLen];
     size_t nrOutputTensors; // number of output and in/out tensor operands
@@ -54,11 +61,8 @@ namespace dnn_lib {
     std::array<instrMembers, mbMaxMembers> members;
     uint64_t templateMask;
     std::array<char[maxInstrConfigStrLen], maxImplVersions> versions;
-    bool customImplSel;
+    sel_fnc_t implSel;
 
-
-    using operandStateArray = std::array<operandState, maxNrOperands>;
-    using implStateArray = std::array<operandStateArray, maxImplVersions + 1>;
     implStateArray stateL1;
     implStateArray stateL2;
     implStateArray stateCB;
@@ -127,7 +131,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -143,7 +147,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -159,7 +163,7 @@ namespace dnn_lib {
        {mbAxis, mbKeepDims}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -175,7 +179,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads}, // members
        3, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -194,7 +198,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -213,7 +217,7 @@ namespace dnn_lib {
        {mbAxis}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -232,7 +236,7 @@ namespace dnn_lib {
        {mbAxes}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -248,7 +252,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -267,7 +271,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid}}},
        // L2 states per impl
@@ -283,7 +287,7 @@ namespace dnn_lib {
        {}, // members
        3, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ConvertTo, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
@@ -305,7 +309,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -321,7 +325,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
        9, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -337,7 +341,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -353,7 +357,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
        9, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::Convolution, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
@@ -375,7 +379,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads, mbGroup}, // members
        1, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -394,7 +398,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
        1, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -410,7 +414,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {"Threaded", "Vectorized", "Tensorized"}, // impl versions
-       true, // custom impl selector
+       implSel::Copy, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
@@ -435,7 +439,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -451,7 +455,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -470,7 +474,7 @@ namespace dnn_lib {
        {mbExclusive, mbReverse}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -486,7 +490,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -502,7 +506,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -518,7 +522,7 @@ namespace dnn_lib {
        {}, // members
        3, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -537,7 +541,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementAdd, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -559,7 +563,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -575,7 +579,7 @@ namespace dnn_lib {
        {}, // members
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementCmpEQ, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -597,7 +601,7 @@ namespace dnn_lib {
        {}, // members
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementCmpLTE, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -619,7 +623,7 @@ namespace dnn_lib {
        {}, // members
        6, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementCmpLT, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -641,7 +645,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementDiv, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -663,7 +667,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -679,7 +683,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -698,7 +702,7 @@ namespace dnn_lib {
        {}, // members
        3, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
@@ -720,7 +724,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementMax, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -742,7 +746,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementMin, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -764,7 +768,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementMul, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -786,7 +790,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -802,7 +806,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementPow, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -824,7 +828,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -843,7 +847,7 @@ namespace dnn_lib {
        {}, // members
        7, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::ElementSub, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -865,7 +869,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -881,7 +885,7 @@ namespace dnn_lib {
        {mbHasEndOffset}, // members
        1, // template param mask
        {"Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::EmbeddingBag, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -900,7 +904,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -916,7 +920,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -932,7 +936,7 @@ namespace dnn_lib {
        {mbValue}, // members
        2, // template param mask
        {"Threaded", "Vectorized", "Aligned32Bytes"}, // impl versions
-       true, // custom impl selector
+       implSel::MaxSplat, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
@@ -957,7 +961,7 @@ namespace dnn_lib {
        {mbOffsets}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -976,7 +980,7 @@ namespace dnn_lib {
        {mbAxis}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -992,7 +996,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -1008,7 +1012,7 @@ namespace dnn_lib {
        {}, // members
        15, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1030,7 +1034,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1052,7 +1056,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1074,7 +1078,7 @@ namespace dnn_lib {
        {mbBatchDims}, // members
        6, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -1093,7 +1097,7 @@ namespace dnn_lib {
        {}, // members
        12, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -1112,7 +1116,7 @@ namespace dnn_lib {
        {mbOffsets, mbCount, mbAxis}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1131,7 +1135,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -1150,7 +1154,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1166,7 +1170,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -1185,7 +1189,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1204,7 +1208,7 @@ namespace dnn_lib {
        {mbHalfWindowSize, mbAlpha, mbBeta, mbK}, // members
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1226,7 +1230,7 @@ namespace dnn_lib {
        {mbTransposed}, // members
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1248,7 +1252,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads}, // members
        3, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1267,7 +1271,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads}, // members
        5, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -1286,7 +1290,7 @@ namespace dnn_lib {
        {mbDivisor, mbSignFollowDivisor}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1305,7 +1309,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -1321,7 +1325,7 @@ namespace dnn_lib {
        {}, // members
        3, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1340,7 +1344,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1359,7 +1363,7 @@ namespace dnn_lib {
        {mbRszScale}, // members
        1, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1375,7 +1379,7 @@ namespace dnn_lib {
        {mbRszScale}, // members
        1, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1391,7 +1395,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {"Threaded", "Vectorized", "Aligned32Bytes"}, // impl versions
-       true, // custom impl selector
+       implSel::RowwiseQuantizedFullyConnected, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1416,7 +1420,7 @@ namespace dnn_lib {
        {}, // members
        33, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       true, // custom impl selector
+       implSel::RowwiseQuantizedSparseLengthsWeightedSum, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1438,7 +1442,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1454,7 +1458,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1473,7 +1477,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
@@ -1495,7 +1499,7 @@ namespace dnn_lib {
        {mbBlockSize}, // members
        1, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1511,7 +1515,7 @@ namespace dnn_lib {
        {}, // members
        5, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1527,7 +1531,7 @@ namespace dnn_lib {
        {}, // members
        10, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1543,7 +1547,7 @@ namespace dnn_lib {
        {}, // members
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid},
@@ -1565,7 +1569,7 @@ namespace dnn_lib {
        {mbMask}, // members
        1, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -1584,7 +1588,7 @@ namespace dnn_lib {
        {mbValue}, // members
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid},
         {operandState::invalid},
@@ -1606,7 +1610,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -1622,7 +1626,7 @@ namespace dnn_lib {
        {mbSyncOffset}, // members
        2, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid}}},
        // L2 states per impl
@@ -1638,7 +1642,7 @@ namespace dnn_lib {
        {}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
@@ -1657,7 +1661,7 @@ namespace dnn_lib {
        {mbOffsets}, // members
        1, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
@@ -1679,7 +1683,7 @@ namespace dnn_lib {
        {mbTopK}, // members
        4, // template param mask
        {"Threaded"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
@@ -1698,7 +1702,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -1714,7 +1718,7 @@ namespace dnn_lib {
        {}, // members
        0, // template param mask
        {}, // impl versions
-       false, // custom impl selector
+       nullptr, // custom impl selector
        // L1 states per impl
        {{operandState::invalid}},
        // L2 states per impl
@@ -1730,7 +1734,7 @@ namespace dnn_lib {
        {mbShuffle}, // members
        2, // template param mask
        {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       implSel::defaultSel<3>, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},

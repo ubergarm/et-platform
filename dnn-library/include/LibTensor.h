@@ -18,7 +18,9 @@
 
 #include "LibTypes.h"
 #include "LibUtils.h"
+#ifdef __riscv
 #include "cacheops.h"
+#endif
 
 namespace dnn_lib {
 
@@ -644,6 +646,7 @@ public:
 
 
   void evict(uint64_t dst, size_t offset, size_t count) const{
+#ifdef __riscv
     FENCE;
     const size_t typeSize = type_.getElementSize();    
     size_t cl = (count * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
@@ -656,6 +659,9 @@ public:
     }
     if (cl > 0)
       evict_va(0, dst, addr, cl-1, CACHE_LINE_BYTES);
+#else
+    assert("shouldn't call this function unless it is from minion");
+#endif
   }
 
   void evict(uint64_t dst) const {

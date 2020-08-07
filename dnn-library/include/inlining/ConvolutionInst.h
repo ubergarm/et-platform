@@ -1195,34 +1195,6 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
 }
 
 
-  template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN>
-  inline __attribute__((always_inline)) void fwdLibConvolutionInstBest(const int desired, LibTensor* outT, LibTensor* dataT, 
-								       LibTensor* filterT, LibTensor* biasT, 
-								       const std::array<uint32_t, N> &kernels,
-								       const std::array<uint32_t, N> &strides, 
-								       const std::array<uint32_t, PN> &pads,
-								       unsigned int group, unsigned int dilation, uint64_t flags, 
-								       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-    
-      switch(desired){
-      case 1: inlining::fwdLibConvolutionInst<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads,
-								      group, dilation, flags, minionOffset, assignedMinions); break;
-      case 2: inlining::fwdLibConvolutionInstThreaded<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads,
-									      group, dilation, flags, minionOffset, assignedMinions); break;
-      case 3: inlining::fwdLibConvolutionInstVectorized<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads,
-										group, dilation, flags, minionOffset, assignedMinions); break;
-      default:
- 	// check for SW-3816
-	if (filterT->dims()[filterT->ndims()-1] < 4 )
-	  inlining::fwdLibConvolutionInstThreaded<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads, group, dilation, 
-									  flags, minionOffset, assignedMinions);
-	else {
-	  inlining::fwdLibConvolutionInstVectorized<dstElK, biasElK, N, PN>(outT, dataT, filterT, biasT, kernels, strides, pads, group, dilation,
-									    flags, minionOffset, assignedMinions);
-	}
-	break;
-      }
-  }
 
 } // namespace inlining
 

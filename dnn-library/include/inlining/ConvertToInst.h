@@ -237,30 +237,6 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   outT->evict(DO_EVICTS, first, count);
   
 }
-
-template <ElemKind dstElK, ElemKind srcElK>
-inline __attribute__((always_inline)) void fwdLibConvertToInstBest(const int desired, LibTensor* outT,  LibTensor*inT, uint64_t flags,
-      							     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  switch(desired){
-  case 1: inlining::fwdLibConvertToInst<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions); break;
-  case 2: inlining::fwdLibConvertToInstThreaded<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions); break;
-  default:
-    if (outT->getUntouchable()) {
-      inlining::fwdLibConvertToInst<dstElK, srcElK>(outT, inT, flags, minionOffset, assignedMinions);
-    } else if ((inT->dims()[inT->ndims()-1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0]) ||
-        (srcElK == FloatTy && dstElK == Int64ITy ) || ( srcElK == FloatTy && dstElK == Int32ITy) || 
-        (srcElK == Int32ITy && dstElK == FloatTy) || ( srcElK == Int32ITy && dstElK == Int64ITy) || ( srcElK == Int32ITy && dstElK == Float16Ty) ||
-        (srcElK == Int64ITy && dstElK == Float16Ty) || ( srcElK == Int64ITy && dstElK == Int32ITy) || 
-        (srcElK == BoolTy && dstElK == Float16Ty) || ( srcElK == BoolTy && dstElK == FloatTy))
-      // check for SW-3726
-      inlining::fwdLibConvertToInstThreaded<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
-    else {
-        inlining::fwdLibConvertToInstVectorized<dstElK, srcElK> (outT, inT, flags, minionOffset, assignedMinions);
-    }
-    break;
-  }
-}
   
 } // namespace inlining
 

@@ -529,52 +529,6 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   }
 }
 
-
-
-template <ElemKind elK>
-inline void fwdLibMaxSplatInstBest(const int desired, LibTensor* outT, LibTensor* inT, const float splatVal,
-                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
-  switch(desired){
-  case 1: inlining::fwdLibMaxSplatInst<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions); break;
-  case 2: inlining::fwdLibMaxSplatInstThreaded<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions); break;
-  case 3: inlining::fwdLibMaxSplatInstVectorized<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions); break;      
-  default:
-    {
-      const size_t batchDim = inT->ndims() - 2;
-      if (inT->ndims() >= 2 &&
-          ( outT->strides()[batchDim] % 32 == 0 ||  32 % outT->strides()[batchDim] == 0 ) &&
-          (  inT->strides()[batchDim] % 32 == 0 ||  32 %  inT->strides()[batchDim] == 0 ))
-        inlining::fwdLibMaxSplatInstAligned32Bytes<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions);
-      else
-        inlining::fwdLibMaxSplatInstVectorized<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions);
-    }
-    break;
-  }
-} 
-template <ElemKind elK>
-inline void fwdLibMaxSplatInstBest(const int desired, LibTensor* outT, LibTensor* inT, int64_t splatVal,
-                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
-  switch(desired){
-  case 1: inlining::fwdLibMaxSplatInst<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions); break;
-  case 2: inlining::fwdLibMaxSplatInstThreaded<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions); break;
-  case 3: inlining::fwdLibMaxSplatInstVectorized<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions); break;      
-  default:
-    {
-      const size_t batchDim = inT->ndims() - 2;
-      if (inT->ndims() >= 2 &&
-          ( outT->strides()[batchDim] % 32 == 0 ||  32 % outT->strides()[batchDim] == 0 ) &&
-          (  inT->strides()[batchDim] % 32 == 0 ||  32 %  inT->strides()[batchDim] == 0 ))
-        inlining::fwdLibMaxSplatInstAligned32Bytes<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions);
-      else
-        inlining::fwdLibMaxSplatInstVectorized<elK>(outT, inT, splatVal, flags, minionOffset, assignedMinions);
-    }
-    break;
-  }
-  
-}
- 
  
 } // namespace inlining
 

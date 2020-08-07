@@ -581,31 +581,6 @@ inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
   tensor_store_scp(0, 0, minionCacheLines-1, dstAddr, 0x40);
 }
 
-template <ElemKind elK>
-inline void fwdLibCopyInstBest(const int desired, LibTensor* outT, LibTensor* inT,
-                                     uint64_t flags,
-                                     const uint32_t minionOffset = 0,
-                                     const uint32_t assignedMinions = 0) {
-  switch(desired) {
-    case 1: inlining::fwdLibCopyInst<elK>(outT, inT, flags, minionOffset, assignedMinions); break;
-    case 2: inlining::fwdLibCopyInstThreaded<elK>(outT, inT, flags, minionOffset, assignedMinions); break;
-    case 3: inlining::fwdLibCopyInstVectorized<elK>(outT, inT, flags, minionOffset, assignedMinions); break;
-    case 4: inlining::fwdLibCopyInstTensorized<elK>(outT, inT, flags, minionOffset, assignedMinions); break;
-    default:
-      // Tensorized only works with same shape in-out and CL aligment
-      if (inT->getType().hasSameShape(outT->getType()) and
-          (((uintptr_t) inT->getAddress()  & 0x3F) == 0) and ((inT->getType().getSizeInBytes()  & 0x3F) == 0) and 
-          (((uintptr_t) outT->getAddress() & 0x3F) == 0) and ((outT->getType().getSizeInBytes() & 0x3F) == 0)) {
-        inlining::fwdLibCopyInstTensorized<elK>(outT, inT, flags, minionOffset, assignedMinions);
-      } else if (!outT->getUntouchable()) {
-        inlining::fwdLibCopyInstVectorized<elK>(outT, inT, flags, minionOffset, assignedMinions);
-      } else {
-        inlining::fwdLibCopyInst<elK>(outT, inT, flags, minionOffset, assignedMinions);
-      }
-      break;
-  }
-}
-  
 } // namespace inlining
 
 } // namespace dnn_lib

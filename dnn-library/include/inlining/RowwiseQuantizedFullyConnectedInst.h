@@ -538,33 +538,6 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
 
 #undef MATMUL_ITERATION
 }
-
-
-
-
-  // calls best implementation, limiting up to desired (1:single thread, 2: threaded, 3:vectorized)
-inline void fwdLibRowwiseQuantizedFullyConnectedInstBest(const int desired, LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                                         LibTensor* in3T, LibTensor* in4T, LibTensor* in5T,
-                                                         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  switch(desired){
-  case 1: inlining::fwdLibRowwiseQuantizedFullyConnectedInst(outT, in1T, in2T, in3T, in4T, in5T, flags, minionOffset, assignedMinions); break;
-  case 2: inlining::fwdLibRowwiseQuantizedFullyConnectedInstThreaded(outT, in1T, in2T, in3T, in4T, in5T, flags, minionOffset, assignedMinions); break;
-  case 3: inlining::fwdLibRowwiseQuantizedFullyConnectedInstVectorized(outT, in1T, in2T, in3T, in4T, in5T, flags, minionOffset, assignedMinions); break;
-  default:
-    {
-      const size_t batchDim = in1T->ndims() - 2;
-      if ( outT->strides()[batchDim] % 32 == 0 && 
-           in1T->strides()[batchDim] % 32 == 0 &&
-           in2T->strides()[batchDim] % 32 == 0 )
-        inlining::fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(outT, in1T, in2T, in3T, in4T, in5T, flags, minionOffset, assignedMinions);
-      else 
-        inlining::fwdLibRowwiseQuantizedFullyConnectedInstVectorized(outT, in1T, in2T, in3T, in4T, in5T, flags, minionOffset, assignedMinions);
-    }
-    break;
-  }
-}
-
   
 } // namespace inlining
 
