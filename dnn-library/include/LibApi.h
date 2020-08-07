@@ -31,7 +31,6 @@ namespace dnn_lib {
    mbRszScale,
    mbHasEndOffset,
    mbTransposed,
-   mbTensorsAligned,
    mbDilation,
    mbCenterPointBox,
    mbMaxOutputBoxesPerClass,
@@ -408,23 +407,26 @@ namespace dnn_lib {
      { "Copy", // name
        1, // # outs
        1,  // # ins
-       {mbTensorsAligned}, // members
+       {}, // members
        1, // template param mask
-       {"Threaded", "Vectorized"}, // impl versions
-       false, // custom impl selector
+       {"Threaded", "Vectorized", "Tensorized"}, // impl versions
+       true, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid}}},
+        {operandState::invalid, operandState::invalid},
+        {operandState::clean, operandState::clean}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid}}},
+        {operandState::invalid, operandState::invalid},
+        {operandState::clean, operandState::clean}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0} // evict available mask
+        {operandState::invalid, operandState::invalid},
+        {operandState::dirty, operandState::clean}}},
+       {0x0, 0x0, 0x0, 0x0} // evict available mask
      },
      /**** ET_crc ****/
      { "notImplemented", // name

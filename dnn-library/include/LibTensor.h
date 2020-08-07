@@ -24,30 +24,30 @@ namespace dnn_lib {
 
  
 struct Type final {
-   
-   /*@brief contains the dimensions (sizes) of the tensor.
-    */
-   const dim_array_t sizes_;
-
-   /*@brief contains the strides for each dimension (in elements) same order
-    * as in sizes_.
-    */
-   const dim_array_t strides_;
   
-   /*@brief Specifies the element type of the tensor.
-    */
-   const dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
+  /*@brief contains the dimensions (sizes) of the tensor.
+   */
+  const dim_array_t sizes_;
 
-   /*@brief contains the number of dimensions used by the tensor.
-    */
-   const dim_t numSizes_;
+  /*@brief contains the strides for each dimension (in elements) same order
+   * as in sizes_.
+   */
+  const dim_array_t strides_;
+  
+  /*@brief Specifies the element type of the tensor.
+   */
+  const dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
 
-   /*@brief On quantized tensors, this represents the scale of the values.
-    */
+  /*@brief contains the number of dimensions used by the tensor.
+   */
+  const dim_t numSizes_;
+
+  /*@brief On quantized tensors, this represents the scale of the values.
+   */
   const float scale_ {};
 
-   /*@brief On quantized tensors, this represents the offset of the values.
-    */
+  /*@brief On quantized tensors, this represents the offset of the values.
+   */
   const int32_t offset_ {};
  
   /*@brief Initialize a new quantized type with \p scale an \p offset.
@@ -146,23 +146,35 @@ struct Type final {
     else return Type(T.elementType_, numSizes, dims, pitches);
   }
 
-   /*@brief Reshape existing type by taking shapes and strides of \p shapeType.
-    */
-   static Type newShape(const Type &kindType, const Type shapeType) {
-     //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
-     if (kindType.isQuantizedType())
-       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
-     else 
-       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
+  /*@brief Reshape existing type by taking shapes and strides of \p shapeType.
+   */
+  static Type newShape(const Type &kindType, const Type shapeType) {
+    //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
+    if (kindType.isQuantizedType())
+      return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
+    else 
+      return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
 
-     //TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate extended
-     // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
-   }
+    //TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate extended
+    // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
+  }
    
   /* brief returns true if \p other is the same type.
    */
   // bool isEqual(TypeRef other) const { return isEqual(*other); }
-
+   
+  /* brief returns true if \p other has same shape.
+   */
+  const bool hasSameShape(const Type other) const {
+    if (numSizes_ != other.getNumDims()) return false;
+    const dim_array_t other_sizes = other.getSizes();
+    const dim_array_t other_strides = other.getStrides();
+    for (size_t idx = 0; idx < numSizes_; idx++) {
+      if (sizes_[idx] != other_sizes[idx]) return false;
+      if (strides_[idx] != other_strides[idx]) return false;
+    }
+    return true; 
+  }
 
   /*@brief returns the scale of a quantized type.
    */
@@ -178,172 +190,180 @@ struct Type final {
     return offset_;
   }
 
-   /*@brief returns the Tensor dimension.
-    */
-   unsigned char getNumDims() const { return numSizes_;}
+  /*@brief returns the Tensor sizes_.
+   */
+  const dim_array_t getSizes() const { return sizes_; }
+
+  /*@brief returns the Tensor strides_.
+   */
+  const dim_array_t getStrides() const { return strides_; }
+
+  /*@brief returns the Tensor dimension.
+   */
+  dim_t getNumDims() const { return numSizes_;}
 
 
-   /*@brief returns the elemet type
-    */
-   ElemKind getElementType() const { return elementType_; }
+  /*@brief returns the elemet type
+   */
+  ElemKind getElementType() const { return elementType_; }
 
-   /*@brief return the number of elements in the tensor.
-    */
-   const dim_t size() const {
-     dim_t acum = 1;
-     for(auto i: sizes_) acum*=i;
-     return acum;
-   }
-   
-   // /*@brief Calculate the size of the slice starting at \p StartDim. Returns the
-   //  *number of elements in a slice in the tensor.
-   //  */
-   // dim_t getSliceSize(unsigned char startDim) const {
+  /*@brief return the number of elements in the tensor.
+   */
+  const dim_t size() const {
+    dim_t acum = 1;
+    for(auto i: sizes_) acum*=i;
+    return acum;
+  }
+  
+  // /*@brief Calculate the size of the slice starting at \p StartDim. Returns the
+  //  *number of elements in a slice in the tensor.
+  //  */
+  // dim_t getSliceSize(unsigned char startDim) const {
 
-   //   assert(startDim <= numSizes_ && " Invalid start dim");
-   //   dim_t s = 1;
-   //   for(unsigned char i = startDim; i < numSizes_; i++) {
-   //     s *= dim_t(sizes_[i]);
-   //   }
-   //   return s;
-   // }
+  //   assert(startDim <= numSizes_ && " Invalid start dim");
+  //   dim_t s = 1;
+  //   for(unsigned char i = startDim; i < numSizes_; i++) {
+  //     s *= dim_t(sizes_[i]);
+  //   }
+  //   return s;
+  // }
 
-   /*@brief returns true if the templated parameter \p Elemkind matches this type.
-    */
-   template<class ElemTy> bool isType() const {
-     return isType<ElemTy>(elementType_);
-   }
+  /*@brief returns true if the templated parameter \p Elemkind matches this type.
+   */
+  template<class ElemTy> bool isType() const {
+    return isType<ElemTy>(elementType_);
+  }
 
-   /*@brief returns true if the templated parameter \p ElemKind matches the type
-    *that's specified by the parameter \p Ty.
-    */
-   template<class ElemTy> static bool isType(dnn_lib::ElemKind elk) {
-     switch (elk) {
-     case dnn_lib::ElemKind::FloatTy:
-       return std::is_same<ElemTy, float>::value;
-     case dnn_lib::ElemKind::Float16Ty:
-       return std::is_same<ElemTy, uint16_t>::value;
-     case dnn_lib::ElemKind::Int8QTy:
-       return std::is_same<ElemTy, int8_t>::value;
-     case dnn_lib::ElemKind::UInt8QTy:
-       return std::is_same<ElemTy, uint8_t>::value;
-     case dnn_lib::ElemKind::Int16QTy:
-       return std::is_same<ElemTy, int16_t>::value;
-     case dnn_lib::ElemKind::Int32QTy:
-       return std::is_same<ElemTy, int32_t>::value;
-     case dnn_lib::ElemKind::Int32ITy:
-       return std::is_same<ElemTy, int32_t>::value;
-     case dnn_lib::ElemKind::Int64ITy:
-       return std::is_same<ElemTy, int64_t>::value;
-     case dnn_lib::ElemKind::UInt8FusedQTy:
-       return std::is_same<ElemTy, uint8_t>::value;
-     case dnn_lib::ElemKind::UInt8FusedFP16QTy:
-       return std::is_same<ElemTy, uint8_t>::value;
-     case dnn_lib::ElemKind::UInt4FusedFP16QTy:
-       return std::is_same<ElemTy, uint8_t>::value;
-     case dnn_lib::ElemKind::BoolTy:
-       return std::is_same<ElemTy, bool>::value;
-     }
-     assert(true && "Invalid type");
-   }
+  /*@brief returns true if the templated parameter \p ElemKind matches the type
+   *that's specified by the parameter \p Ty.
+   */
+  template<class ElemTy> static bool isType(dnn_lib::ElemKind elk) {
+    switch (elk) {
+    case dnn_lib::ElemKind::FloatTy:
+      return std::is_same<ElemTy, float>::value;
+    case dnn_lib::ElemKind::Float16Ty:
+      return std::is_same<ElemTy, uint16_t>::value;
+    case dnn_lib::ElemKind::Int8QTy:
+      return std::is_same<ElemTy, int8_t>::value;
+    case dnn_lib::ElemKind::UInt8QTy:
+      return std::is_same<ElemTy, uint8_t>::value;
+    case dnn_lib::ElemKind::Int16QTy:
+      return std::is_same<ElemTy, int16_t>::value;
+    case dnn_lib::ElemKind::Int32QTy:
+      return std::is_same<ElemTy, int32_t>::value;
+    case dnn_lib::ElemKind::Int32ITy:
+      return std::is_same<ElemTy, int32_t>::value;
+    case dnn_lib::ElemKind::Int64ITy:
+      return std::is_same<ElemTy, int64_t>::value;
+    case dnn_lib::ElemKind::UInt8FusedQTy:
+      return std::is_same<ElemTy, uint8_t>::value;
+    case dnn_lib::ElemKind::UInt8FusedFP16QTy:
+      return std::is_same<ElemTy, uint8_t>::value;
+    case dnn_lib::ElemKind::UInt4FusedFP16QTy:
+      return std::is_same<ElemTy, uint8_t>::value;
+    case dnn_lib::ElemKind::BoolTy:
+      return std::is_same<ElemTy, bool>::value;
+    }
+    assert(true && "Invalid type");
+  }
 
-   /*@brief true if the type of this Tensor is one of the quantized
-    *types.
-    */
-   bool isQuantizedType() const { return isQuantizedElemKind(elementType_); }
+  /*@brief true if the type of this Tensor is one of the quantized
+   *types.
+   */
+  bool isQuantizedType() const { return isQuantizedElemKind(elementType_); }
 
-   // /*@brief returns true if the type of this Tensor is one of the floating point
-   //  *types.
-   //  */
-   // bool isFPType() const {
-   //   return (getElementType() == dnn_lib::ElemKind::FloatTy ||
-   //           getElementType() == dnn_lib::ElemKind::Float16Ty);
-   // }
+  // /*@brief returns true if the type of this Tensor is one of the floating point
+  //  *types.
+  //  */
+  // bool isFPType() const {
+  //   return (getElementType() == dnn_lib::ElemKind::FloatTy ||
+  //           getElementType() == dnn_lib::ElemKind::Float16Ty);
+  // }
 
-   /*@brief returns the size of the type element.
-    */
-   unsigned getElementSize() const { return getElementSize(elementType_); }
+  /*@brief returns the size of the type element.
+   */
+  unsigned getElementSize() const { return getElementSize(elementType_); }
 
-   /*@brief returns the size in bytes for this Tensor.
-    */
-   size_t getSizeInBytes() const {
-     return sizes_[0] * strides_[0] * getElementSize();
-   }
+  /*@brief returns the size in bytes for this Tensor.
+   */
+  size_t getSizeInBytes() const {
+    return sizes_[0] * strides_[0] * getElementSize();
+  }
 
-   /*@brief the actual number of elements in the tensor taking striding into
-    * account. Since size() does not take striding into account, size() is
-    * always <= actualSize()
-    */
-   size_t actualSize() const { return (sizes_[0] * strides_[0]); }
+  /*@brief the actual number of elements in the tensor taking striding into
+   * account. Since size() does not take striding into account, size() is
+   * always <= actualSize()
+   */
+  size_t actualSize() const { return (sizes_[0] * strides_[0]); }
 
-   /// \return the size of the element \p Ty.
-   static unsigned getElementSize(dnn_lib::ElemKind Ty) {
-     switch (Ty) {
-     case dnn_lib::ElemKind::FloatTy:
-       return sizeof(float);
-     case dnn_lib::ElemKind::Float16Ty:
-       return sizeof(uint16_t); 
-     case dnn_lib::ElemKind::Int8QTy:
-       return sizeof(int8_t);
-     case dnn_lib::ElemKind::UInt8QTy:
-       return sizeof(uint8_t);
-     case dnn_lib::ElemKind::Int16QTy:
-       return sizeof(int16_t);
-     case dnn_lib::ElemKind::Int32QTy:
-       return sizeof(int32_t);
-     case dnn_lib::ElemKind::Int32ITy:
-       return sizeof(int32_t);
-     case dnn_lib::ElemKind::Int64ITy:
-       return sizeof(int64_t);
-     case dnn_lib::ElemKind::UInt8FusedQTy:
-       return sizeof(uint8_t);
-     case dnn_lib::ElemKind::UInt8FusedFP16QTy:
-       return sizeof(uint8_t);
-     case dnn_lib::ElemKind::UInt4FusedFP16QTy:
-       return sizeof(uint8_t);
-     case dnn_lib::ElemKind::BoolTy:
-       return sizeof(bool);
-     }
-     assert(true && "Invalid type");
-     return sizeof(bool);
-   }
+  /// \return the size of the element \p Ty.
+  static unsigned getElementSize(dnn_lib::ElemKind Ty) {
+    switch (Ty) {
+    case dnn_lib::ElemKind::FloatTy:
+      return sizeof(float);
+    case dnn_lib::ElemKind::Float16Ty:
+      return sizeof(uint16_t); 
+    case dnn_lib::ElemKind::Int8QTy:
+      return sizeof(int8_t);
+    case dnn_lib::ElemKind::UInt8QTy:
+      return sizeof(uint8_t);
+    case dnn_lib::ElemKind::Int16QTy:
+      return sizeof(int16_t);
+    case dnn_lib::ElemKind::Int32QTy:
+      return sizeof(int32_t);
+    case dnn_lib::ElemKind::Int32ITy:
+      return sizeof(int32_t);
+    case dnn_lib::ElemKind::Int64ITy:
+      return sizeof(int64_t);
+    case dnn_lib::ElemKind::UInt8FusedQTy:
+      return sizeof(uint8_t);
+    case dnn_lib::ElemKind::UInt8FusedFP16QTy:
+      return sizeof(uint8_t);
+    case dnn_lib::ElemKind::UInt4FusedFP16QTy:
+      return sizeof(uint8_t);
+    case dnn_lib::ElemKind::BoolTy:
+      return sizeof(bool);
+    }
+    assert(true && "Invalid type");
+    return sizeof(bool);
+  }
 
 
-   // /// Given a string \p str containing the name of an ElemKind from
-   // /// Type::getElementName, returns the corresponding ElemKind or Error if a
-   // /// mapping couldn't be found.
-   // static dnn_lib::ElemKind getElementKindFromName(string str) {
-   //   if (str == Type::getElementName(dnn_lib::ElemKind::FloatTy)) {
-   //     return dnn_lib::ElemKind::FloatTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Float16Ty)) {
-   //     return dnn_lib::ElemKind::Float16Ty;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int8QTy)) {
-   //     return dnn_lib::ElemKind::Int8QTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt8QTy)) {
-   //     return dnn_lib::ElemKind::UInt8QTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int16QTy)) {
-   //     return dnn_lib::ElemKind::Int16QTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int32QTy)) {
-   //     return dnn_lib::ElemKind::Int32QTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int32ITy)) {
-   //     return dnn_lib::ElemKind::Int32ITy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int64ITy)) {
-   //     return dnn_lib::ElemKind::Int64ITy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt8FusedQTy)) {
-   //     return dnn_lib::ElemKind::UInt8FusedQTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt8FusedFP16QTy)) {
-   //     return dnn_lib::ElemKind::UInt8FusedFP16QTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt4FusedFP16QTy)) {
-   //     return dnn_lib::ElemKind::UInt4FusedFP16QTy;
-   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::BoolTy)) {
-   //     return dnn_lib::ElemKind::BoolTy;
-   //   } else {
-   //     //assert(true && "Invalid ElemKind string");
-   //     return dnn_lib::ElemKind::FloatTy;
-   //   }
-   // }
+  // /// Given a string \p str containing the name of an ElemKind from
+  // /// Type::getElementName, returns the corresponding ElemKind or Error if a
+  // /// mapping couldn't be found.
+  // static dnn_lib::ElemKind getElementKindFromName(string str) {
+  //   if (str == Type::getElementName(dnn_lib::ElemKind::FloatTy)) {
+  //     return dnn_lib::ElemKind::FloatTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Float16Ty)) {
+  //     return dnn_lib::ElemKind::Float16Ty;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int8QTy)) {
+  //     return dnn_lib::ElemKind::Int8QTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt8QTy)) {
+  //     return dnn_lib::ElemKind::UInt8QTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int16QTy)) {
+  //     return dnn_lib::ElemKind::Int16QTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int32QTy)) {
+  //     return dnn_lib::ElemKind::Int32QTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int32ITy)) {
+  //     return dnn_lib::ElemKind::Int32ITy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int64ITy)) {
+  //     return dnn_lib::ElemKind::Int64ITy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt8FusedQTy)) {
+  //     return dnn_lib::ElemKind::UInt8FusedQTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt8FusedFP16QTy)) {
+  //     return dnn_lib::ElemKind::UInt8FusedFP16QTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt4FusedFP16QTy)) {
+  //     return dnn_lib::ElemKind::UInt4FusedFP16QTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::BoolTy)) {
+  //     return dnn_lib::ElemKind::BoolTy;
+  //   } else {
+  //     //assert(true && "Invalid ElemKind string");
+  //     return dnn_lib::ElemKind::FloatTy;
+  //   }
+  // }
 
- }; //class Type
+}; //class Type
   
 
  
@@ -359,6 +379,10 @@ class LibTensor final {
 
   const bool untouch_;
  public:
+
+  /* @brief returns the start address of the tensor.
+   */
+  char* getAddress() const { return ptrData_;}
 
   /* @brief returns the type of the tensor.
    */

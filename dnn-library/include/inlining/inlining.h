@@ -26,7 +26,6 @@
 #include "ConvolutionInst.h" // From include/inlining path
 #include "ConvTransposeInst.h" // From include/inlining path
 #include "CopyInst.h" // From include/inlining path
-#include "CopyInstTensorized.h" // From include/inlining path
 #include "CrossEntropyLossInst.h" // From include/inlining path
 #include "CumSumInst.h" // From include/inlining path
 #include "DequantizeInst.h" // From include/inlining path

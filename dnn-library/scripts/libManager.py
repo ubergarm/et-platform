@@ -64,7 +64,6 @@ class LibManagerSheet:
                       "RszScale": "std::array<float, default_rszscale_size> &",
                       "HasEndOffset": "bool",
                       "Transposed": "bool",
-                      "TensorsAligned": "bool",
                       "RszScale": "std::array<float, default_rszscale_size> &",
                       "Dilation": "uint32_t",
                       "CenterPointBox": "int64_t",
