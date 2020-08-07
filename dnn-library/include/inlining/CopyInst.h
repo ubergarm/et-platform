@@ -594,13 +594,13 @@ inline void fwdLibCopyInstBest(const int desired, LibTensor* outT, LibTensor* in
     default:
       // Tensorized only works with same shape in-out and CL aligment
       if (inT->getType().hasSameShape(outT->getType()) and
-          (((uint32_t) inT->getAddress()  & 0x3F) == 0) and ((inT->getType().getSizeInBytes()  & 0x3F) == 0) and 
-          (((uint32_t) outT->getAddress() & 0x3F) == 0) and ((outT->getType().getSizeInBytes() & 0x3F) == 0)) {
-        fwdLibCopyInstTensorized<elK>(outT, inT, flags, minionOffset, assignedMinions);
+          (((uintptr_t) inT->getAddress()  & 0x3F) == 0) and ((inT->getType().getSizeInBytes()  & 0x3F) == 0) and 
+          (((uintptr_t) outT->getAddress() & 0x3F) == 0) and ((outT->getType().getSizeInBytes() & 0x3F) == 0)) {
+        inlining::fwdLibCopyInstTensorized<elK>(outT, inT, flags, minionOffset, assignedMinions);
       } else if (!outT->getUntouchable()) {
-        fwdLibCopyInstVectorized<elK>(outT, inT, flags, minionOffset, assignedMinions);
+        inlining::fwdLibCopyInstVectorized<elK>(outT, inT, flags, minionOffset, assignedMinions);
       } else {
-        fwdLibCopyInst<elK>(outT, inT, flags, minionOffset, assignedMinions);
+        inlining::fwdLibCopyInst<elK>(outT, inT, flags, minionOffset, assignedMinions);
       }
       break;
   }
