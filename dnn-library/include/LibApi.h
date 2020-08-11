@@ -1733,21 +1733,24 @@ namespace dnn_lib {
        1,  // # ins
        {mbShuffle}, // members
        2, // template param mask
-       {"Threaded", "Vectorized"}, // impl versions
-       implSel::defaultSel<3>, // custom impl selector
+       {"Threaded", "Vectorized", "Aligned32Bytes"}, // impl versions
+       implSel::Transpose, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0} // evict available mask
+       {0x0, 0x0, 0x0, 0x0} // evict available mask
      }
      // INSTR_CONFIG_TABLE_END
     };

@@ -213,6 +213,26 @@ namespace dnn_lib {
         return 2;
     }
 
+    
+    // Best implementation selector for operator Transpose. Return values are:
+    //   0: base implementation
+    //   1: "Threaded"
+    //   2: "Vectorized"
+    //   3: "Aligned32Bytes"
+    static size_t Transpose(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      LibTensor *outT = outTensors[0];
+      LibTensor *inT = inTensors[0];
+      ElemKind elK = inTensors[0]->getElementType();
+      const size_t batchDim = inT->ndims() - 2;
+      if ( inT->ndims() >= 2 &&
+           (outT->strides()[batchDim] * outT->getElementSize() )% 32 == 0  &&
+           (inT->strides()[batchDim] * inT->getElementSize() ) % 32 == 0  &&
+           (elK == FloatTy || elK == Float16Ty || elK==Int8QTy ) )
+        return 3;
+      else
+        return 2;
+  }
+    
   };
   
 }
