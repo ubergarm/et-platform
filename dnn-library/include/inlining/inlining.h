@@ -55,7 +55,7 @@
 #include "MaxPoolInst.h" // From include/inlining path
 #include "MaxSplatInst.h" // From include/inlining path
 #include "ModuloInst.h" // From include/inlining path
-//#include "NonMaxSuppressionInst.h" // From include/inlining path
+#include "NonMaxSuppressionInst.h" // From include/inlining path
 #include "QuantizeInst.h" // From include/inlining path
 #include "RescaleQuantizedInst.h" // From include/inlining path
 #include "ResizeBilinearInst.h" // From include/inlining path

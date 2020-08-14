@@ -87,7 +87,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInstTransposed.h"  
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxPoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ModuloInst.h"
-#  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/NonMaxSuppressionInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/NonMaxSuppressionInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/QuantizeInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RescaleQuantizedInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ResizeBilinearInst.h"
@@ -196,7 +196,7 @@ add_library(dnn_lib STATIC
   src/MaxSplatInst.cpp
   src/MaxPoolInst.cpp
   src/ModuloInst.cpp
-#  src/NonMaxSuppressionInst.cpp
+  src/NonMaxSuppressionInst.cpp
   src/QuantizeInst.cpp
   src/RescaleQuantizedInst.cpp
   src/ResizeBilinearInst.cpp

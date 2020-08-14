@@ -24,83 +24,304 @@
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
+
+#include "LibTypes.h"
+#include "LibUtils.h"
+#include "LibCommon.h"
 #include "LibTensor.h"
+
 
 namespace dnn_lib {
 
 namespace inlining {
 
-  template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
-inline void fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-                              const std::array<uint32_t, N> &kernels,
-                              const std::array<uint32_t, N> &strides,
-                              const std::array<uint32_t, PN> &pads,
-                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+template <ElemKind dstElK, size_t N, size_t PN>
+inline typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Float16Ty)), void> 
+ fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT,
+		     const std::array<uint32_t, N> &kernels,
+		     const std::array<uint32_t, N> &strides,
+		     const std::array<uint32_t, PN> &pads,
+		     uint64_t flags,
+		     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   
-  /* maintain compatibility through the new Iface Libtensor */
+  assert(inT->getElementType() == outT->getElementType());
+  assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
 
-  void* dstMatrix = outT->getRawDataPointer<void>();
-  void* activations = inT->getRawDataPointer<void>();
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+
+  auto inH = inT->getHandle<dstType>();
+  auto outH = outT->getHandle<dstType>();
+
+  float invFilterArea = 0.0;
+  fpReciprocalSingleElement((kernels[0] * kernels[1] * kernels[2]), invFilterArea);
+
+  //For each input in the batch
+  for (size_t n = 0; n < outT->dims()[0]; n++) {
+    //For each layer in the output tensor:
+    for (size_t z = 0; z < inT->dims()[4]; z++) {
+      //For each convolution 'jump' in the input tensor:
+      ssize_t t = -size_t(pads[0]);
+      for (size_t at = 0; at < outT->dims()[1]; t += strides[0], at++) {
+	ssize_t x = -ssize_t(pads[2]);
+	for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
+	  ssize_t y = -ssize_t(pads[4]);
+	  for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
+
+	    float sum = 0;
+	    for (size_t ft = 0; ft < kernels[0]; ft++) {
+	      for (size_t fx = 0; fx < kernels[1]; fx++) {
+		for (size_t fy = 0; fy < kernels[2]; fy++) {
+		  sdim_t ot = t + ft;
+		  sdim_t ox = x + fx;
+		  sdim_t oy = y + fy;
+
+		  //Ignore index access below zero(this is due to padding).
+		  if (ot < 0 || ox < 0 || oy < 0 || ot >= static_cast<ssize_t>(inT->dims()[1]) ||
+		      ox >= static_cast<ssize_t>(inT->dims()[2]) || oy >= static_cast<ssize_t>(inT->dims()[3])) {
+		    continue;
+		  }
+
+		  if (dstElK == Float16Ty) {
+		    float dst = 0;
+		    /*the cast avoid compilation error due to quantize types are handle together here.*/
+		    convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 5>{n, 
+			      static_cast<dim_t>(ot),static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
+		    sum += dst;
+		  }
+		  else {
+		    sum += dequantize<dstType>(inH.at(std::array<size_t, 5>{n, static_cast<dim_t>(ot), 
+			    static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
+		  }
+		}		  
+	      }
+
+	      if (dstElK == Float16Ty) {
+		uint16_t dst = 0;
+		convertFp32ToFp16((sum * invFilterArea), dst);
+		outH.at(std::array<size_t,5>{n,at,ax,ay,z}) = dst;
+	      }
+	      else {
+		outH.at(std::array<size_t, 5>{n,at,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
+										outH.getScale(),
+										outH.getOffset());
+	      }
+
+	    }
+	  } //W
+	}   //H
+      }     //T
+    }       //C
+  }         //N	    
+
+}
+
+template <ElemKind dstElK, size_t N, size_t PN>
+inline typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Float16Ty)), void> 
+ fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT,
+				const std::array<uint32_t, N> &kernels,
+				const std::array<uint32_t, N> &strides,
+				const std::array<uint32_t, PN> &pads,
+				uint64_t flags,
+				const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  if (get_minion_id() != minionOffset) return;
   
-  // Addresser<srcElK> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
+  assert(inT->getElementType() == outT->getElementType());
+  assert(inT->getElementType() == FloatTy);
 
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = inT->strides().data();
+  using dstType = typename elemKind2elemTy<dstElK>::type;
 
-  float filterArea = kernels[0] * kernels[1];
-  float invFilter;
-  fpReciprocalSingleElement(filterArea, invFilter);
+  auto inH = inT->getHandle<dstType>();
+  auto outH = outT->getHandle<dstType>();
+
+  float invFilterArea = 0.0;
+  fpReciprocalSingleElement((kernels[0] * kernels[1] * kernels[2]), invFilterArea);
+
+  //For each input in the batch
+  for (size_t n = 0; n < outT->dims()[0]; n++) {
+    //For each layer in the output tensor:
+    for (size_t z = 0; z < inT->dims()[4]; z++) {
+      //For each convolution 'jump' in the input tensor:
+      ssize_t t = -size_t(pads[0]);
+      for (size_t at = 0; at < outT->dims()[1]; t += strides[0], at++) {
+	ssize_t x = -ssize_t(pads[2]);
+	for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
+	  ssize_t y = -ssize_t(pads[4]);
+	  for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
+
+	    float sum = 0;
+	    for (size_t ft = 0; ft < kernels[0]; ft++) {
+	      for (size_t fx = 0; fx < kernels[1]; fx++) {
+		for (size_t fy = 0; fy < kernels[2]; fy++) {
+		  sdim_t ot = t + ft;
+		  sdim_t ox = x + fx;
+		  sdim_t oy = y + fy;
+
+		  //Ignore index access below zero(this is due to padding).
+		  if (ot < 0 || ox < 0 || oy < 0 || ot >= static_cast<ssize_t>(inT->dims()[1]) ||
+		      ox >= static_cast<ssize_t>(inT->dims()[2]) || oy >= static_cast<ssize_t>(inT->dims()[3])) {
+		    continue;
+		  }
+
+		  sum += static_cast<float>(inH.at(std::array<size_t, 5>{n, static_cast<dim_t>(ot), static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}));
+		}
+	      }
+	      outH.at(std::array<size_t, 5>{n,at,ax,ay,z}) = (sum * invFilterArea);
+	    }
+	  } //W
+	}   //H
+      }     //T
+    }       //C
+  }         //N	    
+}
+
+
+
+  template <ElemKind dstElK, size_t N, size_t PN>
+inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Float16Ty)), void>
+ fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
+		   const std::array<uint32_t, N> &kernels,
+		   const std::array<uint32_t, N> &strides,
+		   const std::array<uint32_t, PN> &pads,
+		   uint64_t flags, 
+		   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  if (get_minion_id() != minionOffset) return;
+
+  assert(inT->getElementType() == outT->getElementType());
+  assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
+  
+  if (inT->ndims() == 5) {
+    fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
+				       minionOffset, assignedMinions);
+    return;
+  }
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+
+  auto inH = inT->getHandle<dstType>();
+  auto outH = outT->getHandle<dstType>();
+
+  float invFilterArea = 0.0;
+  fpReciprocalSingleElement((kernels[0] * kernels[1]), invFilterArea);
 
   // For each input in the batch:
-  for (size_t n = 0; n < dstIndex[0]; n++) {
+  for (size_t n = 0; n < outT->dims()[0]; n++) {
     // For each layer in the output tensor:
-    for (size_t z = 0; z < actIndex[3]; z++) {
+    for (size_t z = 0; z < inT->dims()[3]; z++) {
       // For each convolution 'jump' in the input tensor:
       ssize_t x = -ssize_t(pads[0]);
-      for (size_t ax = 0; ax < dstIndex[1]; x += strides[0], ax++) {
+      for (size_t ax = 0; ax < outT->dims()[1]; x += strides[0], ax++) {
         ssize_t y = -ssize_t(pads[1]);
-        for (size_t ay = 0; ay < dstIndex[2]; y += strides[1], ay++) {
-          auto sum = tAInput[0];
-          sum = 0;
+        for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
 
+          float sum = 0;
           for (size_t fx = 0; fx < kernels[0]; fx++) {
             for (size_t fy = 0; fy < kernels[1]; fy++) {
               ssize_t ox = x + fx;
               ssize_t oy = y + fy;
 
               // Ignore index access below zero (this is due to padding).
-              if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
-                  oy >= ssize_t(actIndex[2])) {
+              if (ox < 0 || oy < 0 || ox >= ssize_t(inT->dims()[1]) ||
+                  oy >= ssize_t(inT->dims()[2])) {
                 continue;
               }
 
-              sum += tAInput[n * actPitch[0] + (size_t)ox * actPitch[1] +
-                             (size_t)oy * actPitch[2] + z];
+	      if (dstElK == Float16Ty) {
+		float dst = 0;
+		/*the cast avoid compilation error due to quantize types are handle together here.*/
+		convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 4>{n, 
+			  static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
+		sum += dst;
+	      }
+	      else {
+		sum += dequantize<dstType>(inH.at(std::array<size_t, 4>{n, 
+			static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
+	      }      
             }
           }
-          float tmp = sum;
-          tmp *= invFilter;
-          sum = tmp;
-          tOutput[n * dstPitch[0] + (size_t)ax * dstPitch[1] +
-                  (size_t)ay * dstPitch[2] + z] = sum;
+
+	  if (dstElK == Float16Ty) {
+	    uint16_t dst = 0;
+	    convertFp32ToFp16((sum * invFilterArea), dst);
+	    outH.at(std::array<size_t,4>{n,ax,ay,z}) = dst;
+	  }
+	  else {
+	    outH.at(std::array<size_t, 4>{n,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
+									  outH.getScale(),
+									  outH.getOffset());
+	  }
         } // W
       }   // H
     }     // C
   }       // N
 }
 
-  template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
+
+  template <ElemKind dstElK, size_t N, size_t PN>
+inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Float16Ty)), void>
+ fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
+		   const std::array<uint32_t, N> &kernels,
+		   const std::array<uint32_t, N> &strides,
+		   const std::array<uint32_t, PN> &pads,
+		   uint64_t flags, 
+		   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  if (get_minion_id() != minionOffset) return;
+
+  assert(inT->getElementType() == outT->getElementType());
+  assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
+  
+  if (inT->ndims() == 5) {
+    fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
+				       minionOffset, assignedMinions);
+    return;
+  }
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+
+  auto inH = inT->getHandle<dstType>();
+  auto outH = outT->getHandle<dstType>();
+
+  float invFilterArea = 0.0;
+  fpReciprocalSingleElement((kernels[0] * kernels[1]), invFilterArea);
+
+  // For each input in the batch:
+  for (size_t n = 0; n < outT->dims()[0]; n++) {
+    // For each layer in the output tensor:
+    for (size_t z = 0; z < inT->dims()[3]; z++) {
+      // For each convolution 'jump' in the input tensor:
+      ssize_t x = -ssize_t(pads[0]);
+      for (size_t ax = 0; ax < outT->dims()[1]; x += strides[0], ax++) {
+        ssize_t y = -ssize_t(pads[1]);
+        for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
+
+          float sum = 0;
+          for (size_t fx = 0; fx < kernels[0]; fx++) {
+            for (size_t fy = 0; fy < kernels[1]; fy++) {
+              ssize_t ox = x + fx;
+              ssize_t oy = y + fy;
+
+              // Ignore index access below zero (this is due to padding).
+              if (ox < 0 || oy < 0 || ox >= ssize_t(inT->dims()[1]) ||
+                  oy >= ssize_t(inT->dims()[2])) {
+                continue;
+              }
+	      sum += inH.at(std::array<size_t, 4>{n, static_cast<dim_t>(ox), static_cast<dim_t>(oy), z});
+            }
+          }
+	  outH.at(std::array<size_t, 4>{n,ax,ay,z}) = (sum * invFilterArea);
+	
+	} // W
+      }   // H
+    }     // C
+  }       // N
+}
+
+  template <ElemKind dstElK, size_t N, size_t PN>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       const std::array<uint32_t, N> &kernels,
                                       const std::array<uint32_t, N> &strides,
@@ -113,13 +334,19 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
+  if (inT->ndims() == 5) {
+    fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
+				       minionOffset, assignedMinions);
+    return;
+  }
+
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
   
   // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
   Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcElK> tAInput(src, inT->getScale(), outT->getOffset());
+  const Addresser<dstElK> tAInput(src, inT->getScale(), outT->getOffset());
  
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();

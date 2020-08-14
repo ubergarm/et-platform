@@ -177,7 +177,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbKernels, mbStrides, mbPads}, // members
-       3, // template param mask
+       1, // template param mask
        {"Threaded"}, // impl versions
        implSel::defaultSel<2>, // custom impl selector
        // L1 states per impl
@@ -1301,6 +1301,22 @@ namespace dnn_lib {
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        {0x0, 0x0} // evict available mask
+     },
+     /**** ET_nonmaxsuppression ****/
+     { "NonMaxSuppression", // name
+       2, // # outs
+       2,  // # ins
+       {mbCenterPointBox, mbMaxOutputBoxesPerClass, mbIouThreshold, mbScoreThreshold, mbIsTFVersion4}, // members
+       1, // template param mask
+       {}, // impl versions
+       implSel::defaultSel<1>, // custom impl selector
+       // L1 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // L2 states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       // CB states per impl
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_quantizationprofile ****/
      { "notImplemented", // name
