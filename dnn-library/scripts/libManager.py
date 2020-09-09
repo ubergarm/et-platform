@@ -90,7 +90,7 @@ class LibManagerSheet:
     # constructor
     ################################################################################
 
-    def __init__(self, spreadsheet, cachestate, hostswdir = None, glowdir = None):
+    def __init__(self, spreadsheet, cachestate, hostswdir = None, glowdir = None, load_only = False):
 
         enum = OperatorsEnum(hostswdir)
         self.__enum = enum.get()
@@ -102,10 +102,13 @@ class LibManagerSheet:
         except FileNotFoundError:
             self._existing = False
 
-        if self._existing:
-            self.__codeGen(hostswdir)
+        if load_only: #only load data, do not generate
+            self.loadSheet()
         else:
-            self.__xlsGen(spreadsheet, hostswdir, glowdir)
+            if self._existing:
+                self.__codeGen(hostswdir)
+            else:
+                self.__xlsGen(spreadsheet, hostswdir, glowdir)
 
     ################################################################################
     # methods to create the spread sheet skeleton
@@ -238,7 +241,7 @@ class LibManagerSheet:
             return
         
         enum = "ET_" + operator["Operator"].lower()
-        self.__configs[enum] = operator
+        self._configs[enum] = operator
         
     def parseInstancesSheet(self, row):
         instances= []
@@ -254,12 +257,12 @@ class LibManagerSheet:
             return
 
         enum = "ET_" + op.lower()                    
-        self.__configs[enum]["instances"] = instances
+        self._configs[enum]["instances"] = instances
 
     def loadSheet(self):
 
         # read the sheets
-        self.__configs = {}
+        self._configs = {}
         parser = [self.parseLibManagerSheet, self.parseInstancesSheet ]
         for i,sn in enumerate(("LibManager","Instances")):
             ws = self.__wb[sn]
@@ -280,7 +283,7 @@ class LibManagerSheet:
         tableStr = self.formatTable(table)
        
         # check for entries in the header file that have not been used
-        missing = [i for i in self.__configs if not self.__configs[i]["gen"]]
+        missing = [i for i in self._configs if not self._configs[i]["gen"]]
         for i in missing:
             print("Spreadhseet row for %s not used" % i, file = sys.stderr)
 
@@ -291,8 +294,8 @@ class LibManagerSheet:
         self.checkImplSel(hostswdir)
             
     def tableEntry(self, op):
-        if op in self.__configs:
-            conf = self.__configs[op];
+        if op in self._configs:
+            conf = self._configs[op];
             conf["gen"] = True
             members = []
             versions = []
@@ -503,9 +506,9 @@ class LibManagerSheet:
     def genNonInline(self, hostswdir):
         fncs = {}
         for op in self.__enum:
-            if op in self.__configs:
+            if op in self._configs:
                 opData = []
-                conf = self.__configs[op]
+                conf = self._configs[op]
                 if not conf["gen"]:
                     continue
 
