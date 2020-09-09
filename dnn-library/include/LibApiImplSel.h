@@ -79,17 +79,16 @@ namespace dnn_lib {
 
     // Best implementation selector for operator generic ElementBinary instructions. Return values are:
     //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized" 
+    //   1: "Vectorized" 
     static size_t ElementBinary(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       ElemKind dstElK = outTensors[0]->getElementType();
       LibTensor *in1T = inTensors[0];
       LibTensor *in2T = inTensors[1];
       if ( (dstElK == FloatTy || dstElK == Float16Ty || dstElK == Int8QTy) &&
            in1T->strides()[0] == in2T->strides()[0] )
-        return 2;
-      else
         return 1;
+      else
+        return 0;
     }
 
     static size_t ElementAdd(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {

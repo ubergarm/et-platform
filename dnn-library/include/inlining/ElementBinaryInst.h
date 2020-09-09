@@ -33,95 +33,6 @@ namespace inlining {
 /**
  * @brief Given to tensors, it gives the result of the opType applied elementwise.
  *
- * Given an operator opType and two input tensors A, B, it generates the srcType
- * tensor C in the following way @f$ C_{i,j} = opType(A_{i,j}, B_{i,j}) @f$. 
- * In this version all the work is done by the first minion.
- * 
- * @warning It comes without doubt that A and B must have the same dimensions.
- * 
- * @note TThe next version is a generalization of this function as it allows the 
- *  types of the three tensors not being the same.
- *
- * @tparam srcType The type of the elements in the input and output tensors.
- * @tparam opType An operator that takes two srcType elements and returns a 
-    srcType (+, ·, etc).
- * @param[out] dstT LibTensor pointer to the output matrix.
- * @param[in] in1T LibTensor pointer to the src1 matrix
- * @param[in] in2T LibTensor pointer to the src2 matrix
- */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
-inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                              uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using dstType = typename elemKind2elemTy<dstElK>::type;
-  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-
-
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT1 = in1T->getRawDataPointer<void>();
-  void* srcT2 = in2T->getRawDataPointer<void>();
- 
-  // const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
-  const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());  
-  // const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
-  const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset()); 
-  // Addresser<srcType> aDstT(dstT, scale2, offset2);
-  Addresser<dstElK> aDstT(dstT, outT->getScale(), outT->getOffset());
- 
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const dim_t *srcIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  const dim_t *act1Pitch = in1T->strides().data();
-  // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
-  const dim_t *act2Pitch = in2T->strides().data();
- 
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
- 
-  unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrc2Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  for (size_t i = 0; i < srcDimNum; i++) {
-    eBatchDims[i] = srcIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrc1Pitch[i] = act1Pitch[i];
-    eSrc2Pitch[i] = act2Pitch[i];
-  }
-
-  uint64_t addrSrc1, addrSrc2, addrDst;
-
-  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<dstElK>, opType> op;
-
-  for (size_t x = 0; x < eBatchDims[0]; x++) {
-    for (size_t y = 0; y < eBatchDims[1]; y++) {
-      for (size_t z = 0; z < eBatchDims[2]; z++) {
-        for (size_t w = 0; w < eBatchDims[3]; w++) {
-          for (size_t q = 0; q < eBatchDims[4]; q++) {
-            for (size_t r = 0; r < eBatchDims[5]; r++) {
-              addrSrc1 = x * eSrc1Pitch[0] + y * eSrc1Pitch[1] + z * eSrc1Pitch[2] +
-                        w * eSrc1Pitch[3] + q * eSrc1Pitch[4] + r * eSrc1Pitch[5];
-              addrSrc2 = x * eSrc2Pitch[0] + y * eSrc2Pitch[1] + z * eSrc2Pitch[2] +
-                        w * eSrc2Pitch[3] + q * eSrc2Pitch[4] + r * eSrc2Pitch[5];
-              addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
-                        w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
-              op.doOp(aDstT, aSrcT1, aSrcT2, addrDst, addrSrc1, addrSrc2);
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-
-/**
- * @brief Given to tensors, it gives the result of the opType applied elementwise.
- *
  * Given an operator opType and two input tensors A, B, it generates the
  * tensor C in the following way @f$ C_{i,j} = opType(A_{i,j}, B_{i,j}) @f$. 
  * This is the threaded version.
@@ -145,10 +56,12 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
+
+  // threaded version
 template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
-inline void fwdLibElementInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                      LibTensor* in2T, uint64_t flags,
-                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T,
+			      LibTensor* in2T, uint64_t flags,
+			      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using dstType = typename elemKind2elemTy<dstElK>::type;
   //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
   using src2Type = typename elemKind2elemTy<src2ElK>::type;
@@ -382,12 +295,6 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   fwdLib ## name ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                                \
                            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {          \
     inlining::fwdLibElementInst<dstElK, src1ElK, src2ElK, opType>(outT, in1T, in2T, flags, minionOffset, assignedMinions); \
-  }                                                                                                                        \
-  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK>inline void                                                \
-  fwdLib ## name ## InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                        \
-                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                  \
-    inlining::fwdLibElementInstThreaded<dstElK, src1ElK, src2ElK, opType>  (outT, in1T, in2T,                              \
-                                                                            flags, minionOffset, assignedMinions);         \
   }                                                                                                                        \
   template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
   fwdLib ## name ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
