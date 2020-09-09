@@ -286,21 +286,18 @@ namespace dnn_lib {
        1,  // # ins
        {}, // members
        3, // template param mask
-       {"Threaded", "Vectorized"}, // impl versions
+       {"Vectorized"}, // impl versions
        implSel::ConvertTo, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0} // evict available mask
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_int8converter ****/
      { "Int8Converter", // name

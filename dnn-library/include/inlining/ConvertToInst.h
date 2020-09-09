@@ -28,36 +28,15 @@
 #include "LibTensor.h"
 
 
-// if defined, it is OK to write in padding (faster if we can ignore setting masks)
-#define CONVERTTO_OK_TO_WRITE_PADDING
-
 
 namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind dstElK, ElemKind srcElK>
-inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* outT, LibTensor* inT,
-                                                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
-  if (get_minion_id() != minionOffset) return;
 
-  assert(inT->dims() == outT->dims()); 
-
-  using dstType = typename elemKind2elemTy<dstElK>::type;
-  using srcType = typename elemKind2elemTy<srcElK>::type;
-
-  auto srcH = inT->getHandle<srcType>();
-  auto dstH = outT->getHandle<dstType>();
-
-  dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
-                   [&](size_t addrDst, size_t addrSrc) {
-		     dstH.raw(addrDst) = Converter<srcElK, dstElK>::convert(srcH.raw(addrSrc));
-                   } );
-}
-
-template <ElemKind dstElK, ElemKind srcElK>
-inline __attribute__((always_inline)) void fwdLibConvertToInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+  // threaded implementation
+template <ElemKind dstElK, ElemKind srcElK> 
+inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -167,24 +146,24 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   dim_t endOffset = first + count;
   dim_t oOffset = out.offset();
   dim_t iOffset = in.offset();
-  
+
+  bool avoidPadding = outT->getUntouchable();
   ////////////////////////////////////////////////////////////////////////////////
   // simpler loop if there is just one dimension
   ////////////////////////////////////////////////////////////////////////////////
   if (ndims == 1) {
     for( ; oOffset < endOffset; oOffset+=step, iOffset+=step){
-#ifndef  CONVERTTO_OK_TO_WRITE_PADDING
-      dim_t valid = lastDim - out.coords()[ndims-1];
-      // set and restore the mask if we are in the boundary before and after the conversion
-      if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
-#endif
+      if (avoidPadding) {
+	dim_t valid = lastDim - out.coords()[ndims-1];
+	// set and restore the mask if we are in the boundary before and after the conversion
+	if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
+      }
       //conversion
       converter.convertVect( reinterpret_cast<uintptr_t>(srcP + iOffset),
                              reinterpret_cast<uintptr_t>(dstP + oOffset),
                              gatherValues, scatterValues);
       
     }
-    
   }
   else {
     ////////////////////////////////////////////////////////////////////////////////

@@ -19,11 +19,10 @@ namespace dnn_lib {
     ////////////////////////////////////////////////////////////////////////////////
     
     // Best implementation selector for operator ConvertTo. Return values are:
-    //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized" 
+    //   0: base implementation (threaded)
+    //   1: "Vectorized" 
     static size_t ConvertTo(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
-      if (outTensors[0]->getUntouchable()) return 0;
+
       LibTensor *inT = inTensors[0];
       ElemKind dstElK = outTensors[0]->getElementType();
       ElemKind srcElK = inTensors[0]->getElementType();
@@ -38,10 +37,10 @@ namespace dnn_lib {
           (srcElK == BoolTy   && dstElK == Float16Ty) ||
           (srcElK == BoolTy   && dstElK == FloatTy)) {
         // check for SW-3726
-        return 1;
+        return 0;
       }
       else{
-        return 2;
+        return 1;
       }
     }
   
