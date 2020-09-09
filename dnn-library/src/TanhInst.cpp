@@ -15,18 +15,6 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
-
-  template <ElemKind in0Type>
-  void fwdLibTanhInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
-  {
-    dnn_lib::inlining::fwdLibTanhInstThreaded<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////
-  // Template specializations (declared with 'extern template' in LibNodes.h)
-  ////////////////////////////////////////////////////////////////////////////////
 template void fwdLibTanhInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibTanhInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTanhInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibTanhInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // dnn_lib

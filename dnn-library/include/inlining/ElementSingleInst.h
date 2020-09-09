@@ -247,72 +247,42 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
 }
 
 
+  ////////////////////////////////////////////////////////////////////////////////
+  // instances for particular instructions calling the above functions
+  ////////////////////////////////////////////////////////////////////////////////
 
-  // instances for particular instructions
+  // instances where src and dst can have different types  
+#define ELT_SINGLE_INSTANCE_1K(name, version, dstElK, srcElK)			\
+  template <ElemKind elK>		        											\
+  inline void fwdLib ## name ## Inst												\
+  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {	\
+    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions);	\
+  } 
+
+  // instances where src and dst can have different types
+#define ELT_SINGLE_INSTANCE_2K(name, version, dstElK, srcElK)			\
+  template <ElemKind elK1, ElemKind elK2>											\
+  inline void fwdLib ## name ## Inst												\
+  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {	\
+    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions);	\
+  } 
   
-template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibElementLogInst(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInst<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
-}
 
-template <ElemKind srcElK>
-inline void fwdLibElementExpInst(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInst<srcElK, srcElK, ElementExp>(outT, inT, flags, minionOffset, assignedMinions);
-}
+  
+  // Log has vectorized as generic version
+  ELT_SINGLE_INSTANCE_2K(ElementLog, Vectorized, elK1, elK2)
+  
+  // others have threaded as generic version (vectorized not implemented) 
+  ELT_SINGLE_INSTANCE_1K(ElementExp, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_1K(ElementIsNaN, Threaded, BoolTy, elK)
+  ELT_SINGLE_INSTANCE_1K(Sigmoid, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_1K(Tanh, Threaded, elK, elK)
 
-template <ElemKind srcElK>
-inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInst<BoolTy, srcElK, ElementIsNaN>(outT, inT, flags, minionOffset, assignedMinions);
-}
+  
+#undef ELT_SINGLE_INSTANCE_1K
+#undef ELT_SINGLE_INSTANCE_2K
+ 
 
-template <ElemKind srcElK>
-inline void fwdLibSigmoidInst(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInst<srcElK, srcElK, Sigmoid>(outT, inT, flags, minionOffset, assignedMinions);
-}
-
-template <ElemKind srcElK>
-inline void fwdLibTanhInst(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInst<srcElK, srcElK, Tanh>(outT, inT, flags, minionOffset, assignedMinions);
-}
-
-template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibElementLogInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInstThreaded<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
-}
-template <ElemKind srcElK>
-inline void fwdLibElementExpInstThreaded(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInstThreaded<srcElK, srcElK, ElementExp>(outT, inT, flags, minionOffset, assignedMinions);
-}
-template <ElemKind srcElK>
-inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInstThreaded<BoolTy, srcElK, ElementIsNaN>(outT, inT, flags, minionOffset, assignedMinions);
-}
-
-template <ElemKind srcElK>
-inline void fwdLibSigmoidInstThreaded(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInstThreaded<srcElK, srcElK, Sigmoid>(outT, inT, flags, minionOffset, assignedMinions);
-}
-
-template <ElemKind srcElK>
-inline void fwdLibTanhInstThreaded(LibTensor* outT, LibTensor* inT,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  inlining::fwdLibElementSingleInstThreaded<srcElK, srcElK, Tanh>(outT, inT, flags, minionOffset, assignedMinions);
-}
-
-template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibElementLogInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-    inlining::fwdLibElementSingleInstVectorized<dstElK, srcElK, ElementLog>(outT, inT, flags, minionOffset, assignedMinions);
-}
   
 } // namespace inlining
 
