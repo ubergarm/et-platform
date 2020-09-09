@@ -572,21 +572,18 @@ namespace dnn_lib {
        2,  // # ins
        {}, // members
        6, // template param mask
-       {"Threaded", "Vectorized"}, // impl versions
+       {"Vectorized"}, // impl versions
        implSel::ElementCmpEQ, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0} // evict available mask
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_elementcmplte ****/
      { "ElementCmpLTE", // name
@@ -594,21 +591,18 @@ namespace dnn_lib {
        2,  // # ins
        {}, // members
        6, // template param mask
-       {"Threaded", "Vectorized"}, // impl versions
+       {"Vectorized"}, // impl versions
        implSel::ElementCmpLTE, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0} // evict available mask
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_elementcmplt ****/
      { "ElementCmpLT", // name
@@ -616,21 +610,18 @@ namespace dnn_lib {
        2,  // # ins
        {}, // members
        6, // template param mask
-       {"Threaded", "Vectorized"}, // impl versions
+       {"Vectorized"}, // impl versions
        implSel::ElementCmpLT, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0} // evict available mask
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_elementdiv ****/
      { "ElementDiv", // name
