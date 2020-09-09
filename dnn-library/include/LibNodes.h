@@ -1,6 +1,6 @@
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/sebastia/Esperanto/sw-platform/host-software/host-sw/dnn_lib/scripts
+//  cwd=/home/sebastia/Esperanto/sw-platform/host-software/host-sw/dnn_lib/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
@@ -544,10 +544,14 @@ extern template void fwdLibElementDivInstVectorized<Int64ITy,Int64ITy,Int64ITy>(
 // declarations
 template <ElemKind in0Type>
 void fwdLibElementExpInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind in0Type>
+void fwdLibElementExpInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibElementExpInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibElementExpInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementExpInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementExpInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementIsNaN implementations
