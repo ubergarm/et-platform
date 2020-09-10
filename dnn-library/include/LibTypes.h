@@ -104,12 +104,12 @@ enum ElemKind : unsigned char {
    */
   inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
     if (elk == dnn_lib::ElemKind::Int8QTy ||
-	elk == dnn_lib::ElemKind::UInt8QTy ||
-	elk == dnn_lib::ElemKind::Int16QTy ||
-	elk == dnn_lib::ElemKind::Int32QTy ||
-	elk == dnn_lib::ElemKind::UInt8FusedQTy ||
-	elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
-	elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
+        elk == dnn_lib::ElemKind::UInt8QTy ||
+        elk == dnn_lib::ElemKind::Int16QTy ||
+        elk == dnn_lib::ElemKind::Int32QTy ||
+        elk == dnn_lib::ElemKind::UInt8FusedQTy ||
+        elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
+        elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
       return true;
     else
       return false;
@@ -119,8 +119,8 @@ enum ElemKind : unsigned char {
    */
   inline bool isFusedQuantizedElemKind(ElemKind elk) {
     if (elk == dnn_lib::ElemKind::UInt8FusedQTy ||
-	elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
-	elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
+        elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
+        elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
       return true;
     else
       return false;

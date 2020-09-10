@@ -44,9 +44,9 @@ namespace inlining {
   template <ElemKind elKind, size_t N>
 inline typename std::enable_if_t<(elKind != BoolTy), void>
 fwdLibResizeNearestInst(LibTensor* outT, LibTensor* inT, 
-			const std::array<float, N> &rszScale, 
-			uint64_t flags, const uint32_t minionOffset = 0, 
-			const uint32_t assignedMinions = 0) {
+      const std::array<float, N> &rszScale, 
+      uint64_t flags, const uint32_t minionOffset = 0, 
+      const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -66,7 +66,7 @@ fwdLibResizeNearestInst(LibTensor* outT, LibTensor* inT,
         for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
           auto ic = std::min(size_t(oc / rszScale[3]), inT->dims()[3] - 1);
           outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = 
-	    inH.at(std::array<size_t,4>{ib, ih, iw, ic});
+      inH.at(std::array<size_t,4>{ib, ih, iw, ic});
         }
       }
     }

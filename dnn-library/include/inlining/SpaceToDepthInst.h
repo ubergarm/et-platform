@@ -48,9 +48,9 @@ namespace inlining {
  */ 
 template <ElemKind elKind>
 inline void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, 
-				   const uint32_t blockSize, uint64_t flags, 
-				   const uint32_t minionOffset = 0,
-				   const uint32_t assignedMinions = 0) { 
+           const uint32_t blockSize, uint64_t flags, 
+           const uint32_t minionOffset = 0,
+           const uint32_t assignedMinions = 0) { 
 
   if (get_minion_id() != minionOffset) return;
 

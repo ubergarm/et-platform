@@ -34,9 +34,9 @@ namespace inlining {
 template <ElemKind elKind, ElemKind idxKind>
   inline typename std::enable_if_t<(isQuantizedElemKind(elKind) || elKind == Float16Ty), void>
 fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices,
-				LibTensor* length, uint64_t flags, 
-				const uint32_t minionOffset = 0, 
-				const uint32_t assignedMinions = 0) {
+        LibTensor* length, uint64_t flags, 
+        const uint32_t minionOffset = 0, 
+        const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -75,22 +75,22 @@ fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices,
       auto dataIn = dataH.getIterator(inCoords);
       auto dataOut = out;
       for (dim_t k = 0; k < lineSize; k++) {
-	float dst = 0.0;
-	float aux = 0.0;
-	if (elKind == Float16Ty) {
-	  uint16_t tmp = 0;
-	  convertFp16ToFp32(static_cast<uint16_t>(*dataIn), dst);
-	  convertFp16ToFp32(static_cast<uint16_t>(*dataOut), aux);
-	  aux += dst;
-	  convertFp32ToFp16(aux, tmp);
-	  (*dataOut) = tmp;
-	}
-	else {
-	  dst = dequantize<elkType>(*dataIn, data->getScale(), data->getOffset());
-	  aux = dequantize<elkType>(*dataOut, outT->getScale(), outT->getOffset());
-	  aux += dst;
-	  (*dataOut) = quantize<elkType>(aux, outT->getScale(), outT->getOffset());
-	}
+  float dst = 0.0;
+  float aux = 0.0;
+  if (elKind == Float16Ty) {
+    uint16_t tmp = 0;
+    convertFp16ToFp32(static_cast<uint16_t>(*dataIn), dst);
+    convertFp16ToFp32(static_cast<uint16_t>(*dataOut), aux);
+    aux += dst;
+    convertFp32ToFp16(aux, tmp);
+    (*dataOut) = tmp;
+  }
+  else {
+    dst = dequantize<elkType>(*dataIn, data->getScale(), data->getOffset());
+    aux = dequantize<elkType>(*dataOut, outT->getScale(), outT->getOffset());
+    aux += dst;
+    (*dataOut) = quantize<elkType>(aux, outT->getScale(), outT->getOffset());
+  }
         ++dataIn;
         ++dataOut;
       }
@@ -106,9 +106,9 @@ template <ElemKind elKind, ElemKind idxKind>
 inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
                                   (elKind != Float16Ty) && (elKind != BoolTy)), void>
 fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, 
-				LibTensor* indices, LibTensor* length, 
-				uint64_t flags, const uint32_t minionOffset = 0, 
-				const uint32_t assignedMinions = 0) {
+        LibTensor* indices, LibTensor* length, 
+        uint64_t flags, const uint32_t minionOffset = 0, 
+        const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

@@ -77,7 +77,7 @@ struct Type final {
    */
   template<size_t numSizes>
   constexpr Type(const dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides,
-		 const float scale, const int32_t offset) :
+                 const float scale, const int32_t offset) :
     sizes_(make_dims(dims)),
     strides_(make_strides(strides)),
     elementType_(elk),
@@ -105,7 +105,7 @@ struct Type final {
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t &dims, const dim_array_t &strides,
-		 const float scale, const int32_t offset) :
+                 const float scale, const int32_t offset) :
     sizes_(dims),
     strides_(strides),
     elementType_(elk),

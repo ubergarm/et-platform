@@ -252,19 +252,19 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
   ////////////////////////////////////////////////////////////////////////////////
 
   // instances where src and dst can have different types  
-#define ELT_SINGLE_INSTANCE_1K(name, version, dstElK, srcElK)			\
-  template <ElemKind elK>		        											\
-  inline void fwdLib ## name ## Inst												\
-  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {	\
-    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions);	\
+#define ELT_SINGLE_INSTANCE_1K(name, version, dstElK, srcElK)                                                             \
+  template <ElemKind elK>                                                                                                 \
+  inline void fwdLib ## name ## Inst                                                                                      \
+  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) { \
+    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions); \
   } 
 
   // instances where src and dst can have different types
-#define ELT_SINGLE_INSTANCE_2K(name, version, dstElK, srcElK)			\
-  template <ElemKind elK1, ElemKind elK2>											\
-  inline void fwdLib ## name ## Inst												\
-  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {	\
-    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions);	\
+#define ELT_SINGLE_INSTANCE_2K(name, version, dstElK, srcElK)                                                             \
+  template <ElemKind elK1, ElemKind elK2>                                                                                 \
+  inline void fwdLib ## name ## Inst                                                                                      \
+  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) { \
+    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions); \
   } 
   
 

@@ -78,7 +78,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInst(LibTensor* outT, 
   dims_loop<>::run(outT->dims(), outT->strides(), inT->strides(),
                    begin, first + count, 
                    [&](size_t addrDst, size_t addrSrc) {
-		     dstH.raw(addrDst) = Converter<srcElK, dstElK>::convert(srcH.raw(addrSrc));
+         dstH.raw(addrDst) = Converter<srcElK, dstElK>::convert(srcH.raw(addrSrc));
                    } );
 #endif
   outT->evict(DO_EVICTS, first, count);
@@ -154,9 +154,9 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
   if (ndims == 1) {
     for( ; oOffset < endOffset; oOffset+=step, iOffset+=step){
       if (avoidPadding) {
-	dim_t valid = lastDim - out.coords()[ndims-1];
-	// set and restore the mask if we are in the boundary before and after the conversion
-	if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
+  dim_t valid = lastDim - out.coords()[ndims-1];
+  // set and restore the mask if we are in the boundary before and after the conversion
+  if ( valid < step) __asm__ __volatile__ ("mov.m.x m0, %0, 0" : : "r" ((1ULL << valid) -1 ));
       }
       //conversion
       converter.convertVect( reinterpret_cast<uintptr_t>(srcP + iOffset),

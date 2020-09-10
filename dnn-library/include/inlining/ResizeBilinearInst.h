@@ -51,9 +51,9 @@ namespace inlining {
 template <ElemKind elKind, size_t N>
 inline typename std::enable_if_t<(isQuantizedElemKind(elKind)||(elKind==Float16Ty)), void> 
 fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT, 
-			      const std::array<float, N> &rszBlScale,
-			      uint64_t flags, const uint32_t minionOffset = 0,
-			      const uint32_t assignedMinions = 0) {
+            const std::array<float, N> &rszBlScale,
+            uint64_t flags, const uint32_t minionOffset = 0,
+            const uint32_t assignedMinions = 0) {
 
 
   if (get_minion_id() != minionOffset) return;
@@ -81,45 +81,45 @@ fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT,
       // Width
       for (size_t ow = 0; ow < outT->dims()[2]; ++ow) {
 
-	float ihf = ((oh * 1.0) * invRszBlScale_1);
-	float iwf = ((ow * 1.0)  * invRszBlScale_2);
-	size_t ih = static_cast<uint32_t>(ihf);
-	size_t iw = static_cast<uint32_t>(iwf);
+  float ihf = ((oh * 1.0) * invRszBlScale_1);
+  float iwf = ((ow * 1.0)  * invRszBlScale_2);
+  size_t ih = static_cast<uint32_t>(ihf);
+  size_t iw = static_cast<uint32_t>(iwf);
 
-	auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
-	auto ih1 = std::min(static_cast<size_t>(ih +1), dataT->dims()[1] -1);
-	auto iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
-	auto iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] -1);
+  auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
+  auto ih1 = std::min(static_cast<size_t>(ih +1), dataT->dims()[1] -1);
+  auto iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
+  auto iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] -1);
 
-	// Number of Channels
-	for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
+  // Number of Channels
+  for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
 
-	  float dst00, dst01, dst10, dst11;
-	  if (elKind == Float16Ty) {
-	    convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih0, iw0, oc})), dst00);
-	    convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih0, iw1, oc})), dst01);
-	    convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih1, iw0, oc})), dst10);
-	    convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih1, iw1, oc})), dst11);
-	  }
-	  else {
-	    dst00 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih0, iw0, oc}), dataH.getScale(), dataH.getOffset());
-	    dst01 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih0, iw1, oc}), dataH.getScale(), dataH.getOffset());
-	    dst10 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih1, iw0, oc}), dataH.getScale(), dataH.getOffset());
-	    dst11 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih1, iw1, oc}), dataH.getScale(), dataH.getOffset());
-	  }
-	  float hd = static_cast<float>(dst00) + static_cast<float>(dst10 - dst00) * (ihf -ih);
-	  float hw = static_cast<float>(dst01) + static_cast<float>(dst11 - dst01) * (ihf- ih);
-	  float result = hd + (hw -hd) * (iwf - iw);
+    float dst00, dst01, dst10, dst11;
+    if (elKind == Float16Ty) {
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih0, iw0, oc})), dst00);
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih0, iw1, oc})), dst01);
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih1, iw0, oc})), dst10);
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,4>{ob, ih1, iw1, oc})), dst11);
+    }
+    else {
+      dst00 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih0, iw0, oc}), dataH.getScale(), dataH.getOffset());
+      dst01 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih0, iw1, oc}), dataH.getScale(), dataH.getOffset());
+      dst10 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih1, iw0, oc}), dataH.getScale(), dataH.getOffset());
+      dst11 = dequantize<elkType>(dataH.at(std::array<size_t,4>{ob, ih1, iw1, oc}), dataH.getScale(), dataH.getOffset());
+    }
+    float hd = static_cast<float>(dst00) + static_cast<float>(dst10 - dst00) * (ihf -ih);
+    float hw = static_cast<float>(dst01) + static_cast<float>(dst11 - dst01) * (ihf- ih);
+    float result = hd + (hw -hd) * (iwf - iw);
 
-	  if (elKind == Float16Ty) {
-	    uint16_t out16 = 0;
-	    convertFp32ToFp16(result, out16);
-	    outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = out16;
-	  }
-	  else {
-	    outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = quantize<elkType>(result, outT->getScale(), outT->getOffset());
-	  }
-	}
+    if (elKind == Float16Ty) {
+      uint16_t out16 = 0;
+      convertFp32ToFp16(result, out16);
+      outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = out16;
+    }
+    else {
+      outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = quantize<elkType>(result, outT->getScale(), outT->getOffset());
+    }
+  }
       }
     }
   }
@@ -128,9 +128,9 @@ fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT,
 template <ElemKind elKind, size_t N>
 inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
 fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT, 
-			      const std::array<float, N> &rszBlScale,
-			      uint64_t flags, const uint32_t minionOffset = 0,
-			      const uint32_t assignedMinions = 0) {
+            const std::array<float, N> &rszBlScale,
+            uint64_t flags, const uint32_t minionOffset = 0,
+            const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -156,30 +156,30 @@ fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT,
       // Width
       for (size_t ow = 0; ow < outT->dims()[2]; ++ow) {
 
-	float ihf = ((oh * 1.0) * invRszBlScale_1);
-	float iwf = ((ow * 1.0) * invRszBlScale_2);
+  float ihf = ((oh * 1.0) * invRszBlScale_1);
+  float iwf = ((ow * 1.0) * invRszBlScale_2);
 
-	/* @TODO Due to SW-1974 Change to uint64_t once ticket will be solved.*/
-	size_t ih = static_cast<uint32_t>(ihf);
-	size_t iw = static_cast<uint32_t>(iwf);
+  /* @TODO Due to SW-1974 Change to uint64_t once ticket will be solved.*/
+  size_t ih = static_cast<uint32_t>(ihf);
+  size_t iw = static_cast<uint32_t>(iwf);
 
-	auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
-	auto ih1 = std::min(static_cast<size_t>(ih +1), dataT->dims()[1] -1);
-	auto iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
-	auto iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] -1);
+  auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
+  auto ih1 = std::min(static_cast<size_t>(ih +1), dataT->dims()[1] -1);
+  auto iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
+  auto iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] -1);
 
-	// Number of Channels
-	for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
-	  auto v00 = dataH.at(std::array<size_t,4>{ob, ih0, iw0, oc});
-	  auto v01 = dataH.at(std::array<size_t,4>{ob, ih0, iw1, oc});
-	  auto v10 = dataH.at(std::array<size_t,4>{ob, ih1, iw0, oc});
-	  auto v11 = dataH.at(std::array<size_t,4>{ob, ih1, iw1, oc});
+  // Number of Channels
+  for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
+    auto v00 = dataH.at(std::array<size_t,4>{ob, ih0, iw0, oc});
+    auto v01 = dataH.at(std::array<size_t,4>{ob, ih0, iw1, oc});
+    auto v10 = dataH.at(std::array<size_t,4>{ob, ih1, iw0, oc});
+    auto v11 = dataH.at(std::array<size_t,4>{ob, ih1, iw1, oc});
 
-	  auto hd = static_cast<float>(v00) + static_cast<float>(v10 - v00) * (ihf -ih);
-	  auto hw = static_cast<float>(v01) + static_cast<float>(v11 -v01) * (ihf- ih);
-	  float result = hd + (hw -hd) * (iwf - iw);
-	  outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = result;
-	}
+    auto hd = static_cast<float>(v00) + static_cast<float>(v10 - v00) * (ihf -ih);
+    auto hw = static_cast<float>(v01) + static_cast<float>(v11 -v01) * (ihf- ih);
+    float result = hd + (hw -hd) * (iwf - iw);
+    outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = result;
+  }
       }
     }
   }

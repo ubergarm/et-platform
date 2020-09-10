@@ -96,10 +96,10 @@ fwdLibConvolutionInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT,
     assert(dataT->getElementType() == filterT->getElementType());
     if (dstElK == Int8QTy) {
       assert((biasT->getElementType() == Int8QTy) ||
-	     (biasT->getElementType() == Int32QTy));
+       (biasT->getElementType() == Int32QTy));
     } else if (dstElK == Int16QTy) {
       assert((biasT->getElementType() == Int16QTy) ||
-	     (biasT->getElementType() == Int32QTy));
+       (biasT->getElementType() == Int32QTy));
     }
     else {
       assert(false && "Not expected type");
@@ -118,7 +118,7 @@ fwdLibConvolutionInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT,
 #define VALUE_FROM_QUANT_OR_F16_TYPE(elk, val, from, scl, off)  \
   if (elk == Float16Ty) {                                       \
     float dst;                                                  \
-    convertFp16ToFp32(static_cast<uint16_t>(from), dst);	\
+    convertFp16ToFp32(static_cast<uint16_t>(from), dst);  \
     val = dst;                                                  \
   }                                                             \
   else {                                                        \
@@ -157,35 +157,35 @@ fwdLibConvolutionInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT,
                   continue;
                 }
                 for (size_t fd = 0; fd < inCperG; fd++) {
-		  float ffilter, fdata;
-		  VALUE_FROM_QUANT_OR_F16_TYPE(dstElK, ffilter,
-					       filterH.at(std::array<size_t,4>{d, fx, fy, fd}), 
-					       filterT->getScale(), filterT->getOffset());
-		  VALUE_FROM_QUANT_OR_F16_TYPE(dstElK, fdata,
-					       dataH.at(std::array<size_t,4>{n, static_cast<size_t>(ox),
-						     static_cast<size_t>(oy), g * inCperG + fd}), 
-					       dataT->getScale(), dataT->getOffset());		  
-		  sum += static_cast<float>(ffilter *fdata);
+      float ffilter, fdata;
+      VALUE_FROM_QUANT_OR_F16_TYPE(dstElK, ffilter,
+                 filterH.at(std::array<size_t,4>{d, fx, fy, fd}), 
+                 filterT->getScale(), filterT->getOffset());
+      VALUE_FROM_QUANT_OR_F16_TYPE(dstElK, fdata,
+                 dataH.at(std::array<size_t,4>{n, static_cast<size_t>(ox),
+                 static_cast<size_t>(oy), g * inCperG + fd}), 
+                 dataT->getScale(), dataT->getOffset());      
+      sum += static_cast<float>(ffilter *fdata);
                 }
               }
             }
 
-	    float fbias;
-	    VALUE_FROM_QUANT_OR_F16_TYPE(biasElK, fbias, 
-					 biasH.at(std::array<size_t, 1>{d}), biasH.getScale(),
-					 biasH.getOffset());
-	    sum += fbias;
+      float fbias;
+      VALUE_FROM_QUANT_OR_F16_TYPE(biasElK, fbias, 
+           biasH.at(std::array<size_t, 1>{d}), biasH.getScale(),
+           biasH.getOffset());
+      sum += fbias;
 
-	    if (dstElK == Float16Ty) {
-	      uint16_t dst = 0;
-	      convertFp32ToFp16(sum, dst);
-	      outH.at(std::array<size_t, 4>{n, ax, ay, d}) = dst;
-	    }
-	    else {
-	      outH.at(std::array<size_t, 4>{n, ax, ay, d}) = quantize<elkType>(sum, 
-									       outT->getScale(),
-									       outT->getOffset());
-	    }
+      if (dstElK == Float16Ty) {
+        uint16_t dst = 0;
+        convertFp32ToFp16(sum, dst);
+        outH.at(std::array<size_t, 4>{n, ax, ay, d}) = dst;
+      }
+      else {
+        outH.at(std::array<size_t, 4>{n, ax, ay, d}) = quantize<elkType>(sum, 
+                         outT->getScale(),
+                         outT->getOffset());
+      }
           } // W
         }   // H
       }     // C
@@ -406,7 +406,7 @@ inline void convolutionStep (float *sum,
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
         // Sets 1 lane enabled, moves scalar to float
-        "mov.m.x	   mt0, %[mask], 0\n"
+        "mov.m.x     mt0, %[mask], 0\n"
         "flw.ps      f2, 0(%[sum])\n"      // Loads initial value
         "flw.ps      f3, 0(%[offsets])\n"  // Loads offsets for gathers
         // Main loop
@@ -447,7 +447,7 @@ inline void convolutionStep (float *sum,
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
         // Sets 1 lane enabled, moves scalar to float
-        "mov.m.x	   mt0, %[mask], 0\n"
+        "mov.m.x     mt0, %[mask], 0\n"
         "flw.ps      f2, 0(%[sum])\n"      // Loads initial value
         "flw.ps      f3, 0(%[offsets])\n"  // Loads offsets for gathers
         // Main loop
@@ -516,7 +516,7 @@ inline void fwdLibConvolutionInstThreaded(LibTensor* outT, LibTensor* in1T,
                                           const std::array<uint32_t, N> &strides,
                                           const std::array<uint32_t, PN> &pads,
                                           unsigned int group,
-					  unsigned int dilation,
+            unsigned int dilation,
                                           uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
@@ -695,7 +695,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   unsigned int dilation) {
+         unsigned int dilation) {
   int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -814,7 +814,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   unsigned int dilation) {
+         unsigned int dilation) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -959,7 +959,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   unsigned int dilation) {
+         unsigned int dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
@@ -998,7 +998,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   unsigned int dilation) {
+         unsigned int dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
@@ -1032,7 +1032,7 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   unsigned int dilation) {
+         unsigned int dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
@@ -1097,7 +1097,7 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             const std::array<uint32_t, N> &strides,
                                             const std::array<uint32_t, PN> &pads,
                                             unsigned int group,
-					    unsigned int dilation,
+              unsigned int dilation,
                                             uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
@@ -1182,8 +1182,8 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
 
     auto sum = tBias[d];
     convolutionOp <dstElK> (activations, weights, coord, actPitch, weightPitch,
-			    actIndex, kernels, inCperG, sum, mask, x, y, d,
-			    scale, offset, dilation);
+          actIndex, kernels, inCperG, sum, mask, x, y, d,
+          scale, offset, dilation);
     tOutput[offsetOut] = sum;
 
     done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);

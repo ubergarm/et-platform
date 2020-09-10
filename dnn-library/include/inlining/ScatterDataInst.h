@@ -45,20 +45,20 @@ template <typename ptrT, unsigned int nDim>
 class WriteSliceToDst {
   public:
   static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions],
-				const ptrT* tSlices, ptrT* tOutput,
-				unsigned int maxDim,
-				unsigned int& sliceAddr, unsigned int& dstAddr) 
+        const ptrT* tSlices, ptrT* tOutput,
+        unsigned int maxDim,
+        unsigned int& sliceAddr, unsigned int& dstAddr) 
   {
     if (nDim >= maxDim) {
-	WriteSliceToDst<ptrT, nDim-1>::cpyIt(sliceSteps, tSlices, tOutput, maxDim, sliceAddr, dstAddr);
+  WriteSliceToDst<ptrT, nDim-1>::cpyIt(sliceSteps, tSlices, tOutput, maxDim, sliceAddr, dstAddr);
     }
     else {
       for (unsigned int k=0; k < sliceSteps[nDim].nCopy; k++) {
       
-	WriteSliceToDst<ptrT, nDim-1>::cpyIt(sliceSteps, tSlices, tOutput, maxDim, sliceAddr, dstAddr);
+  WriteSliceToDst<ptrT, nDim-1>::cpyIt(sliceSteps, tSlices, tOutput, maxDim, sliceAddr, dstAddr);
       
-	sliceAddr += sliceSteps[nDim].sliceAddr;
-	dstAddr += sliceSteps[nDim].dstAddr;
+  sliceAddr += sliceSteps[nDim].sliceAddr;
+  dstAddr += sliceSteps[nDim].dstAddr;
       }
     }
   }  
@@ -68,9 +68,9 @@ template <typename ptrT>
 class WriteSliceToDst<ptrT, 0> {
   public:
   static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions],
-				const ptrT* tSlices, ptrT* tOutput,
-				unsigned int maxDim,
-				unsigned int& sliceAddr, unsigned int& dstAddr) 
+        const ptrT* tSlices, ptrT* tOutput,
+        unsigned int maxDim,
+        unsigned int& sliceAddr, unsigned int& dstAddr) 
   {
     for (unsigned int k=0; k < sliceSteps[0].nCopy; k++) {
       auto val = tSlices[(sliceAddr + k)];
@@ -166,24 +166,24 @@ inline void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
     //
     // for (unsigned int k5 = 0; k5 < sliceSteps[5].nCopy; k5++) {
     //   for (unsigned int k4 = 0; k4 < sliceSteps[4].nCopy; k4++) {
-    // 	for (unsigned int k3 = 0; k3 < sliceSteps[3].nCopy; k3++) {
-    // 	  for (unsigned int k2 = 0; k2 < sliceSteps[2].nCopy; k2++) {
-    // 	    for (unsigned int k1 = 0; k1 < sliceSteps[1].nCopy; k1++) {
-    // 	      for (unsigned int k0 = 0; k0 < sliceSteps[0].nCopy; k0++) {
-    // 		auto val = tSlices[(sliceAddr + k0)];
-    // 		tOutput[(dstAddr + k0)] = val;
-    // 	      }
-    // 	      sliceAddr += sliceSteps[1].sliceAddr;
-    // 	      dstAddr += sliceSteps[1].dstAddr;
-    // 	    }
-    // 	    sliceAddr += sliceSteps[2].sliceAddr;
-    // 	    dstAddr += sliceSteps[2].dstAddr;
-    // 	  }
-    // 	  sliceAddr += sliceSteps[3].sliceAddr;
-    // 	  dstAddr += sliceSteps[3].dstAddr;
-    // 	}
-    // 	sliceAddr += sliceSteps[4].sliceAddr;
-    // 	dstAddr += sliceSteps[4].dstAddr;
+    //  for (unsigned int k3 = 0; k3 < sliceSteps[3].nCopy; k3++) {
+    //    for (unsigned int k2 = 0; k2 < sliceSteps[2].nCopy; k2++) {
+    //      for (unsigned int k1 = 0; k1 < sliceSteps[1].nCopy; k1++) {
+    //        for (unsigned int k0 = 0; k0 < sliceSteps[0].nCopy; k0++) {
+    //    auto val = tSlices[(sliceAddr + k0)];
+    //    tOutput[(dstAddr + k0)] = val;
+    //        }
+    //        sliceAddr += sliceSteps[1].sliceAddr;
+    //        dstAddr += sliceSteps[1].dstAddr;
+    //      }
+    //      sliceAddr += sliceSteps[2].sliceAddr;
+    //      dstAddr += sliceSteps[2].dstAddr;
+    //    }
+    //    sliceAddr += sliceSteps[3].sliceAddr;
+    //    dstAddr += sliceSteps[3].dstAddr;
+    //  }
+    //  sliceAddr += sliceSteps[4].sliceAddr;
+    //  dstAddr += sliceSteps[4].dstAddr;
     //   }
     //   sliceAddr += sliceSteps[5].sliceAddr;
     //   dstAddr += sliceSteps[5].dstAddr;

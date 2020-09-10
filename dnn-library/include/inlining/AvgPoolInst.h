@@ -39,11 +39,11 @@ namespace inlining {
 template <ElemKind dstElK, size_t N, size_t PN>
 inline typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Float16Ty)), void> 
  fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT,
-		     const std::array<uint32_t, N> &kernels,
-		     const std::array<uint32_t, N> &strides,
-		     const std::array<uint32_t, PN> &pads,
-		     uint64_t flags,
-		     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+         const std::array<uint32_t, N> &kernels,
+         const std::array<uint32_t, N> &strides,
+         const std::array<uint32_t, PN> &pads,
+         uint64_t flags,
+         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   
@@ -65,67 +65,67 @@ inline typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Floa
       //For each convolution 'jump' in the input tensor:
       ssize_t t = -size_t(pads[0]);
       for (size_t at = 0; at < outT->dims()[1]; t += strides[0], at++) {
-	ssize_t x = -ssize_t(pads[2]);
-	for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
-	  ssize_t y = -ssize_t(pads[4]);
-	  for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
+  ssize_t x = -ssize_t(pads[2]);
+  for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
+    ssize_t y = -ssize_t(pads[4]);
+    for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
 
-	    float sum = 0;
-	    for (size_t ft = 0; ft < kernels[0]; ft++) {
-	      for (size_t fx = 0; fx < kernels[1]; fx++) {
-		for (size_t fy = 0; fy < kernels[2]; fy++) {
-		  sdim_t ot = t + ft;
-		  sdim_t ox = x + fx;
-		  sdim_t oy = y + fy;
+      float sum = 0;
+      for (size_t ft = 0; ft < kernels[0]; ft++) {
+        for (size_t fx = 0; fx < kernels[1]; fx++) {
+    for (size_t fy = 0; fy < kernels[2]; fy++) {
+      sdim_t ot = t + ft;
+      sdim_t ox = x + fx;
+      sdim_t oy = y + fy;
 
-		  //Ignore index access below zero(this is due to padding).
-		  if (ot < 0 || ox < 0 || oy < 0 || ot >= static_cast<ssize_t>(inT->dims()[1]) ||
-		      ox >= static_cast<ssize_t>(inT->dims()[2]) || oy >= static_cast<ssize_t>(inT->dims()[3])) {
-		    continue;
-		  }
+      //Ignore index access below zero(this is due to padding).
+      if (ot < 0 || ox < 0 || oy < 0 || ot >= static_cast<ssize_t>(inT->dims()[1]) ||
+          ox >= static_cast<ssize_t>(inT->dims()[2]) || oy >= static_cast<ssize_t>(inT->dims()[3])) {
+        continue;
+      }
 
-		  if (dstElK == Float16Ty) {
-		    float dst = 0;
-		    /*the cast avoid compilation error due to quantize types are handle together here.*/
-		    convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 5>{n, 
-			      static_cast<dim_t>(ot),static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
-		    sum += dst;
-		  }
-		  else {
-		    sum += dequantize<dstType>(inH.at(std::array<size_t, 5>{n, static_cast<dim_t>(ot), 
-			    static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
-		  }
-		}		  
-	      }
+      if (dstElK == Float16Ty) {
+        float dst = 0;
+        /*the cast avoid compilation error due to quantize types are handle together here.*/
+        convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 5>{n, 
+            static_cast<dim_t>(ot),static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
+        sum += dst;
+      }
+      else {
+        sum += dequantize<dstType>(inH.at(std::array<size_t, 5>{n, static_cast<dim_t>(ot), 
+          static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
+      }
+    }     
+        }
 
-	      if (dstElK == Float16Ty) {
-		uint16_t dst = 0;
-		convertFp32ToFp16((sum * invFilterArea), dst);
-		outH.at(std::array<size_t,5>{n,at,ax,ay,z}) = dst;
-	      }
-	      else {
-		outH.at(std::array<size_t, 5>{n,at,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
-										outH.getScale(),
-										outH.getOffset());
-	      }
+        if (dstElK == Float16Ty) {
+    uint16_t dst = 0;
+    convertFp32ToFp16((sum * invFilterArea), dst);
+    outH.at(std::array<size_t,5>{n,at,ax,ay,z}) = dst;
+        }
+        else {
+    outH.at(std::array<size_t, 5>{n,at,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
+                    outH.getScale(),
+                    outH.getOffset());
+        }
 
-	    }
-	  } //W
-	}   //H
+      }
+    } //W
+  }   //H
       }     //T
     }       //C
-  }         //N	    
+  }         //N     
 
 }
 
 template <ElemKind dstElK, size_t N, size_t PN>
 inline typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Float16Ty)), void> 
  fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT,
-				const std::array<uint32_t, N> &kernels,
-				const std::array<uint32_t, N> &strides,
-				const std::array<uint32_t, PN> &pads,
-				uint64_t flags,
-				const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+        const std::array<uint32_t, N> &kernels,
+        const std::array<uint32_t, N> &strides,
+        const std::array<uint32_t, PN> &pads,
+        uint64_t flags,
+        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   
@@ -147,35 +147,35 @@ inline typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Flo
       //For each convolution 'jump' in the input tensor:
       ssize_t t = -size_t(pads[0]);
       for (size_t at = 0; at < outT->dims()[1]; t += strides[0], at++) {
-	ssize_t x = -ssize_t(pads[2]);
-	for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
-	  ssize_t y = -ssize_t(pads[4]);
-	  for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
+  ssize_t x = -ssize_t(pads[2]);
+  for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
+    ssize_t y = -ssize_t(pads[4]);
+    for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
 
-	    float sum = 0;
-	    for (size_t ft = 0; ft < kernels[0]; ft++) {
-	      for (size_t fx = 0; fx < kernels[1]; fx++) {
-		for (size_t fy = 0; fy < kernels[2]; fy++) {
-		  sdim_t ot = t + ft;
-		  sdim_t ox = x + fx;
-		  sdim_t oy = y + fy;
+      float sum = 0;
+      for (size_t ft = 0; ft < kernels[0]; ft++) {
+        for (size_t fx = 0; fx < kernels[1]; fx++) {
+    for (size_t fy = 0; fy < kernels[2]; fy++) {
+      sdim_t ot = t + ft;
+      sdim_t ox = x + fx;
+      sdim_t oy = y + fy;
 
-		  //Ignore index access below zero(this is due to padding).
-		  if (ot < 0 || ox < 0 || oy < 0 || ot >= static_cast<ssize_t>(inT->dims()[1]) ||
-		      ox >= static_cast<ssize_t>(inT->dims()[2]) || oy >= static_cast<ssize_t>(inT->dims()[3])) {
-		    continue;
-		  }
+      //Ignore index access below zero(this is due to padding).
+      if (ot < 0 || ox < 0 || oy < 0 || ot >= static_cast<ssize_t>(inT->dims()[1]) ||
+          ox >= static_cast<ssize_t>(inT->dims()[2]) || oy >= static_cast<ssize_t>(inT->dims()[3])) {
+        continue;
+      }
 
-		  sum += static_cast<float>(inH.at(std::array<size_t, 5>{n, static_cast<dim_t>(ot), static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}));
-		}
-	      }
-	      outH.at(std::array<size_t, 5>{n,at,ax,ay,z}) = (sum * invFilterArea);
-	    }
-	  } //W
-	}   //H
+      sum += static_cast<float>(inH.at(std::array<size_t, 5>{n, static_cast<dim_t>(ot), static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}));
+    }
+        }
+        outH.at(std::array<size_t, 5>{n,at,ax,ay,z}) = (sum * invFilterArea);
+      }
+    } //W
+  }   //H
       }     //T
     }       //C
-  }         //N	    
+  }         //N     
 }
 
 
@@ -183,11 +183,11 @@ inline typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Flo
   template <ElemKind dstElK, size_t N, size_t PN>
 inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Float16Ty)), void>
  fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-		   const std::array<uint32_t, N> &kernels,
-		   const std::array<uint32_t, N> &strides,
-		   const std::array<uint32_t, PN> &pads,
-		   uint64_t flags, 
-		   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+       const std::array<uint32_t, N> &kernels,
+       const std::array<uint32_t, N> &strides,
+       const std::array<uint32_t, PN> &pads,
+       uint64_t flags, 
+       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -196,7 +196,7 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
   
   if (inT->ndims() == 5) {
     fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
-				       minionOffset, assignedMinions);
+               minionOffset, assignedMinions);
     return;
   }
 
@@ -230,30 +230,30 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
                 continue;
               }
 
-	      if (dstElK == Float16Ty) {
-		float dst = 0;
-		/*the cast avoid compilation error due to quantize types are handle together here.*/
-		convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 4>{n, 
-			  static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
-		sum += dst;
-	      }
-	      else {
-		sum += dequantize<dstType>(inH.at(std::array<size_t, 4>{n, 
-			static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
-	      }      
+        if (dstElK == Float16Ty) {
+    float dst = 0;
+    /*the cast avoid compilation error due to quantize types are handle together here.*/
+    convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 4>{n, 
+        static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
+    sum += dst;
+        }
+        else {
+    sum += dequantize<dstType>(inH.at(std::array<size_t, 4>{n, 
+      static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
+        }      
             }
           }
 
-	  if (dstElK == Float16Ty) {
-	    uint16_t dst = 0;
-	    convertFp32ToFp16((sum * invFilterArea), dst);
-	    outH.at(std::array<size_t,4>{n,ax,ay,z}) = dst;
-	  }
-	  else {
-	    outH.at(std::array<size_t, 4>{n,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
-									  outH.getScale(),
-									  outH.getOffset());
-	  }
+    if (dstElK == Float16Ty) {
+      uint16_t dst = 0;
+      convertFp32ToFp16((sum * invFilterArea), dst);
+      outH.at(std::array<size_t,4>{n,ax,ay,z}) = dst;
+    }
+    else {
+      outH.at(std::array<size_t, 4>{n,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
+                    outH.getScale(),
+                    outH.getOffset());
+    }
         } // W
       }   // H
     }     // C
@@ -264,11 +264,11 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
   template <ElemKind dstElK, size_t N, size_t PN>
 inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Float16Ty)), void>
  fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-		   const std::array<uint32_t, N> &kernels,
-		   const std::array<uint32_t, N> &strides,
-		   const std::array<uint32_t, PN> &pads,
-		   uint64_t flags, 
-		   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+       const std::array<uint32_t, N> &kernels,
+       const std::array<uint32_t, N> &strides,
+       const std::array<uint32_t, PN> &pads,
+       uint64_t flags, 
+       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -277,7 +277,7 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
   
   if (inT->ndims() == 5) {
     fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
-				       minionOffset, assignedMinions);
+               minionOffset, assignedMinions);
     return;
   }
 
@@ -310,12 +310,12 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
                   oy >= ssize_t(inT->dims()[2])) {
                 continue;
               }
-	      sum += inH.at(std::array<size_t, 4>{n, static_cast<dim_t>(ox), static_cast<dim_t>(oy), z});
+        sum += inH.at(std::array<size_t, 4>{n, static_cast<dim_t>(ox), static_cast<dim_t>(oy), z});
             }
           }
-	  outH.at(std::array<size_t, 4>{n,ax,ay,z}) = (sum * invFilterArea);
-	
-	} // W
+    outH.at(std::array<size_t, 4>{n,ax,ay,z}) = (sum * invFilterArea);
+  
+  } // W
       }   // H
     }     // C
   }       // N
@@ -336,7 +336,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
 
   if (inT->ndims() == 5) {
     fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
-				       minionOffset, assignedMinions);
+               minionOffset, assignedMinions);
     return;
   }
 

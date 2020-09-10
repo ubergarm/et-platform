@@ -41,9 +41,9 @@ namespace inlining {
  */
 template <ElemKind elKind>
 inline typename std::enable_if_t<(isQuantizedElemKind(elKind)
-				  ||(elKind==Float16Ty)), void>
+          ||(elKind==Float16Ty)), void>
 fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
-		 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -69,12 +69,12 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse,
     std::array<dim_t, 1> iNdx = {static_cast<size_t>(i)};
     if (!exclusive) {
       if (elKind == Float16Ty) {
-	float dst = 0;
-	convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
-	accum += dst;
+  float dst = 0;
+  convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
+  accum += dst;
       }
       else {
-	accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
+  accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
       }
     }
     
@@ -89,12 +89,12 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse,
     
     if (exclusive) {
       if (elKind == Float16Ty) {
-	float dst = 0;
-	convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
-	accum += dst;
+  float dst = 0;
+  convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
+  accum += dst;
       }
       else {
-	accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
+  accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
       }
     }
 
@@ -105,10 +105,10 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse,
 
 template <ElemKind elKind>
 inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
-				  (elKind!=Float16Ty) &&
-				  (elKind!=BoolTy)), void>
+          (elKind!=Float16Ty) &&
+          (elKind!=BoolTy)), void>
 fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
-		 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

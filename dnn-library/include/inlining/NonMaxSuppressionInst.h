@@ -55,13 +55,13 @@ template <typename T, size_t MAX>
     else {
       if ((count_ +1) < MAX) {
         //move element of array one position to the right
-	for(int i = count_; i > pos; i--) {
-	    data_[i] = data_[i-1];
-	}
-	wr_ptr_++;
+  for(int i = count_; i > pos; i--) {
+      data_[i] = data_[i-1];
+  }
+  wr_ptr_++;
       } 
       else
-	assert(true && "Max CustomArray capacity reached.");
+  assert(true && "Max CustomArray capacity reached.");
     } 
   }
 
@@ -316,35 +316,35 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT,
       CustomFifo<ClassBox, MAX_CUSTOM_ARRAY_SIZE> fifoArray;
       
       for (size_t boxIndex = 0; boxIndex < numBoxes; ++boxIndex) {
-	
-	size_t position = ((batchIndex * numClasses + classIndex) * numBoxes + boxIndex);
+  
+  size_t position = ((batchIndex * numClasses + classIndex) * numBoxes + boxIndex);
 
-	size_t pos0stride = (position / (scoresT->dims()[1] * scoresT->dims()[2])) * scoresT->strides()[0];
-	size_t pos1stride = (position % (scoresT->dims()[1] * scoresT->dims()[2]))/scoresT->dims()[2] * scoresT->strides()[1];
-	size_t pos2stride = (position % scoresT->dims()[2]) * scoresT->strides()[2];
+  size_t pos0stride = (position / (scoresT->dims()[1] * scoresT->dims()[2])) * scoresT->strides()[0];
+  size_t pos1stride = (position % (scoresT->dims()[1] * scoresT->dims()[2]))/scoresT->dims()[2] * scoresT->strides()[1];
+  size_t pos2stride = (position % scoresT->dims()[2]) * scoresT->strides()[2];
 
-	float classValue = scoresH.raw(pos0stride + pos1stride + pos2stride);
+  float classValue = scoresH.raw(pos0stride + pos1stride + pos2stride);
 
         if (classValue > scoreThreshold) {
           fifoArray.pushConditional(classValue, boxIndex, [](const ClassBox &a, const ClassBox &b) {
               return a.first <= b.first;});
-	}
+  }
       }
 
       float tScore = minBox.classValue;
       while (!fifoArray.empty()) {
         auto priorBox = fifoArray.pop();
         bool selected = true;
-	//        for (auto &sBox : selectedIndices) {
-	for(size_t i = 0; i < selectedIndices.countElem(); i++) {
-	  auto sBox = selectedIndices.data()[i];
+  //        for (auto &sBox : selectedIndices) {
+  for(size_t i = 0; i < selectedIndices.countElem(); i++) {
+    auto sBox = selectedIndices.data()[i];
 
           if (doIOU(boxesH, batchIndex, sBox.second, priorBox.second,
                     centerPointBox, iouThreshold, isTFVersion4)) {
             selected = false;
             break;
           }
-	}
+  }
 
         if (selected) {
           selectedIndices.push(priorBox);  

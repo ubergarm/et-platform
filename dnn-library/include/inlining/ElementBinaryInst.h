@@ -60,8 +60,8 @@ namespace inlining {
   // threaded version
 template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
 inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T,
-			      LibTensor* in2T, uint64_t flags,
-			      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+            LibTensor* in2T, uint64_t flags,
+            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using dstType = typename elemKind2elemTy<dstElK>::type;
   //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
   using src2Type = typename elemKind2elemTy<src2ElK>::type;

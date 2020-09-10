@@ -49,8 +49,8 @@ namespace inlining {
 template <ElemKind elKind, ElemKind accumKind>
 inline typename std::enable_if_t<(elKind == Float16Ty), void>
 fwdLibEmbeddingBagByteRowwiseOffsetsInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-		       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-		       uint64_t flags) {
+           LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+           uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0) //if (minionId != minionOffset)
@@ -63,8 +63,8 @@ fwdLibEmbeddingBagByteRowwiseOffsetsInst(LibTensor* outT, LibTensor *in1T, LibTe
 template <ElemKind elKind, ElemKind accumKind>
 inline typename std::enable_if_t<(elKind == FloatTy), void>
 fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-		       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-		       uint64_t flags) {
+           LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+           uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0) //if (minionId != minionOffset)
@@ -121,15 +121,15 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
       elKind scale, offset;
       std::tie(scale, offset) = dataH.getFusedScaleOffsetFromRow<elKind>(rwoIdx);
       for(size_t k = 0; k < outLineSize; k++) {
-	float d = 0.0f;
-	if (!using4BitQtzt) {
-	  d = dequantize(dataH.at(std::array<size_t,2>{rowIdx, k}), dataH.getScale(), dataH.getOffset());
-	}
-	else {
-	  const bool isMSB = ((k%2) ==1);
-	  d = dequantize4Bits(dataH.at(std::array<size_t,2>{rowIdx,(k/2)}), dataH.getScale(), dataH.getOffset(), isMSB);
-	}
-	accum[k] += d * weight;
+  float d = 0.0f;
+  if (!using4BitQtzt) {
+    d = dequantize(dataH.at(std::array<size_t,2>{rowIdx, k}), dataH.getScale(), dataH.getOffset());
+  }
+  else {
+    const bool isMSB = ((k%2) ==1);
+    d = dequantize4Bits(dataH.at(std::array<size_t,2>{rowIdx,(k/2)}), dataH.getScale(), dataH.getOffset(), isMSB);
+  }
+  accum[k] += d * weight;
       }
     }
     // Accumulation in FP32 complete, now copy back to output with cast to T.

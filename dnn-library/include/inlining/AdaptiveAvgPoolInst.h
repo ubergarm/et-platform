@@ -59,52 +59,52 @@ fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
       //For each value in the output tensor
       for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
 
-	unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
-	unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
+  unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
+  unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
 
-	for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
-	  unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
-	  unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
-	  
-	  float sum = 0;
+  for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
+    unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
+    unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
+    
+    float sum = 0;
 
-	  for (size_t fx = 0; fx < kH; fx++) {
-	    for (size_t fy = 0; fy < kW; fy++) {
-	      
-	      dim_t ox = x + fx;
-	      dim_t oy = y + fy;
+    for (size_t fx = 0; fx < kH; fx++) {
+      for (size_t fy = 0; fy < kW; fy++) {
+        
+        dim_t ox = x + fx;
+        dim_t oy = y + fy;
 
-	      std::array<size_t, 4> InIndices = {n, ox, oy, z};	      
-	      dim_array_t extStrides = outT->strides();
+        std::array<size_t, 4> InIndices = {n, ox, oy, z};       
+        dim_array_t extStrides = outT->strides();
 
-	      if (elKind == Float16Ty) {
-		float dst = 0;
-		/*the cast avoid compilation error due to quantize types are handle together here.*/
-		convertFp16ToFp32(static_cast<uint16_t>(inH.at(InIndices, extStrides, 3)), dst);
-		sum += dst;
-	      }
-	      else
-		sum += dequantize<elkType>(inH.at(InIndices, extStrides, 3),
-					   inH.getScale(), 
-					   inH.getOffset());
-	    }
-	  }
-	  float kHW = kH * kW;
-	  float invkHW;
-	  fpReciprocalSingleElement(kHW, invkHW);
-	  std::array<size_t, 4> OutIndices = {n, ax, ay, z};
+        if (elKind == Float16Ty) {
+    float dst = 0;
+    /*the cast avoid compilation error due to quantize types are handle together here.*/
+    convertFp16ToFp32(static_cast<uint16_t>(inH.at(InIndices, extStrides, 3)), dst);
+    sum += dst;
+        }
+        else
+    sum += dequantize<elkType>(inH.at(InIndices, extStrides, 3),
+             inH.getScale(), 
+             inH.getOffset());
+      }
+    }
+    float kHW = kH * kW;
+    float invkHW;
+    fpReciprocalSingleElement(kHW, invkHW);
+    std::array<size_t, 4> OutIndices = {n, ax, ay, z};
 
-	  if (elKind == Float16Ty) {
-	    uint16_t dst = 0;
-	    convertFp32ToFp16((sum * invkHW), dst);
-	    outH.at(OutIndices) = dst;
-	  }
-	  else 
-	    outH.at(OutIndices) = quantize<elkType>((sum * invkHW), 
-						    outT->getScale(),
-						    outT->getOffset());
+    if (elKind == Float16Ty) {
+      uint16_t dst = 0;
+      convertFp32ToFp16((sum * invkHW), dst);
+      outH.at(OutIndices) = dst;
+    }
+    else 
+      outH.at(OutIndices) = quantize<elkType>((sum * invkHW), 
+                outT->getScale(),
+                outT->getOffset());
 
-	} // W
+  } // W
       } // H
     } // C
   } // N
@@ -124,7 +124,7 @@ fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
   assert(inT->getElementType() == outT->getElementType());
 
   assert((inT->getElementType() == FloatTy)||(inT->getElementType() == Int32ITy)||
-	 (inT->getElementType() == Int64ITy));
+   (inT->getElementType() == Int64ITy));
 
   if (get_minion_id() != minionOffset) return;
 
@@ -143,33 +143,33 @@ fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
       //For each value in the output tensor
       for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
 
-	unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
-	unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
+  unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
+  unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
 
-	for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
-	  unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
-	  unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
-	  
-	  elkType sum = 0;
+  for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
+    unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
+    unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
+    
+    elkType sum = 0;
 
-	  for (size_t fx = 0; fx < kH; fx++) {
-	    for (size_t fy = 0; fy < kW; fy++) {	      
-	      dim_t ox = x + fx;
-	      dim_t oy = y + fy;
-	      
-	      std::array<size_t, 4> InIndices = {n, ox, oy, z};
-	      dim_array_t extStrides = outT->strides();
-	      sum += inH.at(InIndices, extStrides, 3);
-	    }
-	  }
+    for (size_t fx = 0; fx < kH; fx++) {
+      for (size_t fy = 0; fy < kW; fy++) {        
+        dim_t ox = x + fx;
+        dim_t oy = y + fy;
+        
+        std::array<size_t, 4> InIndices = {n, ox, oy, z};
+        dim_array_t extStrides = outT->strides();
+        sum += inH.at(InIndices, extStrides, 3);
+      }
+    }
 
- 	  float kHW = kH * kW;
-	  float invkHW;
-	  fpReciprocalSingleElement(kHW, invkHW);
-	  std::array<size_t, 4> OutIndices = {n, ax, ay, z};
-	  outH.at(OutIndices) = elkType(sum * invkHW);
+    float kHW = kH * kW;
+    float invkHW;
+    fpReciprocalSingleElement(kHW, invkHW);
+    std::array<size_t, 4> OutIndices = {n, ax, ay, z};
+    outH.at(OutIndices) = elkType(sum * invkHW);
 
-	} // W
+  } // W
       } // H
     } // C
   } // N

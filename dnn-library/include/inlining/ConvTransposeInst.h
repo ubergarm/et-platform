@@ -49,15 +49,15 @@ namespace inlining {
  */
 template <ElemKind dstElK, size_t N, size_t PN>
 inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT, 
-					  LibTensor* filterT, LibTensor* biasT,
-					  const std::array<uint32_t, N> &kernels,
-					  const std::array<uint32_t, N> &strides,
-					  const std::array<uint32_t, PN> &pads,
-					  const uint32_t group, 
-					  const uint32_t dilation,
-					  const uint64_t flags, 
-					  const uint32_t minionOffset = 0, 
-					  const uint32_t assignedMinions = 0) {
+            LibTensor* filterT, LibTensor* biasT,
+            const std::array<uint32_t, N> &kernels,
+            const std::array<uint32_t, N> &strides,
+            const std::array<uint32_t, PN> &pads,
+            const uint32_t group, 
+            const uint32_t dilation,
+            const uint64_t flags, 
+            const uint32_t minionOffset = 0, 
+            const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -87,9 +87,9 @@ inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT,
     //Init bias, @TODO take out to a separate function when quant is in.
     for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
       for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
-	for (size_t d = 0; d < outT->dims()[3]; d++) {
-	  outH.at(std::array<size_t, 4>{n, ax, ay, d}) = static_cast<elkType>(biasH.at(std::array<size_t, 1>{d}));
-	}
+  for (size_t d = 0; d < outT->dims()[3]; d++) {
+    outH.at(std::array<size_t, 4>{n, ax, ay, d}) = static_cast<elkType>(biasH.at(std::array<size_t, 1>{d}));
+  }
       }
     }
 
@@ -97,33 +97,33 @@ inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT,
     for (size_t g = 0; g < group; g++) {
       //For each input channel in the group:
       for (size_t d = (g * inCperG); d < ((g + 1) * inCperG); d++) {
-	//For each transposed convolution 'jump' in the input tnesor:
-	ssize_t x = -static_cast<ssize_t>(pads[0]); //near
-	for (size_t bx = 0; bx < dataT->dims()[1]; bx++, x += strides[0]) {
-	  ssize_t y = -static_cast<ssize_t>(pads[1]);
-	  for (size_t by = 0; by < dataT->dims()[2]; by++, y += strides[1]) {
-	    //For each element in the each transposed convolution filter:
-	    elkType input = dataH.at(std::array<size_t, 4>{n, bx, by, d});
+  //For each transposed convolution 'jump' in the input tnesor:
+  ssize_t x = -static_cast<ssize_t>(pads[0]); //near
+  for (size_t bx = 0; bx < dataT->dims()[1]; bx++, x += strides[0]) {
+    ssize_t y = -static_cast<ssize_t>(pads[1]);
+    for (size_t by = 0; by < dataT->dims()[2]; by++, y += strides[1]) {
+      //For each element in the each transposed convolution filter:
+      elkType input = dataH.at(std::array<size_t, 4>{n, bx, by, d});
 
-	    for (size_t kx = 0; kx < kernels[0]; kx++) {
-	      for (size_t ky = 0; ky < kernels[1]; ky++) {
-		ssize_t ax = x + kx * dilation;
-		ssize_t ay = y + ky * dilation;
+      for (size_t kx = 0; kx < kernels[0]; kx++) {
+        for (size_t ky = 0; ky < kernels[1]; ky++) {
+    ssize_t ax = x + kx * dilation;
+    ssize_t ay = y + ky * dilation;
 
-		//Ignore index access below zero (this is due to padding).
-		if (ax < 0 || ay < 0 || ax >= ssize_t(outT->dims()[1]) ||
-		    ay >= ssize_t(outT->dims()[2])) {
-		  continue;
-		}
-		
-		for (size_t c = 0; c < outCperG; c++) {
-		  outH.at(std::array<size_t, 4>{n, static_cast<size_t>(ax), static_cast<size_t>(ay), (g * outCperG + c)}) +=
-		    filterH.at(std::array<size_t,4>{c, kx, ky, d}) * input;
-		}
-	      }
-	    }
-	  }
-	}
+    //Ignore index access below zero (this is due to padding).
+    if (ax < 0 || ay < 0 || ax >= ssize_t(outT->dims()[1]) ||
+        ay >= ssize_t(outT->dims()[2])) {
+      continue;
+    }
+    
+    for (size_t c = 0; c < outCperG; c++) {
+      outH.at(std::array<size_t, 4>{n, static_cast<size_t>(ax), static_cast<size_t>(ay), (g * outCperG + c)}) +=
+        filterH.at(std::array<size_t,4>{c, kx, ky, d}) * input;
+    }
+        }
+      }
+    }
+  }
       }
     }
   }

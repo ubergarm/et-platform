@@ -250,9 +250,9 @@ inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, const dim_array
                   indicesDest[i] = newDims[i]-1-ndx[i];
               }
               /* auto x = srcH.getIterator(indicesSrc); */
-	      /* auto y = destH.getIterator(indicesDest); */
-	      //*y = *x;
-	      
+        /* auto y = destH.getIterator(indicesDest); */
+        //*y = *x;
+        
               destH.at(indicesDest) = srcH.at(indicesSrc);
             }
  
