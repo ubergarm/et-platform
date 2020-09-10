@@ -298,17 +298,18 @@ class LibManagerSheet:
             conf = self._configs[op];
             conf["gen"] = True
             members = []
-            versions = []
+            versionsUnquoted = []
             template = 0
             
             if conf["members"]:
                 members = ["mb" + i.replace(" ", "") for i in conf["members"].split(',')]
                 
             if conf["extraImpl"]:
-                versions = ['"' + i.replace(" ", "") + '"' for i in conf["extraImpl"].split(',')]
-
-            #filter out commented implementations
-            versions = [i for i in versions if i[1] != '#']
+                versionsUnquoted = [ i.replace(" ", "")  for i in conf["extraImpl"].split(',')]
+                #filter out commented implementations
+                versionsUnquoted = [i for i in versionsUnquoted if i[0] != '#']
+                
+            versions = ['"' + i + '"' for i in versionsUnquoted ]
             
             if conf["templateElk"] == None:
                 raise Exception("empty tenplate definition for %s. Use NONE if the fnc doesn't use templates" % op)
@@ -319,11 +320,11 @@ class LibManagerSheet:
                 implSel = "implSel::defaultSel<%d>" % (len(versions) + 1)
             elif conf["implSel"] == "custom":
                 implSel = "implSel::" + conf["Operator"]
-                self.__implSel.append({"versions": versions, "name": conf["Operator"]})
+                self.__implSel.append({"versions": versionsUnquoted, "name": conf["Operator"]})
             else:
                 raise Exception("implSel has to be either 'default' or 'custom' for op %s" % op)
 
-            cacheState = self.getCacheState(op, versions, conf["nrOutTensors"], conf["nrInTensors"])
+            cacheState = self.getCacheState(op, versionsUnquoted, conf["nrOutTensors"], conf["nrInTensors"])
                 
             return { "enum": op,
                      "name" : conf["Operator"],

@@ -1447,21 +1447,18 @@ namespace dnn_lib {
        1,  // # ins
        {}, // members
        2, // template param mask
-       {"Threaded", "Vectorized"}, // impl versions
-       implSel::defaultSel<3>, // custom impl selector
+       {"Vectorized"}, // impl versions
+       implSel::SoftMax, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0} // evict available mask
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_spacetodepth ****/
      { "SpaceToDepth", // name

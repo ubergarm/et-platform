@@ -228,7 +228,17 @@ namespace dnn_lib {
         return 3;
       else
         return 2;
-  }
+    }
+    
+    // Best implementation selector for operator SoftMax. Return values are:
+    //   0: base implementation
+    //   1: Vectorized 
+    static size_t SoftMax(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      unsigned cll = CACHE_LINE_BYTES / inTensors[0]->getElementSize();
+      
+      if (inTensors[0]->strides()[0] % cll == 0) return 1;
+      else return 0;
+    }
     
   };
   
