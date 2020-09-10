@@ -20,7 +20,7 @@ namespace dnn_lib {
     
     // Best implementation selector for operator ConvertTo. Return values are:
     //   0: base implementation (threaded)
-    //   1: "Vectorized" 
+    //   1: Vectorized 
     static size_t ConvertTo(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
 
       LibTensor *inT = inTensors[0];
@@ -47,8 +47,8 @@ namespace dnn_lib {
   
     // Best implementation selector for operator Convolution. Return values are:
     //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized" 
+    //   1: Threaded
+    //   2: Vectorized 
     static size_t Convolution(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       // check for SW-3816
       LibTensor *filterT = inTensors[1];
@@ -60,9 +60,9 @@ namespace dnn_lib {
   
     // Best implementation selector for operator Copy. Return values are:
     //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized"
-    //   3: "Tensorized" 
+    //   1: Threaded
+    //   2: Vectorized
+    //   3: Tensorized 
     static size_t Copy(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       // Tensorized only works with same shape in-out and CL aligment
       if (inTensors[0]->getType().hasSameShape(outTensors[0]->getType()) and
@@ -79,7 +79,7 @@ namespace dnn_lib {
 
     // Best implementation selector for operator generic ElementBinary instructions. Return values are:
     //   0: base implementation (threaded)
-    //   1: "Vectorized" 
+    //   1: Vectorized 
     static size_t ElementBinary(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       ElemKind dstElK = outTensors[0]->getElementType();
       LibTensor *in1T = inTensors[0];
@@ -118,7 +118,7 @@ namespace dnn_lib {
 
     // Best implementation selector for operator ElementBool instructions. Return values are:
     //   0: base implementation (threaded)
-    //   1: "Vectorized" 
+    //   1: Vectorized 
     static size_t ElementBool(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       ElemKind src1ElK = inTensors[0]->getElementType();
       LibTensor *in1T = inTensors[0];
@@ -145,7 +145,7 @@ namespace dnn_lib {
 
     // Best implementation selector for operator EmbeddingBag. Return values are:
     //   0: base implementation
-    //   1: "Vectorized" 
+    //   1: Vectorized 
     static size_t EmbeddingBag(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
 #ifdef  SW_3755
       if (outTensors[0]->getUntouchable())
@@ -158,10 +158,8 @@ namespace dnn_lib {
 
 
     // Best implementation selector for operator MaxSplat. Return values are:
-    //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized"
-    //   3: "Aligned32Bytes" 
+    //   0: base implementation (vectorized)
+    //   1: Aligned32Bytes 
     static size_t MaxSplat(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       LibTensor *outT = outTensors[0];
       LibTensor *inT = inTensors[0];
@@ -169,18 +167,18 @@ namespace dnn_lib {
       if (inT->ndims() >= 2 &&
           ( outT->strides()[batchDim] % 32 == 0 ||  32 % outT->strides()[batchDim] == 0 ) &&
           (  inT->strides()[batchDim] % 32 == 0 ||  32 %  inT->strides()[batchDim] == 0 ))
-        return 3;
+        return 1;
       else
-        return 2;
+        return 0;
     }
 
 
 
     // Best implementation selector for operator RowwiseQuantizedFullyConnected. Return values are:
     //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized"
-    //   3: "Aligned32Bytes" 
+    //   1: Threaded
+    //   2: Vectorized
+    //   3: Aligned32Bytes 
     static size_t RowwiseQuantizedFullyConnected(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       LibTensor *outT = outTensors[0];
       LibTensor *in1T = inTensors[0];
@@ -199,8 +197,8 @@ namespace dnn_lib {
   
     // Best implementation selector for operator RowwiseQuantizedSparseLengthsWeightedSum. Return values are:
     //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized" 
+    //   1: Threaded
+    //   2: Vectorized 
     static size_t RowwiseQuantizedSparseLengthsWeightedSum(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       LibTensor *dataT = inTensors[0];
       // check for SW-3119
@@ -212,10 +210,8 @@ namespace dnn_lib {
 
     
     // Best implementation selector for operator Transpose. Return values are:
-    //   0: base implementation
-    //   1: "Threaded"
-    //   2: "Vectorized"
-    //   3: "Aligned32Bytes"
+    //   0: base implementation (Vectorized)
+    //   1: Aligned32Bytes
     static size_t Transpose(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       LibTensor *outT = outTensors[0];
       LibTensor *inT = inTensors[0];
@@ -225,9 +221,9 @@ namespace dnn_lib {
            (outT->strides()[batchDim] * outT->getElementSize() )% 32 == 0  &&
            (inT->strides()[batchDim] * inT->getElementSize() ) % 32 == 0  &&
            (elK == FloatTy || elK == Float16Ty || elK==Int8QTy ) )
-        return 3;
+        return 1;
       else
-        return 2;
+        return 0;
     }
     
     // Best implementation selector for operator SoftMax. Return values are:

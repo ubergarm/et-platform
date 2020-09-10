@@ -17,26 +17,6 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
 
   template <ElemKind in0Type>
-  void fwdLibMaxSplatInstThreaded(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
-  {
-    dnn_lib::inlining::fwdLibMaxSplatInstThreaded<in0Type>(out0, in0, Value, flags, minionOffset, assignedMinions);
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////
-  // Template specializations (declared with 'extern template' in LibNodes.h)
-  ////////////////////////////////////////////////////////////////////////////////
-
-  template <ElemKind in0Type>
-  void fwdLibMaxSplatInstVectorized(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
-  {
-    dnn_lib::inlining::fwdLibMaxSplatInstVectorized<in0Type>(out0, in0, Value, flags, minionOffset, assignedMinions);
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////
-  // Template specializations (declared with 'extern template' in LibNodes.h)
-  ////////////////////////////////////////////////////////////////////////////////
-
-  template <ElemKind in0Type>
   void fwdLibMaxSplatInstAligned32Bytes(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
     dnn_lib::inlining::fwdLibMaxSplatInstAligned32Bytes<in0Type>(out0, in0, Value, flags, minionOffset, assignedMinions);
@@ -51,18 +31,6 @@ template void fwdLibMaxSplatInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const
 template void fwdLibMaxSplatInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibMaxSplatInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibMaxSplatInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstThreaded<Int64ITy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstThreaded<Int32ITy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstVectorized<FloatTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstVectorized<Float16Ty>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstVectorized<Int8QTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstVectorized<Int64ITy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstVectorized<Int32ITy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibMaxSplatInstVectorized<Int16QTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibMaxSplatInstAligned32Bytes<FloatTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibMaxSplatInstAligned32Bytes<Float16Ty>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibMaxSplatInstAligned32Bytes<Int8QTy>(LibTensor* out0, LibTensor* in0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);

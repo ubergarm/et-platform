@@ -30,129 +30,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK, size_t N>
-inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N> &shuffle,
-                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  void *dst = outT->getRawDataPointer<void>();
-  void *src = inT->getRawDataPointer<void>();
-
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());  
-  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
-  
-  // unsigned int *actIndex = (unsigned int *)srcDims;
-  const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const dim_t *actPitch = inT->strides().data();
-
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  // Iterates through all dimensions, and sets extended Dims, and src Pitches
-  for (unsigned i = 0; i < srcDimNum; i++) {
-    // extended Dims matches src dim and zeros for non used dims
-    eDims[i] = actIndex[i];
-    // extended src Pitches matches src Pitches and zeros for non used dims
-    eSrcPitch[i] = actPitch[i];
-    for (unsigned int j = 0; j < srcDimNum; j++) {
-      if (shuffle[j] == i) {
-        eDstPitch[i] = dstPitch[j];
-      }
-    }
-  }
-
-  // We can use this loop for all shapes.
-  for (size_t x = 0; x < eDims[0]; x++) {
-    for (size_t y = 0; y < eDims[1]; y++) {
-      for (size_t z = 0; z < eDims[2]; z++) {
-        for (size_t w = 0; w < eDims[3]; w++) {
-          for (size_t q = 0; q < eDims[4]; q++) {
-            for (size_t r = 0; r < eDims[5]; r++) {
-              uint64_t dstAddr = x * eDstPitch[0] + y * eDstPitch[1] +
-                                 z * eDstPitch[2] + w * eDstPitch[3] +
-                                 q * eDstPitch[4] + r * eDstPitch[5];
-              uint64_t srcAddr = x * eSrcPitch[0] + y * eSrcPitch[1] +
-                                 z * eSrcPitch[2] + w * eSrcPitch[3] +
-                                 q * eSrcPitch[4] + r * eSrcPitch[5];
-              tOutput[dstAddr] = tAInput[srcAddr];
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-  template <ElemKind elK, size_t N>
-inline void fwdLibTransposeInstThreaded(LibTensor* outT, LibTensor* inT,
-                                        const std::array<uint32_t, N> &shuffle, uint64_t flags,
-                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
-
-  /* maintain compatibility through the new Iface Libtensor */
-  void *dst = outT->getRawDataPointer<void>();
-  void *src = inT->getRawDataPointer<void>();
-  
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
-
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const dim_t *dstIndex =  outT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const dim_t *actPitch = inT->strides().data();
-
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = sizeof(srcType);
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dst);
-  if (maxRead == 0)
-    return;
-
-  unsigned int newPitch[srcDimNum];
-  for (unsigned int i = 0; i < srcDimNum; i++)
-    newPitch[i] = actPitch[shuffle[i]];
-
-  unsigned int coord[srcDimNum];
-  unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
-                           k);
-
-
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn += newPitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
-  }
-
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
-  while (not done && offsetOut < posMax) {
-    tOutput[offsetOut] = tAInput[offsetIn];
-    done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, dstIndex, dstPitch, newPitch);
-  }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
-}
 
 template <typename srcType, typename std::enable_if< (sizeof(srcType) <=4), int>::type = 0>
 void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t *gatherValues){
@@ -188,9 +65,9 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t
 
 
 
-
+  // Vectorized version is the generic
   template <ElemKind elK, size_t N>
-inline void fwdLibTransposeInstVectorized(LibTensor* outT, LibTensor* inT,
+inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
                                           const std::array<uint32_t, N> &shuffle, uint64_t flags,
                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
