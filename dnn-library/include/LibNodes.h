@@ -1150,10 +1150,6 @@ extern template void fwdLibResizeNearestInst<Int64ITy>(LibTensor* out0, LibTenso
 
 void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
-void fwdLibRowwiseQuantizedFullyConnectedInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-
-void fwdLibRowwiseQuantizedFullyConnectedInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-
 void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, LibTensor* in4, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations

@@ -175,10 +175,8 @@ namespace dnn_lib {
 
 
     // Best implementation selector for operator RowwiseQuantizedFullyConnected. Return values are:
-    //   0: base implementation
-    //   1: Threaded
-    //   2: Vectorized
-    //   3: Aligned32Bytes 
+    //   0: base implementation (Vectorized)
+    //   1: Aligned32Bytes 
     static size_t RowwiseQuantizedFullyConnected(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       LibTensor *outT = outTensors[0];
       LibTensor *in1T = inTensors[0];
@@ -188,9 +186,9 @@ namespace dnn_lib {
       if ( outT->strides()[batchDim] % 32 == 0 && 
            in1T->strides()[batchDim] % 32 == 0 &&
            in2T->strides()[batchDim] % 32 == 0 )
-        return 3;
+        return 1;
       else 
-        return 2;
+        return 0;
     
     }
 

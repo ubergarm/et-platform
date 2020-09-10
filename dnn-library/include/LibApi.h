@@ -1362,24 +1362,18 @@ namespace dnn_lib {
        5,  // # ins
        {}, // members
        0, // template param mask
-       {"Threaded", "Vectorized", "Aligned32Bytes"}, // impl versions
+       {"Aligned32Bytes"}, // impl versions
        implSel::RowwiseQuantizedFullyConnected, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0, 0x0, 0x0} // evict available mask
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_rowwisequantizedsparselengthsweightedsum ****/
      { "RowwiseQuantizedSparseLengthsWeightedSum", // name
