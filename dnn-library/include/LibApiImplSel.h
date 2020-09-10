@@ -46,14 +46,13 @@ namespace dnn_lib {
   
   
     // Best implementation selector for operator Convolution. Return values are:
-    //   0: base implementation
-    //   1: Threaded
-    //   2: Vectorized 
+    //   0: base implementation (Threaded)
+    //   1: Vectorized 
     static size_t Convolution(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       // check for SW-3816
       LibTensor *filterT = inTensors[1];
-      if (filterT->dims()[filterT->ndims()-1] < 4 ) return 1;
-      else return 2;
+      if (filterT->dims()[filterT->ndims()-1] < 4 ) return 0;
+      else return 1;
     }
   
   

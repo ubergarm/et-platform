@@ -41,58 +41,6 @@ struct accumulatorType {
 };
 
 #endif
-
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK>
-inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
-                                     LibTensor* in2T, LibTensor* in3T,
-                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  //  using dstType  = typename elemKind2elemTy<dstElK>::type;
-  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-    
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT --> dst  in1T--> inActT  in2T--> inWeighT in3T-->inBiasT */
-
-  void *dstMatrix = outT->getRawDataPointer<void>();
-  void *activations = in1T->getRawDataPointer<void>();
-  void *weights = in2T->getRawDataPointer<void>();
-  void *biases = in3T->getRawDataPointer<void>();
-  
-  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
-  const Addresser<src3ElK> tBias(biases, in3T->getScale(), in3T->getOffset());
-
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = in1T->dims().data();
-  
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const dim_t *weightPitch = in2T->strides().data();
-  
-  // For each (x,y) in the destination matrix:
-  for (unsigned int x = 0; x < dstIndex[0]; x++) {
-    for (unsigned int y = 0; y < dstIndex[1]; y++) {
-      // Perform DOT on the row an column.
-      float sum = 0.0;
-      for (unsigned int i = 0; i < actIndex[1]; i++) {
-        sum += float(tAInput[x * actPitch[0] + i] *
-                     tWInput[i * weightPitch[0] + y]);
-      }
-      sum += tBias[y];
-      tOutput[x * dstPitch[0] + y] = sum;
-    }
-  }
-}
-
 #define FULLYCONNECTED_MAX_ELEMS 8
 
 /**
@@ -306,109 +254,6 @@ inline void matmulStep (float *sum,
   }
 }
 
-/**
- * @brief Performs the FullyConnected operation between the activation, weights and bias.
- *
- * Executes a matrix multiply of the 2D tensor in in1T with the 2D tensor in
- * in2T. Each result is added with a bias specified in the 1D tensor in3T. The cols
- * of outT must be equal to the size of in3T. The results are stored in outT.
- * 
- * @tparam srcType Type of the elements of the tensors involved in the 
- *  FullyConnected (except for the bias)
- * @param[out] outT Tensor where we save the result of the convolution.
- * @param[in] in1T Tensor with the activations of the convolution.
- * @param[in] in2T Tensor with the weights of the convolution.
- * @param[in] in2T Tensor with the biases of the convolution.
- * @param[in] flags Controls the active shires and the type of evict that 
- *  should be done at the end of the function.
- */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK>
-inline void fwdLibFullyConnectedInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                             LibTensor* in2T, LibTensor* in3T,
-                                             uint64_t flags,
-                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
-  using dstType  = typename elemKind2elemTy<dstElK>::type;
-  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
-
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT --> dst  in1T--> inActT  in2T--> inWeighT in3T-->inBiasT */
-  void *dstMatrix = outT->getRawDataPointer<void>();
-  void *activations = in1T->getRawDataPointer<void>();
-  void *weights = in2T->getRawDataPointer<void>();
-  void *biases = in3T->getRawDataPointer<void>();
-  
-  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  const Addresser<src1ElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  const Addresser<src2ElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
-  const Addresser<src3ElK> tBias(biases, in3T->getScale(), in3T->getOffset());
-  
-  const dim_t *dstIndex = outT->dims().data();
-  const dim_t *actIndex = in1T->dims().data();
-  
-  const dim_t *dstPitch = outT->strides().data();
-  const dim_t *actPitch = in1T->strides().data();
-  const dim_t *weightPitch = in2T->strides().data();
-  
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = sizeof(dstType);
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstMatrix);
-  if (maxRead == 0)
-    return;
-
-  unsigned int coord[2] = {0, 0};
-  unsigned int k = 0;
-  getNonPaddingCoordinates(coord, initialAddr, 2, dstPitch, dstIndex, k);
-
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
-    offsetOut += coord[i] * dstPitch[i];
-  }
-  if (offsetOut >= numElemsDst)
-    return;
-
-  unsigned int posMax = initialAddr + maxRead;
-  bool done = false;
-  // While there's work to do
-  while (!done && (offsetOut < posMax)) {
-    // 1.0 - Computes how many more elements can we compute
-    size_t elems = FULLYCONNECTED_MAX_ELEMS;
-    // 1.1 - Can't go beyond the elements left
-    size_t elemsLeft = posMax - offsetOut;
-    if(elems > elemsLeft) { elems = elemsLeft; }
-    // 1.2 - Can't go beyond current row
-    size_t colsLeft = dstIndex[1] - coord[1];
-    if(elems > colsLeft) { elems = colsLeft; }
-
-    // Starts the accumulation with the bias (per Channel)
-    typename accumulatorType<src1Type>::type sum[FULLYCONNECTED_MAX_ELEMS];
-    for (size_t i = 0; i < elems; i++) {
-      sum[i] = tBias[coord[1] + i];
-    }
-
-    // Computes one result as efficient as possible
-    matmulStep <src1ElK> (sum, tAInput, activations, tWInput, weights, actIndex[1], coord[0] * actPitch[0], coord[1], weightPitch[0], elems);
-
-    // Moves to next result
-    for (size_t i = 0; i < elems; i++) {
-      tOutput[offsetOut] = sum[i];
-      done = getOffsets(2, coord, offsetOut, dstIndex, dstPitch);
-    }
-  }
-
-  // Checks if evict is required
-  if (DO_EVICTS) {
-    unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-    if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
-  }
-}
 
 template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK == FloatTy, std::size_t>::type = 0>
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){
@@ -939,11 +784,13 @@ inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wg
 template <ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK, ElemKind dstElK, typename std::enable_if<src1ElK != Int8QTy && src1ElK != Float16Ty && src1ElK != FloatTy && src1ElK != UInt8QTy, std::size_t>::type = 0> 
 inline void fullyConnectedOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int elemsRow, int32_t gatherValuesAct[], int32_t gatherValuesWgt[], unsigned int wgtRegStep, uintptr_t biasAddr, const float *scale, const int32_t *offset){}
 
+
+  // generic version is vectorized
 template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, ElemKind src3ElK>
-inline void fwdLibFullyConnectedInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                               LibTensor* in2T, LibTensor* in3T,
-                                               uint64_t flags,
-                                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
+				     LibTensor* in2T, LibTensor* in3T,
+				     uint64_t flags,
+				     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   
   using dstType  = typename elemKind2elemTy<dstElK>::type;
 

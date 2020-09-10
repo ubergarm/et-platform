@@ -742,15 +742,9 @@ extern template void fwdLibFlipInst<Int32QTy>(LibTensor* out0, LibTensor* in0, c
 // declarations
 template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type, ElemKind in2Type>
 void fwdLibFullyConnectedInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type, ElemKind in2Type>
-void fwdLibFullyConnectedInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type, ElemKind in2Type>
-void fwdLibFullyConnectedInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibFullyConnectedInst<Int8QTy,Int8QTy,Int8QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibFullyConnectedInstThreaded<Int8QTy,Int8QTy,Int8QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibFullyConnectedInstVectorized<Int8QTy,Int8QTy,Int8QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  FusedRowwiseQuantizedSparseLengthsWeightedSum implementations
