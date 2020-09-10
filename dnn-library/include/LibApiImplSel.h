@@ -197,15 +197,14 @@ namespace dnn_lib {
   
     // Best implementation selector for operator RowwiseQuantizedSparseLengthsWeightedSum. Return values are:
     //   0: base implementation
-    //   1: Threaded
-    //   2: Vectorized 
+    //   1: Vectorized 
     static size_t RowwiseQuantizedSparseLengthsWeightedSum(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       LibTensor *dataT = inTensors[0];
       // check for SW-3119
       if (dataT->dims()[dataT->ndims()-1] < 4)
         return 0;
       else
-        return 2;
+        return 1;
     }
 
     
