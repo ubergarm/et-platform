@@ -31,139 +31,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
-void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, bool transposed,
-                      const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
-  if (transposed) return  fwdLibMatMulInstTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
-  
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT --> dst  in1--> act in2-> weight*/
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = in1T->getRawDataPointer<void>();
-  void* wei = in2T->getRawDataPointer<void>();
-  
-  // Addresser<elK> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
-  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
-  const Addresser<elK> tWInput(wei, in2T->getScale(), in2T->getOffset());
-
-  //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();
-  //unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = in1T->dims().data();
-  //unsigned int *weightIndex = (unsigned int *)weightsDims;
-  // const dim_t * weightIndex = in2T->dims().data();
-
-  //  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  //unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = in1T->strides().data();
-  //unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const dim_t *weightPitch = in2T->strides().data();
-  
-  // For each (x,y) in the destination matrix:
-  for (unsigned int x = 0; x < dstIndex[0]; x++) {
-    for (unsigned int y = 0; y < dstIndex[1]; y++) {
-      // Perform DOT on the row an column.
-      float sum = 0;
-      for (unsigned int i = 0; i < actIndex[1]; i++) {
-        sum += float(tAInput[x * actPitch[0] + i]) *
-               float(tWInput[i * weightPitch[0] + y]);
-      }
-      tOutput[x * dstPitch[0] + y] = float(sum);
-    }
-  }
-}
-
-template <ElemKind elK>
-void fwdLibMatMulInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,  bool transposed,
-                              const uint64_t flags, const uint32_t minionOffset = 0,
-                              const uint32_t assignedMinions = 0) {
-  
-  if (transposed) return  fwdLibMatMulInstThreadedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
-  
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions)
-    return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT --> dst  in1--> act in2-> weight*/
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = in1T->getRawDataPointer<void>();
-  void* wei = in2T->getRawDataPointer<void>();
-
-  // Addresser<elK> tOutput(dstMatrix, scale[2], offset[2]);
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
-  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
-  const Addresser<elK> tWInput(wei, in2T->getScale(), in2T->getOffset());
-  
-  //  unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();
-  //unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = in1T->dims().data();
-  //unsigned int *weightIndex = (unsigned int *)weightsDims;
-  // const dim_t * weightIndex = in2T->dims().data();
-
-  //  unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  //unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = in1T->strides().data();
-  //unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const dim_t *weightPitch = in2T->strides().data();
-  
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = Type::getElementSize(elK);
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dst);
-  if (maxRead == 0)
-    return;
-
-  unsigned int dstDimNum = 2;
-  unsigned int coordOut[dstDimNum];
-  unsigned int k = 0;
-
-  /* use overloading while sw-2400 and sw-2429 are WIP */
-  getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, k);
-
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
-    offsetOut += coordOut[i] * dstPitch[i];
-  }
-  unsigned int offsetAIn = coordOut[0]*actPitch[0];
-
-  unsigned int posMax = initialAddr + maxRead;
-  bool done = false;
-
-  while (!done && (offsetOut < posMax)) {
-    float sum = 0;
-    unsigned int weightOffset = 0;
-    for (unsigned int i = 0; i < actIndex[1]; i++) {
-      sum += float(tAInput[offsetAIn + i]) *
-             float(tWInput[weightOffset + coordOut[1]]);
-      weightOffset += weightPitch[0];
-    }
-    tOutput[offsetOut] = float(sum);
-    /* use overloading while sw-2400 and sw-2429 are WIP */
-    done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
-    if (coordOut[1] == 0) {
-      offsetAIn += actPitch[0];
-    }
-  }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
-}
-
 template <ElemKind elK, typename std::enable_if<elK == Float16Ty, std::size_t>::type = 0>
 void setGatherValues (int32_t gatherValues[]){
   gatherValues[0] = 0;
@@ -400,12 +267,12 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 // wgt and dst tensors, so we can use vectorization.
 
 template <ElemKind elK>
-void fwdLibMatMulInstVectorized(LibTensor* outT, LibTensor* in1T,
+void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T,
                                 LibTensor* in2T, bool transposed,
                                 const uint64_t flags,
                                 const uint32_t minionOffset = 0,
                                 const uint32_t assignedMinions = 0) {
-  if (transposed) return  fwdLibMatMulInstVectorizedTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
+  if (transposed) return  fwdLibMatMulInstTransposed<elK>(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;

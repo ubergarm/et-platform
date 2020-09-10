@@ -58,21 +58,18 @@ namespace dnn_lib {
   
   
     // Best implementation selector for operator Copy. Return values are:
-    //   0: base implementation
-    //   1: Threaded
-    //   2: Vectorized
-    //   3: Tensorized 
+    //   0: base implementation (Vectorized)
+    //   1: Tensorized 
     static size_t Copy(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       // Tensorized only works with same shape in-out and CL aligment
       if (inTensors[0]->getType().hasSameShape(outTensors[0]->getType()) and
           (((uintptr_t) inTensors[0]->getAddress()  & 0x3F) == 0) and ((inTensors[0]->getType().getSizeInBytes()  & 0x3F) == 0) and 
           (((uintptr_t) outTensors[0]->getAddress() & 0x3F) == 0) and ((outTensors[0]->getType().getSizeInBytes() & 0x3F) == 0)) {
-        return 3;
-      } else if (!outTensors[0]->getUntouchable()) {
-        return 2;
-      } else {
-        return 0;
+        return 1;
+      } else  {
+	return 0;
       }
+      
     }
   
 

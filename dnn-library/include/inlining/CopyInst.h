@@ -30,6 +30,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
+
+
+  // TODO: REMOVE ONCE SW-4190 is fixed  
 /**
  * @brief Copies the src tensor to the dst tensor.
  *
@@ -48,7 +51,7 @@ namespace inlining {
  * @param[in] scale, offset Parameters for the quantization.
  */
 template <ElemKind elK>
-inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void CopyInstScalar(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id();
   if (minionId != minionOffset) return;
@@ -89,7 +92,9 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, cons
     offsetOut = getOffset(coord, srcDimNum, dstPitch);
   }
 }
+  // TODO: END REMOVE ONCE SW-4190 is fixed
 
+  
 /**
  * @brief Copies N consecutive bytes from one buffer to another
  *
@@ -175,109 +180,6 @@ inline void copyBytes(uint8_t * src,
   }
 }
 
-/**
- * @brief Copies the src tensor to the dst tensor.
- *
- * It makes a copy of the tensor src into the dst tensor, which may not
- * have the same pitches or dimensions, so it allows a reshaping. This is
- * the threaded version for this operator, so several minions are used.
- * 
- * @tparam srcType The type of the elements in the tensor.
- * @param[out] dst Pointer to the output tensor.
- * @param[in] dstDims The "number of dimensions" of the output tensor.
- * @param[in] dstPitches Vector of pitches of the output tensor.
- * @param[in] src Pointer to the input tensor.
- * @param[in] srcDims The vector of dimensions of the input tensor.
- * @param[in] srcPitches Vector of pitches of the input tensor.
- * @param[in] srcDimNum The "number of dimensions" of the input tensor.
- * @param[in] scale, offset Parameters for the quantization.
- * @param[in] flags Gives the information of the Active Shires and the
- *  type of evict required.
- * @param[in] minionOffset The first minion that is assigned to this node.
- * @param[in] assignedMinions Amount of minions avaliable.
- */
-template <ElemKind elK>
-inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
-                                   uint64_t flags,
-                                   const uint32_t minionOffset = 0,
-                                   const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions)
-    return;
-
-  /* maintain compatibility through the new Iface Libtensor */
-  
-  uint8_t * src = (uint8_t *) inT->getRawDataPointer<void>();
-  uint8_t * dst = (uint8_t *) outT->getRawDataPointer<void>();
-  
-  const dim_t *dstIndex = outT->dims().data();
-  const dim_t *actIndex = inT->dims().data();
-  
-  const dim_t *dstPitch = outT->strides().data();
-  const dim_t *actPitch = inT->strides().data();
-
-  // Total number of elements in the tensor
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0]; 
-
-  // We give to each minion an initial address and the number of positions that
-  // it must work on (maxRead).
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dst);
-  if (maxRead == 0)
-    return;
-  
-
-  // We move the initialAddr to the next non-padding position
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int k;                // Amount of non-zero coordinates
-  unsigned int coord[srcDimNum]; // Vector of coordinates
-
-  /*use overloading WIP sw2400 sw2429*/
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
-
-  // We get the actual initialAddr, in the input and output.
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn += actPitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
-  }
-
-  unsigned int posMax = maxRead + initialAddr;
-  // In each iteration we copy a full inner dimension and switch to the next one,
-  // until completion.
-  bool done = false;
-  while (!done && (offsetOut < posMax)) {
-    // Figure out how many elements pending to be copied in current position
-    // Check that it is not copying out of bounds
-    size_t elemsToCopy = dstIndex[srcDimNum - 1] - coord[srcDimNum - 1];
-    if ((offsetOut + elemsToCopy) > posMax) { elemsToCopy = posMax - offsetOut; }
-
-    // Copies all the bytes pending
-    copyBytes(&src[offsetIn * typeSize], &dst[offsetOut * typeSize], elemsToCopy * typeSize);
-
-    // Updates pointers
-    if (coord[srcDimNum - 1] != 0) {
-      // Aligning the highest dimension is only required in the first iteration
-      // We move offsets to the begining of the second to last dimension
-      offsetIn  -= coord[srcDimNum - 1] * actPitch[srcDimNum - 1];
-      offsetOut -= coord[srcDimNum - 1] * dstPitch[srcDimNum - 1];
-      coord[srcDimNum - 1] = 0;
-    }
-    // Increment pointers ignoring the highest dimension as each step takes care
-    // of it
-    done = getOffsets(srcDimNum - 1, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
-  }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
-}
 
 /**
  * @brief Copies the src tensor to the dst tensor.
@@ -304,13 +206,22 @@ inline void fwdLibCopyInstThreaded(LibTensor* outT, LibTensor* inT,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <ElemKind elK>
-inline void fwdLibCopyInstVectorized(LibTensor* outT, LibTensor* inT,
+inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT,
                                      uint64_t flags,
                                      const uint32_t minionOffset = 0,
                                      const uint32_t assignedMinions = 0) {
-  
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
+  
+  // TODO: REMOVE ONCE SW-4190 is fixed
+  if (outT->getUntouchable()) {
+    if (minionId == minionOffset) {
+      CopyInstScalar<elK>(outT, inT, flags, minionOffset, assignedMinions);
+    }
+    return;
+  }
+  // TODO: END REMOVE ONCE SW-4190 is fixed
+  
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions)
     return;
