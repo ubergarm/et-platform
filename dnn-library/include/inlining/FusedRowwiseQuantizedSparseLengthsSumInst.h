@@ -29,35 +29,14 @@
 namespace dnn_lib {
 
 namespace inlining {
-  
-template <ElemKind elK>
-inline __attribute__((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded(
-        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  LibTensor* inW = nullptr;
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInstThreaded <elK> (
-    outT, in1T, inW, in2T, in3T, flags, minionOffset, assignedMinions);
-}
-
-template <ElemKind elK>
-inline __attribute__((always_inline))
-void fwdLibFusedRowwiseQuantizedSparseLengthsSumInstVectorized(
-        LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  dnn_lib::inlining::fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, false>
-    (outT, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
-}
 
 template <ElemKind elK>
 inline __attribute__((always_inline))
 void fwdLibFusedRowwiseQuantizedSparseLengthsSumInst(
         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  // there's no single node version => forward call to threaded implementation
-  dnn_lib::inlining::fwdLibFusedRowwiseQuantizedSparseLengthsSumInstThreaded<elK>(outT, in1T, in2T, in3T,
-                                                                                  flags, minionOffset, assignedMinions);
+  dnn_lib::inlining::fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl<elK, false>
+    (outT, in1T, nullptr, in2T, in3T, flags, minionOffset, assignedMinions);
 }
 
 
