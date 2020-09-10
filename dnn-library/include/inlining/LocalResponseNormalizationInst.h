@@ -30,95 +30,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
-inline void fwdLibLocalResponseNormalizationInst(
-    LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
-    unsigned int halfWindowSize, float alpha, float beta, float k,
-    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0
-                                                 ) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  /* out1T --> dst  out2T--> dst2  inT--> data */
-
-  void *dstMatrix = out1T->getRawDataPointer<void>();
-  void *dst2Matrix = out2T->getRawDataPointer<void>();
-  void *activations = inT->getRawDataPointer<void>();
-  
-  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());  
-
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = inT->dims().data();  
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = out1T->strides().data();
-  // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
-  const dim_t *dst2Pitch = out2T->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = inT->strides().data();
-
-  
-
-  // LRN node does not change the shape of the input.
-  // assert((dstIndex[0] == actIndex[0]) && (dstIndex[1] == actIndex[1]) &&
-  // (dstIndex[2] == actIndex[2]) && (dstIndex[3] == actIndex[3]) && "Output of
-  // LRN node must be same shape as input");
-
-  // LRN node normalizes across channels, so the input must have a minimum
-  // depth of 1.
-  // assert(actIndex[3] > 0 && "Input of LRN node must have a minimum depth of
-  // 1");
-
-  auto windowSize = 2 * halfWindowSize + 1;
-  float inversedWindowSize;
-  fpReciprocalSingleElement(windowSize, inversedWindowSize);
-  float normedAlpha = alpha * inversedWindowSize;
-
-  // For every input in the batch:
-  for (size_t n = 0; n < actIndex[0]; n++) {
-
-    // For every row:
-    for (size_t h = 0; h < actIndex[1]; h++) {
-
-      // For every column:
-      for (size_t w = 0; w < actIndex[2]; w++) {
-
-        // For every channel:
-        for (size_t c = 0; c < actIndex[3]; c++) {
-          auto squareSum = tAInput[0];
-          squareSum = 0.0;
-          for (size_t i = (c >= halfWindowSize ? c - halfWindowSize : 0);
-               i <=
-               std::min(c + halfWindowSize, (long unsigned int)actIndex[3] - 1);
-               i++) {
-            auto val = tAInput[n * actPitch[0] + h * actPitch[1] +
-                               w * actPitch[2] + i * actPitch[3]];
-            squareSum += val * val;
-          }
-
-          auto scale = k + normedAlpha * squareSum;
-
-          // This will be used to accelerate the backward pass.
-          tScale[n * dst2Pitch[0] + h * dst2Pitch[1] + w * dst2Pitch[2] +
-                 c * dst2Pitch[3]] = scale;
-
-          auto normFactor = getPow(scale, -beta);
-          auto op = tAInput[n * actPitch[0] + h * actPitch[1] +
-                            w * actPitch[2] + c * actPitch[3]];
-          op *= normFactor;
-          tOutput[n * dstPitch[0] + h * dstPitch[1] + w * dstPitch[2] +
-                  c * dstPitch[3]] = op;
-        }
-      }
-    }
-  }
-}
 
 // First threaded version, assuming dstMatrix and dst2Matrix have the same
 // Pitches. Without this assumption, coherence might be lost and therefore this
@@ -126,7 +37,7 @@ inline void fwdLibLocalResponseNormalizationInst(
 // pass, i.e. ETSOC won't be using it. Actually, we could skip generating it.
 
 template <ElemKind elK>
-inline void fwdLibLocalResponseNormalizationInstThreaded(LibTensor* out1T,
+inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
           LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize,
           float alpha, float beta, float k, uint64_t flags,
           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
@@ -234,12 +145,7 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   // only FloatTy is supported => call threaded version instead
-  if ( elK != FloatTy) {
-    inlining::fwdLibLocalResponseNormalizationInstThreaded<elK>(out1T, out2T, inT,
-                                                                halfWindowSize, alpha, beta, k,
-                                                                flags, minionOffset, assignedMinions);
-    return;
-  }
+  assert ( elK == FloatTy);
   using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;

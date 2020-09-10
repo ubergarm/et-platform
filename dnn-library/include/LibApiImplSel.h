@@ -232,7 +232,18 @@ namespace dnn_lib {
       if (inTensors[0]->strides()[0] % cll == 0) return 1;
       else return 0;
     }
-    
+
+    // Best implementation selector for operator LocalResponseNormalization. Return values are:
+    //   0: base implementation (threaded)
+    //   1: Vectorized 
+    static size_t LocalResponseNormalization(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      ElemKind elK = inTensors[0]->getElementType();
+      if (elK != FloatTy) return 0; // vectorized version just supports float
+      else return 1;
+      return 0;
+    }
+
+
   };
   
 }
