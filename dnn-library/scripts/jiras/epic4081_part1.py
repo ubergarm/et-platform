@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# takes all operators with more than 1 extra implementation
+# and adds jira to epic SW-4081 to clean them up
+
 import argparse
 import os
 import sys
@@ -15,8 +19,6 @@ class Epic4081(JiraLibHelper):
             return len(conf["extraImpl"].split(',')) > 1 # more than 1 extra implementation
         else:
             return False
-
-        return len(self.__versions) > 2
 
     def format(self, conf):
         versions = ["generic(scalar)"] + [i.replace(" ", "") for i in conf["extraImpl"].split(',')]
