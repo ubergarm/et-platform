@@ -411,13 +411,13 @@ namespace dnn_lib {
        implSel::Copy, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid}}},
+        {operandState::clean, operandState::clean}}},
        // L2 states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid}}},
+        {operandState::clean, operandState::clean}}},
        // CB states per impl
        {{{operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid}}},
+        {operandState::dirty, operandState::clean}}},
        {0x0, 0x0} // evict available mask
      },
      /**** ET_crc ****/
