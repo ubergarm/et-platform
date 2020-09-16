@@ -30,83 +30,8 @@ namespace dnn_lib {
 
 namespace inlining {
 
-
-/**
- * @brief Input is a matrix tensor. Its first dimension is the batch size. 
- * Expand each column of it using one hot encoding. The lengths specifies the size
- *  of each column after encoding, and the values is the dictionary value of 
- * one-hot encoding for each column.
- *
- * If data = [[2, 3], [4, 1], [2, 5]], lengths = [2, 3],
- * and values = [2, 4, 1, 3, 5], then
- * output = [[1, 0, 0, 1, 0], [0, 1, 1, 0, 0], [1, 0, 0, 0, 1]]
- *
- * ElemKind::FloatTy, Float16Ty, Int32ITy, Int64ITy are supported
- * Following InstGen.cpp Interpreter.cpp and isOpSupported at ETSOC.cpp specification.
- *
- * @tparam Elemkind the kind of the element which hast to be resolved.
- * @param[out] outT LibTensor destination. It holds the expected.
- * @param[in] inT LibTensor input. It keeps the inputs to being handle.
- * @param[in] in2T This array keeps the lengths  specifies the size of each column.
- * @param[in] in3T This array keeps the values is the dictionary value of one-hot 
- *                 encoding for each column
- * @param[flags] flags Gives the information of the Active Shires and the
- * type of evict required.
- */
 template <ElemKind elK>
 inline void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
-                                  LibTensor* in2T, LibTensor* in3T,
-                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* dataT = in1T->getRawDataPointer<void>();
-  void* valuesT = in3T->getRawDataPointer<void>();
- 
-  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
-  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<elK> tAInput(dataT, in1T->getScale(), in1T->getOffset());
-  // const Addresser<elK> tValues(pvalues, scale[1], offset[1]);
-  const Addresser<elK> tValues(valuesT, in3T->getScale(), in3T->getOffset());
-  // int32_t *lengths = (int32_t *)plengths;
-  int32_t* lengths = in2T->getRawDataPointer<int32_t>();
-  
-  // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const dim_t *dataIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const dim_t *dataPitch = in1T->strides().data();
- 
-  auto batchSize = dataIndex[0];
-  auto featureCnt = dataIndex[1];
-
-  for (size_t batchId = 0; batchId < batchSize; batchId++) {
-    size_t offset = 0;
-    for (size_t featureId = 0; featureId < featureCnt; featureId++) {
-      auto curValue = tAInput[batchId * dataPitch[0] + featureId];
-      auto curLength = lengths[featureId];
-      for (size_t i = offset, e = offset + curLength; i != e; i++) {
-        int64_t dstAddr = batchId * dstPitch[0] + i;
-        if (curValue == tValues[i]) {
-          tOutput[dstAddr] = (float)1;
-        } else {
-          tOutput[dstAddr] = (float)0;
-        }
-      }
-      offset += curLength;
-    }
-    // assert(offset == dstIndex[1] && "Sum of Lengths must be equal to size of
-    // Values");
-  }
-}
-
-template <ElemKind elK>
-inline void fwdLibBatchOneHotInstThreaded(LibTensor* outT, LibTensor* in1T,
                                           LibTensor* in2T, LibTensor* in3T,
                                           uint64_t flags,
                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
