@@ -15,22 +15,8 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
-
-  template <ElemKind in0Type>
-  void fwdLibRescaleQuantizedInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
-  {
-    dnn_lib::inlining::fwdLibRescaleQuantizedInstThreaded<in0Type>(out0, in0, flags, minionOffset, assignedMinions);
-  }
-
-  ////////////////////////////////////////////////////////////////////////////////
-  // Template specializations (declared with 'extern template' in LibNodes.h)
-  ////////////////////////////////////////////////////////////////////////////////
 template void fwdLibRescaleQuantizedInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibRescaleQuantizedInst<UInt8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibRescaleQuantizedInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibRescaleQuantizedInst<Int32QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibRescaleQuantizedInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibRescaleQuantizedInstThreaded<UInt8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibRescaleQuantizedInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibRescaleQuantizedInstThreaded<Int32QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // dnn_lib

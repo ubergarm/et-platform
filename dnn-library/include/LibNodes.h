@@ -915,18 +915,12 @@ extern template void fwdLibQuantizeInst<Int32QTy,Float16Ty>(LibTensor* out0, Lib
 // declarations
 template <ElemKind in0Type>
 void fwdLibRescaleQuantizedInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind in0Type>
-void fwdLibRescaleQuantizedInstThreaded(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibRescaleQuantizedInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibRescaleQuantizedInst<UInt8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibRescaleQuantizedInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibRescaleQuantizedInst<Int32QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibRescaleQuantizedInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibRescaleQuantizedInstThreaded<UInt8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibRescaleQuantizedInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibRescaleQuantizedInstThreaded<Int32QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ResizeBilinear implementations
