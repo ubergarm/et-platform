@@ -29,66 +29,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-/// Quantize floating point tensor. Scale and Offset are based on return type
-/// of the instruction \p I.
 template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT,
-                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  
-  // Addresser<dstElK> ptrDstT(dstT, scale, offset);
-  Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // srcElK *ptrSrcT = (srcElK *)srcT;
-  const Addresser<srcElK> ptrSrcT(inT->getRawDataPointer<void>(), inT->getScale(), inT->getOffset());
-
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const dim_t *srcIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = inT->strides().data();
-  
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (size_t i = 0; i < srcDimNum; i++) {
-    eDims[i] = srcIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrcPitch[i] = srcPitch[i];
-  }
-
-  for (size_t x = 0; x < eDims[0]; x++) {
-    for (size_t y = 0; y < eDims[1]; y++) {
-      for (size_t z = 0; z < eDims[2]; z++) {
-        for (size_t w = 0; w < eDims[3]; w++) {
-          for (size_t q = 0; q < eDims[4]; q++) {
-            for (size_t r = 0; r < eDims[5]; r++) {
-              int64_t dstAddr = x * eDstPitch[0] + y * eDstPitch[1] +
-                                z * eDstPitch[2] + w * eDstPitch[3] +
-                                q * eDstPitch[4] + r * eDstPitch[5];
-              int64_t srcAddr = x * eSrcPitch[0] + y * eSrcPitch[1] +
-                                z * eSrcPitch[2] + w * eSrcPitch[3] +
-                                q * eSrcPitch[4] + r * eDstPitch[5];
-              auto val = ptrSrcT[srcAddr];
-              ptrDstT[dstAddr] = val;
-            }
-          }
-        }
-      }
-    }
-  }
-}
-  
-template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibQuantizeInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
