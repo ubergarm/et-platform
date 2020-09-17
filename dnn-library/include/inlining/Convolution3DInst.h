@@ -30,6 +30,7 @@ namespace dnn_lib {
 
 namespace inlining {
 
+
   template <ElemKind elK, size_t N, size_t PN>
 inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
                                     LibTensor* in2T, LibTensor* in3T,
@@ -37,114 +38,8 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
                                     const std::array<uint32_t, N> &strides,
                                     const std::array<uint32_t, PN> &pads,
                                     unsigned int group,
-                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-    //  using srcType = typename elemKind2elemTy<elK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT->dest in1T->activations in2T-> weight in3T->bias */
-  void *dstMatrix = outT->getRawDataPointer<void>();
-  void *activations = in1T->getRawDataPointer<void>();
-  void *weights = in2T->getRawDataPointer<void>();
-  
-  // Addresser<elK> tOutput(dstMatrix, scale[3], offset[3]);
-  Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
-  const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
-  // float *tBias = (float *)bias;
-  float* tBias = in3T->getRawDataPointer<float>();
-
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const dim_t *weightPitch = in2T->strides().data();
-  
-  assert(actIndex[4] % group == 0 &&
-         "Input channels must be divisible by group.");
-  assert(dstIndex[4] % group == 0 &&
-         "Output channels must be divisible by group.");
-  size_t inCperG = actIndex[4] / group;
-  size_t outCperG = dstIndex[4] / group;
-
-  // For each input in the batch:
-  for (size_t n = 0; n < actIndex[0]; n++) {
-
-    // For each group of input channels:
-    for (size_t g = 0; g < group; g++) {
-
-      // For each output channel in the group:
-      for (size_t d = g * outCperG; d < (g + 1) * outCperG; d++) {
-
-        // For each convolution 'jump' in the input tensor:
-        ssize_t x = -ssize_t(pads[0]);
-        for (size_t ax = 0; ax < dstIndex[1]; x += strides[0], ax++) {
-          ssize_t y = -ssize_t(pads[1]);
-          for (size_t ay = 0; ay < dstIndex[2]; y += strides[1], ay++) {
-            ssize_t z = -ssize_t(pads[2]);
-            for (size_t az = 0; az < dstIndex[3]; z += strides[2], az++) {
-
-              // For each element in the 3Dconvolution-filter:
-              auto sum = tAInput[0];
-              sum = 0;
-              for (size_t fx = 0; fx < kernels[0]; fx++) {
-                for (size_t fy = 0; fy < kernels[1]; fy++) {
-                  for (size_t fz = 0; fz < kernels[2]; fz++) {
-                    ssize_t ox = x + fx;
-                    ssize_t oy = y + fy;
-                    ssize_t oz = z + fz;
-
-                    // Ignore index access below zero (this is due to padding).
-                    if (ox < 0 || oy < 0 || oz < 0 ||
-                        ox >= ssize_t(actIndex[1]) ||
-                        oy >= ssize_t(actIndex[2]) ||
-                        oz >= ssize_t(actIndex[3])) {
-                      continue;
-                    }
-                    for (size_t fd = 0; fd < inCperG; fd++) {
-                      auto op1 =
-                          tWInput[d * weightPitch[0] + fx * weightPitch[1] +
-                                  fy * weightPitch[2] + fz * weightPitch[3] +
-                                  fd];
-                      auto op2 =
-                          tAInput[n * actPitch[0] + (size_t)ox * actPitch[1] +
-                                  (size_t)oy * actPitch[2] +
-                                  (size_t)oz * actPitch[3] + g * inCperG + fd];
-                      sum += op1 * op2;
-                    }
-                  }
-                }
-              }
-              int64_t addr = n * dstPitch[0] + (size_t)ax * dstPitch[1] +
-                             (size_t)ay * dstPitch[2] +
-                             (size_t)az * dstPitch[3] + d;
-              sum += tBias[d];
-              tOutput[addr] = sum;
-            } // D
-          }   // W
-        }     // H
-      }       // C
-    }         // G
-  }           // N
-}
-
-  template <ElemKind elK, size_t N, size_t PN>
-inline void fwdLibConvolution3DInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                            LibTensor* in2T, LibTensor* in3T,
-                                            const std::array<uint32_t, N> &kernels,
-                                            const std::array<uint32_t, N> &strides,
-                                            const std::array<uint32_t, PN> &pads,
-                                            unsigned int group,
-                                            uint64_t flags,
-                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                                    uint64_t flags,
+                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
