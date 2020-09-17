@@ -30,40 +30,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
-inline void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT,
-                                      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* plengths = inT->getRawDataPointer<void>();
-
-  // const Addresser<elK> lengths(plengths, scale[0], offset[0]);
-  const Addresser<elK> lengths(plengths, inT->getScale(), inT->getOffset());
-  // // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
-  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
-
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  
-  const dim_t *lenIndx = inT->dims().data();
-
-  auto offset = lengths[0];
-  offset = 0;
-  for (size_t i = 0; i < lenIndx[0]; i++) {
-    auto length = lengths[i];
-    tOutput[i * dstPitch[0]] = offset;
-    tOutput[i * dstPitch[0] + 1] = length;
-    offset += length;
-  }
-}
 
 template <ElemKind elK>
-void fwdLibLengthsToRangesInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
