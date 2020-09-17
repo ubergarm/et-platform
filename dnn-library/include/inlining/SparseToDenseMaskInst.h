@@ -31,102 +31,17 @@ namespace dnn_lib {
 
 namespace inlining {
 
-  template <ElemKind elK, size_t N>
-inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, LibTensor* in3T,
-                                        LibTensor* in4T,
-                                        const std::array<size_t, N> mask,
-                                        uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0
-                                        ) {
-
-    //    using srcType = typename elemKind2elemTy<elK>::type;
-    if (get_minion_id() != minionOffset) return;
-    
-  /* maintain compatibility through the new Iface Libtensor */
-  /* out--> dest in2T->val in3T->dft in1T->idx in4T->len*/
-  void* pdst = outT->getRawDataPointer<void>();
-  void* pdata = in2T->getRawDataPointer<void>();
-  void* pdefault = in3T->getRawDataPointer<void>();
-  //  unsigned int pdefaultSize = in3T->size();
-  unsigned int pLengthsSize = in4T->size();
-  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
-  Addresser<elK> tOutput(pdst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<elK> tAInput(pdata, in2T->getScale(), in2T->getOffset());
-  // const Addresser<elK> tDefVInput(pdefault, scale[1], offset[1]);
-  const Addresser<elK> tDefVInput(pdefault, in3T->getScale(), in3T->getOffset());
-  // long long *indices = (long long *)pindices;
-  size_t *indices = in1T->getRawDataPointer<size_t>();
-  // int32_t *lengths = (int32_t *)plengths;
-  int32_t *lengths = in4T->getRawDataPointer<int32_t>();
-
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  
-  // First un-processed index-value pair.
-  size_t posIn = 0;
-  // Beginning of output block for first unprocessed batch.
-  size_t byteoffsetOut = 0;
-  // Lengths can be scalar, which means that all pairs belong to one batch.
-  size_t numBatches = (pLengthsSize == 1) ? 1 : lengths[0];
-  // Go to the next batch
-  size_t advanceBatch = (pLengthsSize == 1) ? 0 : dstPitch[0];
-  // Go to the next position inside batch (row, column..)
-  size_t advanceInBatch = (pLengthsSize == 1) ? dstPitch[0] : dstPitch[1];
-
-  // Position of idx in the mask
-  size_t j = 0;
-  uint64_t srcAddr, srcAddrUp, dstAddr;
-  for (size_t batch = 0; batch < numBatches; batch++) {
-    // Fill everything with maskSize copies of defaultValue.
-    for (size_t i = 0; i < mask.size(); i++) {
-      srcAddr = 0;
-      srcAddrUp = //pdefaultSize;
-      dstAddr = byteoffsetOut + advanceInBatch * i;
-      auto val = tDefVInput[0];
-      for (uint64_t addr = srcAddr, cnt = 0; addr < srcAddrUp; addr++, cnt++) {
-        val = tDefVInput[addr];
-        tOutput[dstAddr + cnt] = val;
-      }
-    }
-    // Go through input pairs and find matches.
-    for (int32_t i = 0; i < lengths[batch]; i++, posIn++) {
-      auto idx = indices[posIn];
-      // Search the mask
-      for (j = 0; j < mask.size(); j++) {
-        if (mask[j] == idx) {
-          break;
-        }
-      }
-      // Skip if ID is not present in the mask.
-      if (j == mask.size())
-        continue;
-
-      srcAddr = posIn * advanceInBatch;
-      srcAddrUp = (posIn + 1) * advanceInBatch;
-      dstAddr = byteoffsetOut + advanceInBatch * j;
-      auto val = tAInput[0];
-      for (uint64_t addr = srcAddr, cnt = 0; addr < srcAddrUp; addr++, cnt++) {
-        val = tAInput[addr];
-        tOutput[dstAddr + cnt] = val;
-      }
-    }
-
-    byteoffsetOut += advanceBatch;
-  }
-}
-
 // Assumptions for the SparseToDenseMaskInst threaded version:
 // (1) The pmask vector size (pMaskSize) has the same length as the second dimension of the output tensor.
 // (2) The dimensions and pitches of the pdefault tensor are the ones of a batch of the data tensor.
 
   template <ElemKind elK, size_t N>
-inline void fwdLibSparseToDenseMaskInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                                LibTensor* in2T, LibTensor* in3T,
-                                                LibTensor* in4T,
-                                                const std::array<size_t, N> mask,
-                                                uint64_t flags,
-                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
+                                        LibTensor* in2T, LibTensor* in3T,
+                                        LibTensor* in4T,
+                                        const std::array<size_t, N> mask,
+                                        uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
