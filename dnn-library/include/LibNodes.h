@@ -67,8 +67,6 @@ extern template void fwdLibAvgPoolInstThreaded<Int8QTy>(LibTensor* out0, LibTens
 // declarations
 template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
 void fwdLibBatchedAddInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibBatchedAddInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibBatchedAddInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
@@ -77,12 +75,6 @@ extern template void fwdLibBatchedAddInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* ou
 extern template void fwdLibBatchedAddInst<Int8QTy,Int8QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibBatchedAddInst<Int16QTy,Int16QTy,Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibBatchedAddInst<Int16QTy,Int16QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibBatchedAddInstThreaded<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibBatchedAddInstThreaded<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibBatchedAddInstThreaded<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibBatchedAddInstThreaded<Int8QTy,Int8QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibBatchedAddInstThreaded<Int16QTy,Int16QTy,Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibBatchedAddInstThreaded<Int16QTy,Int16QTy,Int32QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  BatchedReduceAdd implementations
