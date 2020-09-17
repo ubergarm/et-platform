@@ -31,95 +31,9 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-
-  const auto pLengthsSize = in2T->dims()[0];
-  /* outT --> dst  in1T--> src   in2T--> length */
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = in1T->getRawDataPointer<void>();
-
-  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tTmp(pdst, scale[2], offset[2]);
-  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
-  const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
-  // int32_t *lengths = (int32_t *)plengths;
-  int32_t *lengths = in2T->getRawDataPointer<int32_t>();
-
-  // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const dim_t *dataIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const dim_t *dataPitch = in1T->strides().data();
-
-  unsigned int pdataDimNum = static_cast<unsigned int>(in1T->ndims());  
-    
-  unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eDataPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (size_t i = 0; i < pdataDimNum; i++) {
-    eDims[i] = dataIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eDataPitch[i] = dataPitch[i];
-  }
-
-  uint64_t addrSrc, addrDst;
-  // Initialize to zero output tensor
-  for (size_t i = 0; i < pLengthsSize; i++) {
-    for (size_t y = 0; y < eDims[1]; y++) {
-      for (size_t z = 0; z < eDims[2]; z++) {
-        for (size_t w = 0; w < eDims[3]; w++) {
-          for (size_t q = 0; q < eDims[4]; q++) {
-            for (size_t r = 0; r < eDims[5]; r++) {
-              addrDst = i * eDstPitch[0] + y * eDstPitch[1] +
-                        z * eDstPitch[2] + w * eDstPitch[3] +
-                        q * eDstPitch[4] + r * eDstPitch[5];
-              tOutput[addrDst] = 0;
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Global index inside data
-  size_t posIn = 0;
-  for (size_t i = 0; i < pLengthsSize; i++) {
-    for (int32_t j = 0, e = lengths[i]; j < e; j++, posIn++) {
-      // Sum elements across batch dimension
-      for (size_t y = 0; y < eDims[1]; y++) {
-        for (size_t z = 0; z < eDims[2]; z++) {
-          for (size_t w = 0; w < eDims[3]; w++) {
-            for (size_t q = 0; q < eDims[4]; q++) {
-              for (size_t r = 0; r < eDims[5]; r++) {
-                addrDst = i * eDstPitch[0] + y * eDstPitch[1] +
-                          z * eDstPitch[2] + w * eDstPitch[3] +
-                          q * eDstPitch[4] + r * eDstPitch[5];
-                addrSrc = posIn * eDataPitch[0] + y * eDataPitch[1] +
-                          z * eDataPitch[2] + w * eDataPitch[3] +
-                          q * eDataPitch[4] + r * eDataPitch[5];
-                tOutput[addrDst] = tTmp[addrDst] + tAInput[addrSrc];
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-template <ElemKind elK>
-inline void fwdLibLengthsSumInstThreaded(LibTensor* outT, LibTensor* in1T,
-                                         LibTensor* in2T, uint64_t flags,
-                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T,
+                                 LibTensor* in2T, uint64_t flags,
+                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;

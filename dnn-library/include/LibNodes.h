@@ -850,8 +850,6 @@ extern template void fwdLibLengthsRangeFillInst<Int32ITy>(LibTensor* out0, LibTe
 // declarations
 template <ElemKind in0Type>
 void fwdLibLengthsSumInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind in0Type>
-void fwdLibLengthsSumInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibLengthsSumInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
@@ -860,12 +858,6 @@ extern template void fwdLibLengthsSumInst<Int8QTy>(LibTensor* out0, LibTensor* i
 extern template void fwdLibLengthsSumInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibLengthsSumInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibLengthsSumInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsSumInstThreaded<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsSumInstThreaded<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsSumInstThreaded<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsSumInstThreaded<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsSumInstThreaded<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsSumInstThreaded<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  LengthsToRanges implementations
