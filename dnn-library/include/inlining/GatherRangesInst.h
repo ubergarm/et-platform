@@ -30,102 +30,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind srcElK, ElemKind indexElK>
-inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
-                                   LibTensor* in1T, LibTensor* in2T,
-                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<srcElK>::type;
-  using indexType = typename elemKind2elemTy<indexElK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  /* out-> dst out2T--> dest2(lengths) in1T--> src in2T--> rangesT*/
-  void* dstT = outT->getRawDataPointer<void>();
-  void* dst2T = out2T->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
-  void* prangesT = in2T->getRawDataPointer<void>();
-
-  Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
-  const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  Addresser<indexElK> tRanges(prangesT, in2T->getScale(), in2T->getOffset());  
-  // Addresser<indexElK> tLengths(dst2T, scale[2], offset[2]);
-  Addresser<indexElK> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
-  
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  //  const dim_t *srcIndex = in1T->dims().data();
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  //const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *rangesIndex = (unsigned int *)prangesDims;
-  const dim_t *rangesIndex = in2T->dims().data();
-  // unsigned int *lenIndex = (unsigned int *)dst2Dims;
-  //const dim_t *lenIndex = out2T->dims().data();
-
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
-  const dim_t *rangesPitch = in2T->strides().data();
-  // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
-  const dim_t *lenPitch = out2T->strides().data();
-  
-  // Offset into the output tensor that keeps track of where to start
-  // copying data.
-  uint64_t outP = 0;
-
-  // unsigned dataElementSize = dataTy.getElementSize();
-  indexType numExamples = rangesIndex[0];
-  indexType exampleSize = rangesIndex[1];
-
-  // Keep track of the total number of elements gathered across all
-  // examples for a sanity check later.
-  size_t grandTotalLen = 0;
-
-  // For each example in ranges:
-  for (indexType example = 0; example < numExamples; example++) {
-    // Keep a running total of the lengths of all ranges in this example
-    // to record into lengthsT once the entire example is processed.
-    indexType totalLen = 0;
-
-    // For each range in the example:
-    for (indexType range = 0; range < exampleSize; range++) {
-      // Get the start index and range length.
-      indexType startIdx =
-          tRanges[example * rangesPitch[0] + range * rangesPitch[1]];
-      indexType len = tRanges[example * rangesPitch[0] +
-                              range * rangesPitch[1] + 1 * rangesPitch[2]];
-
-      // Add the length of this current range to the example length counter.
-      totalLen += len;
-
-      // Copy the specified data to outT.
-      uint64_t srcAddr = startIdx * srcPitch[0];
-      uint64_t srcAddrUp = (startIdx + len) * srcPitch[0];
-
-      auto val = tInput[0];
-      for (uint64_t i = srcAddr, j = 0; i < srcAddrUp; i++, j++) {
-        val = tInput[i];
-        tOutput[outP + j] = val;
-      }
-
-      // Advance the offset into outT.
-      outP += len * dstPitch[0];
-    }
-
-    // Record the total number of elements gathered for the example in
-    // lengthsT.
-    tLengths[example * lenPitch[0]] = totalLen;
-
-    // Add the total length of the entire example to the grand total.
-    grandTotalLen += static_cast<size_t>(totalLen);
-  }
-
-  // Make sure that number of elements written to outT is equal to the
-  // total of all elements in lengthsT.
-  // assert(grandTotalLen == (outP / dstPitch[0]));
-}
-
 
 // The range tensor has dimensions n x m x 2, where n is the number of examples and m is the number of
 // ranges per example. For any pair (i,j), the element ranges[i,j,0] is the source tensor batch number from
@@ -133,10 +37,10 @@ inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
 // of batches of the source tensor that will be copied.
 
 template <ElemKind srcElK, ElemKind indexElK>
-inline void fwdLibGatherRangesInstThreaded(LibTensor* outT, LibTensor* out2T,
-                                           LibTensor* in1T, LibTensor* in2T,
-                                           uint64_t flags,
-                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
+                                   LibTensor* in1T, LibTensor* in2T,
+                                   uint64_t flags,
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using indexType = typename elemKind2elemTy<indexElK>::type;
