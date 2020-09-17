@@ -29,69 +29,11 @@
 namespace dnn_lib {
 
 namespace inlining {
-
-inline void fwdLibIntLookupTableInst(LibTensor* outT, LibTensor* in1T,
+inline void fwdLibIntLookupTableInst(LibTensor* outT,
+                                     LibTensor* in1T,
                                      LibTensor* in2T,
-                                     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  assert(outT->getElementType() == Int8QTy &&
-         in1T->getElementType() == Int8QTy &&
-         in2T->getElementType() == Int8QTy);
-  
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-
-  // int8_t *ptrDstT = (int8_t *)dstT;
-  int8_t *ptrDstT = outT->getRawDataPointer<int8_t>();
-  // int8_t *ptrSrcT1 = (int8_t *)src1T;
-  int8_t *ptrSrcT1 = in1T->getRawDataPointer<int8_t>();
-  // int8_t *ptrSrcT2 = (int8_t *)src2T;
-  int8_t *ptrSrcT2 = in2T->getRawDataPointer<int8_t>();
-  
-  // unsigned int *src1Index = (unsigned int *)src1Dims;
-  const dim_t* src1Index =  in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t* dstPitch = outT->strides().data();
-  // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
-  const dim_t* src1Pitch = in1T->strides().data();
-
-  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
-  
-  unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (size_t i = 0; i < dstDimNum; i++) {
-    eDims[i] = src1Index[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrc1Pitch[i] = src1Pitch[i];
-  }
-
-  for (size_t x = 0; x < eDims[0]; x++) {
-    for (size_t y = 0; y < eDims[1]; y++) {
-      for (size_t z = 0; z < eDims[2]; z++) {
-        for (size_t w = 0; w < eDims[3]; w++) {
-          for (size_t q = 0; q < eDims[4]; q++) {
-            for (size_t r = 0; r < eDims[5]; r++) {
-              int val = ptrSrcT1[x * eSrc1Pitch[0] + y * eSrc1Pitch[1] +
-                                 z * eSrc1Pitch[2] + w * eSrc1Pitch[3] +
-                                 q * eSrc1Pitch[4] + r * eSrc1Pitch[5]];
-              ptrDstT[x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
-                      w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5]] =
-                  ptrSrcT2[val + 128];
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-inline void fwdLibIntLookupTableInstThreaded(LibTensor* outT,
-                                             LibTensor* in1T,
-                                             LibTensor* in2T,
-                                             uint64_t flags,
-                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                                     uint64_t flags,
+                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
