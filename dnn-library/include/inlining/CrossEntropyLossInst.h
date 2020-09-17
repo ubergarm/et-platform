@@ -30,58 +30,14 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
-inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst
-    ( LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-      uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-
-  if (get_minion_id() != minionOffset) return;
-  
-  /* outT --> dst  in1T--> src in2T--> index*/
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = in1T->getRawDataPointer<void>();
-
-  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tTmp(dstT, scale[2], offset[2]);
-  const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
-  const Addresser<elK> tInput(src, in1T->getScale(), in1T->getOffset());
-  // long long *tLabels = (long long *)labelsT;
-  long long *tLabels = in2T->getRawDataPointer<long long>();
-  
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const dim_t *srcIndex = in1T->dims().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
-  
-  float op1;
-  const float op2 = M_1_LOG2E;
-
-  // Initialize to zero output tensor
-  tOutput[0] = 0;
-
-  for (size_t n = 0; n < srcIndex[0]; ++n) {
-    size_t y = tLabels[n];
-    float p_n = float(tInput[n * srcPitch[0] + y]);
-    fpLog2SingleElement(p_n, op1);
-    float mulOp = op1 * op2;
-    auto tmp = tTmp[0];
-    tmp -= mulOp;
-    tOutput[0] = tmp;
-  }
-}
 
 template <ElemKind elK>
-inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInstThreaded(
-                                                                              LibTensor* outT,
-                                                                              LibTensor* in1T,
-                                                                              LibTensor* in2T,
-                                                                              uint64_t flags,
-                                                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
+                                                                      LibTensor* outT,
+                                                                      LibTensor* in1T,
+                                                                      LibTensor* in2T,
+                                                                      uint64_t flags,
+                                                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
