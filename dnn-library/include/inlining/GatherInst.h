@@ -30,69 +30,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind srcElK, ElemKind indexElK>
-inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                             unsigned int batchedDims,
-                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<srcElK>::type;
-  //  using indexType = typename elemKind2elemTy<indexElK>::type;
-  
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT->dst  in1T--> src  in2T--> index*/
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
-  void* indexT = in2T->getRawDataPointer<void>();
-  
-  // Addresser<srcType> tOutput(dstT, scale[2], offset[2]);
-  Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<srcType> tInput(srcT, scale[0], offset[0]);
-  const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
-  // const Addresser<indexType> tIndices(indexT, scale[1], offset[1]);
-  const Addresser<indexElK> tIndices(indexT, in2T->getScale(), in2T->getOffset());
-  
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in1T->strides().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
-  const dim_t *indicesPitch = in2T->strides().data();
-
-  unsigned int srcDimsNum = static_cast<unsigned int>(in1T->ndims());
-   
-  size_t index;
-  uint64_t srcAddr;
-  uint64_t srcAddrUp;
-  uint64_t dstAddr;
-  auto val = tInput[0];
-  // For each sample in the batch:
-  for (size_t i = 0; i < dstIndex[0]; i++) {
-    // For each slice (small fragment) that we copy from the source memory:
-    for (size_t j = 0; j < dstIndex[1]; j++) {
-      // Reads index [i,j]
-      if (batchedDims != srcDimsNum - 1) {
-        index = tIndices[i * indicesPitch[batchedDims] + j];
-        srcAddr = index * srcPitch[batchedDims];
-        srcAddrUp = (index + 1) * srcPitch[batchedDims];
-        dstAddr = i * dstPitch[batchedDims] + j * dstPitch[batchedDims + 1];
-      } else {
-        index = tIndices[j];
-        srcAddr = i * srcPitch[batchedDims - 1] + index * srcPitch[batchedDims];
-        srcAddrUp =
-            i * srcPitch[batchedDims - 1] + (index + 1) * srcPitch[batchedDims];
-        dstAddr = i * dstPitch[batchedDims - 1] + j;
-      }
-      // perform the copy
-      for (uint64_t i = srcAddr, num = 0; i < srcAddrUp; i++, num++) {
-        val = tInput[i];
-        tOutput[dstAddr + num] = val;
-      }
-    }
-  }
-}
 
 // The threaded version of the GatherInst function generalises the function to
 // any given dimensions for the two source tensors (tInput and tIndices). tInput
@@ -107,9 +44,9 @@ inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
 // index values for the i-th dimension of the source tensor tInput.
 
 template <ElemKind srcElK, ElemKind indexElK>
-inline void fwdLibGatherInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                     
-                                     unsigned int batchedDims, uint64_t flags,
-                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                     
+                             unsigned int batchedDims, uint64_t flags,
+                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   //  using indexType = typename elemKind2elemTy<indexElK>::type;
   
