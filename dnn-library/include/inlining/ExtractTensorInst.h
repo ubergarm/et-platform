@@ -30,72 +30,13 @@ namespace dnn_lib {
 
 namespace inlining {
 
+
   template <ElemKind elK>
 inline void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT,
                                     const dim_array_t &coord,
-                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-    //  using srcType = typename elemKind2elemTy<elK>::type;
-  if (get_minion_id() != minionOffset) return;
-
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = inT->getRawDataPointer<void>();
-  
-  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
-  Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tInput(src, scale[0], offset[0]);
-  const Addresser<elK> tInput(src, inT->getScale(), inT->getOffset());
-
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = inT->strides().data();
-  
-  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
-  
-  unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eOffsets[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (size_t i = 0; i < dstDimNum; i++) {
-    eDims[i] = dstIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrcPitch[i] = srcPitch[i];
-    eOffsets[i] = coord[i];
-  }
-
-  // We can use this loop for all shapes.
-  for (size_t x = 0; x < eDims[0]; x++) {
-    for (size_t y = 0; y < eDims[1]; y++) {
-      for (size_t z = 0; z < eDims[2]; z++) {
-        for (size_t w = 0; w < eDims[3]; w++) {
-          for (size_t q = 0; q < eDims[4]; q++) {
-            for (size_t r = 0; r < eDims[5]; r++) {
-              tOutput[x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
-                      w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5]] =
-                  tInput[(eOffsets[0] + x) * eSrcPitch[0] +
-                         (eOffsets[1] + y) * eSrcPitch[1] +
-                         (eOffsets[2] + z) * eSrcPitch[2] +
-                         (eOffsets[3] + w) * eSrcPitch[3] +
-                         (eOffsets[4] + q) * eSrcPitch[4] +
-                         (eOffsets[5] + r) * eSrcPitch[5]];
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-  template <ElemKind elK>
-inline void fwdLibExtractTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                            const dim_array_t &coord,
-                                            uint64_t flags, 
-                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
+                                    uint64_t flags, 
+                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+    using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
