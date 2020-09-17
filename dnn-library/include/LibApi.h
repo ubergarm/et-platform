@@ -1424,18 +1424,15 @@ namespace dnn_lib {
        2,  // # ins
        {}, // members
        1, // template param mask
-       {"Vectorized"}, // impl versions
-       implSel::defaultSel<2>, // custom impl selector
+       {}, // impl versions
+       implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
-       {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
-       {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
        // CB states per impl
-       {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-       {0x0, 0x0} // evict available mask
+       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0} // evict available mask
      },
      /**** ET_sparsetodensemask ****/
      { "SparseToDenseMask", // name

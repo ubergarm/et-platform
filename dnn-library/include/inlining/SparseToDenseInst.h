@@ -30,93 +30,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-  // threaded version is the generic version
-template <ElemKind elK>
-inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
-            LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
-            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
-
-  /* outT --> dst  in2T--> src   in1T--> indices */
-  /* maintain compatibility through the new Iface Libtensor */
-
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in2T->getRawDataPointer<void>();
-
-  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
-  const Addresser<elK> tInput(srcT, in2T->getScale(), in2T->getOffset());
-  // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
-  Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in1T->getRawDataPointer<long long>();
-  
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *indIndex = (unsigned int *)indDims;
-  const dim_t *indIndex = in1T->dims().data();  
-
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = in2T->strides().data();
-
-  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
-  
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = sizeof(srcType);
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstT);
-  if (maxRead == 0)
-    return;
-
-  unsigned int coord[srcDimNum];
-  for (unsigned int i = 0; i < srcDimNum; i++)
-    coord[i] = 0;
-  unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
-                           k);
-
-  unsigned int offsetIn = 0; // Doesn't include srcPitch[0]. offsetIn doesn't
-                             // have the conventional meaning
-  unsigned int offsetOut = 0;
-
-  unsigned int srcPitch_0 = srcPitch[0];
-  // @TODO srcpidtch It is a cnst pointer!!!!. Re-do in other way
-  // it is not allowed modify tensor properties. It needs a cpy of it.
-  size_t cpySrcPitch[srcDimNum] = {0,};
-  for (size_t i = 0; i < srcDimNum; i++)
-    cpySrcPitch[i] = srcPitch[i];
-  // srcPitch[0] = 0;
-  cpySrcPitch[0] = 0;
-  
-  for (unsigned int j = 0; j < k; j++) {
-    offsetOut += dstPitch[j] * coord[j];
-    offsetIn += cpySrcPitch[j] * coord[j];
-  }
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
-
-  while (!done && (offsetOut < posMax)) {
-    srcType sum;
-    sum = 0;
-    for (size_t j = 0; j < indIndex[0]; j++) {
-      if (tIndex[j] == coord[0]) sum = sum + tInput[offsetIn + j * srcPitch_0];
-    }
-    tOutput[offsetOut] = sum;
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, dstIndex,
-                      cpySrcPitch, dstPitch);
-  }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
-}
 
 template <ElemKind elK, typename std::enable_if<elK == FloatTy,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
@@ -269,14 +182,15 @@ inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintp
 unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
 }
 
-
+  
+  // vetorized version
 template <ElemKind elK>
-inline __attribute__((always_inline)) void fwdLibSparseToDenseInstVectorized(
-           LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-           uint64_t flags,
-           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
+                                                                   LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                                                   uint64_t flags,
+                                                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-
+  
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
