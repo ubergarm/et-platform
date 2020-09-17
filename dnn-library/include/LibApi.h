@@ -1432,15 +1432,18 @@ namespace dnn_lib {
        4,  // # ins
        {}, // members
        10, // template param mask
-       {}, // impl versions
-       implSel::defaultSel<1>, // custom impl selector
+       {"Threaded"}, // impl versions
+       implSel::SparseLengthsWeightedSum, // custom impl selector
        // L1 states per impl
-       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // L2 states per impl
-       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
        // CB states per impl
-       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
-       {0x0} // evict available mask
+       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid},
+        {operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
+       {0x0, 0x0} // evict available mask
      },
      /**** ET_sparsetodense ****/
      { "SparseToDense", // name

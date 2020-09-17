@@ -239,6 +239,13 @@ namespace dnn_lib {
       return 0;
     }
 
+    
+    // Best implementation selector for operator SparseLengthsWeightedSum. Return values are:
+    //   0: base implementation
+    //   1: Threaded 
+    static size_t SparseLengthsWeightedSum(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      return 0;
+    }
 
   };
   
