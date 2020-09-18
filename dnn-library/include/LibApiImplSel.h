@@ -266,8 +266,15 @@ namespace dnn_lib {
       }
 
       return 0;
-}
-
+    }
+    
+    // Best implementation selector for operator AvgPool. Return values are:
+    //   0: base implementation
+    //   1: Threaded 
+    static size_t AvgPool(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      return (inTensors[0]->ndims() == 5) ? 0 : 1;
+    }
+    
 
   };
   

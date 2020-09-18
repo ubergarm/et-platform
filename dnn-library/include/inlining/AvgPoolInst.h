@@ -189,16 +189,17 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
        uint64_t flags, 
        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  if (get_minion_id() != minionOffset) return;
-
-  assert(inT->getElementType() == outT->getElementType());
-  assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
-  
+      
   if (inT->ndims() == 5) {
     fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
                minionOffset, assignedMinions);
     return;
   }
+
+  if (get_minion_id() != minionOffset) return;
+
+  assert(inT->getElementType() == outT->getElementType());
+  assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
@@ -329,16 +330,11 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
-
+  
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  if (inT->ndims() == 5) {
-    fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, 
-               minionOffset, assignedMinions);
-    return;
-  }
 
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();

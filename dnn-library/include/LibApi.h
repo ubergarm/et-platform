@@ -179,7 +179,7 @@ namespace dnn_lib {
        {mbKernels, mbStrides, mbPads}, // members
        1, // template param mask
        {"Threaded"}, // impl versions
-       implSel::defaultSel<2>, // custom impl selector
+       implSel::AvgPool, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
