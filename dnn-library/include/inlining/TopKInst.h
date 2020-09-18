@@ -73,86 +73,6 @@ static void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
   }
 }
   
-// In this implementation we suppose that the dstPitches (1 and 2) have padding
-// which ensures the dstPitches[n-2] being multiple of cacheline length if not,
-// it needs sore global or reduce
-template <ElemKind elK>
-inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT, unsigned int k,
-                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-  
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  void* srcT = inT->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
-
-  const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
-  Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
-
-  // long long *indT = (long long *)dstT2;
-  long long *indT = out2T->getRawDataPointer<long long>();
-
-  // unsigned int *inputIndex = (unsigned int *)srcDims;
-  const dim_t *inputIndex = inT->dims().data();
-  // unsigned int *valuesPitch = (unsigned int *)dstPitches;
-  const dim_t *valuesPitch = outT->strides().data();
-  // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const dim_t *indPitch = out2T->strides().data();
-  // unsigned int *inputPitch = (unsigned int *)srcPitches;
-  const dim_t *inputPitch = inT->strides().data();
-
-  uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  size_t n = inputIndex[srcDimNum - 1];
-  // todo make it dependent of the type
-  float tmpValues[n];
-  long long tmpInd[n];
-
-  unsigned int eDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eValuesPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eIndPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eInputPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-
-  for (uint8_t i = 0; i < srcDimNum - 1; i++) {
-    eDims[i] = inputIndex[i];
-    eValuesPitch[i] = valuesPitch[i];
-    eIndPitch[i] = indPitch[i];
-    eInputPitch[i] = inputPitch[i];
-  }
-
-  for (size_t x = 0; x < eDims[0]; x++) {
-    for (size_t y = 0; y < eDims[1]; y++) {
-      for (size_t z = 0; z < eDims[2]; z++) {
-        for (size_t w = 0; w < eDims[3]; w++) {
-          for (size_t q = 0; q < eDims[4]; q++) {
-            for (size_t r = 0; r < eDims[5]; r++) {
-              // Do once per the most inner dimension
-              for (size_t i = 0; i < n; i++) {
-                tmpValues[i] = inputT[i * inputPitch[srcDimNum - 1] +
-                                      x * eInputPitch[0] + y * eInputPitch[1] +
-                                      z * eInputPitch[2] + w * eInputPitch[3] +
-                                      q * eInputPitch[4] + r * eInputPitch[5]];
-                tmpInd[i] = i;
-              }
-              partialQuicksort(&tmpValues[0], &tmpInd[0], 0, n - 1, k);
-              for (size_t i = 0; i < k; i++) {
-                valuesT[i * valuesPitch[srcDimNum - 1] + x * eValuesPitch[0] +
-                        y * eValuesPitch[1] + z * eValuesPitch[2] +
-                        w * eValuesPitch[3] + q * eValuesPitch[4] +
-                        r * eValuesPitch[5]] = tmpValues[i];
-                indT[i * indPitch[srcDimNum - 1] + x * eIndPitch[0] +
-                     y * eIndPitch[1] + z * eIndPitch[2] + w * eIndPitch[3] +
-                     q * eIndPitch[4] + r * eIndPitch[5]] = tmpInd[i];
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
   
 template <ElemKind elK>
 inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
@@ -670,10 +590,10 @@ inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTens
 
 
 template <ElemKind elK>
-inline void fwdLibTopKInstThreaded(LibTensor* outT, LibTensor* out2T,
-                                   LibTensor* inT, const uint32_t k,
-                                   uint64_t flags,
-                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T,
+                           LibTensor* inT, const uint32_t k,
+                           uint64_t flags,
+                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   // TODO : For (k < 4) the specialized version is not working, needs to be fixed. 
   if ((k > 8) or (k < 4))
