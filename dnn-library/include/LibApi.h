@@ -1014,7 +1014,7 @@ namespace dnn_lib {
        {mbOffsets, mbCount, mbAxis}, // members
        2, // template param mask
        {"Threaded"}, // impl versions
-       implSel::defaultSel<2>, // custom impl selector
+       implSel::InsertTensor, // custom impl selector
        // L1 states per impl
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},

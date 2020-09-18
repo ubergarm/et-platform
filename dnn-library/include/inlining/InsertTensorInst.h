@@ -99,123 +99,6 @@ inline __attribute__((always_inline))
 
 }
 
-//FIXME This version fits the small cases that currently are not vectorized,
-//but it still fails some tests.
-//template <ElemKind elK>
-//void fwdLibInsertTensorInstThreaded(void *dst, void *dstDims,
-//                                             void *dstPitches,
-//                                             unsigned int dstDimNum, void *src2,
-//                                             void *src2Dims, void *src2Pitches,
-//                                             void *poffsets, unsigned int count,
-//                                             unsigned int axis, const float *scale,
-//                                             const int32_t *offset, uint64_t flags) {
-//  using srcType = typename elemKind2elemTy<elK>::type;
-//  Addresser<elK> tOutput(dst, scale[1], offset[1]);
-//  const Addresser<elK> tAInput(src2, scale[0], offset[0]);
-//
-//  unsigned int *dstIndex = (unsigned int *)dstDims;
-//  unsigned int *actIndex = (unsigned int *)src2Dims;
-//
-//  unsigned int *actPitch = (unsigned int *)src2Pitches;
-//  unsigned int *dstPitch = (unsigned int *)dstPitches;
-//  unsigned int *coord = (unsigned int *)poffsets;
-//
-//  unsigned int minionId = get_minion_id();
-//  unsigned int activeMinions = MIN_PER_SHIRE * ACTIVE_SHIRES;
-//  if (minionId >= activeMinions)
-//    return;
-//  size_t typeSize = getsize<srcType>();
-//  unsigned int cll = CACHE_LINE_BYTES/typeSize;
-//
-//  //Computing initial and last Address for each minion
-//  unsigned int helper = actIndex[axis];
-//  actIndex[axis] *= count;
-//  unsigned int lastPos, addrOffset;
-//  if(axis == dstDimNum - 1) {
-//    //TODO these two for should be merged in one.
-//    //FIXME It should depend on axis == n-1, where the lastPos should be in the
-//    //next last element and in the axis != n-1, where the last element is as
-//    //here
-//    addrOffset = lastPos =  0;
-//    for (unsigned int i = 0; i < dstDimNum; i++) {
-//      addrOffset += coord[i] * dstPitch[i];
-//    }
-//    // Is it really necessary the last dimension term?
-//    for (unsigned int i = dstDimNum - 2; i < dstDimNum - 1; i++) {
-//      lastPos += (coord[i] + actIndex[i]) *
-//               dstPitch[i];
-//    }
-//    for (unsigned int i = 0; i < dstDimNum - 1; i++) {
-//      lastPos += (coord[i] + actIndex[i] - 1) * dstPitch[i];
-//    }
-//  }
-//  else {
-//    lastPos = (coord[axis] + actIndex[axis]) * dstPitch[axis];
-//    addrOffset = coord[axis] * dstPitch[axis];
-//    for (unsigned int i = 0; i < axis; i++) {
-//      lastPos += (coord[i] + actIndex[i] - 1) * dstPitch[i];
-//      addrOffset += coord[i] * dstPitch[i];
-//    }
-//  }
-//
-//  unsigned int moved = addrOffset % cll;
-//  unsigned int ncl = (moved + lastPos - addrOffset - 1) / cll + 1;
-//  unsigned int mcl = (ncl - 1) / activeMinions + 1;
-//  unsigned int div = ncl / mcl;
-//  unsigned int maxRead;
-//  if (minionId < div)
-//    maxRead = mcl * cll;
-//  else if (minionId == div)
-//    maxRead = (ncl - div * mcl) * cll;
-//  else
-//    return;
-//  unsigned int addrOut = addrOffset + maxRead * minionId;
-//  unsigned int posMax = std::min(addrOut + maxRead - moved, lastPos);
-//  if (minionId != 0){
-//    addrOut -= moved;
-//  }
-//
-//  //Jumping to the next useful position
-//  unsigned int coordIn[dstDimNum], k, addrIn;
-//  getNonPaddingCoordinates(coordIn, addrOut - addrOffset, dstDimNum, dstPitch, actIndex, k);
-//  addrIn = addrOut = 0;
-//  for (unsigned int i = 0; i < axis; i++) {
-//    addrOut += (coord[i] + coordIn[i]) * dstPitch[i];
-//    addrIn += coordIn[i] * actPitch[i];
-//  }
-//  addrOut += (coord[axis] + coordIn[axis]) * dstPitch[axis];
-//  addrIn += (coordIn[axis] % helper) * actPitch[axis];
-//  for (unsigned int i = axis + 1; i < dstDimNum; i++) {
-//    addrIn += coordIn[i] * actPitch[i];
-//    addrOut += (coord[i] + coordIn[i]) * dstPitch[i];
-//  }
-//
-//  bool done = false;
-//  while ((addrOut < posMax) && !done) {
-//    tOutput[addrOut] = tAInput[addrIn];
-//  // TODO try using two getoffsets functions in order to verify this is correct
-//    for (int j = dstDimNum - 1; j >= 0; j--) {
-//      if (coordIn[j] != (actIndex[j] - 1)) {
-//        addrOut += dstPitch[j];
-//        coordIn[j]++;
-//        //if ((j != axis) || (coordIn[axis] % helper != 0))
-//        addrIn += actPitch[j];
-//        //TODO avoid this if and module every iteration with a counter
-//        if ((j == axis) && (coordIn[axis] % helper == 0))
-//          addrIn -= helper * actPitch[axis];
-//        break;
-//      } else if (j != 0) {
-//        if (j != axis)
-//          addrIn -= (actIndex[j] - 1) * actPitch[j];
-//        else
-//          addrIn -= (helper - 1) * actPitch[axis];
-//        addrOut -= (actIndex[j] - 1) * dstPitch[j];
-//        coordIn[j] = 0;
-//      } else
-//        done = true;
-//    }
-//  }
-//}
 
 template <typename srcType>
 inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
@@ -306,14 +189,6 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                                     const uint32_t minionOffset = 0,
                                     const  uint32_t assignedMinions = 0) {
 
-  // threaded version only works for CL aligned output tensors
-  // otherwise, call the single thread version
-  // checking size is multiple of 64B => assuming start is CL aligned
-  if (outT->getSizeInBytes() % CACHE_LINE_BYTES != 0) {
-    inlining::fwdLibInsertTensorInst<elK>(outT, inT, coord, count, axis, flags, minionOffset, assignedMinions);
-    return;
-  }
-  
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) :  assignedMinions;
@@ -329,13 +204,6 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
    
   int32_t typeSize = (int32_t) getsize<srcType>();
-  unsigned int cll = CACHE_LINE_BYTES/typeSize;
-
-  if ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) {
-    inlining::fwdLibInsertTensorInst<elK>(outT, inT, coord, count, axis,
-                                    flags, minionOffset);
-    return;
-  }
 
   
   // Addresser<elK> tOutput(dst, scale[1], offset[1]);

@@ -247,6 +247,28 @@ namespace dnn_lib {
       return 0;
     }
 
+    // Best implementation selector for operator InsertTensor. Return values are:
+    //   0: base implementation
+    //   1: Threaded 
+    static size_t InsertTensor(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      // threaded version only works for CL aligned output tensors
+      // otherwise, call the single thread version
+      // checking size is multiple of 64B => assuming start is CL aligned
+      if (outTensors[0]->getSizeInBytes() % CACHE_LINE_BYTES != 0) {
+        return 0;
+      }
+      else {
+        auto typeSize = outTensors[0]->getElementSize();
+        auto cll = CACHE_LINE_BYTES/typeSize;
+        auto &dstPitch = outTensors[0]->strides();
+        auto dstDimNum = outTensors[0]->ndims();
+        return ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) ? 0 : 1;
+      }
+
+      return 0;
+}
+
+
   };
   
 }
