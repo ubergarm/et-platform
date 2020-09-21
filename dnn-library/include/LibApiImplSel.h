@@ -31,6 +31,10 @@ namespace dnn_lib {
         // check for SW-4328
         return 0;
       }
+      else if ( dstElK == srcElK) {
+        // check for SW-4339
+        return 0;
+      }
       else if ((inT->dims()[inT->ndims()-1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0]) ||
           (srcElK == FloatTy  && dstElK == Int64ITy ) ||
           (srcElK == FloatTy  && dstElK == Int32ITy)  || 
