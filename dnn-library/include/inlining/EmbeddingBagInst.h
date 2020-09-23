@@ -199,7 +199,8 @@ inline __attribute((always_inline))
 void embeddingBagsTailVectorized(
     uintptr_t minionCurrIndex, uintptr_t currSegmentStart,
     uintptr_t currSegmentEnd,
-    uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
+    uint8_t *tAInput, int64_t *indices,
+    uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
     uint8_t *tWInput, uint8_t *dst_ptr) { 
 
   const bool float32Dst = (elK == FloatTy);
@@ -221,7 +222,8 @@ void embeddingBagsTailVectorized(
   for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex;
        j < currSegmentEnd; j++, currIndex++) {
 
-    uint8_t *data_ptr   = tAInput + indices[currIndex] * dataRowPitch;
+    uint8_t *data_ptr   = tAInput + indices[currIndex] * dataRowPitch
+                                  + dataRowGroupOffset;
     uint8_t *weight_ptr = tWInput + currIndex * elemSize;
   
     __asm__ __volatile__ (
@@ -487,11 +489,11 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
           : "f2", "f3", "f20"
        );
       }
-
       // For all sparse input rows.
       for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex;
            j < currSegmentEnd; j++, currIndex++) {
-        volatile uint8_t *data_ptr   = tAInput + indices[currIndex] * in1T->strides()[0] * elemSize;
+        volatile uint8_t *data_ptr   = tAInput + (  indices[currIndex] * in1T->strides()[0]
+                                                  + minionCurrRowGroup * dstGroupElems) * elemSize;
         volatile uint8_t *weight_ptr = tWInput + currIndex * elemSize;
 
         __asm__ __volatile__ (
@@ -578,14 +580,14 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
         );
       }
 
-      minionCurrIndex += (currSegmentEnd - currSegmentStart);
-
       if (minionCurrRowGroup != (dstRowGroups - 1)) {
         minionCurrRowGroup++;
       } else {
         // Move from row tail to next row.
         minionCurrSegment++;
         minionCurrRowGroup = 0;
+
+        minionCurrIndex += (currSegmentEnd - currSegmentStart);
 
         getNextSegment(minionCurrSegment);
 
@@ -613,7 +615,9 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
         embeddingBagsTailVectorized<elK>(minionCurrIndex,
           currSegmentStart, currSegmentEnd,
           tAInput, indices,
-          in1T->strides()[0] * elemSize, tWInput, dst_ptr);
+          in1T->strides()[0] * elemSize,
+          (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize ,
+          tWInput, dst_ptr);
           dst_ptr += 8 * elemSize;
       }
 
@@ -627,7 +631,9 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
       embeddingBagsTailVectorized<elK>(minionCurrIndex,
         currSegmentStart, currSegmentEnd,
         tAInput, indices,
-        in1T->strides()[0] * elemSize, tWInput, dst_ptr);
+        in1T->strides()[0] * elemSize,
+        (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize,
+        tWInput, dst_ptr);
 
       minionCurrIndex += (currSegmentEnd - currSegmentStart);
 
