@@ -264,7 +264,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   bool dstRowHasTail = ((dstRowSize % CACHE_LINE_BYTES) != 0);
 
   // Compute the number of 8-element vectors in the tail of the row.
-  uintptr_t dstRowTailVRegs = (((dstRowSize - 1) / 8) + 1) % dstCacheLineVRegs;
+  int dstRowTailVRegs = (((dstRowSize - 1) / 8) + 1) % dstCacheLineVRegs;
 
   // Compute the element mask for the tail of the row.
   uint8_t dstRowTailVRegMask = (1 << (((dstRowSize - 1) % 8) + 1)) - 1;
@@ -324,7 +324,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
     if (dstGroupNotInRowTail) {
       // Not in tail
-      volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
       // Initialize vector mask
       // Clear vector registers that will be used for accumulation
@@ -342,9 +342,9 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         "fxor.pi f7, f0, f0\n"
         "li      t0, 0xff\n"
         "fbcx.ps f30, t0\n"
-        "flw.ps  f31, 0x0(%[gather_offsets])\n"
+        "flw.ps  f31, %[gather_offsets]\n"
         :
-        : [gather_offsets] "r" (gather_offsets)
+        : [gather_offsets] "m" (*(const int32_t(*)[8]) gather_offsets)
         : "t0", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
           "f30", "f31"
       );
@@ -362,9 +362,9 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       // For all sparse input rows.
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
-        volatile uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
-        void             * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
-        void             * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
+        uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
+        void    * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
+        void    * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
 
         if (Weighted){
           uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
@@ -562,7 +562,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
       }
     } else {
-      volatile int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 
       // Initialize mask to clear upper bytes from input load
       __asm__ __volatile__ (
@@ -573,9 +573,9 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       __asm__ __volatile__ (
         "li      t0, 0xff\n"
         "fbcx.ps f30, t0\n"
-        "flw.ps  f31, 0x0(%[gather_offsets])\n"
+        "flw.ps  f31, %[gather_offsets]\n"
         :
-        : [gather_offsets] "r" (gather_offsets)
+        : [gather_offsets] "m" (*(const int32_t(*)[8]) gather_offsets)
         : "t0", "f0", "f30", "f31"
       );
 
@@ -589,7 +589,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         );
       }
 
-      for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
+      for (int k = 0; k < (dstRowTailVRegs - 1); k++) {
           fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
           dataPitches[0], dataRowSize, dstElemSize,
