@@ -161,7 +161,7 @@ namespace dnn_lib {
        1, // # outs
        1,  // # ins
        {mbAxis, mbKeepDims}, // members
-       2, // template param mask
+       3, // template param mask
        {}, // impl versions
        implSel::defaultSel<1>, // custom impl selector
        // L1 states per impl
@@ -1587,6 +1587,22 @@ namespace dnn_lib {
        {{{operandState::invalid, operandState::invalid},
         {operandState::invalid, operandState::invalid}}},
        {0x0, 0x0} // evict available mask
+     },
+     /**** ET_hosttransform ****/
+     { "notImplemented", // name
+       0, // # outs
+       0,  // # ins
+       {}, // members
+       0, // template param mask
+       {}, // impl versions
+       nullptr, // custom impl selector
+       // L1 states per impl
+       {{operandState::invalid}},
+       // L2 states per impl
+       {{operandState::invalid}},
+       // CB states per impl
+       {{operandState::invalid}},
+       {0} // evict available mask
      }
      // INSTR_CONFIG_TABLE_END
     };

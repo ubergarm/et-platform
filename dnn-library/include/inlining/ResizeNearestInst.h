@@ -56,7 +56,7 @@ fwdLibResizeNearestInst(LibTensor* outT, LibTensor* inT,
 
   auto inH = inT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
-
+  
   for (size_t ob = 0; ob < outT->dims()[0]; ++ob) {
     auto ib = std::min(size_t(ob / rszScale[0]), inT->dims()[0] - 1);
     for (size_t oh = 0; oh < outT->dims()[1]; ++oh) {
