@@ -71,14 +71,11 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
   const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
   const dim_t numIndices = in3T->dims()[0];
 
-/*   // NOTE : Pitch is passed as the number of elements, not as bytes. */
-/*   const size_t lineSize = dataDim1Pitch; */
-/*   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works.  */
-/*   //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize()); */
-
-  const dim_t lineSize = in1T->strides()[0];
-  const dim_t outLineSize = outT->strides()[0];
-  //dim_t lineSize = in1T->actualSize() / in1T->getElementSize();
+  // NOTE : Stride is passed as the number of elements, not as bytes.
+  const dim_t inStride    = in1T->strides()[0];
+  const dim_t inElemPerRow = in1T->dims()[1];
+  const dim_t outStride    = outT->strides()[0];
+  
 
   dim_t curIdx = 0;
   for (dim_t i = 0; i < segments; i++) {
@@ -107,9 +104,9 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
 
       float weightfl;
       convertFp16ToFp32(static_cast<uint16_t>(weightH.raw(curIdx)), weightfl);
-      dim_t offsetIn = indxH.raw(curIdx++) * lineSize;
-      dim_t offsetOut = i * outLineSize;
-      for (dim_t k = 0; k < lineSize; k++) {
+      dim_t offsetIn = indxH.raw(curIdx++) * inStride;
+      dim_t offsetOut = i * outStride;
+      for (dim_t k = 0; k < inElemPerRow; k++) {
         float datafl = 0;
         float outfl = 0;
         uint16_t out16 = 0;
@@ -150,13 +147,10 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
   const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
   const dim_t numIndices = in3T->dims()[0];
 
-/*   // NOTE : Pitch is passed as the number of elements, not as bytes. */
-/*   const size_t lineSize = dataDim1Pitch; */
-/*   //@TODO in SW-2429 remove dataDim1Pitch param once the instruction bellow It works.  */
-/*   //const dim_t lineSize = (in1T->strides().data()[0]/in1T->getElementSize()); */
-  const dim_t lineSize = in1T->strides()[0];
-  const dim_t outLineSize = outT->strides()[0];
-  //dim_t lineSize = in1T->actualSize() / in1T->getElementSize();
+  // NOTE : Stride is passed as the number of elements, not as bytes.
+  const dim_t inStride    = in1T->strides()[0];
+  const dim_t inElemPerRow = in1T->dims()[1];
+  const dim_t outStride    = outT->strides()[0];
 
   dim_t curIdx = 0;
   for (dim_t i = 0; i < segments; i++) {
@@ -183,9 +177,9 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
 
     for (dim_t j = start; j < end; j++) {
       elkType weight = weightH.raw(curIdx);      
-      dim_t offsetIn = indxH.raw(curIdx++) * lineSize;
-      dim_t offsetOut = i * outLineSize;
-      for (dim_t k = 0; k < lineSize; k++) {
+      dim_t offsetIn = indxH.raw(curIdx++) * inStride;
+      dim_t offsetOut = i * outStride;
+      for (dim_t k = 0; k < inElemPerRow; k++) {
         outH.raw(offsetOut++) += dataH.raw(offsetIn++) * weight;
       }
     }
@@ -285,8 +279,6 @@ void embeddingBagsTailVectorized(
       : "f0"
     );
   }
-
-  dst_ptr  += 8 * elemSize;
 }
 
 
@@ -322,12 +314,6 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   assert(in1T->getElementType() == FloatTy);
   assert((in3T->getElementType() == Int64ITy) && (in3T->getElementType() == in4T->getElementType()));
 
-  //using elkType = typename elemKind2elemTy<elK>::type;
-
-  //auto outH = outT->getHandle<elkType>();
-  //auto dataH = in1T->getHandle<elkType>();
-  //auto weightH = in2T->getHandle<elkType>();
-  //auto indxH = in3T->getHandle<int64_t>();
   auto offH = in4T->getHandle<int64_t>();
 
   auto tOutput = outT->getRawDataPointer<uint8_t>();
@@ -369,7 +355,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
 
   // Compute the number of 8-element vectors in the tail of the row
   // (number of VRegs not multiple of Group VRegs).
-  const uintptr_t dstRowTailVRegs = (dstRowSize % dstVRegElems) % dstGroupVRegs;
+  const uintptr_t dstRowTailVRegs = (((dstRowSize - 1) / dstVRegElems) + 1) % dstGroupVRegs;
 
   // Determine if row has a tail
   const bool dstRowHasTail = (dstRowTailVRegs != 0);
@@ -618,7 +604,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
           in1T->strides()[0] * elemSize,
           (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize ,
           tWInput, dst_ptr);
-          dst_ptr += 8 * elemSize;
+        dst_ptr += dstVRegElems * elemSize;
       }
 
       // Set mask for last VReg in group.

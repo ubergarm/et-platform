@@ -146,17 +146,10 @@ namespace dnn_lib {
       return ElementBool(outTensors, inTensors);
     }
 
-
-
     // Best implementation selector for operator EmbeddingBag. Return values are:
     //   0: base implementation
     //   1: Vectorized 
-    static size_t EmbeddingBag(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
-#ifdef  SW_3755
-      if (outTensors[0]->getUntouchable())
-        return 0;
-      else
-#endif
+    static size_t EmbeddingBag(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
         return 1;
     }
 
