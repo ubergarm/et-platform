@@ -18,12 +18,12 @@
 #include <cmath>
 #include <cstring>
 
-#include "Operators.h"
+/* #include "Operators.h" */
 #include "Float16.h"
-#include "Writer.h" // From include/internal path
-#include "Addresser.h" // From include/internal path
-#include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
+/* #include "Writer.h" // From include/internal path */
+/* #include "Addresser.h" // From include/internal path */
+/* #include "Converter.h" // From include/internal path */
+/* #include "Operator.h" // From include/internal path */
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 
@@ -31,92 +31,89 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK>
-inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim,
-                             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0){
-  
+template <ElemKind outelK, ElemKind inelK>
+inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim, 
+                 uint64_t flags, const uint32_t minionOffset = 0,
+                 const uint32_t assignedMinions = 0) {
+
   if (get_minion_id() != minionOffset) return;
 
-  /* maintain compatibility through the new Iface Libtensor */
-  void* src = inT->getRawDataPointer<void>();
-  void* dst = outT->getRawDataPointer<void>();
+  using inElemTy = typename elemKind2elemTy<inelK>::type;
+  using outElemTy = typename elemKind2elemTy<outelK>::type;
+
+  assert(((inT->getElementType() == FloatTy) || 
+          (inT->getElementType() == Int8QTy)) && "Not expected input Type");
+  assert(((outT->getElementType() == Int64ITy) || 
+          (outT->getElementType() == Int32ITy)) && "Not expected output Type");
+
+  auto &inpDims = inT->dims();
+
+  dim_array_t outDims = inpDims;
+  /* std::array<size_t, max_tensor_dimensions> outDims = inpDims; */
+  outDims[axis] = 1;
+
+
+  auto srcH = inT->getHandle<inElemTy>();
+  auto destH = outT->getHandle<outElemTy>();
   
-  // cast src parameters to objects we can handle
-  const Addresser<elK> in(src, inT->getScale(), inT->getOffset());
-  // unsigned int *inPitch = static_cast<unsigned int *>(srcPitches);
-  const dim_t *inPitch = inT->strides().data();
-  // unsigned int *inDims = static_cast<unsigned int *>(srcDims);
-  const dim_t *inDims = inT->dims().data();
+  for (dim_t idx0 = 0; idx0 < outDims[0]; idx0++) {
+    for (dim_t idx1 = 0; idx1 < outDims[1]; idx1++) {
+      for (dim_t idx2 = 0; idx2 < outDims[2]; idx2++) {
+        for (dim_t idx3 = 0; idx3 < outDims[3]; idx3++) {
+          for (dim_t idx4 = 0; idx4 < outDims[4]; idx4++) {
+            for (dim_t idx5 = 0; idx5 < outDims[5]; idx5++) {
 
-  // cast dst parameters to objects we can handle
-  sdim_t *argmax = static_cast<sdim_t*> (dst);
-  // unsigned int *argmaxPitch = static_cast<unsigned int *>(dstPitches);
-  const dim_t *argmaxPitch = outT->strides().data();
+              //Init max value/index
+              inElemTy maxVal = std::numeric_limits<inElemTy>::lowest();
+              size_t maxIdx = 0;
 
-  // and compute
-  dim_t a, b, c, d = 0;
+              //Iterate input axis dimension
+              for(dim_t axisIdx = 0; axisIdx < inpDims[axis]; axisIdx++) {
+                std::array<dim_t, max_tensor_dimensions> inpIdx = 
+                  {idx0, idx1, idx2, idx3, idx4, idx5};
+                
+                inpIdx[axis] = axisIdx;
+                inElemTy inpVal = 0.0;
 
-  dim_t *dim[4];
-  dim[(axis + 1) % 4] = &a;
-  dim[(axis + 2) % 4] = &b;
-  dim[(axis + 3) % 4] = &c;
-  dim[axis] = &d;
+                inpVal = srcH.at(inpIdx);
+                if (inpVal > maxVal) {
+                  maxVal = inpVal;
+                  maxIdx = axisIdx;
+                }
+              }
 
-  // if keepDim == false, pitches and dimensions are 4 => select output pitch setting 0 in the reduced dimension
-  //unsigned outPitch[4];
-  std::array<dim_t,4> outPitch = {0,};
-  if (!keepDim) {
-    for(unsigned i = 0 ; i < axis; i++) outPitch[i] = argmaxPitch[i];
-    outPitch[axis] = 0;
-    for(unsigned i = axis+1 ; i < 4; i++) outPitch[i] = argmaxPitch[i-1];
-    argmaxPitch = outPitch.data();
-  }
+              dim_array_t outIdx = {idx0, idx1, idx2, idx3, idx4, idx5};
 
-  
-  for (a = 0; a < inDims[(axis + 1) % 4]; a++) {
-    for (b = 0; b < inDims[(axis + 2) % 4]; b++) {
-      for (c = 0; c < inDims[(axis + 3) % 4]; c++) {
-        float max;
-        if (axis == 0) {
-          max = in[*(dim[1]) * inPitch[1] +
-                   *(dim[2]) * inPitch[2] +
-                   *(dim[3]) * inPitch[3] ];
-        } else if (axis == 1) {
-          max = in[*(dim[0]) * inPitch[0] +
-                   *(dim[2]) * inPitch[2] +
-                   *(dim[3]) * inPitch[3] ];
-        } else if (axis == 2) {
-          max = in[*(dim[0]) * inPitch[0] +
-                   *(dim[1]) * inPitch[1] +
-                   *(dim[3]) * inPitch[3] ];
-        } else {
-          max = in[*(dim[0]) * inPitch[0] +
-                   *(dim[1]) * inPitch[1] +
-                   *(dim[2]) * inPitch[2] ];
-        }
+              if (!keepDim) {
+                for(size_t i = axis; i < (max_tensor_dimensions-1); i++) {
+                  outIdx[i] = outIdx[i+1];
+                }
+                outIdx[5] = 1;
+              }
 
-        dim_t maxi = 0;
-        
-        for (d = 0; d < inDims[axis]; d++) {
-          float elem = in[*(dim[0]) * inPitch[0] +
-                          *(dim[1]) * inPitch[1] +
-                          *(dim[2]) * inPitch[2] +
-                          *(dim[3]) * inPitch[3]];
-          if (elem > max) {
-            max = elem;
-            maxi = d;
+              /* if (keepDim == false) { */
+              /*        if (axis != (max_tensor_dimensions - 1)) { */
+              /*          for (size_t i = axis; i < max_tensor_dimensions; i++) { */
+              /*            if (i == (max_tensor_dimensions - 1)) */
+              /*              outIdx[i] = 1; */
+              /*            else */
+              /*              outIdx[i] = outIdx[i+1]; */
+              /*          } */
+              /*        }         */
+              /*        else { //axis 5 */
+              /*          outIdx[5] = 1; */
+              /*        } */
+              /* } */
+
+              //Store maximum index.
+              destH.at(outIdx) = maxIdx;
+            }
           }
         }
-        *dim[axis] = 0;
-        dim_t ind = (*dim[0]) * argmaxPitch[0] + 
-          (*dim[1]) * argmaxPitch[1] +
-          (*dim[2]) * argmaxPitch[2] +
-          (*dim[3]) *  argmaxPitch[3] ;
-        argmax[ind] = maxi;
       }
     }
   }
-  
+  outT->evict(DO_EVICTS);
 }
 
 } // namespace inlininig
