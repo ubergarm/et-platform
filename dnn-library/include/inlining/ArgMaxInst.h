@@ -18,12 +18,8 @@
 #include <cmath>
 #include <cstring>
 
-/* #include "Operators.h" */
 #include "Float16.h"
-/* #include "Writer.h" // From include/internal path */
-/* #include "Addresser.h" // From include/internal path */
-/* #include "Converter.h" // From include/internal path */
-/* #include "Operator.h" // From include/internal path */
+#include "LibCommon.h"
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 
@@ -42,6 +38,7 @@ inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool 
   using outElemTy = typename elemKind2elemTy<outelK>::type;
 
   assert(((inT->getElementType() == FloatTy) || 
+	  (inT->getElementType() == Float16Ty) ||
           (inT->getElementType() == Int8QTy)) && "Not expected input Type");
   assert(((outT->getElementType() == Int64ITy) || 
           (outT->getElementType() == Int32ITy)) && "Not expected output Type");
@@ -64,7 +61,8 @@ inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool 
             for (dim_t idx5 = 0; idx5 < outDims[5]; idx5++) {
 
               //Init max value/index
-              inElemTy maxVal = std::numeric_limits<inElemTy>::lowest();
+              //inElemTy maxVal = std::numeric_limits<inElemTy>::lowest();
+	      float maxVal = std::numeric_limits<float>::lowest();
               size_t maxIdx = 0;
 
               //Iterate input axis dimension
@@ -73,9 +71,16 @@ inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool 
                   {idx0, idx1, idx2, idx3, idx4, idx5};
                 
                 inpIdx[axis] = axisIdx;
-                inElemTy inpVal = 0.0;
+                /* inElemTy inpVal = 0.0; */
+		float inpVal = 0.0;
 
-                inpVal = srcH.at(inpIdx);
+		if (inelK == Float16Ty) {
+		  convertFp16ToFp32(static_cast<uint16_t>(srcH.at(inpIdx)), inpVal);
+		}
+		else {
+		  inpVal = srcH.at(inpIdx);
+		}
+
                 if (inpVal > maxVal) {
                   maxVal = inpVal;
                   maxIdx = axisIdx;
@@ -91,22 +96,9 @@ inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool 
                 outIdx[5] = 1;
               }
 
-              /* if (keepDim == false) { */
-              /*        if (axis != (max_tensor_dimensions - 1)) { */
-              /*          for (size_t i = axis; i < max_tensor_dimensions; i++) { */
-              /*            if (i == (max_tensor_dimensions - 1)) */
-              /*              outIdx[i] = 1; */
-              /*            else */
-              /*              outIdx[i] = outIdx[i+1]; */
-              /*          } */
-              /*        }         */
-              /*        else { //axis 5 */
-              /*          outIdx[5] = 1; */
-              /*        } */
-              /* } */
-
               //Store maximum index.
-              destH.at(outIdx) = maxIdx;
+	      destH.at(outIdx) = maxIdx;
+
             }
           }
         }
