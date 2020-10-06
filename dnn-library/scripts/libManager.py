@@ -357,12 +357,35 @@ class LibManagerSheet:
                     
             }
 
+    def getCacheStateSheetName(self, name):
+        if len(name) <= 31:
+            return name
+        # abbv some strings
+        abbvs = { 'fusedrowwise': 'frw',
+                  'fused': 'f',
+                  'rowwise':'rw',
+                  'weighted':'w',
+                  'lengths': 'l',
+                  'convolution': 'conv',
+                  'embedding': 'emb',
+                  'quantized': 'quant'}
+
+        for s,d in abbvs.items():
+            name = re.sub(s, d, name, flags = re.IGNORECASE)
+            if len(name) <= 31:
+                return name
+        if len(name) > 31:
+            raise Exception (f"{orig} name is too long for a sheet name. Abbreviated to {name} but still more than 31 chars." +
+                             f"Add more abbvs patterns to {sys._getframe().f_code.co_name}")
+                    
+        return name
 
     def getCacheState(self, op, versions, nrOut, nrIn):
         versions = ["BaseImpl" ] +  versions
         data = {}
-        if op not in self.__cacheWb:
-            print ("Cache state for %s not found. Creating worksheet in %s. Edit and rerun" % (op, self.__cacheStateFile))
+        sheetName = self.getCacheStateSheetName(op)
+        if sheetName not in self.__cacheWb:
+            print ("Cache state for %s not found. Creating worksheet %s in %s. Edit and rerun" % (op, sheetName, self.__cacheStateFile))
             
             # fill with invalid values
             invState = [ "invalid" for i in range(nrOut + nrIn)]
@@ -373,10 +396,10 @@ class LibManagerSheet:
                                "L2": invState,
                                "CB": invState,
                                "evictAv": invEvict };
-            self.writeCacheState(op, data, nrOut, nrIn)
+            self.writeCacheState(op, sheetName, data, nrOut, nrIn)
             
         else:
-            data = self.readCacheState(op, versions, nrOut, nrIn)
+            data = self.readCacheState(op, sheetName, versions, nrOut, nrIn)
 
         # and format the data
         formatted = {}
@@ -397,8 +420,8 @@ class LibManagerSheet:
 
 
 
-    def writeCacheState(self, operator, data, nrOut, nrIn):
-        ws = self.__cacheWb.create_sheet(title=operator)
+    def writeCacheState(self, operator, sheet, data, nrOut, nrIn):
+        ws = self.__cacheWb.create_sheet(title=sheet)
         
         ws.cell(1,1, operator).fill = LibManagerSheet.headerFill
         ws.merge_cells('A1:A2')
@@ -433,21 +456,21 @@ class LibManagerSheet:
         self.__cacheWb.save(filename = self.__cacheStateFile)
 
 
-    def readCacheState(self, operator, versions, nrOut, nrIn):
-        ws = self.__cacheWb[operator]
+    def readCacheState(self, operator, sheet, versions, nrOut, nrIn):
+        ws = self.__cacheWb[sheet]
         data = {}
         for i, impl in enumerate(versions):
             # check version data is available
             v = ws.cell(1, 2+i*4).value
             if v != impl:
                 raise Exception("in %s sheet %s, cell %d,%d => expecting %s but %s found instead" %
-                                (self.__cacheStateFile, operator, 1, 2+i*4, impl, v ))
+                                (self.__cacheStateFile, sheet, 1, 2+i*4, impl, v ))
             data[impl] = {}
             for j,field in enumerate(["L1", "L2", "CB", "evictAv"]):
                 f = ws.cell(2, 2 + i*4 + j).value
                 if f != field:
                     raise Exception("in %s sheet %s, cell %d,%d => expecting %s but %s found instead" %
-                                    (self.__cacheStateFile, operator, 2, 2+i*4 + j, field, f ))
+                                    (self.__cacheStateFile, sheet, 2, 2+i*4 + j, field, f ))
                 data[impl][field] = []
                 for op in range(nrOut + nrIn):
                     data[impl][field].append(ws.cell(3 +op, 2+ i*4+j).value)
