@@ -652,18 +652,15 @@ template <typename T>
 inline __attribute__((always_inline))
 bool getNextStep(unsigned int dimNum,
                  unsigned int *coord, T *dims) {
-  if (coord[0] < dims[0]-1) {
-    coord[0] = coord[0]+1;
-  } else {
-    coord[0] = 0;
-    for (unsigned int i = 1; i < dimNum; i++) {
-      if (coord[i] < dims[i]-1) {
-        coord[i] = coord[i]+1;
-        break;
+  for (unsigned int i = 0; i < dimNum; i++) {
+    if (coord[i] < dims[i]-1) {
+      coord[i] = coord[i]+1;
+      break;
+    } else {
+      if (i == dimNum-1) {
+        return true;
       } else {
         coord[i] = 0;
-        if (i == dimNum-1)
-          return true;
       }
     }
   }
