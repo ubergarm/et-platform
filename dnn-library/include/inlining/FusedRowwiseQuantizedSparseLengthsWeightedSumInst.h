@@ -54,7 +54,7 @@ inline __attribute((always_inline))
 void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
     uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
-    uintptr_t dataRowSize, uintptr_t dstElemSize,
+    uintptr_t dataRowSize, uintptr_t dataRowOffset, uintptr_t dstElemSize,
     uint8_t *tWInput, uint8_t *dst_ptr, const bool Weighted = true) { 
 
   const bool float32Dst = elK == FloatTy;
@@ -72,8 +72,10 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
   for (uintptr_t j = 0, currIndex = minionCurrIndex;
        j < currSegmentLength; j++, currIndex++) {
     uint8_t * data_ptr   = tAInput + indices[currIndex] * dataRowPitch;
-    void             * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
-    void             * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
+    void    * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
+    void    * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
+    // Adjust to the current element offset of the row
+    data_ptr += dataRowOffset;
   
     if (Weighted){
       uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
@@ -255,7 +257,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   //
 
   // Compute the number of 8-element vectors per output cache line.
-  uintptr_t dstCacheLineVRegs = CACHE_LINE_BYTES / (dstElemSize * 8);
+  uintptr_t dstCacheLineVRegs = CACHE_LINE_BYTES / 8;
 
   // Compute the number of Cache Line groups per output row (rounded up).
   uintptr_t dstRowGroups = ((dstRowSize - 1) / CACHE_LINE_BYTES) + 1;
@@ -314,7 +316,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   uintptr_t currSegmentLength = lengths[minionCurrSegment];
 
   // Initilize output pointer.
-  uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
+  uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * CACHE_LINE_BYTES) * dstElemSize;
 
   // For all minion assigned work units
   for (uintptr_t i = 0; i < minionWorkUnits; i++) {
@@ -365,6 +367,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
         void    * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
         void    * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
+        // Adjust what elements read from the dense matrix based on the current group
+        data_ptr += minionCurrRowGroup * CACHE_LINE_BYTES;
 
         if (Weighted){
           uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
@@ -549,17 +553,16 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         );
       }
 
-      minionCurrIndex += currSegmentLength;
-
       if (minionCurrRowGroup != (dstRowGroups - 1)) {
         minionCurrRowGroup++;
       } else {
         // Move from row tail to next row.
         minionCurrSegment++;
         minionCurrRowGroup = 0;
+        minionCurrIndex += currSegmentLength;
         currSegmentLength = lengths[minionCurrSegment];
 
-        dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
+        dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * CACHE_LINE_BYTES) * dstElemSize;
       }
     } else {
       int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
@@ -592,8 +595,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       for (int k = 0; k < (dstRowTailVRegs - 1); k++) {
           fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
-          dataPitches[0], dataRowSize, dstElemSize,
-          tWInput, dst_ptr, Weighted);
+          dataPitches[0], dataRowSize, minionCurrRowGroup * CACHE_LINE_BYTES + k * 8 * sizeof(elK),
+          dstElemSize, tWInput, dst_ptr, Weighted);
           dst_ptr += 8 * dstElemSize;
       }
 
@@ -606,8 +609,9 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
       fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
         minionCurrIndex, currSegmentLength, tAInput, indices,
-        dataPitches[0], dataRowSize, dstElemSize,
-        tWInput, dst_ptr, Weighted);
+        dataPitches[0], dataRowSize,
+        minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8 * sizeof(elK),
+        dstElemSize, tWInput, dst_ptr, Weighted);
 
       minionCurrIndex += currSegmentLength;
 
