@@ -49,11 +49,11 @@ constexpr uint64_t fg32h_conf = 0x76543210;
 //
 // just calls evict_va, but doing a fence first
 inline  __attribute__((always_inline))
-void fence_evict_va(uint64_t use_tmask, uint64_t dst, uint64_t addr, uint64_t num_lines = 0, uint64_t stride = 0, uint64_t id = 0, uint64_t warl = 0) {
+void fence_evict_va(uint64_t use_tmask, uint64_t dst, uint64_t addr, uint64_t num_lines = 0, uint64_t stride = 0, uint64_t id = 0) {
   FENCE;
-  evict_va(use_tmask,dst, addr, num_lines, stride,id,warl);
+  evict_va(use_tmask,dst, addr, num_lines, stride,id);
 }
-  
+
 //-------------------------------------------------------------------------------------------------
 //
 // FUNCTION: evict_va_multi
@@ -65,12 +65,12 @@ inline __attribute__((always_inline))
 void evict_va_multi(uint64_t dst, uintptr_t addr, uint64_t num_lines) {
   FENCE;
   while (num_lines > 16) {
-    evict_va(0, dst, addr, 15, CACHE_LINE_BYTES);
+    evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
     addr += (CACHE_LINE_BYTES*16);
     num_lines -= 16;
   }
   if (num_lines > 0)
-    evict_va(0, dst, addr, num_lines-1, CACHE_LINE_BYTES);
+    evict_va(0, dst, addr, num_lines-1, CACHE_LINE_BYTES, 0);
 }
 
 inline __attribute__((always_inline))
@@ -96,7 +96,7 @@ constexpr std::size_t getsize<float16>() {
  * the offset corresponds to a padding position, the returned coordinates will
  * point this padding position in the matrix (outside the dimensions).
  *
- * @param[out] coord Vector that will be filled with the coordinates of the 
+ * @param[out] coord Vector that will be filled with the coordinates of the
  *  offset in the tensor.
  * @param[in] offset Unsigned integer referring to a position in a tensor.
  * @param[in] srcDimNum The "number of dimensions" of the tensor.
@@ -125,7 +125,7 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
  * the offset corresponds to a padding position, the returned coordinates will
  * point the next position in the tensor that doesn't correspond to padding.
  *
- * @param[out] coord Vector that will be filled with the coordinates of the 
+ * @param[out] coord Vector that will be filled with the coordinates of the
  *  offset in the tensor.
  * @param[in] offset Unsigned integer referring to a position in a tensor.
  * @param[in] srcDimNum The "number of dimensions" of the tensor.
@@ -136,7 +136,7 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
  */
 
   template<typename pitch_t, typename dims_t>
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
                               unsigned int srcDimNum, const pitch_t *pitch,
                               const dims_t *dims, unsigned int &k) {
@@ -157,12 +157,12 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
 /**
  * @brief Given a tensor, it divides it in cachelines for the minions.
  *
- * It gives to each minion an offset to start and how many elements to work on. 
- * The division is made such that the there is no cacheline for two different minions. 
- * The division ensures that all active minions minions (except for, possibly, 
+ * It gives to each minion an offset to start and how many elements to work on.
+ * The division is made such that the there is no cacheline for two different minions.
+ * The division ensures that all active minions minions (except for, possibly,
  * the last one) work with the same number of cachelines and the following
  * have no positions to work with.
- * 
+ *
  * @warning The number maxRead does not take into account padding, so if maxRead
  *  is 16, that does not mean that the minion has to work on 16 elements: some of
  *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
@@ -180,7 +180,7 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
  * @param[in] minionId The id of the minion that calls the function.
  * @param[in] activeMinions The number of minions that is working on the tensor.
  */
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
                            unsigned int &offset, unsigned int &maxRead,
                            unsigned int minionId, unsigned int activeMinions,
@@ -235,13 +235,13 @@ void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
 /**
  * @brief Given a tensor, it divides it in cachelines for the minions.
  *
- * It gives to each minion an offset to start and how many elements to work on. 
- * The division is made such that the there is no cacheline for two different minions. 
- * The division ensures that the amount of cachelines for all the working minions 
+ * It gives to each minion an offset to start and how many elements to work on.
+ * The division is made such that the there is no cacheline for two different minions.
+ * The division ensures that the amount of cachelines for all the working minions
  * differs at most for one except for the ones that have no cachelines assigned.
  * For a pair of minions with a non zero number of cachelines assigned it is true that
  * the minion with a smaller id works on a greater or equal number of cachelines.
- * 
+ *
  * @warning The number maxRead does not take into account padding, so if maxRead
  *  is 16, that does not mean that the minion has to work on 16 elements: some of
  *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
@@ -279,13 +279,13 @@ void getUniformCachelinePartition(unsigned int elementsize, unsigned int numElem
 /**
  * @brief Given a tensor, it divides it in cachelines for the minions.
  *
- * It gives to each minion an offset to start and how many elements to work on. 
- * The division is made such that the there is no cacheline for two different minions. 
- * The division ensures that the amount of cachelines for all the working minions 
+ * It gives to each minion an offset to start and how many elements to work on.
+ * The division is made such that the there is no cacheline for two different minions.
+ * The division ensures that the amount of cachelines for all the working minions
  * differs at most for one except for the ones that have no cachelines assigned.
  * For a pair of minions with a non zero number of cachelines assigned it is true that
  * the minion with a greater id works on a greater or equal number of cachelines.
- * 
+ *
  * @warning The number maxRead does not take into account padding, so if maxRead
  *  is 16, that does not mean that the minion has to work on 16 elements: some of
  *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
@@ -301,7 +301,7 @@ void getUniformCachelinePartition(unsigned int elementsize, unsigned int numElem
  * @param[in] minionId The id of the minion that calls the function.
  * @param[in] activeMinions The number of minions that is working on the tensor.
  */
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsDst,
                                    unsigned int &offset, unsigned int &maxRead,
                                    unsigned int activeMinions) {
@@ -324,7 +324,7 @@ void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsD
  *
  * Both the coordinates of the position and the offset are updated. It also
  * returns if the end of the tensor has been reached.
- * 
+ *
  * @tparam T The type of the elements in the tensor.
  * @param[in] dimNum The "number of dimensions" of the tensor.
  * @param[in, out] coord Vector of coordinates of the initial position.
@@ -336,7 +336,7 @@ void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsD
  */
 
   template <typename offset_t, typename dims_t, typename pitches_t>
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset,
                 const dims_t *index, const pitches_t *pitch) {
 
@@ -354,19 +354,19 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset,
 
   //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
-  return true; 
+  return true;
 }
 
 /**
  * @brief Updates a position in two tensors into the next non-padding position.
  *
  * @overload
- * 
+ *
  * @warning The tensors in which we are moving should have the same dimensions
  *  (but not necessarily the same pitches).
  */
 template <typename T>
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
                 T &offset2, const unsigned int *index, const unsigned int *pitch1,
                 const unsigned int *pitch2) {
@@ -387,12 +387,12 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 
   //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
-  return true; 
+  return true;
 }
 
 /* overloading while sw-2400 and sw-2429 are WIP */
   template <typename T, typename U, typename S>
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
                 T &offset2, U *index, S *pitch1,
                 U *pitch2) {
@@ -413,11 +413,11 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
 
   //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
-  return true; 
+  return true;
 }
-  
+
 /* overloading while sw-2400 and sw-2429 are WIP */
-inline __attribute__((always_inline)) 
+inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, unsigned int &offset1,
                 unsigned int &offset2, const size_t*index, const size_t *pitch1,
                 unsigned int* pitch2) {
@@ -438,19 +438,19 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, unsigned int &offset1,
 
   //FIXME: use assertion throw "getOffsets Malfunction";
   // To avoid warnings. This point will never be reached.
-  return true; 
+  return true;
 }
 
-  
+
 /**
  * @brief Updates a position in three tensors into the next non-padding position.
  *
  * @overload
- * 
+ *
  * @warning The tensors in which we are moving should have the same dimensions
  *  (but not necessarily the same pitches).
  */
-  template <typename T, typename U, typename S> 
+  template <typename T, typename U, typename S>
 inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
                 T &offset2, T &offset3, U *index, U *pitch1,
@@ -481,14 +481,14 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
  * @brief Updates a position in four tensors into the next non-padding position.
  *
  * @overload
- * 
+ *
  * @warning The tensors in which we are moving should have the same dimensions
  *  (but not necessarily the same pitches).
  */
-  template <typename offset_t, typename dims_t, typename pitches_t> 
+  template <typename offset_t, typename dims_t, typename pitches_t>
 inline __attribute__((always_inline))
 bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset1,
-                offset_t &offset2, offset_t &offset3, offset_t &offset4, const dims_t *index, 
+                offset_t &offset2, offset_t &offset3, offset_t &offset4, const dims_t *index,
                 const pitches_t *pitch1, const pitches_t *pitch2,
                 const pitches_t *pitch3, const pitches_t *pitch4) {
 
@@ -514,7 +514,7 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset1,
   // To avoid warnings. This point will never be reached.
   return true;
 }
-  
+
 inline __attribute__((always_inline))
 float getExp(float val) {
   float ret;
@@ -603,16 +603,16 @@ float getPow(float base, float exp) {
 /// \brief calculates the lanes for given number of elements
 ///
 ///
-/// Given a number of elements for a dimension and the data srcType 
+/// Given a number of elements for a dimension and the data srcType
 /// calculates the number of lanes needed to processing all the elements.
 /// A lane has 32 bits (4Bytes) depending on the srcType in use we have
 /// have the following table.
 ///
-///   
+///
 ///      1B  uint8    4 for each lane
 ///      2B  uint16   2 for each lane
 ///      4B  uint32   1 for each lane
-///      8B  uint64   1/2 for each lane. (We need 2 lanes for represent this 
+///      8B  uint64   1/2 for each lane. (We need 2 lanes for represent this
 ///                                       srcType)
 ///
 ///
@@ -623,7 +623,7 @@ float getPow(float base, float exp) {
 ///
 template <typename srcType>
 inline __attribute__((always_inline))
-std::pair<int,int>  getLanesResFromNElements(unsigned int numofelements) 
+std::pair<int,int>  getLanesResFromNElements(unsigned int numofelements)
 {
   int lanes = 0, res = 0;
 
@@ -648,7 +648,7 @@ std::pair<int,int>  getLanesResFromNElements(unsigned int numofelements)
 }
 
 //@TODO: REPLACE template by const size_t once all operands are using LibTensor
-template <typename T> 
+template <typename T>
 inline __attribute__((always_inline))
 bool getNextStep(unsigned int dimNum,
                  unsigned int *coord, T *dims) {
@@ -677,7 +677,7 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
   }
   return offset;
 }
-  
+
 // /* overloading while sw-2400 and sw-2429 are on WIP */
 // template<typename T>
 // inline __attribute__((always_inline))
@@ -704,7 +704,7 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
 
 //   //FIXME: use assertion throw "getOffsets Malfunction";
 //   // To avoid warnings. This point will never be reached.
-//   return true;  
+//   return true;
 // }
 
 }  // namespace dnn_lib

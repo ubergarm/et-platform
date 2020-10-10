@@ -35,11 +35,11 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/GenInstances.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/Operators.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibApi.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibApiImplSel.h"  
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibApiImplSel.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibCommon.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTypes.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibUtils.h"  
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/LibUtils.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTensor.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/LibTensorIterator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/AdaptiveAvgPoolInst.h"
@@ -63,13 +63,13 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxSplatInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementBoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementImmLogic.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementBinaryInst.h"  
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementBinaryInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementSelectInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementSingleInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagInst.h"
 #  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagByteRowwiseOffsetsInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ExtractTensorInst.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h"    
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FullyConnectedInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsSumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h"
@@ -82,7 +82,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LengthsToRangesInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LocalResponseNormalizationInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInst.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInstTransposed.h"  
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MatMulInstTransposed.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxPoolInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ModuloInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/NonMaxSuppressionInst.h"
@@ -222,7 +222,6 @@ include_directories(include/internal)
 if(EsperantoDeviceMinionRuntime_FOUND)
   target_link_libraries(dnn_lib
     EsperantoDeviceMinionRuntime::device_common
-    EsperantoDeviceMinionRuntime::fw_helpers
     )
 else()
   target_link_libraries(${PROJECT_NAME} device_common fake-fw)
@@ -276,7 +275,7 @@ install(FILES
 
 # Install the export set for use with the install-tree
 install(EXPORT dnnLibTargets DESTINATION
-  "${LIB_INSTALL_DIR}/cmake/dnn_lib" 
+  "${LIB_INSTALL_DIR}/cmake/dnn_lib"
   COMPONENT dnn-lib
 )
 

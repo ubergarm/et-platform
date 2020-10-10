@@ -24,9 +24,9 @@
 
 namespace dnn_lib {
 
- 
+
 struct Type final {
-  
+
   /*@brief contains the dimensions (sizes) of the tensor.
    */
   const dim_array_t sizes_;
@@ -35,7 +35,7 @@ struct Type final {
    * as in sizes_.
    */
   const dim_array_t strides_;
-  
+
   /*@brief Specifies the element type of the tensor.
    */
   const dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
@@ -51,7 +51,7 @@ struct Type final {
   /*@brief On quantized tensors, this represents the offset of the values.
    */
   const int32_t offset_ {};
- 
+
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   template<size_t numSizes>
@@ -62,7 +62,7 @@ struct Type final {
   {
     assert( isQuantizedElemKind(elk));
   }
-  
+
   /*@brief Initialize a new non-quantized type.
    */
   template<size_t numSizes>
@@ -72,7 +72,7 @@ struct Type final {
   {
     assert( !isQuantizedElemKind(elk));
   }
-  
+
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   template<size_t numSizes>
@@ -85,8 +85,8 @@ struct Type final {
     scale_(scale), offset_(offset)
   {
     assert(isQuantizedElemKind(elk));
-  } 
-  
+  }
+
   /*@brief Initialize a new non-quantized type.
    */
   template<size_t numSizes>
@@ -113,8 +113,8 @@ struct Type final {
     scale_(scale), offset_(offset)
   {
     assert(isQuantizedElemKind(elk));
-  } 
-  
+  }
+
   /*@brief Initialize a new non-quantized type.
    */
   constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t &dims, const dim_array_t &strides) :
@@ -126,7 +126,7 @@ struct Type final {
     assert(  !isQuantizedElemKind(elk));
   }
 
-    
+
   /*@brief Reshape existing type this takes care of quantized types.
    */
   template<size_t numSizes>
@@ -154,17 +154,17 @@ struct Type final {
     //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
     if (kindType.isQuantizedType())
       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
-    else 
+    else
       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
 
     //TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate extended
     // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
   }
-   
+
   /* brief returns true if \p other is the same type.
    */
   // bool isEqual(TypeRef other) const { return isEqual(*other); }
-   
+
   /* brief returns true if \p other has same shape.
    */
   const bool hasSameShape(const Type other) const {
@@ -175,7 +175,7 @@ struct Type final {
       if (sizes_[idx] != other_sizes[idx]) return false;
       if (strides_[idx] != other_strides[idx]) return false;
     }
-    return true; 
+    return true;
   }
 
   /*@brief returns the scale of a quantized type.
@@ -216,7 +216,7 @@ struct Type final {
     for(auto i: sizes_) acum*=i;
     return acum;
   }
-  
+
   // /*@brief Calculate the size of the slice starting at \p StartDim. Returns the
   //  *number of elements in a slice in the tensor.
   //  */
@@ -304,7 +304,7 @@ struct Type final {
     case dnn_lib::ElemKind::FloatTy:
       return sizeof(float);
     case dnn_lib::ElemKind::Float16Ty:
-      return sizeof(uint16_t); 
+      return sizeof(uint16_t);
     case dnn_lib::ElemKind::Int8QTy:
       return sizeof(int8_t);
     case dnn_lib::ElemKind::UInt8QTy:
@@ -366,17 +366,17 @@ struct Type final {
   // }
 
 }; //class Type
-  
 
- 
+
+
 class LibTensor final {
 
  private:
-  
+
   char* const ptrData_;
 
   const Type type_;
-  
+
   template <class ElemTy> friend class Handle;
 
   const bool untouch_;
@@ -399,7 +399,7 @@ class LibTensor final {
   bool getUntouchable() const {
     return untouch_;
   }
-  
+
   /*@brief returns True if the coordinate is within the array.
    */
   // template<std::size_t sz>
@@ -410,7 +410,7 @@ class LibTensor final {
   //       return false;
   //     }
   //   }
-  //   return true;    
+  //   return true;
   // }
 
 //   /*@brief set the content of the tenosr to zero. if \p resetFusedScalesOffsets,
@@ -447,22 +447,22 @@ class LibTensor final {
 //      default:
 //       // Non-quantized tensors are set to 0.
 //        for(dim_t i = 0; i < (size * type_.getElementSize()); i++) {
-         
+
 //        }
-       
+
 //       break;
-//     }     
+//     }
 
 //   }
 
   /*@brief Get number of dimensions the tensor has
    */
   const dim_t ndims() const { return type_.numSizes_; }
-  
+
   /*@brief returns the dimensions (padded with 1 until max_tensor_dimensions)
    */
   const dim_array_t &dims() const { return type_.sizes_;}
-  
+
   /*@brief returns the strides (padded with 0 until max_tensor_dimensions)
    */
   const dim_array_t &strides() const { return type_.strides_;}
@@ -477,14 +477,14 @@ class LibTensor final {
     }
     return v;
   }
-  
+
   /*@brief returns the number of real menaingful elements in the tensor. Does
    *not take strides into account.
    */
   dim_t size() const { return type_.size(); }
 
   /*@brief returns the actaul number of elements in the tensor taking stridding
-   *into account. Since size() does not take striding into account, size() is 
+   *into account. Since size() does not take striding into account, size() is
    *always <= actualSize(),
    */
   dim_t actualSize() const { return type_.actualSize(); }
@@ -525,10 +525,10 @@ class LibTensor final {
   // LibTensor(const LibTensor &other) = delete;
   // LibTensor &operator=(const LibTensor &other) = delete;
 
-  
+
   /*@brief return a new handle that points and manages this tensor.
    */
-  
+
   template <class ElemTy> Handle<ElemTy> getHandle() & {
     //@TODO check Elemty type_.isType<ElemType>() handle to wrong type.
     return Handle<ElemTy>(this);
@@ -536,12 +536,12 @@ class LibTensor final {
 
   template <class ElemTy> const Handle<ElemTy> getHandle() const & {
     //@TODO check Elemty type_.isType<ElemType>() handle to wrong type.
-    return Handle<ElemTy>(const_cast<LibTensor*>(this));    
+    return Handle<ElemTy>(const_cast<LibTensor*>(this));
   }
 
   template <class ElemTy = float> Handle<ElemTy> getHandle() && = delete;
 
-  
+
   /* @brief copy raw data value at ptrData_ buffer tensor given at \p inTensor
    * to the other ptrData_ buffer at (this).
    *
@@ -566,10 +566,10 @@ class LibTensor final {
 
 
   /*TODO: After re-do sw-2429 (refact operands) are the getters necessary? if not remove them. */
-public:  
+public:
   float   getScale() const { return type_.getScale(); }
   int32_t getOffset() const { return type_.getOffset(); }
-  size_t  getElementSize() const { return type_.getElementSize(); }  
+  size_t  getElementSize() const { return type_.getElementSize(); }
 
 
   /*@brief returns a pointer to the raw data, of type \p ElemTy.
@@ -630,7 +630,7 @@ public:
 
     offset*=CACHE_LINE_BYTES / elementSize;
     maxRead*=CACHE_LINE_BYTES / elementSize;
-    
+
   }
 
   dim_array_t offset2Coord(size_t offset) const {
@@ -648,17 +648,17 @@ public:
   void evict(uint64_t dst, size_t offset, size_t count) const{
 #ifdef __riscv
     FENCE;
-    const size_t typeSize = type_.getElementSize();    
+    const size_t typeSize = type_.getElementSize();
     size_t cl = (count * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     assert(cl > 0);
     uintptr_t addr = reinterpret_cast<uintptr_t>(ptrData_) + typeSize*offset;
     while(cl > 16) {
-      evict_va(0, dst, addr, 15, CACHE_LINE_BYTES);
+      evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
       addr += (CACHE_LINE_BYTES*16);
       cl -= 16;
     }
     if (cl > 0)
-      evict_va(0, dst, addr, cl-1, CACHE_LINE_BYTES);
+      evict_va(0, dst, addr, cl-1, CACHE_LINE_BYTES, 0);
 #else
     assert("shouldn't call this function unless it is from minion");
 #endif
@@ -667,14 +667,14 @@ public:
   void evict(uint64_t dst) const {
     evict(dst, 0, this->actualSize());
   }
-  
+
 }; //end LibTensorBase class
 
 
 
 /*@brief Convert to flattened 1d offset given \p indices.
  *
- *@param[inout] indices keeps the coords of the element 
+ *@param[inout] indices keeps the coords of the element
  *@return
  */
 template<size_t N>
@@ -683,19 +683,19 @@ INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices, const
   //assert(indices.size() <= strides.size());
   size_t r = 0;
   for (size_t i = 0 ; i < N; i++) r+=indices[i] * strides[i];
-  return r;   
+  return r;
 }
 
 template<size_t N>
-INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices, 
-                                     const dim_array_t &strides, 
+INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices,
+                                     const dim_array_t &strides,
                                      const dim_array_t &extStrides, size_t ndx) {
 
   size_t r = 0;
   for (size_t i = 0; i < N; i++) {
     if (i == ndx)
       r += indices[i] * extStrides[i];
-    else 
+    else
       r += indices[i] * strides[i];
   }
    return r;
@@ -704,7 +704,7 @@ INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices,
 #include "LibTensorIterator.h"
 
 template <class ElemTy> class Handle final {
-  
+
    /*brief pointer to the tensor that this handle wraps.
     */
   LibTensor * const tensor_;
@@ -727,8 +727,8 @@ public:
   const iterator end() { return iterator(*this, sizes_[0]*strides_[0], sizes_);}
   iterator getIterator(size_t offset) { return iterator(*this, offset);}
   iterator getIterator(const dim_array_t &coords) { return iterator(*this, coords);}
-  
- 
+
+
   /*@brief Calculate the index for a specific element in the tensor.
    *
    *@param[inout] coords indices to access element. It has to have the same
@@ -741,7 +741,7 @@ public:
   }
 
   template<size_t N>
-  size_t getElementPtr(const std::array<dim_t, N> &indices, 
+  size_t getElementPtr(const std::array<dim_t, N> &indices,
                       const dim_array_t &extStrides, size_t ndx) const {
     return getFlattenedOffset(indices, strides_, extStrides, ndx);
   }
@@ -759,7 +759,7 @@ public:
     }
     return R % sizes_[dim];
   }
-  
+
    /*@brief returns the type of the tensor.
     */
    const Type& getType() const { return tensor_->getType(); }
@@ -790,7 +790,7 @@ public:
 
    /*@brief check if given \p indices is into the dims_ bounds.
     *
-    *@param[inout] indices 
+    *@param[inout] indices
     *@return true if indices is into the bounds.
     */
    /* bool isInBounds(dim_t* indices) const { */
@@ -801,9 +801,9 @@ public:
   //   return tensor_->isInBounds(indices);
   // }
 
-  
-  void clear(ElemTy value = 0) {  
-    std::fill(this->begin(), this->end(), value); 
+
+  void clear(ElemTy value = 0) {
+    std::fill(this->begin(), this->end(), value);
   }
 
   void zero(void) {
@@ -814,7 +814,7 @@ public:
    */
   template<size_t N>
   ElemTy &at(std::array<dim_t, N> indices) {
-    size_t index = getElementPtr(indices);   
+    size_t index = getElementPtr(indices);
     auto *data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
@@ -828,7 +828,7 @@ public:
 
   /*@brief specific case use strides from outside of tensor */
   template<size_t N>
-  ElemTy &at(std::array<dim_t, N> indices, const dim_array_t &extStrides, 
+  ElemTy &at(std::array<dim_t, N> indices, const dim_array_t &extStrides,
             size_t ndx) {
     size_t index = getElementPtr(indices, extStrides, ndx);
     auto *data = tensor_->getRawDataPointer<ElemTy>();
@@ -851,7 +851,7 @@ public:
 
   float getScale(void) {return tensor_->getScale();}
   int32_t getOffset(void) {return tensor_->getOffset();}
-  
+
 }; //end Handle class
 
 }
