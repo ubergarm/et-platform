@@ -195,7 +195,7 @@ void embeddingBagsTailVectorized(
     uintptr_t currSegmentEnd,
     uint8_t *tAInput, int64_t *indices,
     uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
-    uint8_t *tWInput, uint8_t *dst_ptr) { 
+    uint8_t *tWInput, uint8_t *dst_ptr, bool destAligned) { 
 
   const bool float32Dst = (elK == FloatTy);
   const bool float16Dst = (elK == Float16Ty);
@@ -263,21 +263,45 @@ void embeddingBagsTailVectorized(
   }
   
   if (float32Dst) {
-    // Store accumulated results.
-    __asm__ __volatile__ (
-      "fsw.ps f0, (%[dst_ptr])\n"
-      :
-      : [dst_ptr] "r" (dst_ptr)
-      :
-    );
+    if (destAligned) {
+      // Store accumulated results.
+      __asm__ __volatile__ (
+        "fsw.ps f0, (%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0"
+      );
+    } else {
+      // Store accumulated results.
+      __asm__ __volatile__ (
+        "fscwg.ps f0, f20(%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0", "f20"
+      );
+    }
   } else {
     __asm__ __volatile__ (
       "fcvt.f16.ps f0, f0\n"
-      "fsch.ps f0, f20(%[dst_ptr])\n"
       :
-      : [dst_ptr] "r" (dst_ptr)
+      :
       : "f0"
     );
+    if (destAligned) {
+      __asm__ __volatile__ (
+        "fsch.ps f0, f20(%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0", "f20"
+      );
+    } else {
+      __asm__ __volatile__ (
+        "fschg.ps f0, f20(%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0", "f20"
+      );
+    }
   }
 }
 
@@ -390,6 +414,12 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   if (minionWorkUnits == 0)
     return;
 
+  // Computes if the destination is correctly aligned and regulars stores can be
+  // used because there's no cache shared amongst minions.
+  // Need both the dest starting address being CL aligned as well as the pitch for
+  // the smallest dimension
+  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) outT->strides()[0] % CACHE_LINE_BYTES) == 0);
+
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
 
@@ -442,6 +472,26 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   // Initilize output pointer.
   auto dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * 64;
 
+  // Prepare gather indices
+  int32_t gather_offsets16[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
+
+  __asm__ __volatile__ (
+    "flw.ps  f20, %[gather_offsets16]\n"
+    :
+    : [gather_offsets16] "m" (*(const int32_t(*)[8]) gather_offsets16)
+    : "f20"
+  );
+
+  // f20 is doubled in case of FP32 and needing not aligned stores
+  if (float32Dst) {
+    __asm__ __volatile__ (
+      "fslli.pi f20, f20, 1\n"
+      :
+      :
+      : "f20"
+    );
+  }
+
   // For all minion assigned work units
   for (uintptr_t i = 0; i < minionWorkUnits; i++) {
 
@@ -449,9 +499,6 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
     bool dstGroupNotInRowTail = !dstRowHasTail || (minionCurrRowGroup != (dstRowGroups - 1));
 
     if (dstGroupNotInRowTail) {
-      // Not in tail
-      volatile int32_t gather_offsets16[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
-
       // Initialize vector mask
       // Clear vector registers that will be used for accumulation
       // Initialize offsets for gather from input
@@ -469,18 +516,17 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
         __asm__ __volatile__ (
           "fxor.pi f2, f0, f0\n"
           "fxor.pi f3, f0, f0\n"
-          "flw.ps  f20, 0x0(%[gather_offsets16])\n"
           :
-          : [gather_offsets16] "r" (gather_offsets16)
-          : "f2", "f3", "f20"
+          :
+          : "f2", "f3"
        );
       }
       // For all sparse input rows.
       for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex;
            j < currSegmentEnd; j++, currIndex++) {
-        volatile uint8_t *data_ptr   = tAInput + (  indices[currIndex] * in1T->strides()[0]
-                                                  + minionCurrRowGroup * dstGroupElems) * elemSize;
-        volatile uint8_t *weight_ptr = tWInput + currIndex * elemSize;
+        uint8_t *data_ptr   = tAInput + (  indices[currIndex] * in1T->strides()[0]
+                                         + minionCurrRowGroup * dstGroupElems) * elemSize;
+        uint8_t *weight_ptr = tWInput + currIndex * elemSize;
 
         __asm__ __volatile__ (
           "fbc.ps  f21, 0x0(%[weight_ptr])\n"
@@ -535,16 +581,28 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
       }
 
       if (float32Dst) {
-        // Store accumulated results.
-        __asm__ __volatile__ (
-          "fsw.ps f0,    (%[dst_ptr])\n"
-          "fsw.ps f1,  32(%[dst_ptr])\n"
-          :
-          : [dst_ptr] "r" (dst_ptr)
-          :
-        );
+        if (destAligned) {
+          // Store accumulated results.
+          __asm__ __volatile__ (
+            "fsw.ps f0,    (%[dst_ptr])\n"
+            "fsw.ps f1,  32(%[dst_ptr])\n"
+            :
+            : [dst_ptr] "r" (dst_ptr)
+            :
+          );
 
-        dst_ptr += 64;
+          dst_ptr += 64;
+        } else {
+          __asm__ __volatile__ (
+            "fscwg.ps    f0, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps    f1, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 32\n"
+            : [dst_ptr] "+&r" (dst_ptr)
+            :
+            : "f0", "f1", "f20"
+          );
+        }
       } else { // Float16
         // Convert and store accumulated results.
         __asm__ __volatile__ (
@@ -552,18 +610,40 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
           "fcvt.f16.ps f1, f1\n"
           "fcvt.f16.ps f2, f2\n"
           "fcvt.f16.ps f3, f3\n"
-          "fsch.ps     f0, f20(%[dst_ptr])\n"
-          "addi        %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps     f1, f20(%[dst_ptr])\n"
-          "addi        %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps     f2, f20(%[dst_ptr])\n"
-          "addi        %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps     f3, f20(%[dst_ptr])\n"
-          "addi        %[dst_ptr], %[dst_ptr], 16\n"
-          : [dst_ptr] "+&r" (dst_ptr)
+          :
           :
           : "f0", "f1", "f2", "f3"
         );
+
+        if (destAligned) {
+          __asm__ __volatile__ (
+            "fsch.ps     f0, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps     f1, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps     f2, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps     f3, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            : [dst_ptr] "+&r" (dst_ptr)
+            :
+            : "f0", "f1", "f2", "f3", "f20"
+          );
+        } else {
+          __asm__ __volatile__ (
+            "fschg.ps     f0, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps     f1, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps     f2, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps     f3, f20(%[dst_ptr])\n"
+            "addi        %[dst_ptr], %[dst_ptr], 16\n"
+            : [dst_ptr] "+&r" (dst_ptr)
+            :
+            : "f0", "f1", "f2", "f3", "f20"
+          );
+        }
       }
 
       if (minionCurrRowGroup != (dstRowGroups - 1)) {
@@ -580,22 +660,10 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
         dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * 64;
       }
     } else {
-      volatile int32_t gather_offsets16[] = { 0, 2, 4,  6,  8, 10, 12, 14 };
-
       // Initialize mask to clear upper bytes from input load
       __asm__ __volatile__ (
         "mov.m.x m0, zero, 0xff\n"
       );
-
-      if (float16Dst) {
-        // Initialize offsets for gather from input
-        __asm__ __volatile__ (
-          "flw.ps  f20, 0x0(%[gather_offsets16])\n"
-          :
-          : [gather_offsets16] "r" (gather_offsets16)
-          : "f20"
-        );
-      }
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
         embeddingBagsTailVectorized<elK>(minionCurrIndex,
@@ -603,7 +671,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
           tAInput, indices,
           in1T->strides()[0] * elemSize,
           (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize ,
-          tWInput, dst_ptr);
+          tWInput, dst_ptr, destAligned);
         dst_ptr += dstVRegElems * elemSize;
       }
 
@@ -619,7 +687,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
         tAInput, indices,
         in1T->strides()[0] * elemSize,
         (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize,
-        tWInput, dst_ptr);
+        tWInput, dst_ptr, destAligned);
 
       minionCurrIndex += (currSegmentEnd - currSegmentStart);
 
@@ -640,3 +708,4 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
 } // namespace dnn_lib
 
 #endif // _EMBEDDING_BAG_INST_H_
+

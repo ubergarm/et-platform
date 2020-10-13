@@ -55,7 +55,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
     uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
     uintptr_t dataRowSize, uintptr_t dataRowOffset, uintptr_t dstElemSize,
-    uint8_t *tWInput, uint8_t *dst_ptr, const bool Weighted = true) { 
+    uint8_t *tWInput, uint8_t *dst_ptr, bool destAligned, const bool Weighted = true) { 
 
   const bool float32Dst = elK == FloatTy;
   const bool float16Dst = elK == Float16Ty;
@@ -126,7 +126,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
      : [data_ptr]   "r" (data_ptr),
        [offset_ptr] "r"   (offset_ptr),
        [scale_ptr]  "r"   (scale_ptr)
-     : "f25"
+     : "f25", "f27", "f28", "f30", "f31"
     );
 
     if (Weighted) {
@@ -134,7 +134,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
         "fmadd.ps f0, f26, f25, f0\n"
         :
         :
-        : "f0"
+        : "f0", "f25", "f26"
       );
     }
     else {
@@ -142,30 +142,48 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
         "fadd.ps f0, f25, f0\n"
         :
         :
-        : "f0"
+        : "f0", "f25"
       );
     }
   }
   
   if (float32Dst) {
     // Store accumulated results.
-    __asm__ __volatile__ (
-      "fsw.ps f0, (%[dst_ptr])\n"
-      :
-      : [dst_ptr] "r" (dst_ptr)
-      :
-    );
+    if (destAligned) {
+      __asm__ __volatile__ (
+        "fsw.ps f0, (%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0"
+      );
+    } else {
+      __asm__ __volatile__ (
+        "fscwg.ps f0, f29(%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0", "f29"
+      );
+    }
   } else {    // Float16
-    __asm__ __volatile__ (
-      "fcvt.f16.ps f0, f0\n"
-      "fsch.ps f0, f29(%[dst_ptr])\n"
-      :
-      : [dst_ptr] "r" (dst_ptr)
-      : "f0"
-    );
+    if (destAligned) {
+      __asm__ __volatile__ (
+        "fcvt.f16.ps f0, f0\n"
+        "fsch.ps f0, f29(%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0", "f29"
+      );
+    } else {
+      __asm__ __volatile__ (
+        "fcvt.f16.ps f0, f0\n"
+        "fschg.ps f0, f29(%[dst_ptr])\n"
+        :
+        : [dst_ptr] "r" (dst_ptr)
+        : "f0", "f29"
+      );
+    }
   }
 }
-
  
 template <ElemKind elK, bool Weighted = true>
 inline __attribute((always_inline))
@@ -216,6 +234,12 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
   unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
   
+  // Computes if the destination is correctly aligned and regulars stores can be
+  // used because there's no cache shared amongst minions.
+  // Need both the dest starting address being CL aligned as well as the pitch for
+  // the smallest dimension
+  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) dstPitches[0] % CACHE_LINE_BYTES) == 0);
+
   // TODO : Add assert checking segments is equal to the number of output rows.
 
   // TODO : Add assert checking that totalLength is smaller than the size of
@@ -318,6 +342,38 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   // Initilize output pointer.
   uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * CACHE_LINE_BYTES) * dstElemSize;
 
+  // Not in tail
+  int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+  // Initialize offsets for gather from input
+  __asm__ __volatile__ (
+    "mov.m.x m0, zero, 0xff\n"
+    "li      t0, 0xff\n"
+    "fbcx.ps f30, t0\n"
+    "flw.ps  f31, %[gather_offsets]\n"
+    :
+    : [gather_offsets] "m" (*(const int32_t(*)[8]) gather_offsets)
+    : "t0", "f30", "f31"
+  );
+
+  if (float32Dst) {
+    // Set offsets for storing float32 results (0, 4, 8, 12, 16, 20, 24, 28)
+    __asm__ __volatile__ (
+      "fslli.pi f29, f31, 2\n"
+      :
+      :
+      : "f29", "f31"
+    );
+  } else {
+    // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
+    __asm__ __volatile__ (
+      "fslli.pi f29, f31, 1\n"
+      :
+      :
+      : "f29", "f31"
+    );
+  }
+
   // For all minion assigned work units
   for (uintptr_t i = 0; i < minionWorkUnits; i++) {
 
@@ -325,9 +381,6 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
     bool dstGroupNotInRowTail = !dstRowHasTail || (minionCurrRowGroup != (dstRowGroups - 1));
 
     if (dstGroupNotInRowTail) {
-      // Not in tail
-      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-
       // Initialize vector mask
       // Clear vector registers that will be used for accumulation
       // Initialize offsets for gather from input
@@ -342,24 +395,10 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         "fxor.pi f5, f0, f0\n"
         "fxor.pi f6, f0, f0\n"
         "fxor.pi f7, f0, f0\n"
-        "li      t0, 0xff\n"
-        "fbcx.ps f30, t0\n"
-        "flw.ps  f31, %[gather_offsets]\n"
         :
-        : [gather_offsets] "m" (*(const int32_t(*)[8]) gather_offsets)
-        : "t0", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
-          "f30", "f31"
+        :
+        : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"
       );
-
-      if (float16Dst) {
-        // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
-        __asm__ __volatile__ (
-          "fadd.pi f29, f31, f31\n"
-          :
-          :
-          : "f29"
-        );
-      }
 
       // For all sparse input rows.
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
@@ -406,7 +445,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
             "fcvt.ps.f16 f28, f28\n"
             :
             : [data_ptr] "r" (data_ptr)
-            : "f25", "f27", "f28"
+            : "f25", "f27", "f28", "f31"
           );
         }
         else {
@@ -414,7 +453,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
             "fgb.ps f25, f31, %[data_ptr]\n"
             :
             : [data_ptr] "r" (data_ptr)
-            :  "f25"
+            :  "f25", "f31"
           );
         }
 
@@ -467,8 +506,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
          : [data_ptr]   "+&r" (data_ptr)
          : [offset_ptr] "r"   (offset_ptr),
            [scale_ptr]  "r"   (scale_ptr)
-         : "f18", "f19", "f20", "f21", "f22",
-           "f23", "f24", "f25", "f27", "f28"
+         : "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25",
+           "f27", "f28", "f30", "f31"
         );
 
         if (Weighted) {
@@ -483,7 +522,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
             "fmadd.ps f7, f26, f18, f7\n"
             :
             :
-            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"
+            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+              "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25"
           );
         }
         else {
@@ -498,28 +538,55 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
             "fadd.ps f7, f18, f7\n"
             :
             :
-            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"
+            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+              "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25"
           );
         }
       }
 
       if (float32Dst) {
-        // Store accumulated results.
-        __asm__ __volatile__ (
-          "fsw.ps f0,    (%[dst_ptr])\n"
-          "fsw.ps f1,  32(%[dst_ptr])\n"
-          "fsw.ps f2,  64(%[dst_ptr])\n"
-          "fsw.ps f3,  96(%[dst_ptr])\n"
-          "fsw.ps f4, 128(%[dst_ptr])\n"
-          "fsw.ps f5, 160(%[dst_ptr])\n"
-          "fsw.ps f6, 192(%[dst_ptr])\n"
-          "fsw.ps f7, 224(%[dst_ptr])\n"
-          :
-          : [dst_ptr] "r" (dst_ptr)
-          :
-        );
+        if (destAligned) {
+          // Store accumulated results.
+          __asm__ __volatile__ (
+            "fsw.ps f0,    (%[dst_ptr])\n"
+            "fsw.ps f1,  32(%[dst_ptr])\n"
+            "fsw.ps f2,  64(%[dst_ptr])\n"
+            "fsw.ps f3,  96(%[dst_ptr])\n"
+            "fsw.ps f4, 128(%[dst_ptr])\n"
+            "fsw.ps f5, 160(%[dst_ptr])\n"
+            "fsw.ps f6, 192(%[dst_ptr])\n"
+            "fsw.ps f7, 224(%[dst_ptr])\n"
+            :
+            : [dst_ptr] "r" (dst_ptr)
+            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"
+          );
 
-        dst_ptr += 64 * dstElemSize;
+          dst_ptr += 64 * dstElemSize;
+        } else {
+          // Store accumulated results.
+          __asm__ __volatile__ (
+            "fscwg.ps f0, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps f1, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps f2, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps f3, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps f4, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps f5, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps f6, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            "fscwg.ps f7, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 32\n"
+            : [dst_ptr] "+&r" (dst_ptr)
+            :
+            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+              "f29"
+          );
+        }
       } else {    // Float16
         // Convert and store accumulated results.
         __asm__ __volatile__ (
@@ -531,26 +598,56 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
           "fcvt.f16.ps f5, f5\n"
           "fcvt.f16.ps f6, f6\n"
           "fcvt.f16.ps f7, f7\n"
-          "fsch.ps f0, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f1, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f2, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f3, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f4, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f5, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f6, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          "fsch.ps f7, f29(%[dst_ptr])\n"
-          "addi %[dst_ptr], %[dst_ptr], 16\n"
-          : [dst_ptr]   "+&r" (dst_ptr)
+          :
           :
           : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"
         );
+
+        if (destAligned) {
+          __asm__ __volatile__ (
+            "fsch.ps f0, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps f1, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps f2, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps f3, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps f4, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps f5, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps f6, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fsch.ps f7, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            : [dst_ptr]   "+&r" (dst_ptr)
+            :
+            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f29"
+          );
+        } else {
+          __asm__ __volatile__ (
+            "fschg.ps f0, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps f1, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps f2, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps f3, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps f4, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps f5, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps f6, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            "fschg.ps f7, f29(%[dst_ptr])\n"
+            "addi %[dst_ptr], %[dst_ptr], 16\n"
+            : [dst_ptr]   "+&r" (dst_ptr)
+            :
+            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f29"
+          );
+        }
       }
 
       if (minionCurrRowGroup != (dstRowGroups - 1)) {
@@ -565,38 +662,16 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * CACHE_LINE_BYTES) * dstElemSize;
       }
     } else {
-      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-
-      // Initialize mask to clear upper bytes from input load
+      // Initialize offsets for gather from input
       __asm__ __volatile__ (
         "mov.m.x m0, zero, 0xff\n"
       );
-
-      // Initialize offsets for gather from input
-      __asm__ __volatile__ (
-        "li      t0, 0xff\n"
-        "fbcx.ps f30, t0\n"
-        "flw.ps  f31, %[gather_offsets]\n"
-        :
-        : [gather_offsets] "m" (*(const int32_t(*)[8]) gather_offsets)
-        : "t0", "f0", "f30", "f31"
-      );
-
-      if (float16Dst) {
-        // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
-        __asm__ __volatile__ (
-          "fadd.pi f29, f31, f31\n"
-          :
-          :
-          : "f29"
-        );
-      }
 
       for (int k = 0; k < (dstRowTailVRegs - 1); k++) {
           fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
           dataPitches[0], dataRowSize, minionCurrRowGroup * CACHE_LINE_BYTES + k * 8 * sizeof(elK),
-          dstElemSize, tWInput, dst_ptr, Weighted);
+          dstElemSize, tWInput, dst_ptr, destAligned, Weighted);
           dst_ptr += 8 * dstElemSize;
       }
 
@@ -611,7 +686,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         minionCurrIndex, currSegmentLength, tAInput, indices,
         dataPitches[0], dataRowSize,
         minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8 * sizeof(elK),
-        dstElemSize, tWInput, dst_ptr, Weighted);
+        dstElemSize, tWInput, dst_ptr, destAligned, Weighted);
 
       minionCurrIndex += currSegmentLength;
 
