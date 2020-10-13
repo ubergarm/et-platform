@@ -39,21 +39,18 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
   using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
-  /* maintain compatibility through the new Iface Libtensor */  
+
   srcType* dstT = outT->getRawDataPointer<srcType>();
   srcType* srcT = inT->getRawDataPointer<srcType>();
 
-  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
+
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> acumInt(dstT, scale[1], offset[1]);
   const Addresser<elK> acumInt(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
   const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());
   
-  // unsigned int *srcIndex = (unsigned int *)srcTDims;
   const dim_t *srcIndex = inT->dims().data();
-  // unsigned int *srcPitch = (unsigned int *)srcTPitches;
   const dim_t *srcPitch = inT->strides().data();
+  const dim_t *dstPitch = outT->strides().data();
   
   float e, sum, inverseSum;
 
@@ -61,24 +58,26 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
     unsigned int start = n * srcPitch[0];
     unsigned int end = start + srcIndex[1];
 
+    unsigned int outStart = n * dstPitch[0];
+
     float max = float(tInput[start]);
     for (unsigned int i = start + 1; i < end; i++)
       max = std::max(max, float(tInput[i]));
 
     // Compute exp.
     sum = 0;
-    for (unsigned int i = start; i < end; i++) {
+    for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       e = getExp(float(tInput[i]) - max);
       sum += e;
-      tOutput[i] = float(e); // here, the shape hypothesis is important.
+      tOutput[j] = float(e); // here, the shape hypothesis is important.
     }
 
     fpReciprocalSingleElement(sum, inverseSum);
     // Normalize the output.
-    for (unsigned int i = start; i < end; i++) {
-      auto in = acumInt[i];
+    for (unsigned int i = start, j = outStart; i < end; i++, j++) {
+      auto in = acumInt[j];
       in = in * inverseSum;
-      tOutput[i] = in;
+      tOutput[j] = in;
     }
   }
 }
@@ -100,22 +99,20 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  /* maintain compatibility through the new Iface Libtensor */  
+
   srcType* dstT = outT->getRawDataPointer<srcType>();
   srcType* srcT = inT->getRawDataPointer<srcType>();  
 
-  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
+
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> acumInt(dstT, scale[1], offset[1]);
   const Addresser<elK> acumInt(dstT, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
   const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());
   
-  // unsigned int *srcIndex = (unsigned int *)srcTDims;
   const dim_t *srcIndex = inT->dims().data();
-  // unsigned int *srcPitch = (unsigned int *)srcTPitches;
   const dim_t *srcPitch = inT->strides().data();
   
+  const dim_t *dstPitch = outT->strides().data();
+
   size_t typeSize = getsize<srcType>();
 
   unsigned int rowstodo = srcIndex[0] / activeMinions;
@@ -123,9 +120,12 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
   unsigned int lastrow = firstrow + rowstodo;
 
   unsigned int step = srcPitch[0]*typeSize;
+  unsigned int outStep = dstPitch[0] * typeSize;
   unsigned int memOffset = firstrow*step;
+  unsigned int outMemOffset = firstrow * outStep;
+
   uintptr_t srcAddr = (uintptr_t)srcT + memOffset;
-  uintptr_t dstAddr = (uintptr_t)dstT + memOffset;
+  uintptr_t dstAddr = (uintptr_t)dstT + outMemOffset;
 
   unsigned int numRegs = srcIndex[1]/8;
   unsigned int extraLanes = srcIndex[1] - 8*numRegs;
@@ -325,8 +325,9 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
       end = start - K + srcIndex[1];
 
     memOffset = start*typeSize;
+    outMemOffset = ((doneRows + moreRows) * dstPitch[0] + K) * typeSize;
     srcAddr = (uintptr_t)srcT + memOffset;
-    dstAddr = (uintptr_t)dstT + memOffset;
+    dstAddr = (uintptr_t)dstT + outMemOffset;
     numRegs = (end - start)/8;
     extraLanes = (end - start) - 8*numRegs;
 
