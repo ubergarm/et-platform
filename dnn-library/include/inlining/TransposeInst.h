@@ -80,9 +80,6 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
   void *dst = outT->getRawDataPointer<void *>();
   void *src = inT->getRawDataPointer<void *>();
   
-  uintptr_t dstAddr = reinterpret_cast<uintptr_t>(dst);
-  uintptr_t srcAddr = reinterpret_cast<uintptr_t>(src);
-
   // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;
@@ -106,8 +103,7 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
 
   unsigned int coord[srcDimNum];
   unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
-                           k);
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex, k);
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
@@ -118,17 +114,9 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   unsigned int lastDim = srcDimNum - 1;
-  unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
 
-
-  unsigned int elementsInRow, registersInRow, res;
-  uint8_t mask;
-  bool firstRow = true;
-  bool midRow = false;
-  bool lastRow = false;
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
-
 
   unsigned int newPitchSize = newPitch[lastDim] * typeSize;
   int32_t gatherValues[8];
@@ -137,51 +125,49 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
   int32_t scatterValues[8];
   for (unsigned int i = 0; i < 8; i++) scatterValues[i] = i*dstPitchSize;
 
+  // Work pending to be done
   while (!done && (offsetOut < posMax)) {
-    if (firstRow && (coord[lastDim - 1] != maxRow)) {
-      elementsInRow = dstIndex[lastDim] - coord[lastDim];
-    } else if (coord[lastDim - 1] == maxRow) {
-      lastRow = true;
+    // Compute number of elements in current row
+    int elementsInRow = dstIndex[lastDim] - coord[lastDim];
+    if ((offsetOut + elementsInRow) > posMax) {
       elementsInRow = posMax - offsetOut;
-    } else {
-      elementsInRow = dstIndex[lastDim];
     }
-    if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
-      registersInRow = elementsInRow / 8;
-      res = elementsInRow - registersInRow * 8;
-      mask = ((1 << res) - 1);
-      __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      if (!firstRow) midRow = true;
-    }
-    firstRow = false;
-    srcAddr += offsetIn * typeSize;
-    dstAddr += offsetOut * typeSize;
 
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
+    // Starting addresses
+    uintptr_t srcAddr = reinterpret_cast<uintptr_t>(src) + offsetIn * typeSize;
+    uintptr_t dstAddr = reinterpret_cast<uintptr_t>(dst) + offsetOut * typeSize;
 
-    for (unsigned int i = 0; i < registersInRow; i++) {
+    // Computes full passes and partial passes
+    int registersInRow = elementsInRow / 8;
+    int res = elementsInRow - registersInRow * 8;
+    
+    __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
+    for (int i = 0; i < registersInRow; i++) {
       transposeOp <srcType>(dstAddr, srcAddr, scatterValues, gatherValues);
       srcAddr += 8 * typeSize * newPitch[lastDim];
       dstAddr += 8 * typeSize;
     }
 
     if (res > 0) {
-      __asm__ __volatile__("maskand m0, m1, m0 \n");
+      uint8_t mask = ((1 << res) - 1);
+      __asm__ __volatile__("mov.m.x m0, %[mask], 0\n" : : [mask] "r" (mask) :);
       transposeOp <srcType>(dstAddr, srcAddr, scatterValues, gatherValues);
     }
 
-    if (lastRow)
-      return;
+    // Updates pointers
+    if (coord[lastDim] != 0) {
+      // Aligning the highest dimension is only required in the first iteration
+      // We move offsets to the begining of the second to last dimension
+      offsetIn -= coord[lastDim] * newPitch[lastDim];
+      offsetOut -= coord[lastDim] * dstPitch[lastDim];
+      coord[lastDim] = 0;
+    }
 
-    dstAddr = (uintptr_t)dst;
-    srcAddr = (uintptr_t)src;
-    
-    offsetIn -= coord[lastDim] * newPitch[lastDim];
-    offsetOut -= coord[lastDim] * dstPitch[lastDim];
-    coord[lastDim] = 0;
-
+    // Increment pointers ignoring the highest dimension as each step takes care of it
     done = getOffsets(lastDim, coord, offsetOut, offsetIn, dstIndex, dstPitch, newPitch);
   }
+
+  // Eviction phase
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
