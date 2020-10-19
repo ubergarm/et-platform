@@ -294,7 +294,7 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T,
                                           const std::array<uint32_t, N> &strides,
                                           const std::array<uint32_t, PN> &pads,
                                           unsigned int group,
-            unsigned int dilation,
+                                          unsigned int dilation,
                                           uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
