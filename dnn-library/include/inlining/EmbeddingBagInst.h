@@ -350,7 +350,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   const dim_t numIndices = in3T->dims()[0];
 
   // Compute the number of elements per data row (first tensor dimension).
-  const uintptr_t dstRowSize = outT->dims()[1];  
+  const uintptr_t dstRowElemSize = outT->dims()[1];  
   
   // Get size of the output element.
   const uintptr_t elemSize = float32Dst ? 4 : 2;
@@ -375,17 +375,20 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   const uintptr_t dstGroupVRegs = CACHE_LINE_BYTES / (elemSize * 8);
 
   // Compute the number of groups per output row (rounded up).
-  const uintptr_t dstRowGroups = ((dstRowSize - 1) / dstGroupElems) + 1;
+  const uintptr_t dstRowGroups = ((dstRowElemSize - 1) / dstGroupElems) + 1;
+
+  // Computes if there's a tail
+  bool dstRowHasTail = ((dstRowElemSize % dstGroupElems) != 0);
 
   // Compute the number of 8-element vectors in the tail of the row
   // (number of VRegs not multiple of Group VRegs).
-  const uintptr_t dstRowTailVRegs = (((dstRowSize - 1) / dstVRegElems) + 1) % dstGroupVRegs;
-
-  // Determine if row has a tail
-  const bool dstRowHasTail = (dstRowTailVRegs != 0);
+  uintptr_t dstRowTailVRegs = (((dstRowElemSize - 1) / dstVRegElems) + 1) % dstGroupVRegs;
+  if (dstRowTailVRegs == 0) {
+    dstRowTailVRegs += dstGroupVRegs;
+  }
 
   // Compute the element mask for the last VReg in the row.
-  const uint8_t dstRowTailVRegMask = (1 << (dstRowSize % dstVRegElems)) - 1;
+  const uint8_t dstRowTailVRegMask = (1 << (dstRowElemSize % dstVRegElems)) - 1;
 
   uintptr_t totalWorkUnits = dstRowGroups * outT->dims()[0];
 
@@ -418,7 +421,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   // used because there's no cache shared amongst minions.
   // Need both the dest starting address being CL aligned as well as the pitch for
   // the smallest dimension
-  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) outT->strides()[0] % CACHE_LINE_BYTES) == 0);
+  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) outT->strides()[0] % dstGroupElems) == 0);
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
@@ -470,7 +473,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   uintptr_t minionCurrRowGroup = minionFirstRowGroup;
 
   // Initilize output pointer.
-  auto dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * 64;
+  auto dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * dstGroupElems * elemSize;
 
   // Prepare gather indices
   int32_t gather_offsets16[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
@@ -657,7 +660,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
 
         getNextSegment(minionCurrSegment);
 
-        dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * 64;
+        dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * dstGroupElems * elemSize;
       }
     } else {
       // Initialize mask to clear upper bytes from input load
@@ -670,7 +673,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
           currSegmentStart, currSegmentEnd,
           tAInput, indices,
           in1T->strides()[0] * elemSize,
-          (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize ,
+          (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize,
           tWInput, dst_ptr, destAligned);
         dst_ptr += dstVRegElems * elemSize;
       }
@@ -697,7 +700,7 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
 
       getNextSegment(minionCurrSegment);
 
-      dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * 64;
+      dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * dstGroupElems * elemSize;
     }
   }
   

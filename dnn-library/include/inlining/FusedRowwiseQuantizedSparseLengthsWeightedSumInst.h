@@ -234,12 +234,6 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
   unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
   
-  // Computes if the destination is correctly aligned and regulars stores can be
-  // used because there's no cache shared amongst minions.
-  // Need both the dest starting address being CL aligned as well as the pitch for
-  // the smallest dimension
-  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) dstPitches[0] % CACHE_LINE_BYTES) == 0);
-
   // TODO : Add assert checking segments is equal to the number of output rows.
 
   // TODO : Add assert checking that totalLength is smaller than the size of
@@ -259,8 +253,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   uintptr_t dataRowSize = dataDims[1];
 
   // Compute the number of elements per output row (first tensor dimension).
-  uintptr_t dstRowSize = 1;
-  for (uintptr_t i = 1; i < pdstDimNum; i++) dstRowSize *= dstDims[i];
+  uintptr_t dstRowElemSize = 1;
+  for (uintptr_t i = 1; i < pdstDimNum; i++) dstRowElemSize *= dstDims[i];
 
   // Get size of the output element.
   uintptr_t dstElemSize;
@@ -280,20 +274,25 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   // should be assigned per minion to avoid coherence issues.
   //
 
-  // Compute the number of 8-element vectors per output cache line.
-  uintptr_t dstCacheLineVRegs = CACHE_LINE_BYTES / 8;
+  // Compute the number of 8-element vectors per output cache line and number of elements as well
+  int dstCacheLineElems   = CACHE_LINE_BYTES / dstElemSize;
+  int dstRowGroupElemSize = 64;
+  int dstRowGroupVRegs    = dstRowGroupElemSize / 8;
 
   // Compute the number of Cache Line groups per output row (rounded up).
-  uintptr_t dstRowGroups = ((dstRowSize - 1) / CACHE_LINE_BYTES) + 1;
+  uintptr_t dstRowGroups = ((dstRowElemSize - 1) / dstRowGroupElemSize) + 1;
 
   // Determine if row has a tail.
-  bool dstRowHasTail = ((dstRowSize % CACHE_LINE_BYTES) != 0);
+  bool dstRowHasTail = ((dstRowElemSize % dstRowGroupElemSize) != 0);
 
   // Compute the number of 8-element vectors in the tail of the row.
-  int dstRowTailVRegs = (((dstRowSize - 1) / 8) + 1) % dstCacheLineVRegs;
+  int dstRowTailVRegs = (((dstRowElemSize - 1) / 8) + 1) % dstRowGroupVRegs;
+  if (dstRowTailVRegs == 0) {
+    dstRowTailVRegs += dstRowGroupVRegs;
+  }
 
   // Compute the element mask for the tail of the row.
-  uint8_t dstRowTailVRegMask = (1 << (((dstRowSize - 1) % 8) + 1)) - 1;
+  uint8_t dstRowTailVRegMask = (1 << (((dstRowElemSize - 1) % 8) + 1)) - 1;
 
   uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
 
@@ -322,6 +321,12 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   if (minionWorkUnits == 0)
     return;
 
+  // Computes if the destination is correctly aligned and regulars stores can be
+  // used because there's no cache shared amongst minions.
+  // Need both the dest starting address being CL aligned as well as the pitch for
+  // the smallest dimension
+  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) dstPitches[0] % dstCacheLineElems) == 0);
+
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
 
@@ -340,7 +345,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   uintptr_t currSegmentLength = lengths[minionCurrSegment];
 
   // Initilize output pointer.
-  uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * CACHE_LINE_BYTES) * dstElemSize;
+  uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * dstRowGroupElemSize) * dstElemSize;
 
   // Not in tail
   int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
@@ -659,7 +664,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         minionCurrIndex += currSegmentLength;
         currSegmentLength = lengths[minionCurrSegment];
 
-        dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * CACHE_LINE_BYTES) * dstElemSize;
+        dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * dstRowGroupElemSize) * dstElemSize;
       }
     } else {
       // Initialize offsets for gather from input
@@ -670,7 +675,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       for (int k = 0; k < (dstRowTailVRegs - 1); k++) {
           fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices,
-          dataPitches[0], dataRowSize, minionCurrRowGroup * CACHE_LINE_BYTES + k * 8 * sizeof(elK),
+          dataPitches[0], dataRowSize, minionCurrRowGroup * CACHE_LINE_BYTES + k * 8,
           dstElemSize, tWInput, dst_ptr, destAligned, Weighted);
           dst_ptr += 8 * dstElemSize;
       }
@@ -685,7 +690,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
         minionCurrIndex, currSegmentLength, tAInput, indices,
         dataPitches[0], dataRowSize,
-        minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8 * sizeof(elK),
+        minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8,
         dstElemSize, tWInput, dst_ptr, destAligned, Weighted);
 
       minionCurrIndex += currSegmentLength;
@@ -695,7 +700,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       minionCurrRowGroup = 0;
       currSegmentLength = lengths[minionCurrSegment];
 
-      dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
+      dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * dstRowGroupElemSize) * dstElemSize;
     }
   }
 }
