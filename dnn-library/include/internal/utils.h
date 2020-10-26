@@ -561,6 +561,20 @@ float getCosh(float val) {
 }
 
 inline __attribute__((always_inline))
+float getTanh(float val) {
+  if (val > 10) {
+    return 1;
+  } else if (val < -10) {
+    return -1;
+  } else {
+    float e2x, denom;
+    dnn_lib::fpPowSingleElement(M_E, 2*val, e2x);
+    dnn_lib::fpReciprocalSingleElement(e2x+1, denom);
+    return (denom * (e2x-1));
+  }
+}
+
+inline __attribute__((always_inline))
 bool isInteger(float f) {
   return (nearbyintf(f) == f);
 }

@@ -1971,42 +1971,36 @@ public:
             typename std::enable_if<std::is_same<U, Tanh>::value,
                                     std::size_t>::type = 0>
   void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, uint64_t &d, uint64_t &s) {
-    float op1, op2;
+    float op1;
     convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), op1);
-    op2 = getCosh(op1); op1 = getSinh(op1);
-    fpReciprocalSingleElement(op2, op2);
-    convertFp32ToFp16(op1 * op2, dst.raw(d));
+    op1 = getTanh(op1);
+    convertFp32ToFp16(op1, dst.raw(d));
   }
 
   template <typename U = opType,
             typename std::enable_if<std::is_same<U, Tanh>::value,
                                     std::size_t>::type = 0>
   void doOp(Handle<uint16_t> &dst, const Handle<uint16_t> &src, dim_array_t &p) {
-    float op1, op2;
+    float op1;
     convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), op1);
-    op2 = getCosh(op1); op1 = getSinh(op1);
-    fpReciprocalSingleElement(op2, op2);
-    convertFp32ToFp16(op1 * op2, dst.at(p));
+    op1 = getTanh(op1);
+    convertFp32ToFp16(op1, dst.at(p));
   }
 
   template <typename U = opType,
             typename std::enable_if<std::is_same<U, Tanh>::value,
                                     std::size_t>::type = 0>
   void doOp(Handle<float> &dst, const Handle<float> &src, uint64_t &d, uint64_t &s) {
-    float op1 = getSinh(src.raw(s));
-    float op2 = getCosh(src.raw(s));
-    fpReciprocalSingleElement(op2, op2);
-    dst.raw(d) = op1 * op2;
+    float op1 = getTanh(src.raw(s));
+    dst.raw(d) = op1;
   }
 
   template <typename U = opType,
             typename std::enable_if<std::is_same<U, Tanh>::value,
                                     std::size_t>::type = 0>
   void doOp(Handle<float> &dst, const Handle<float> &src, dim_array_t &p) {
-    float op1 = getSinh(src.at(p));
-    float op2 = getCosh(src.at(p));
-    fpReciprocalSingleElement(op2, op2);
-    dst.at(p) = op1 * op2;
+    float op1 = getTanh(src.at(p));
+    dst.at(p) = op1;
   }
 
   //// IsNaN operations ////
