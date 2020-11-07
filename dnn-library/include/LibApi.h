@@ -44,6 +44,42 @@ namespace dnn_lib {
    mbMaxMembers
   };
 
+  static std::map<instrMembers, std::string> member_name_map = {
+    { mbHalfWindowSize,         "HalfWindowSize" },
+    { mbAlpha,                  "Alpha" },
+    { mbBeta,                   "Beta" },
+    { mbK,                      "K" },
+    { mbTopK,                   "TopK" },
+    { mbDivisor,                "Divisor" },
+    { mbSignFollowDivisor,      "SignFollowDivisor" },
+    { mbAxis,                   "Axis" },
+    { mbKeepDims,               "KeepDims" },
+    { mbKernels,                "Kernels"},
+    { mbStrides,                "Strides" },
+    { mbPads,                   "Pads" },
+    { mbGroup,                  "Group" },
+    { mbOffsets,                "Offsets" },
+    { mbShuffle,                "Shuffle" },
+    { mbMask,                   "Mask" },
+    { mbBatchDims,              "BatchDims" },
+    { mbCount,                  "Count" },
+    { mbValue,                  "Value" },
+    { mbSyncOffset,             "SyncOffset" },
+    { mbExclusive,              "Exclusive" },
+    { mbReverse,                "Reverse" },
+    { mbBlockSize,              "BlockSize" },
+    { mbAxes,                   "Axes" },
+    { mbRszScale,               "RszScale" },
+    { mbHasEndOffset,           "HasEndOffset" },
+    { mbTransposed,             "Transposed" },
+    { mbDilation,               "Dilation" },
+    { mbCenterPointBox,         "CenterPointBox" },
+    { mbMaxOutputBoxesPerClass, "MaxOutputBoxesPerClass" },
+    { mbIouThreshold,           "IouThreshold" },
+    { mbScoreThreshold,         "ScoreThreshold" },
+    { mbIsTFVersion4,           "IsTFVersion4" }
+  };
+
   static constexpr size_t maxImplVersions = 4;
   static constexpr size_t maxInstrConfigStrLen = 256;
   static constexpr size_t maxNrOperands = 12;
