@@ -183,11 +183,13 @@ inline typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Flo
   template <ElemKind dstElK, size_t N, size_t PN>
 inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Float16Ty)), void>
  fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-       const std::array<uint32_t, N> &kernels,
-       const std::array<uint32_t, N> &strides,
-       const std::array<uint32_t, PN> &pads,
-       uint64_t flags, 
-       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                   const std::array<uint32_t, N> &kernels,
+                   const std::array<uint32_t, N> &strides,
+                   const std::array<uint32_t, PN> &pads,
+                   uint32_t layout,
+                   bool countIncludePads,
+                   uint64_t flags, 
+                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
       
   if (inT->ndims() == 5) {
@@ -265,11 +267,13 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
   template <ElemKind dstElK, size_t N, size_t PN>
 inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Float16Ty)), void>
  fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT,
-       const std::array<uint32_t, N> &kernels,
-       const std::array<uint32_t, N> &strides,
-       const std::array<uint32_t, PN> &pads,
-       uint64_t flags, 
-       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                   const std::array<uint32_t, N> &kernels,
+                   const std::array<uint32_t, N> &strides,
+                   const std::array<uint32_t, PN> &pads,
+                   uint32_t layout,
+                   bool countIncludePads,
+                   uint64_t flags, 
+                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -328,6 +332,8 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       const std::array<uint32_t, N> &strides,
                                       const std::array<uint32_t, PN> &pads,
                                       uint64_t flags,
+                                      uint32_t layout,
+                                      bool countIncludePads,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   

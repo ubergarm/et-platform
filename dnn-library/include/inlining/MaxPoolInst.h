@@ -154,6 +154,7 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
                          const std::array<uint32_t, N> &kernels,
                          const std::array<uint32_t, N> &strides,
                          const std::array<uint32_t, PN> &pads,
+                         uint32_t layout,
                          uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
     maxPoolImplThreaded<out0Type, in0Type>(false, out0, nullptr, in0,
                                            kernels, strides, pads,
@@ -169,10 +170,11 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
   
   template <ElemKind out0Type, ElemKind in0Type, size_t N, size_t PN>
   void fwdLibMaxPoolWithArgMaxInst(LibTensor* out0, LibTensor* out1, LibTensor* in0,
-                                           const std::array<uint32_t, N> &kernels,
-                                           const std::array<uint32_t, N> &strides,
-                                           const std::array<uint32_t, PN> &pads,
-                                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                                   const std::array<uint32_t, N> &kernels,
+                                   const std::array<uint32_t, N> &strides,
+                                   const std::array<uint32_t, PN> &pads,
+                                   uint32_t layout,
+                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
     maxPoolImplThreaded<out0Type, in0Type>(true, out0, out1, in0,
                                            kernels, strides, pads,
                                            flags, minionOffset, assignedMinions);

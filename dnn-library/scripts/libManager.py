@@ -70,7 +70,9 @@ class LibManagerSheet:
                       "MaxOutputBoxesPerClass": "int64_t",
                       "IouThreshold": "float",
                       "ScoreThreshold": "float",
-                      "IsTFVersion4": "bool"
+                      "IsTFVersion4": "bool",
+                      "Layout": "uint32_t",
+                      "CountIncludePads": "bool"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)
@@ -481,20 +483,21 @@ class LibManagerSheet:
        
     def formatTable(self, table):
         s = Template('''     /**** $enum ****/
-     { "$name", // name
-       $nrOutputTensors, // # outs
-       $nrInputTensors,  // # ins
-       $members, // members
-       $template, // template param mask
-       $versions, // impl versions
-       $implSel, // custom impl selector
-       // L1 states per impl
-       $stateL1,
-       // L2 states per impl
-       $stateL2,
-       // CB states per impl
-       $stateCB,
-       $evictMask // evict available mask
+     instrConfig {
+       "$name", // name
+        $nrOutputTensors, // # outs
+        $nrInputTensors,  // # ins
+        $members, // members
+        $template, // template param mask
+        $versions, // impl versions
+        $implSel, // custom impl selector
+        // L1 states per impl
+        $stateL1,
+        // L2 states per impl
+        $stateL2,
+        // CB states per impl
+        $stateCB,
+        $evictMask // evict available mask
      }''')
         entries = [ s.substitute(e) for e in table]        
         return ",\n".join(entries)

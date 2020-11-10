@@ -1,0 +1,47 @@
+#ifndef SCALAR_MB_DEF
+#error The macro SCALAR_MB_DEF was not declared.
+#endif
+#ifndef VECTOR_MB_DEF
+#error The macro VECTOR_MB_DEF was not declared.
+#endif
+
+
+SCALAR_MB_DEF(HalfWindowSize, unsigned int, getInstParameters().hws)
+SCALAR_MB_DEF(Alpha, float, getInstParameters().alpha)
+SCALAR_MB_DEF(Beta, float, getInstParameters().beta)
+SCALAR_MB_DEF(K, float, getInstParameters().K)
+SCALAR_MB_DEF(TopK, uint32_t, getInstParameters().topK)
+SCALAR_MB_DEF(Divisor, uint64_t, getInstParameters().div)
+SCALAR_MB_DEF(SignFollowDivisor, bool, getInstParameters().sfd)
+SCALAR_MB_DEF(Axis, dim_t, getInstParameters().axis)
+SCALAR_MB_DEF(KeepDims, bool, getInstParameters().kdim)
+SCALAR_MB_DEF(Group, uint32_t, getInstParameters().group)
+SCALAR_MB_DEF(BatchDims, uint32_t, getInstParameters().bdims)
+SCALAR_MB_DEF(Count, uint32_t, getInstParameters().count)
+SCALAR_MB_DEF(Value, float, getSplat()) 
+SCALAR_MB_DEF(SyncOffset, uint32_t, getSyncOffset())
+SCALAR_MB_DEF(Exclusive, bool, getInstParameters().exclusive)
+SCALAR_MB_DEF(Reverse, bool, getInstParameters().reverse)
+SCALAR_MB_DEF(BlockSize, uint32_t, getInstParameters().blockSize)
+SCALAR_MB_DEF(HasEndOffset, bool, getInstParameters().hasEndOffset)
+SCALAR_MB_DEF(Transposed, bool, getInstParameters().transposed)
+SCALAR_MB_DEF(CenterPointBox, int64_t, getInstParameters().centerPointBox)
+SCALAR_MB_DEF(MaxOutputBoxesPerClass, int64_t, getInstParameters().maxOutputBoxesPerClass)
+SCALAR_MB_DEF(IouThreshold, float, getInstParameters().iouThreshold)
+SCALAR_MB_DEF(ScoreThreshold,float, getInstParameters().scoreThreshold)
+SCALAR_MB_DEF(IsTFVersion4, bool, getInstParameters().isTFVersion4)
+SCALAR_MB_DEF(Layout, uint32_t, getInstParameters().layout)
+SCALAR_MB_DEF(CountIncludePads, bool, getInstParameters().countIncludePads)
+
+VECTOR_MB_DEF(Kernels, uint32_t, getInstParameters().kernel)
+VECTOR_MB_DEF(Strides, uint32_t, getInstParameters().strides)
+VECTOR_MB_DEF(Pads, uint32_t, getInstParameters().pads)
+VECTOR_MB_DEF(Offsets, size_t, getZeroPaddedOffsets(dnn_lib::max_tensor_dimensions))
+VECTOR_MB_DEF(Shuffle, uint32_t, getInstParameters().shuffle)
+VECTOR_MB_DEF(Mask, uint64_t, getInstParameters().mask)
+VECTOR_MB_DEF(Axes, uint32_t, getInstParameters().axes)
+VECTOR_MB_DEF(RszScale, float, getInstParameters().rszScale)
+VECTOR_MB_DEF(Dilation, uint32_t, getInstParameters().dilation)
+
+#undef SCALAR_MB_DEF
+#undef VECTOR_MB_DEF
