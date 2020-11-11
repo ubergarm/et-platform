@@ -31,20 +31,16 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <ElemKind elK, typename std::enable_if<elK == Float16Ty, std::size_t>::type = 0>
-void setGatherValues (int32_t gatherValues[]){
-  gatherValues[0] = 0;
-  for (unsigned int i = 1; i < 8; ++i) gatherValues[i] = gatherValues[i - 1] + 2;
-}
+constexpr size_t numGatherValues = 8;
 
-template <ElemKind elK, typename std::enable_if<elK == Int8QTy, std::size_t>::type = 0>
-void setGatherValues (int32_t gatherValues[]){
-  gatherValues[0] = 0;
-  for (unsigned int i = 1; i < 8; ++i) gatherValues[i] = gatherValues[i - 1] + 1;
+template<ElemKind elemK>
+std::array<int32_t, numGatherValues> getGatherValues() {
+  std::array<int32_t, numGatherValues> result{};
+  for (size_t i = 0; i < result.size(); ++i) {
+    result[i] = Type::getElementSize(elemK)*i;
+  }
+  return result;
 }
-
-template <ElemKind elK, typename std::enable_if<elK != Int8QTy && elK != Float16Ty, std::size_t>::type = 0>
-void setGatherValues (int32_t gatherValues[]){} // includes the case elK = float.
 
 template <ElemKind elK, typename std::enable_if<elK == FloatTy, std::size_t>::type = 0>
 void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
@@ -352,8 +348,7 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T,
   unsigned int length = actIndex[1]; // Length of the dot products that will be performed.
   unsigned int wgtStep = wgtPitch[0]*typeSize;
 
-  int32_t gatherValues[8];
-  setGatherValues <elK>(gatherValues);
+  std::array<int32_t, numGatherValues> gatherValues = getGatherValues<elK>();
 
   float scale[3] =  {in1T->getScale(), in2T->getScale(), outT->getScale()};
   int32_t offset[3] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
@@ -365,7 +360,7 @@ void fwdLibMatMulInst(LibTensor* outT, LibTensor* in1T,
     uintptr_t actAddr = (uintptr_t)src + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)wei + typeSize*offsetWIn;
      
-    matmulOp <elK>(dstAddr, actAddr, wgtAddr, regs, extra, length, wgtStep, gatherValues, scale, offset);
+    matmulOp <elK>(dstAddr, actAddr, wgtAddr, regs, extra, length, wgtStep, gatherValues.data(), scale, offset);
 
     ++currentRow;
     if (currentRow > lastRow) break; // The loop ends when all the minion rows have been covered.
