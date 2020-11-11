@@ -250,8 +250,106 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
 #undef SIGN_EXTEND_INT8_REG
 }
 
-template <ElemKind elK, typename std::enable_if<elK!=Int8QTy &&  elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
-void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){}
+template <ElemKind elK, typename std::enable_if<elK == Int16QTy, std::size_t>::type = 0>
+void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset){
+
+#define INT16_TO_FP32(_reg, _scl, _off)           \
+    "fsub.pi " #_reg ", " #_reg ", " #_off " \n"  \
+    "fcvt.ps.pw " #_reg ", " #_reg " \n"          \
+    "fmul.ps " #_reg ", " #_reg ", " #_scl " \n"
+
+// Assuming the inverse scale is in f30 and the offset in f31. Using f4 as a scratch register.
+#define FP32_TO_INT16(_reg)                       \
+    "fmul.ps " #_reg ", " #_reg ", f30\n"         \
+    "fcvt.pw.ps " #_reg ", " #_reg "\n"           \
+    "fadd.pi " #_reg ", " #_reg ", f31\n"         \
+    "fbci.pi f4, 32767\n"                         \
+    "fmin.pi " #_reg ", " #_reg ", f4\n"          \
+    "fbci.pi f4, (-32768)&((1<<20)-1) \n"         \
+    "fmax.pi " #_reg ", " #_reg ", f4\n"
+
+// Sign extension of an int16 registger.
+#define SIGN_EXTEND_INT16_REG(_reg)                \
+      "fslli.pi " #_reg ", " #_reg ", 32-16\n"     \
+      "fsrai.pi " #_reg ", " #_reg ", 32-16\n"
+
+#define MATMUL_ITERATION                           \
+    "fxor.pi f2, f2, f2\n"                         \
+    "xor t1, t1, t1\n"                             \
+    "add t2, %[actAddr], zero\n"                   \
+    "add t3, %[wgtAddr], zero\n"                   \
+    "4:\n"                                         \
+    "addi t1, t1, 0x1\n"                           \
+    "blt  %[length], t1, 5f\n"                     \
+      "fbc.ps f0, 0x0(t2)\n"                       \
+      SIGN_EXTEND_INT16_REG(f0)                    \
+      INT16_TO_FP32(f0, f16, f17)                  \
+      "fgh.ps f1, f3(t3)\n"                        \
+      INT16_TO_FP32(f1, f28, f29)                  \
+      "fmadd.ps f2, f0, f1, f2\n"                  \
+      "addi t2, t2, 0x2\n"                         \
+      "add  t3, t3, %[wgtStep]\n"                  \
+    "j 4b\n"                                       \
+    "5:\n"                                         \
+    FP32_TO_INT16(f2)                              \
+    "fsch.ps f2, f3(%[dstAddr])\n"                 \
+    "addi %[wgtAddr], %[wgtAddr], 16 \n"           \
+    "addi %[dstAddr], %[dstAddr], 16 \n"
+
+   __asm__ __volatile__(
+    "mov.m.x m0, zero, 0xff\n"
+    "flw.ps f3, 0x0(%[gthVals])\n"
+    "xor t0, t0, t0\n"
+
+    // Activation tensor scale and offset
+    "fbc.ps   f16, 0x0(%[scale]) \n"
+    "fbc.ps   f17, 0x0(%[offset]) \n"
+    // Weight tensor scale and offset
+    "fbc.ps   f28, 0x4(%[scale]) \n"
+    "fbc.ps   f29, 0x4(%[offset]) \n"
+    // Output tensor inverse scale and offset.
+    "fbc.ps   f30, 0x8(%[scale]) \n"
+    "frcp.ps f30, f30 \n"
+    "fbc.ps   f31, 0x8(%[offset]) \n"
+
+    "1:\n"
+    "addi     t0, t0, 0x1\n"
+    "blt      %[regs], t0, 2f\n"
+    MATMUL_ITERATION
+    "j 1b\n"
+                                         
+    "2:\n"
+    "beq %[extra], zero, 3f\n"
+    "addi     t0, zero, 1\n"
+    "sll      t0, t0, %[extra]\n"
+    "addi     t0, t0, -1\n"
+    "mov.m.x  m0, t0, 0\n"
+    MATMUL_ITERATION
+
+    "3:\n"
+
+    : [wgtAddr] "+&r" (wgtAddr),
+      [dstAddr] "+&r" (dstAddr)
+    : [regs]    "r" (regs),
+      [extra]   "r" (extra),
+      [wgtStep] "r" (wgtStep),
+      [length]  "r" (length),
+      [actAddr] "r" (actAddr),
+      [gthVals] "r" (gatherValues),
+      [scale]   "r" (scale),
+      [offset]  "r" (offset)
+    : "t0", "t1", "t2", "t3", "f0", "f1", "f2", "f3", "f4", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
+
+#undef MATMUL_ITERATION
+#undef INT16_TO_FP32
+#undef FP32_TO_INT16
+#undef SIGN_EXTEND_INT16_REG
+}
+
+template <ElemKind elK, typename std::enable_if<elK!=Int8QTy && elK!=Int16QTy && elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
+void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned int regs, unsigned int extra, unsigned int length, unsigned int wgtStep, int32_t gatherValues[], const float *scale, const int32_t *offset)
+{
+}
 
 // 2-D MATRIX MULTIPLICATION: THREADED AND VECTORIZED VERSION.
 // Assumption: there is no padding in the last dimension (in this case, the second one),
