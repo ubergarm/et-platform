@@ -172,14 +172,10 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
     "fadd.pi " #_reg ", " #_reg ", f31\n"         \
     "fsat8.pi " #_reg ", " #_reg "\n"
 
-// Sign extension of an int8 registger, using f4 as auxilliary register. Non-optimal.
+// Sign extension of an int8 register
 #define SIGN_EXTEND_INT8_REG(_reg)                 \
-      "fandi.pi " #_reg ", " #_reg ", 0xff\n"      \
-      "fandi.pi f4, " #_reg ", 0x7f\n"             \
-      "feq.pi   f4, " #_reg ", f4\n"               \
-      "fnot.pi  f4, f4\n"                          \
-      "fandi.pi f4, f4, -256\n"                    \
-      "fadd.pi  " #_reg ", " #_reg ", f4\n"
+      "fslli.pi " #_reg ", " #_reg ", 32-8\n"     \
+      "fsrai.pi " #_reg ", " #_reg ", 32-8\n"
 
 #define MATMUL_ITERATION                           \
     "fxor.pi f2, f2, f2\n"                         \
@@ -246,7 +242,7 @@ void matmulOp (uintptr_t dstAddr, uintptr_t actAddr, uintptr_t wgtAddr, unsigned
       [gthVals] "r" (gatherValues),
       [scale]   "r" (scale),
       [offset]  "r" (offset)
-    : "t0", "t1", "t2", "t3", "f0", "f1", "f2", "f3", "f4", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
+    : "t0", "t1", "t2", "t3", "f0", "f1", "f2", "f3", "f16", "f17", "f28", "f29", "f30", "f31", "memory");
 
 #undef MATMUL_ITERATION
 #undef INT8_TO_FP32
