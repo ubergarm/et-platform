@@ -94,23 +94,17 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
   
-  // long long *indT = (long long *)dstT2;
   long long *indT = out2T->getRawDataPointer<long long>();
 
-  // unsigned int *valuesIndex = (unsigned int *)dstDims;
-  const dim_t *valuesIndex = inT->dims().data();
-  // unsigned int *inputIndex = (unsigned int *)srcDims;
   const dim_t *inputIndex = inT->dims().data();
-  // unsigned int *valuesPitch = (unsigned int *)dstPitches;
-  const dim_t *valuesPitch = outT->strides().data();
-  // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const dim_t *indPitch = out2T->strides().data();
-  // unsigned int *inputPitch = (unsigned int *)srcPitches;
   const dim_t *inputPitch = inT->strides().data();
+  const dim_t *valuesIndex = outT->dims().data();
+  const dim_t *valuesPitch = outT->strides().data();
+  const dim_t *indexPitch = out2T->strides().data();
 
-  uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
+  int srcDimNum = static_cast<unsigned int>(inT->ndims());
   
-  unsigned int numElemsValues = valuesPitch[0] * valuesIndex[0];
+  int numElemsValues = valuesPitch[0] * valuesIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsValues, initialAddr, maxRead,
@@ -119,21 +113,21 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
     return;
 
   unsigned int coord[srcDimNum];
-  for (unsigned i = 0; i < srcDimNum; i++)
+  for (int i = 0; i < srcDimNum; i++) {
     coord[i] = 0;
+  }
   unsigned int l = 0;
   
   /* overloading while sw-2400 and sw-2429 are WIP */
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, valuesPitch,
-                           valuesIndex, l);
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, valuesPitch, valuesIndex, l);
 
-  unsigned int offsetValues = 0;
-  unsigned int offsetInd = 0;
-  for (size_t i = 0; i < l; i++) {
-    offsetValues += coord[i] * valuesPitch[i];
-    offsetInd += coord[i] * indPitch[i];
+  int valuesOffset = 0;
+  int indexOffset = 0;
+  for (int i = 0; i < (int) l; i++) {
+    valuesOffset += coord[i] * valuesPitch[i];
+    indexOffset += coord[i] * indexPitch[i];
   }
-  if (offsetValues >= numElemsValues)
+  if (valuesOffset >= numElemsValues)
     return;
 
   size_t n = inputIndex[srcDimNum - 1];
@@ -141,15 +135,18 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
   float tmpValues[n];
   long long tmpInd[n];
 
-  unsigned int posMax = initialAddr + maxRead;
+  int posMax = initialAddr + maxRead;
   bool done = false;
   bool computed_topk = false;
-  while (!done && offsetValues < posMax) {
+  while (!done && valuesOffset < posMax) {
+    // Needs to recompute which values to work on
     if (!computed_topk) {
-      unsigned int offsetInput = 0;
-      for (uint8_t j = 0; j < srcDimNum - 1; j++)
-        offsetInput += coord[j] * inputPitch[j];
-      for (size_t i = 0; i < n; i++) {
+      int offsetInput = 0;
+      // Moves the pointer to input data to the current batch
+      for (int i = 0; i < srcDimNum - 1; i++) {
+        offsetInput += coord[i] * inputPitch[i];
+      }
+      for (int i = 0; i < (int) n; i++) {
         tmpValues[i] = inputT[offsetInput + i * inputPitch[srcDimNum - 1]];
         tmpInd[i] = i;
       }
@@ -157,14 +154,17 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
     partialQuicksort(&tmpValues[0], &tmpInd[0], 0, n - 1, k);
     computed_topk = true;
 
-    size_t i = coord[srcDimNum - 1];
-    valuesT[offsetValues] = tmpValues[i];
-    indT[offsetInd] = tmpInd[i];
+    int resCoord = coord[srcDimNum - 1];
+    valuesT[valuesOffset] = tmpValues[resCoord];
+    indT[indexOffset] = tmpInd[resCoord];
+    int prevBatch = coord[0];
     /* overloading while sw-2400 and sw-2429 are WIP */   
-    done = getOffsets(srcDimNum, coord, offsetValues, offsetInd, valuesIndex,
-                      valuesPitch, indPitch);
-    if (coord[srcDimNum - 1] == 0)
+    done = getOffsets(srcDimNum, coord, valuesOffset, indexOffset, valuesIndex,
+                      valuesPitch, indexPitch);
+    // Switching to a new result
+    if ((int) coord[0] != prevBatch) {
       computed_topk = false;
+    }
   }
   if (!DO_EVICTS)
     return;
@@ -202,8 +202,8 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
 
   // unsigned int *valuesPitch = (unsigned int *)dstPitches;
   const dim_t *valuesPitch = outT->strides().data();
-  // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const dim_t *indPitch = out2T->strides().data();
+  // unsigned int *indexPitch = (unsigned int *)dst2Pitches;
+  const dim_t *indexPitch = out2T->strides().data();
   // unsigned int *inputPitch = (unsigned int *)srcPitches;
   const dim_t *inputPitch = inT->strides().data();
   
@@ -241,7 +241,7 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
   }
 
   unsigned int batchDim = (srcDimNum > 1) ? (srcDimNum - 2) : 0;
-  indT += batch_offset * indPitch[batchDim];
+  indT += batch_offset * indexPitch[batchDim];
   // valT += batch_offset * valuesPitch[srcDimNum - 2];
 
   float minusInf = - std::numeric_limits<float>::infinity();
@@ -397,8 +397,8 @@ inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTens
   const dim_t *inputIndex = inT->dims().data();
   // unsigned int *valuesPitch = (unsigned int *)dstPitches;
   const dim_t *valuesPitch = outT->strides().data();
-  // unsigned int *indPitch = (unsigned int *)dst2Pitches;
-  const dim_t *indPitch = out2T->strides().data();
+  // unsigned int *indexPitch = (unsigned int *)dst2Pitches;
+  const dim_t *indexPitch = out2T->strides().data();
   // unsigned int *inputPitch = (unsigned int *)srcPitches;
   const dim_t *inputPitch = inT->strides().data();
 
@@ -435,7 +435,7 @@ inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTens
   }
 
   unsigned int batchDim = (srcDimNum > 1) ? (srcDimNum - 2) : 0;
-  indT += batch_offset * indPitch[batchDim];
+  indT += batch_offset * indexPitch[batchDim];
 
   float minusInf = -std::numeric_limits<float>::infinity();
   float tmpValues[9] = {minusInf, minusInf, minusInf, minusInf, minusInf,

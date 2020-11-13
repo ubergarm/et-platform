@@ -53,8 +53,6 @@ public:
   const T operator[](const size_t index) const {
     return ptr_[index];
   }
-
-
   
   ////////////////////////////////////////////////////////////////////////////////
   // WRITE
@@ -72,13 +70,21 @@ public:
     return ptr_[index];
   }
 
+  ////////////////////////////////////////////////////////////////////////////////
+  // Access
+  ////////////////////////////////////////////////////////////////////////////////
+  float getScale() const {
+    return scale_;
+  }
 
+  int32_t getOffset() const {
+    return offset_;
+  }
 
 private:
   const float scale_;
   const int32_t offset_;
   T* ptr_;
-  
 };
 
 #undef ONLY_FOR

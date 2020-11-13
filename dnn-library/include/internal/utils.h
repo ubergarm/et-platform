@@ -219,17 +219,25 @@ void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
     maxRead = mcl * cll + ual;
     offset = 0;
   }
-  // Other minions that do full work
-  else if (minionId < div) {
+  // Other minions that do regular work
+  else if (minionId <= div) {
     maxRead = mcl * cll;
     offset = (maxRead * minionId) + ual;
   }
-  else if (minionId == div) {
-    maxRead = (ncl - div * mcl) * cll;
-    offset = mcl * cll * minionId + ual;
-  }
-  else
+  // Other minions do nothing
+  else {
     maxRead = 0;
+    offset = numElems + ual;
+  }
+
+  // Sets maxRead to 0 if start out of bounds
+  if (offset >= (numElems + ual)) {
+    maxRead = 0;
+  }
+  // Prevent out of bounds access if start in of bounds
+  else if (offset < (numElems + ual)) {
+    maxRead = std::min(maxRead, numElems + ual - offset);
+  }
 }
 
 /**
