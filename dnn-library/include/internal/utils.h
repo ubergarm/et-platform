@@ -170,8 +170,6 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
  * @warning The function works with the supposition that the minions working on this
  *  tensor is numbered from 0 to activeMinions.
  *
- * @warning It is assumed that the tensor that starts at cacheline.
- *
  * @param[in] elementSize The number of bytes of each element in the matrix.
  *  It is required to be a power of 2 and smaller than 64 (1, 2, 4, 8, usually).
  * @param[in] numElems The number of elements in the tensor that is divided.
@@ -201,9 +199,10 @@ void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
         maxRead = numElems;
         offset  = 0;
       }
-      else
+      else {
         maxRead = 0;
-
+        offset = 0;
+      }
       return;
     }
 
@@ -248,50 +247,6 @@ void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
  * The division ensures that the amount of cachelines for all the working minions
  * differs at most for one except for the ones that have no cachelines assigned.
  * For a pair of minions with a non zero number of cachelines assigned it is true that
- * the minion with a smaller id works on a greater or equal number of cachelines.
- *
- * @warning The number maxRead does not take into account padding, so if maxRead
- *  is 16, that does not mean that the minion has to work on 16 elements: some of
- *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
- *
- * @warning The function works with the supposition that the minions working on this
- *  tensor is numbered from 0 to activeMinions.
- *
- * @param[in] elementSize The number of bytes of each element in the matrix.
- *  It is required to be a power of 2 and smaller than 64 (1, 2, 4, 8, usually).
- * @param[in] numElems The number of elements in the tensor that is divided.
- * @param[out] offset The starting offset for the minion.
- * @param[out] maxRead The number of consecutive elements the minion is assigned.
- * @param[in] activeMinions The number of minions that is working on the tensor.
- */
-inline __attribute__((always_inline))
-void getUniformCachelinePartition(unsigned int elementsize, unsigned int numElems,
-                                  unsigned int &offset, unsigned int &maxRead,
-                                  unsigned int activeMinions) {
-
-  unsigned int minionId = get_minion_id();
-  unsigned int cll = CACHE_LINE_BYTES / elementsize;            // Cacheline lenght
-  unsigned int ncl = (numElems - 1) / cll + 1;    // Amount of cache lines
-  unsigned int mcl = ncl / activeMinions;         // Amount of cl for the minion
-  unsigned int mod = ncl - activeMinions * mcl;
-  if (minionId < mod) {
-    ++mcl;
-    offset = mcl * cll * minionId;
-  }
-  else {
-    offset = (mod + minionId * mcl) * cll;
-  }
-  maxRead = mcl * cll;
-}
-
-/**
- * @brief Given a tensor, it divides it in cachelines for the minions.
- *
- * It gives to each minion an offset to start and how many elements to work on.
- * The division is made such that the there is no cacheline for two different minions.
- * The division ensures that the amount of cachelines for all the working minions
- * differs at most for one except for the ones that have no cachelines assigned.
- * For a pair of minions with a non zero number of cachelines assigned it is true that
  * the minion with a greater id works on a greater or equal number of cachelines.
  *
  * @warning The number maxRead does not take into account padding, so if maxRead
@@ -313,6 +268,11 @@ inline __attribute__((always_inline))
 void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsDst,
                                    unsigned int &offset, unsigned int &maxRead,
                                    unsigned int activeMinions) {
+// TODO : Needs to take into account unaligned destination tensor. 
+//        Needs to use minionId from operator with substracted initial minion.
+//        Not sure why this version is require, only used in LengthsToRanges operator.
+//        This version seems to set the extra cacheline in the first minion,
+//        rather than the last minion.
   unsigned int minionId = (activeMinions - get_minion_id()) - 1;
   unsigned int cll = CACHE_LINE_BYTES / elementsize;            // Cacheline length
   unsigned int ncl = (ElemsDst - 1) / cll + 1;    // Amount of cache lines

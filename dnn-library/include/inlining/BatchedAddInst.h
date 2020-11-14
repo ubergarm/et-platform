@@ -69,8 +69,9 @@ inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
 
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
-  getUniformCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                               activeMinions);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
+                        minionId, activeMinions, dstT);
+
   if (maxRead == 0)
     return;
 
@@ -147,8 +148,8 @@ inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
       dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  getUniformCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
-                               activeMinions);
+  getCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
+                        minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 

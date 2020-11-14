@@ -120,12 +120,12 @@ inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT,
 }
 
 
-  template<>
-  inline void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT,
-                                                  LibTensor* inT,
-                                                  unsigned int axis,
-                                                  uint64_t flags, const uint32_t minionOffset,
-                                                  const uint32_t assignedMinions) {
+template<>
+inline void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT,
+                                                LibTensor* inT,
+                                                unsigned int axis,
+                                                uint64_t flags, const uint32_t minionOffset,
+                                                const uint32_t assignedMinions) {
     
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -157,8 +157,8 @@ inline void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT,
   numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  getUniformCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
-                               activeMinions);
+  getCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
+                        minionId, activeMinions, dstT);
 
   if (maxRead == 0)
     return;
