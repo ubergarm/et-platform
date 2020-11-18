@@ -287,16 +287,17 @@ inline void convolutionStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN>
+template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN>
 inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T,
                                           LibTensor* in2T, LibTensor* in3T,
                                           const std::array<uint32_t, N> &kernels,
                                           const std::array<uint32_t, N> &strides,
                                           const std::array<uint32_t, PN> &pads,
                                           unsigned int group,
-                                          unsigned int dilation,
+                                          const std::array<uint32_t, KN> dilation,
                                           uint64_t flags,
              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<dstElK>::type;
   //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
@@ -387,7 +388,7 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T,
 
     // For all the rows of the kernel
     for (size_t kernelXStep = 0; kernelXStep < kernels[0]; kernelXStep++) {
-      ssize_t dataKernelX = dataX + kernelXStep * dilation; // Position of the pixel sampled for the convolution
+      ssize_t dataKernelX = dataX + kernelXStep * dilation[0]; // Position of the pixel sampled for the convolution
 
       // Ignore index accesses outside the "image"
       if (
@@ -405,7 +406,7 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T,
 
       // For all the cols of the kernel
       for (size_t kernelYStep = 0; kernelYStep < kernels[1]; kernelYStep++) {
-        ssize_t dataKernelY = dataY + kernelYStep * dilation;
+        ssize_t dataKernelY = dataY + kernelYStep * dilation[1];
 
         // Precomputes offsets
         ssize_t dataKernelYOffset       = dataKernelY * actPitch[2];
@@ -466,14 +467,14 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T,
  *  we can't take 8 elements at the same time.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <ElemKind dstElK, size_t N,
+template <ElemKind dstElK, size_t N, size_t KN,
           typename std::enable_if<dstElK == FloatTy, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                            const dim_t *actPitch, const dim_t *weightPitch,
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-         unsigned int dilation) {
+			   const std::array<uint32_t, KN> dilation) {
   int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -496,11 +497,11 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
     "2:\n"                                            // for (size_t fy = 0; fy < kernels[1]; fy++) {
     "addi     %[dist], %[inCperG], 0\n"                // dist = inCperG
 
-    "mulw     %[oy], %[fy], %[dilation]\n"                // oy = y + fy *dilation
+    "mulw     %[oy], %[fy], %[dilation1]\n"             // oy = y + fy *dilation
     "add      %[oy], %[oy], %[y]\n"
     "blt      %[oy], zero, 5f\n"                        // if (oy < 0) continue
 
-    "mulw     %[ox], %[fx], %[dilation]\n"                // ox = x + fx *dilation
+    "mulw     %[ox], %[fx], %[dilation0]\n"             // ox = x + fx *dilation
     "add      %[ox], %[ox], %[x]\n"
     "blt      %[ox], zero, 5f\n"                        // if (ox < 0) continue
 
@@ -575,7 +576,8 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
       [ mask ] "r" (mask),
       [ x ] "r" (x),
       [ y ] "r" (y),
-      [ dilation ] "r" (dilation)
+      [ dilation0 ] "r" (dilation[0]),
+      [ dilation1 ] "r" (dilation[1])
     : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
@@ -585,14 +587,14 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *
  * @overload
  */
-template <ElemKind dstElK, size_t N,
+template <ElemKind dstElK, size_t N, size_t KN,
           typename std::enable_if<dstElK == Float16Ty, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                            const dim_t *actPitch, const dim_t *weightPitch,
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-         unsigned int dilation) {
+			   const std::array<uint32_t, KN> &dilation) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -617,11 +619,11 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
     "2:\n"                                            // for (size_t fy = 0; fy < kernels[1]; fy++) {
     "addi     %[dist], %[inCperG], 0\n"                // dist = inCperG
 
-    "mulw     %[oy], %[fy], %[dilation]\n"                // oy = y + fy *dilation
+    "mulw     %[oy], %[fy], %[dilation1]\n"              // oy = y + fy *dilation
     "add      %[oy], %[oy], %[y]\n"
     "blt      %[oy], zero, 5f\n"                        // if (oy < 0) continue
 
-    "mulw     %[ox], %[fx], %[dilation]\n"                // ox = x + fx *dilation
+    "mulw     %[ox], %[fx], %[dilation0]\n"             // ox = x + fx *dilation
     "add      %[ox], %[ox], %[x]\n"
     "blt      %[ox], zero, 5f\n"                        // if (ox < 0) continue
 
@@ -700,7 +702,8 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
       [ mask ] "r" (mask),
       [ x ] "r" (x),
       [ y ] "r" (y),
-      [ dilation ] "r" (dilation)
+      [ dilation0 ] "r" (dilation[0]),
+      [ dilation1 ] "r" (dilation[1])
     : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
@@ -730,21 +733,21 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] mask It has no relevance in this function.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <ElemKind dstElK, size_t N,
+template <ElemKind dstElK, size_t N, size_t KN,
             typename std::enable_if<dstElK != FloatTy, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                            const dim_t *actPitch, const dim_t *weightPitch,
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-         unsigned int dilation) {
+			   const std::array<uint32_t, KN> &dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
       for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
-        ssize_t ox = x + fx * dilation;
-        ssize_t oy = y + fy * dilation;
+        ssize_t ox = x + fx * dilation[0];
+        ssize_t oy = y + fy * dilation[1];
 
         // Ignore index access below zero (this is due to padding).
         if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
@@ -769,21 +772,21 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *
  * @overload
  */
-template <ElemKind dstElK, size_t N,
+template <ElemKind dstElK, size_t N, size_t KN,
           typename std::enable_if<dstElK != Float16Ty, std::size_t>::type = 0>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                            const dim_t *actPitch, const dim_t *weightPitch,
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-         unsigned int dilation) {
+			   const std::array<uint32_t, KN> &dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
       for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
-        ssize_t ox = x + fx * dilation;
-        ssize_t oy = y + fy * dilation;
+        ssize_t ox = x + fx * dilation[0];
+        ssize_t oy = y + fy * dilation[1];
 
         // Ignore index access below zero (this is due to padding).
         if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
@@ -804,20 +807,20 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
 }
 
 
-  template <ElemKind dstElK, size_t N, size_t PN>
+ template <ElemKind dstElK, size_t N, size_t PN, size_t KN>
 inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
                            const dim_t *actPitch, const dim_t *weightPitch,
                            const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
                            unsigned int inCperG, int32_t &sum, int32_t mask, ssize_t x,
                            ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-         unsigned int dilation) {
+			   const std::array<uint32_t, KN> &dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
   for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
     for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
-        ssize_t ox = x + fx * dilation;
-        ssize_t oy = y + fy * dilation;
+        ssize_t ox = x + fx * dilation[0];
+        ssize_t oy = y + fy * dilation[1];
 
         // Ignore index access below zero (this is due to padding).
         if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
@@ -868,14 +871,14 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN>
+template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN>
 inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
                                             LibTensor* in2T, LibTensor* in3T,
                                             const std::array<uint32_t, N> &kernels,
                                             const std::array<uint32_t, N> &strides,
                                             const std::array<uint32_t, PN> &pads,
                                             unsigned int group,
-              unsigned int dilation,
+					    const std::array<uint32_t, KN> &dilation,
                                             uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 

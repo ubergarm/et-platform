@@ -48,7 +48,7 @@ class LibManagerSheet:
                       "KeepDims": "bool",
                       "Kernels": "std::array<uint32_t, default_kernels_size> &",
                       "Strides": "std::array<uint32_t, default_kernels_size> &",
-                      "Pads": "std::array<uint32_t, default_kernels_size> &",
+                      "Pads": "std::array<uint32_t, default_pads_size> &",
                       "Group": "uint32_t",
                       "Offsets": "dim_array_t &",
                       "Shuffle": "std::array<uint32_t, max_tensor_dimensions> &",
@@ -65,7 +65,7 @@ class LibManagerSheet:
                       "HasEndOffset": "bool",
                       "Transposed": "bool",
                       "RszScale": "std::array<float, default_rszscale_size> &",
-                      "Dilation": "uint32_t",
+                      "Dilation": "std::array<uint32_t, default_dilation_size> &",
                       "CenterPointBox": "int64_t",
                       "MaxOutputBoxesPerClass": "int64_t",
                       "IouThreshold": "float",
@@ -84,7 +84,8 @@ class LibManagerSheet:
                        "Shuffle": "size_t N",
                        "Mask": "size_t MN",
                        "Axes": "size_t N",
-                       "RszScale": "size_t RSZN"
+                       "RszScale": "size_t RSZN",
+                       "Dilation": "size_t KN"
     }
 
 
@@ -599,9 +600,11 @@ class LibManagerSheet:
 
 namespace dnn_lib {
 static constexpr size_t default_kernels_size = 2;
+static constexpr size_t default_pads_size = 4;
 static constexpr size_t default_mask_size = max_tensor_dimensions;
 static constexpr size_t default_axes_size = max_tensor_dimensions;
 static constexpr size_t default_rszscale_size = max_tensor_dimensions;
+static constexpr size_t default_dilation_size = 2;
 %s
 } // namespace dnn_lib
 

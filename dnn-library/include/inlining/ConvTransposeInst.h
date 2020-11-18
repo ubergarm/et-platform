@@ -47,14 +47,14 @@ namespace inlining {
  * @param[flags] flags Gives the information of the Active Shires and the
  *  type of evict required.
  */
-template <ElemKind dstElK, size_t N, size_t PN>
+template <ElemKind dstElK, size_t N, size_t PN, size_t KN>
 inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT, 
             LibTensor* filterT, LibTensor* biasT,
             const std::array<uint32_t, N> &kernels,
             const std::array<uint32_t, N> &strides,
             const std::array<uint32_t, PN> &pads,
             const uint32_t group, 
-            const uint32_t dilation,
+            const std::array<uint32_t, KN> &dilation,
             const uint64_t flags, 
             const uint32_t minionOffset = 0, 
             const uint32_t assignedMinions = 0) {
@@ -107,8 +107,8 @@ inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT,
 
       for (size_t kx = 0; kx < kernels[0]; kx++) {
         for (size_t ky = 0; ky < kernels[1]; ky++) {
-    ssize_t ax = x + kx * dilation;
-    ssize_t ay = y + ky * dilation;
+    ssize_t ax = x + kx * dilation[0];
+    ssize_t ay = y + ky * dilation[1];
 
     //Ignore index access below zero (this is due to padding).
     if (ax < 0 || ay < 0 || ax >= ssize_t(outT->dims()[1]) ||

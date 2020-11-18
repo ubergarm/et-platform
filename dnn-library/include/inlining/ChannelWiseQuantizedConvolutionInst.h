@@ -51,7 +51,7 @@ namespace inlining {
  * @param[flags] flags Gives the information of the Active Shires and the
  *  type of evict required.
  */
-template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN>
+template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN>
 inline void fwdLibChannelWiseQuantizedConvolution3DInst(LibTensor* outT, LibTensor* dataT, 
             LibTensor* filterT, LibTensor* biasT,
             LibTensor* fsT, LibTensor* foT,
@@ -60,7 +60,7 @@ inline void fwdLibChannelWiseQuantizedConvolution3DInst(LibTensor* outT, LibTens
             const std::array<uint32_t, N> &strides,
             const std::array<uint32_t, PN> &pads,
             const uint32_t group, 
-            const uint32_t dilation,
+            const std::array<uint32_t, KN> &dilation,
             const uint64_t flags, 
             const uint32_t minionOffset = 0, 
             const uint32_t assignedMinions = 0) {
@@ -167,7 +167,7 @@ inline void fwdLibChannelWiseQuantizedConvolution3DInst(LibTensor* outT, LibTens
   }           // N
 }
 
-template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN>
+template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN>
 inline void fwdLibChannelWiseQuantizedConvolutionInst(LibTensor* outT, LibTensor* dataT, 
             LibTensor* filterT, LibTensor* biasT,
             LibTensor* fsT, LibTensor* foT,
@@ -176,7 +176,7 @@ inline void fwdLibChannelWiseQuantizedConvolutionInst(LibTensor* outT, LibTensor
             const std::array<uint32_t, N> &strides,
             const std::array<uint32_t, PN> &pads,
             const uint32_t group, 
-            const uint32_t dilation,
+            const std::array<uint32_t, KN> &dilation,
             const uint64_t flags, 
             const uint32_t minionOffset = 0, 
             const uint32_t assignedMinions = 0) {
@@ -251,8 +251,8 @@ inline void fwdLibChannelWiseQuantizedConvolutionInst(LibTensor* outT, LibTensor
       int32_t sum = 0;
       for (size_t fx = 0; fx < kernels[0]; fx++) {
         for (size_t fy = 0; fy < kernels[1]; fy++) {
-    ssize_t ox = x + fx * dilation;
-    ssize_t oy = y + fy * dilation;
+    ssize_t ox = x + fx * dilation[0];
+    ssize_t oy = y + fy * dilation[1];
     
     //Ignore index access below zero (this is due to padding)
     if (ox < 0 || oy < 0 || ox >= ssize_t(dataT->dims()[1]) ||

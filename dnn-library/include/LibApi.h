@@ -1674,7 +1674,24 @@ namespace dnn_lib {
         {operandState::invalid, operandState::invalid}}},
         {0x0, 0x0} // evict available mask
      },
-     /**** ET_hosttransform ****/
+     /**** ET_inhosttransform ****/
+     instrConfig {
+       "notImplemented", // name
+        0, // # outs
+        0,  // # ins
+        {}, // members
+        0, // template param mask
+        {}, // impl versions
+        nullptr, // custom impl selector
+        // L1 states per impl
+        {{operandState::invalid}},
+        // L2 states per impl
+        {{operandState::invalid}},
+        // CB states per impl
+        {{operandState::invalid}},
+        {0} // evict available mask
+     },
+     /**** ET_outhosttransform ****/
      instrConfig {
        "notImplemented", // name
         0, // # outs
