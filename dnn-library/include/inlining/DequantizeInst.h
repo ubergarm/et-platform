@@ -35,7 +35,7 @@ namespace inlining {
 template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using dstType = typename elemKind2elemTy<dstElK>::type; //TODO: use to support float16 as well (SW-3267)
+
   using srcType = typename elemKind2elemTy<srcElK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -46,16 +46,11 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags
   void* srcT = inT->getRawDataPointer<void>();
   void* dstT = outT->getRawDataPointer<void>();
  
-  // float *ptrDstT = (float *)dstT;
-  float *ptrDstT = outT->getRawDataPointer<float>();
-  // const Addresser<srcElK> ptrSrcT(srcT, scale, offset);
+  Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   const Addresser<srcElK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
   
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = inT->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
