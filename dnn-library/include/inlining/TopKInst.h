@@ -17,6 +17,7 @@
 #include <limits>
 #include <cmath>
 #include <cstring>
+#include <climits>
 
 #include "Float16.h"
 #include "Writer.h" // From include/internal path
@@ -72,7 +73,17 @@ static void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
     }
   }
 }
-  
+
+/// \brief Whether the values stored in a and b match.
+
+inline bool same(size_t count, unsigned int a[],  unsigned int b[]) {
+  for (size_t index = 0; index < count; ++index) {
+    if (a[index] != b[index]) {
+      return false;
+    }
+  }
+  return true;
+}  
   
 template <ElemKind elK>
 inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
@@ -131,40 +142,43 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
     return;
 
   size_t n = inputIndex[srcDimNum - 1];
-  // todo make it dependent of the type
+  unsigned int scratchCoords[3] = {UINT_MAX, UINT_MAX, UINT_MAX};
+  // ET_ASSERT(srcDimNum - 1 <= (int)(sizeof(scratchCoords) / sizeof(scratchCoords[0]));
   float tmpValues[n];
   long long tmpInd[n];
 
   int posMax = initialAddr + maxRead;
   bool done = false;
-  bool computed_topk = false;
+
   while (!done && valuesOffset < posMax) {
-    // Needs to recompute which values to work on
-    if (!computed_topk) {
+
+    // Recompute the scratch only when a coordinate other than the last changed
+    if (not same(srcDimNum - 1, coord, scratchCoords)) {
       int offsetInput = 0;
-      // Moves the pointer to input data to the current batch
+      // Point to the first element in the innermost dimension
       for (int i = 0; i < srcDimNum - 1; i++) {
         offsetInput += coord[i] * inputPitch[i];
       }
+      // Fill the scratch with values and indidces
       for (int i = 0; i < (int) n; i++) {
         tmpValues[i] = inputT[offsetInput + i * inputPitch[srcDimNum - 1]];
         tmpInd[i] = i;
       }
+      // Apply partial quicksort
+      partialQuicksort(tmpValues, tmpInd, 0, n - 1, k);
+      // Save all the coordinates but last
+      for (int i = 0; i < srcDimNum - 1; i++) {
+        scratchCoords[i] = coord[i];
+      }
     }
-    partialQuicksort(&tmpValues[0], &tmpInd[0], 0, n - 1, k);
-    computed_topk = true;
 
     int resCoord = coord[srcDimNum - 1];
     valuesT[valuesOffset] = tmpValues[resCoord];
     indT[indexOffset] = tmpInd[resCoord];
-    int prevBatch = coord[0];
+
     /* overloading while sw-2400 and sw-2429 are WIP */   
     done = getOffsets(srcDimNum, coord, valuesOffset, indexOffset, valuesIndex,
                       valuesPitch, indexPitch);
-    // Switching to a new result
-    if ((int) coord[0] != prevBatch) {
-      computed_topk = false;
-    }
   }
   if (!DO_EVICTS)
     return;
