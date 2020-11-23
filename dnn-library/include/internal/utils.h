@@ -229,12 +229,11 @@ void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
     offset = numElems + ual;
   }
 
-  // Sets maxRead to 0 if start out of bounds
+  // Prevent out of bounds access
   if (offset >= (numElems + ual)) {
     maxRead = 0;
   }
-  // Prevent out of bounds access if start in of bounds
-  else if (offset < (numElems + ual)) {
+  else {
     maxRead = std::min(maxRead, numElems + ual - offset);
   }
 }
