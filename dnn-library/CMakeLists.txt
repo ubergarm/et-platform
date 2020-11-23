@@ -21,11 +21,6 @@ find_package(EsperantoDeviceMinionRuntime
   NO_DEFAULT_PATH
   )
 
-if(NOT EsperantoDeviceMinionRuntime_FOUND)
-  find_package(LibDeviceCommon REQUIRED)
-  find_package(fake-fw REQUIRED)
-endif()
-
 set(INCLUDE_INSTALL_DIR include/ CACHE STRING "Include install dir")
 set(LIB_INSTALL_DIR     lib/     CACHE STRING "Library install dir")
 
@@ -226,7 +221,7 @@ if(EsperantoDeviceMinionRuntime_FOUND)
     EsperantoDeviceMinionRuntime::device_common
     )
 else()
-  target_link_libraries(${PROJECT_NAME} device_common fake-fw)
+  target_link_libraries(${PROJECT_NAME} device_common)
 endif()
 
 target_include_directories(dnn_lib INTERFACE
