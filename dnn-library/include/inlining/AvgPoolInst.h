@@ -187,7 +187,7 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
                    const std::array<uint32_t, N> &strides,
                    const std::array<uint32_t, PN> &pads,
                    uint32_t layout,
-                   bool countIncludePads,
+                   const bool countIncludePads,
                    uint64_t flags, 
                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
@@ -208,8 +208,7 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
   auto inH = inT->getHandle<dstType>();
   auto outH = outT->getHandle<dstType>();
 
-  float invFilterArea = 0.0;
-  fpReciprocalSingleElement((kernels[0] * kernels[1]), invFilterArea);
+  float filterArea = kernels[0] * kernels[1];
 
   // For each input in the batch:
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -222,6 +221,7 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
         for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
 
           float sum = 0;
+          float filterOut = 0;
           for (size_t fx = 0; fx < kernels[0]; fx++) {
             for (size_t fy = 0; fy < kernels[1]; fy++) {
               ssize_t ox = x + fx;
@@ -230,33 +230,36 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
               // Ignore index access below zero (this is due to padding).
               if (ox < 0 || oy < 0 || ox >= ssize_t(inT->dims()[1]) ||
                   oy >= ssize_t(inT->dims()[2])) {
+                if (!countIncludePads) {
+                  filterOut++;
+                }
                 continue;
               }
 
-        if (dstElK == Float16Ty) {
-    float dst = 0;
-    /*the cast avoid compilation error due to quantize types are handle together here.*/
-    convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 4>{n, 
-        static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
-    sum += dst;
-        }
-        else {
-    sum += dequantize<dstType>(inH.at(std::array<size_t, 4>{n, 
-      static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
-        }      
+              if (dstElK == Float16Ty) {
+                float dst = 0;
+                /*the cast avoid compilation error due to quantize types are handle together here.*/
+                convertFp16ToFp32(static_cast<uint16_t>(inH.at(std::array<size_t, 4>{n, 
+                static_cast<dim_t>(ox), static_cast<dim_t>(oy), z})), dst);
+                sum += dst;
+              } else {
+                sum += dequantize<dstType>(inH.at(std::array<size_t, 4>{n, 
+                static_cast<dim_t>(ox), static_cast<dim_t>(oy), z}), inH.getScale(), inH.getOffset());
+              }      
             }
           }
 
-    if (dstElK == Float16Ty) {
-      uint16_t dst = 0;
-      convertFp32ToFp16((sum * invFilterArea), dst);
-      outH.at(std::array<size_t,4>{n,ax,ay,z}) = dst;
-    }
-    else {
-      outH.at(std::array<size_t, 4>{n,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
-                    outH.getScale(),
-                    outH.getOffset());
-    }
+          float invFilterArea = 0.0;
+          fpReciprocalSingleElement(filterArea - filterOut, invFilterArea);
+          if (dstElK == Float16Ty) {
+            uint16_t dst = 0;
+            convertFp32ToFp16((sum * invFilterArea), dst);
+            outH.at(std::array<size_t,4>{n,ax,ay,z}) = dst;
+          } else {
+            outH.at(std::array<size_t, 4>{n,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
+                          outH.getScale(),
+                          outH.getOffset());
+          }
         } // W
       }   // H
     }     // C
@@ -271,7 +274,7 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
                    const std::array<uint32_t, N> &strides,
                    const std::array<uint32_t, PN> &pads,
                    uint32_t layout,
-                   bool countIncludePads,
+                   const bool countIncludePads,
                    uint64_t flags, 
                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
@@ -291,8 +294,7 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
   auto inH = inT->getHandle<dstType>();
   auto outH = outT->getHandle<dstType>();
 
-  float invFilterArea = 0.0;
-  fpReciprocalSingleElement((kernels[0] * kernels[1]), invFilterArea);
+  float filterArea = kernels[0] * kernels[1];
 
   // For each input in the batch:
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -305,6 +307,7 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
         for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
 
           float sum = 0;
+          float filterOut = 0;
           for (size_t fx = 0; fx < kernels[0]; fx++) {
             for (size_t fy = 0; fy < kernels[1]; fy++) {
               ssize_t ox = x + fx;
@@ -313,14 +316,19 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
               // Ignore index access below zero (this is due to padding).
               if (ox < 0 || oy < 0 || ox >= ssize_t(inT->dims()[1]) ||
                   oy >= ssize_t(inT->dims()[2])) {
+                if (!countIncludePads) {
+                  filterOut++;
+                }
                 continue;
               }
-        sum += inH.at(std::array<size_t, 4>{n, static_cast<dim_t>(ox), static_cast<dim_t>(oy), z});
+              sum += inH.at(std::array<size_t, 4>{n, static_cast<dim_t>(ox), static_cast<dim_t>(oy), z});
             }
           }
-    outH.at(std::array<size_t, 4>{n,ax,ay,z}) = (sum * invFilterArea);
+          float invFilterArea = 0.0;
+          fpReciprocalSingleElement(filterArea - filterOut, invFilterArea);
+          outH.at(std::array<size_t, 4>{n,ax,ay,z}) = (sum * invFilterArea);
   
-  } // W
+        } // W
       }   // H
     }     // C
   }       // N
@@ -333,7 +341,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       const std::array<uint32_t, PN> &pads,
                                       uint64_t flags,
                                       uint32_t layout,
-                                      bool countIncludePads,
+                                      const bool countIncludePads,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   
@@ -360,8 +368,6 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   const dim_t *actPitch = inT->strides().data();
   
   float filterArea = kernels[0] * kernels[1];
-  float invFilter;
-  fpReciprocalSingleElement(filterArea, invFilter);
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -391,6 +397,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
 
     auto sum = tAInput[0];
     sum = 0;
+    float filterOut = 0;
 
     for (size_t fx = 0; fx < kernels[0]; fx++) {
       for (size_t fy = 0; fy < kernels[1]; fy++) {
@@ -400,6 +407,9 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
         // Ignore index access below zero (this is due to padding).
         if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
             oy >= ssize_t(actIndex[2])) {
+          if (!countIncludePads) {
+            filterOut++;
+          }
           continue;
         }
 
@@ -409,6 +419,8 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
     }
 
     float tmp = sum;
+    float invFilter;
+    fpReciprocalSingleElement(filterArea - filterOut, invFilter);
     tmp *= invFilter;
     sum = tmp;
     tOutput[offsetOut] = sum;
