@@ -339,9 +339,9 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       const std::array<uint32_t, N> &kernels,
                                       const std::array<uint32_t, N> &strides,
                                       const std::array<uint32_t, PN> &pads,
-                                      uint64_t flags,
                                       uint32_t layout,
                                       const bool countIncludePads,
+                                      uint64_t flags,
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   
