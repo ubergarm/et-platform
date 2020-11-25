@@ -418,12 +418,9 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
       }
     }
 
-    float tmp = sum;
     float invFilter;
     fpReciprocalSingleElement(filterArea - filterOut, invFilter);
-    tmp *= invFilter;
-    sum = tmp;
-    tOutput[offsetOut] = sum;
+    tOutput[offsetOut] = sum * invFilter;
 
     done = getOffsets(4, coord, offsetOut, dstIndex, dstPitch);
   }
