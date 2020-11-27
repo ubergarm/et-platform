@@ -247,7 +247,7 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
     coord[lastDim] = 0;
 
 
-  done = getOffsets(lastDim, coord, offsetIn, offsetOut, actIndex,
+    done = getOffsets(lastDim, coord, offsetIn, offsetOut, actIndex,
                       actPitch, dstPitch);
   }
   if (!DO_EVICTS)
@@ -311,21 +311,27 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
 
   unsigned int n_dstPitch[outT->ndims()];
   unsigned int n_dstIndex[outT->ndims()];
-  unsigned int n_actIndex[inT->ndims()];
   unsigned int n_actPitch[inT->ndims()];
   
   for(size_t i = 0; i < inT->ndims(); i++) {
     n_actPitch[i] = actPitch[i];
-    n_actIndex[i] = actIndex[i];
     n_dstPitch[i] = dstPitch[i];
     n_dstIndex[i] = dstIndex[i];    
   }
 
+  // Operation is performed in groups of 8 elements (vector)
+  // and coordinates, indices and pitches need to be adjusted
+  // to use getOffsets.
+  //
+  // The input coordinate is aligned to 64 bytes so it's
+  // also aligned to 8 elements (4B * 8 = 32B).
+  //
   unsigned int lastDim = srcDimNum - 1;
-  unsigned int res = ((n_dstIndex[lastDim] - 1)%8) +1;
+  unsigned int res = ((n_dstIndex[lastDim] - 1) % 8) +1;
+  coord[lastDim] = (coord[lastDim] / 8);
   n_actPitch[lastDim] *= 8;
   n_dstPitch[lastDim] *= 8;
-  n_dstIndex[lastDim] = (n_dstIndex[lastDim] - 1)/8 + 1;
+  n_dstIndex[lastDim] = ((n_dstIndex[lastDim] - 1) / 8) + 1;
   unsigned int mask = ((1 << res) - 1);
 
   const float scale[2] = {inT->getScale(), outT->getScale()};
@@ -335,13 +341,13 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
     dstAddr = (uintptr_t)dst + offsetOut*typeSize;
     srcAddr = (uintptr_t)src + offsetIn*typeSize;
 
-    if (coord[lastDim] != dstIndex[lastDim] - 1)
+    if (coord[lastDim] != n_dstIndex[lastDim] - 1)
          __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
     else __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
     maxSplatOp <elK, true>(dstAddr, srcAddr, splatVal, scale, offset);
 
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, n_actIndex,
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, n_dstIndex,
                       n_actPitch, n_dstPitch);
   }
   if (DO_EVICTS) {
