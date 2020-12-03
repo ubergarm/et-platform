@@ -245,6 +245,8 @@ struct Type final {
       return std::is_same<ElemTy, float>::value;
     case dnn_lib::ElemKind::Float16Ty:
       return std::is_same<ElemTy, uint16_t>::value;
+    case dnn_lib::ElemKind::BFloat16Ty:
+      return std::is_same<ElemTy, uint16_t>::value;
     case dnn_lib::ElemKind::Int8QTy:
       return std::is_same<ElemTy, int8_t>::value;
     case dnn_lib::ElemKind::UInt8QTy:
@@ -263,6 +265,8 @@ struct Type final {
       return std::is_same<ElemTy, uint8_t>::value;
     case dnn_lib::ElemKind::UInt4FusedFP16QTy:
       return std::is_same<ElemTy, uint8_t>::value;
+    case dnn_lib::ElemKind::UInt4FusedQTy:
+      return std::is_same<ElemTy, uint8_t>::value;
     case dnn_lib::ElemKind::BoolTy:
       return std::is_same<ElemTy, bool>::value;
     }
@@ -278,8 +282,9 @@ struct Type final {
   //  *types.
   //  */
   // bool isFPType() const {
-  //   return (getElementType() == dnn_lib::ElemKind::FloatTy ||
-  //           getElementType() == dnn_lib::ElemKind::Float16Ty);
+  //   return getElementType() == dnn_lib::ElemKind::FloatTy or
+  //          getElementType() == dnn_lib::ElemKind::Float16Ty or
+  //          getElementType() == dnn_lib::ElemKind::BFloat16Ty;
   // }
 
   /*@brief returns the size of the type element.
@@ -299,11 +304,13 @@ struct Type final {
   size_t actualSize() const { return (sizes_[0] * strides_[0]); }
 
   /// \return the size of the element \p Ty.
-  static unsigned getElementSize(dnn_lib::ElemKind Ty) {
+  static constexpr size_t getElementSize(dnn_lib::ElemKind Ty) {
     switch (Ty) {
     case dnn_lib::ElemKind::FloatTy:
       return sizeof(float);
     case dnn_lib::ElemKind::Float16Ty:
+      return sizeof(uint16_t);
+    case dnn_lib::ElemKind::BFloat16Ty:
       return sizeof(uint16_t);
     case dnn_lib::ElemKind::Int8QTy:
       return sizeof(int8_t);
@@ -323,13 +330,14 @@ struct Type final {
       return sizeof(uint8_t);
     case dnn_lib::ElemKind::UInt4FusedFP16QTy:
       return sizeof(uint8_t);
+    case dnn_lib::ElemKind::UInt4FusedQTy:
+      return sizeof(uint8_t);
     case dnn_lib::ElemKind::BoolTy:
       return sizeof(bool);
     }
     assert(true && "Invalid type");
     return sizeof(bool);
   }
-
 
   // /// Given a string \p str containing the name of an ElemKind from
   // /// Type::getElementName, returns the corresponding ElemKind or Error if a
@@ -339,6 +347,8 @@ struct Type final {
   //     return dnn_lib::ElemKind::FloatTy;
   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Float16Ty)) {
   //     return dnn_lib::ElemKind::Float16Ty;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::BFloat16Ty)) {
+  //     return dnn_lib::ElemKind::BFloat16Ty;
   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::Int8QTy)) {
   //     return dnn_lib::ElemKind::Int8QTy;
   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt8QTy)) {
@@ -357,6 +367,8 @@ struct Type final {
   //     return dnn_lib::ElemKind::UInt8FusedFP16QTy;
   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt4FusedFP16QTy)) {
   //     return dnn_lib::ElemKind::UInt4FusedFP16QTy;
+  //   } else if (str == Type::getElementName(dnn_lib::ElemKind::UInt4FusedQTy)) {
+  //     return dnn_lib::ElemKind::UInt4Fused6QTy;
   //   } else if (str == Type::getElementName(dnn_lib::ElemKind::BoolTy)) {
   //     return dnn_lib::ElemKind::BoolTy;
   //   } else {

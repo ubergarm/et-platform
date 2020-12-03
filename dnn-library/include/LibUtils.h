@@ -23,24 +23,36 @@ namespace dnn_lib{
   
   template<ElemKind elK>
   struct elemKind2elemTy {
-    using type =
-      typename std::conditional<elK == ElemKind::FloatTy, float,
-       typename std::conditional<elK == ElemKind::Float16Ty, uint16_t,
-        typename std::conditional<elK == ElemKind::Int8QTy, int8_t,
-         typename std::conditional<elK == ElemKind::UInt8QTy, uint8_t,
-          typename std::conditional<elK == ElemKind::Int16QTy, int16_t,
-           typename std::conditional<elK == ElemKind::Int32QTy, int32_t,
-            typename std::conditional<elK == ElemKind::Int32ITy, int32_t,
-             typename std::conditional<elK == ElemKind::Int64ITy, int64_t,
-              typename std::conditional<elK == ElemKind::UInt8FusedQTy, uint8_t,
-               typename std::conditional<elK == ElemKind::UInt8FusedFP16QTy, uint8_t,
-                typename std::conditional<elK == ElemKind::UInt4FusedFP16QTy, uint8_t,
-                 typename std::conditional<elK == ElemKind::BoolTy, bool,
-                      void // void is the default value, if no elKind matches
-            >::type >::type >::type >::type >::type> ::type
-      >::type >::type >::type >::type >::type>::type;
-    
-  //@TODO static_assert(!std::is_same<type, void>::value);
+    using type = typename std::conditional<
+      elK == ElemKind::FloatTy, float,
+      typename std::conditional<
+        elK == ElemKind::Float16Ty, uint16_t,
+        typename std::conditional<
+          elK == ElemKind::BFloat16Ty, uint16_t,
+          typename std::conditional<
+            elK == ElemKind::Int8QTy, int8_t,
+            typename std::conditional<
+              elK == ElemKind::UInt8QTy, uint8_t,
+              typename std::conditional<
+                elK == ElemKind::Int16QTy, int16_t,
+                typename std::conditional<
+                  elK == ElemKind::Int32QTy, int32_t,
+                  typename std::conditional<
+                    elK == ElemKind::Int32ITy, int32_t,
+                    typename std::conditional<
+                      elK == ElemKind::Int64ITy, int64_t,
+                      typename std::conditional<
+                        elK == ElemKind::UInt8FusedQTy, uint8_t,
+                        typename std::conditional<
+                          elK == ElemKind::UInt8FusedFP16QTy, uint8_t,
+                          typename std::conditional<elK == ElemKind::UInt4FusedFP16QTy, uint8_t,
+                                                    typename std::conditional<elK == ElemKind::BoolTy, bool,
+                                                                              void // void is the default value, if no
+                                                                                   // elKind matches
+                                                                              >::type>::type>::type>::type>::type>::
+                    type>::type>::type>::type>::type>::type>::type>::type;
+
+    //@TODO static_assert(!std::is_same<type, void>::value);
   };
 
   using dim_array_t = std::array<dim_t, max_tensor_dimensions>;

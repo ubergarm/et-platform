@@ -32,7 +32,7 @@ namespace inlining {
 
 constexpr uint64_t getGatherConf(size_t bytesPerElement) {
   uint64_t result = 0;
-  switch (bytesPerElement) {
+  switch(bytesPerElement) {
   case 1:
     result = fg32b_conf;
     break;
@@ -47,7 +47,7 @@ constexpr uint64_t getGatherConf(size_t bytesPerElement) {
 }
 
 template <ElemKind elK, bool aligned>
-inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float* scale, const int32_t* offset) {
+inline void maxSplatOp (uintptr_t dst, uintptr_t src, float splatVal, const float *scale, const int32_t *offset ){
 
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
@@ -55,9 +55,11 @@ inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float
   uint64_t splatValueScalar = bitwise_copy<uint32_t>(splatVal);
 
   float splatValueVector;
-  __asm__ __volatile__("fbcx.ps %[splatValueVector], %[splatValueScalar]\n"
-                       : [ splatValueVector ] "=f"(splatValueVector)
-                       : [ splatValueScalar ] "r"(splatValueScalar));
+  __asm__ __volatile__(
+    "fbcx.ps %[splatValueVector], %[splatValueScalar]\n"
+    : [splatValueVector] "=f" (splatValueVector)
+    : [splatValueScalar] "r" (splatValueScalar)
+  );
 
   uint64_t gatherConf;
   (void)gatherConf;
@@ -67,16 +69,26 @@ inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float
 
   if constexpr (bytesPerElement != 4) {
     if constexpr (aligned) {
-      __asm__ __volatile__("li %[gatherConf], %[gatherConfImm]\n"
-                           : [ gatherConf ] "=r"(gatherConf)
-                           : [ gatherConfImm ] "i"(getGatherConf(bytesPerElement)));
+      __asm__ __volatile__(
+        "li %[gatherConf], %[gatherConfImm]\n"
+        : [gatherConf] "=r" (gatherConf)
+        : [gatherConfImm] "i" (getGatherConf(bytesPerElement))
+      );
     } else {
-      static const int32_t gatherValues[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
-                                             3 * bytesPerElement, 4 * bytesPerElement, 5 * bytesPerElement,
-                                             6 * bytesPerElement, 7 * bytesPerElement};
-      __asm__ __volatile__("flw.ps %[gv], %[gatherValues]\n"
-                           : [ gv ] "=f"(gv)
-                           : [ gatherValues ] "m"(*(const int32_t(*)[16])gatherValues));
+      static const int32_t gatherValues[] = {
+        0*bytesPerElement,
+        1*bytesPerElement,
+        2*bytesPerElement,
+        3*bytesPerElement,
+        4*bytesPerElement,
+        5*bytesPerElement,
+        6*bytesPerElement,
+        7*bytesPerElement };
+      __asm__ __volatile__(
+        "flw.ps %[gv], %[gatherValues]\n"
+        : [gv] "=f" (gv)
+        : [gatherValues] "m" (*(const int32_t(*)[16]) gatherValues)
+       );
     }
   }
 
@@ -84,26 +96,48 @@ inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float
 
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
-      __asm__ __volatile__("fg32b.ps %[op0], %[gatherConf](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gatherConf ] "r"(gatherConf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
-    } else {
-      __asm__ __volatile__("fgb.ps %[op0], %[gv](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gv ] "f"(gv), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
+      __asm__ __volatile__(
+        "fg32b.ps %[op0], %[gatherConf](%[src])\n"
+        : [op0] "=f" (op0)
+        : [gatherConf] "r" (gatherConf),
+          [src] "r" (src),
+          [srcMem] "m" (*(const char(*)[8]) src)
+      );
+    }
+    else {
+      __asm__ __volatile__(
+        "fgb.ps %[op0], %[gv](%[src])\n"
+        : [op0] "=f" (op0)
+        : [gv] "f" (gv),
+          [src] "r" (src),
+          [srcMem] "m" (*(const char(*)[8]) src)
+       );
     }
   } else if constexpr (bytesPerElement == 2) {
     if constexpr (aligned) {
-      __asm__ __volatile__("fg32h.ps %[op0], %[gatherConf](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gatherConf ] "r"(gatherConf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
-    } else {
-      __asm__ __volatile__("fgh.ps %[op0], %[gv](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gv ] "f"(gv), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
+      __asm__ __volatile__(
+        "fg32h.ps %[op0], %[gatherConf](%[src])\n"
+        : [op0] "=f" (op0)
+        : [gatherConf] "r" (gatherConf),
+          [src] "r" (src),
+          [srcMem] "m" (*(const char(*)[16]) src)
+      );
+    }
+    else {
+      __asm__ __volatile__(
+        "fgh.ps %[op0], %[gv](%[src])\n"
+        : [op0] "=f" (op0)
+        : [gv] "f" (gv),
+          [src] "r" (src),
+          [srcMem] "m" (*(const char(*)[16]) src)
+       );
     }
   } else if constexpr (bytesPerElement == 4) {
-    __asm__ __volatile__("flw.ps %[op0], %[src]\n" : [ op0 ] "=f"(op0) : [ src ] "m"(*(const char(*)[32])src));
+    __asm__ __volatile__(
+      "flw.ps %[op0], %[src]\n"
+      : [op0] "=f" (op0)
+      : [src] "m" (*(const char(*)[32]) src)
+    );
   }
 
   float scale_v, offset_v;
@@ -111,64 +145,121 @@ inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float
   (void)offset_v;
 
   if constexpr (isQuantizedElemKind(elK)) {
-    __asm__ __volatile__("fbcx.ps %[offset], %[offset_s] \n"
-                         "fbcx.ps %[scale], %[scale_s] \n"
-                         "fsub.pi %[op0], %[op0], %[offset] \n"
-                         "fcvt.ps.pw %[op0], %[op0] \n"
-                         "fmul.ps %[op0], %[op0], %[scale] \n"
-                         : [ op0 ] "+&f"(op0), [ scale ] "=&f"(scale_v), [ offset ] "=&f"(offset_v)
-                         : [ scale_s ] "r"(bitwise_copy<uint32_t>(scale[0])), [ offset_s ] "r"(offset[0]));
+    __asm__ __volatile__(
+      "fbcx.ps %[offset], %[offset_s] \n"
+      "fbcx.ps %[scale], %[scale_s] \n"
+      "fsub.pi %[op0], %[op0], %[offset] \n"
+      "fcvt.ps.pw %[op0], %[op0] \n"
+      "fmul.ps %[op0], %[op0], %[scale] \n"
+      : [op0] "+&f" (op0),
+        [scale] "=&f" (scale_v),
+        [offset] "=&f" (offset_v)
+      : [scale_s] "r" (bitwise_copy<uint32_t>(scale[0])),
+        [offset_s] "r" (offset[0])
+    );
   } else if constexpr (elK == Float16Ty) {
-    __asm__ __volatile__("fcvt.ps.f16 %[op0], %[op0]\n" : [ op0 ] "+f"(op0) :);
+    __asm__ __volatile__(
+      "fcvt.ps.f16 %[op0], %[op0]\n"
+      : [op0] "+f" (op0)
+      : 
+    );
+#if 1
+  // Enable this code for supporting BFloat16Ty
   } else if constexpr (elK == BFloat16Ty) {
-    __asm__ __volatile__("fslli.pi %[op0], %[op0], %[bits]\n" : [ op0 ] "+f"(op0) : [ bits ] "i"(16));
+    __asm__ __volatile__(
+      "fslli.pi %[op0], %[op0], %[bits]\n"
+      : [op0] "+f" (op0)
+      : [bits] "i" (16)
+    );
+#endif
   }
 
-  __asm__ __volatile__("fmax.ps %[op0], %[op0], %[splatValueVector]\n"
-                       : [ op0 ] "+f"(op0)
-                       : [ splatValueVector ] "f"(splatValueVector));
+  __asm__ __volatile__(
+    "fmax.ps %[op0], %[op0], %[splatValueVector]\n"
+    : [op0] "+f" (op0)
+    : [splatValueVector] "f" (splatValueVector)
+  );
 
   if constexpr (isQuantizedElemKind(elK)) {
-    __asm__ __volatile__("frcp.ps %[scale], %[scale]\n"
-                         "fcvt.ps.pw %[offset], %[offset]\n"
-                         "fmadd.ps %[op0], %[op0], %[scale], %[offset]\n"
-                         "fcvt.pw.ps %[op0], %[op0]\n"
-                         : [ op0 ] "+f"(op0), [ scale ] "+f"(scale_v), [ offset ] "+f"(offset_v)
-                         :);
+    __asm__ __volatile__(
+      "frcp.ps %[scale], %[scale]\n"
+      "fcvt.ps.pw %[offset], %[offset]\n"
+      "fmadd.ps %[op0], %[op0], %[scale], %[offset]\n"
+      "fcvt.pw.ps %[op0], %[op0]\n"
+      : [op0] "+f" (op0),
+        [scale] "+f" (scale_v),
+        [offset] "+f" (offset_v)
+      :
+    );
     if constexpr (elK == Int8QTy) {
-      __asm__ __volatile__("fsat8.pi %[op0], %[op0]\n" : [ op0 ] "+f"(op0) :);
+      __asm__ __volatile__(
+        "fsat8.pi %[op0], %[op0]\n"
+        : [op0] "+f" (op0)
+        :
+      );
     }
   } else if constexpr (elK == Float16Ty) {
-    __asm__ __volatile__("fcvt.f16.ps %[op0], %[op0]\n" : [ op0 ] "+f"(op0) :);
+    __asm__ __volatile__(
+      "fcvt.f16.ps %[op0], %[op0]\n"
+      : [op0] "+f" (op0)
+      :
+    );
+#if 1
+  // Enable this code for supporting BFloat16Ty
   } else if constexpr (elK == BFloat16Ty) {
-    __asm__ __volatile__("fsrli.pi %[op0], %[op0], %[bits]\n" : [ op0 ] "+f"(op0) : [ bits ] "i"(16));
+    __asm__ __volatile__(
+      "fsrli.pi %[op0], %[op0], %[bits]\n"
+      : [op0] "+f" (op0)
+      : [bits] "i" (16)
+    );
+#endif
   }
 
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
-      __asm__ __volatile__("fsc32b.ps %[op0], %[gatherConf](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[8])dst)
-                           : [ op0 ] "f"(op0), [ gatherConf ] "r"(gatherConf), [ dst ] "r"(dst));
+      __asm__ __volatile__(
+        "fsc32b.ps %[op0], %[gatherConf](%[dst])\n"
+        : [dstMem] "=m" (*( char(*)[8]) dst)
+        : [op0] "f" (op0),
+          [gatherConf] "r" (gatherConf),
+          [dst] "r" (dst)
+      );
     } else {
-      __asm__ __volatile__("fscb.ps  %[op0], %[gv](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[8])dst)
-                           : [ op0 ] "f"(op0), [ gv ] "f"(gv), [ dst ] "r"(dst));
+      __asm__ __volatile__(
+        "fscb.ps  %[op0], %[gv](%[dst])\n"
+        : [dstMem] "=m" (*( char(*)[8]) dst)
+        : [op0] "f" (op0),
+          [gv] "f" (gv),
+          [dst] "r" (dst)
+      );
     }
   } else if constexpr (bytesPerElement == 2) {
     if constexpr (aligned) {
-      __asm__ __volatile__("fsc32h.ps %[op0], %[gatherConf](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[16])dst)
-                           : [ op0 ] "f"(op0), [ gatherConf ] "r"(gatherConf), [ dst ] "r"(dst));
+      __asm__ __volatile__(
+        "fsc32h.ps %[op0], %[gatherConf](%[dst])\n"
+        : [dstMem] "=m" (*( char(*)[16]) dst)
+        : [op0] "f" (op0),
+          [gatherConf] "r" (gatherConf),
+          [dst] "r" (dst)
+      );
     } else {
-      __asm__ __volatile__("fsch.ps  %[op0], %[gv](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[16])dst)
-                           : [ op0 ] "f"(op0), [ gv ] "f"(gv), [ dst ] "r"(dst));
+      __asm__ __volatile__(
+        "fsch.ps  %[op0], %[gv](%[dst])\n"
+        : [dstMem] "=m" (*( char(*)[16]) dst)
+        : [op0] "f" (op0),
+          [gv] "f" (gv),
+          [dst] "r" (dst)
+      );
     }
   } else if constexpr (bytesPerElement == 4) {
-    __asm__ __volatile__("fsw.ps  %[op0], (%[dst])\n"
-                         : [ dstMem ] "=m"(*(char(*)[32])dst)
-                         : [ op0 ] "f"(op0), [ dst ] "r"(dst));
-  }
+    __asm__ __volatile__(
+      "fsw.ps  %[op0], (%[dst])\n"
+      : [dstMem] "=m" (*( char(*)[32]) dst)
+      : [op0] "f" (op0),
+        [dst] "r" (dst)
+    );
+  } 
+
 }
 
   // generic version is vectorized
@@ -256,14 +347,14 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
     const float scale[2] = {inT->getScale(), outT->getScale()};
     const int32_t offset[2] = {inT->getOffset(), outT->getOffset()}; 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      maxSplatOp<elK, false>(dstAddr, srcAddr, splatVal, scale, offset);
+      maxSplatOp <elK, false>(dstAddr, srcAddr, splatVal, scale, offset);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
 
     if (res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      maxSplatOp<elK, false>(dstAddr, srcAddr, splatVal, scale, offset);
+      maxSplatOp <elK, false>(dstAddr, srcAddr, splatVal, scale, offset);
     }
 
     if (lastRow)

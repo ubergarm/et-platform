@@ -89,6 +89,10 @@ constexpr std::size_t getsize<float16>() {
   return 2;
 }
 
+template <> constexpr std::size_t getsize<bfloat16>() {
+  return 2;
+}
+
 /**
  * @brief Converts an offset in a tensor into its corresponding coordinates.
  *

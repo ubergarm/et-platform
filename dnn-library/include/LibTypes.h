@@ -42,6 +42,8 @@ enum ElemKind : unsigned char {
   FloatTy,
   // 16-bit float type (half, fp16)
   Float16Ty,
+  // 16-bit float type (bfloat16)
+  BFloat16Ty,
   // 8-bit quantized type (int8_t)
   Int8QTy,
   // unsigned 8-bit quantized type (uint8_t)
@@ -61,24 +63,28 @@ enum ElemKind : unsigned char {
   // 4-bit quantized type with fused FP16 scale/offset (uint8_t, each byte
   // represents 2 4-bit quantized data)
   UInt4FusedFP16QTy,
+  // 4-bit quantized type with fused FP32 scale/offset (uint8_t, each byte
+  // represents 2 4-bit quantized data)
+  UInt4FusedQTy,
   // Bool type (bool)
   BoolTy,
 };
 
 // enum class PrecisionMode {
-//   // TODO: Get same enumerate as Jitter
-//   PM_FP_32 = 0,   // fp32
-//   PM_FP_16 = 1,   // fp16
-//   PM_INT_32 = 2,  // quant int32
-//   PM_INT_8 = 3,   // quant int8
-//   PM_INT_16 = 4,  // quant int16
-//   PM_INT_I32 = 5, // idx int32
-//   PM_INT_I64 = 6, // idx int64
-//   PM_UINT_8 = 7,  // quant uint8
-//   PM_BOOL = 8,    // bool
-//   MAX_PRECISION_MODES
+//  //TODO: Get same enumerate as Jitter
+//  PM_FP_32   = 0,   // fp32
+//  PM_FP_16   = 1,   // fp16
+//  PM_BFP_16  = 2,   // bfloat16
+//  PM_INT_32  = 3,   // quant int32
+//  PM_INT_8   = 4,   // quant int8
+//  PM_INT_16  = 5,   // quant int16
+//  PM_INT_I32 = 6,   // idx int32
+//  PM_INT_I64 = 7,   // idx int64
+//  PM_UINT_8  = 8,   // quant uint8
+//  PM_UINT_4  = 9,   // quant uint4
+//  PM_BOOL    = 10,  // bool
+//  MAX_PRECISION_MODES
 // };
-
 
 // template<class T>
 // constexpr std::size_t getsize() {
@@ -113,6 +119,12 @@ enum ElemKind : unsigned char {
       return true;
     else
       return false;
+  }
+
+  /*@brief returns whether \p elk is an "index" ElemKind.
+   */
+  inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
+    return elk == dnn_lib::ElemKind::Int32ITy or elk == dnn_lib::ElemKind::Int64ITy;
   }
 
   /*@brief returns wheter \p elk is a fused quantized ElemKind.

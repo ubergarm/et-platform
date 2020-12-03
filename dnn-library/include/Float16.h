@@ -127,6 +127,8 @@ public:
 
 };
 
+class bfloat16 {};
+
 } // namespace dnn_lib
 
 #endif // GLOW_SUPPORT_FLOAT16_H
