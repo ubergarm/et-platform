@@ -120,8 +120,6 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
 }
 
 
-
-
 /**
  * @brief Converts an offset in a tensor into its corresponding non-padding-coords.
  *
@@ -139,11 +137,10 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
  *  the next non-padding-position.
  */
 
-  template<typename pitch_t, typename dims_t>
-inline __attribute__((always_inline))
-void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
-                              unsigned int srcDimNum, const pitch_t *pitch,
-                              const dims_t *dims, unsigned int &k) {
+template <typename pitch_t, typename dims_t>
+inline __attribute__((always_inline)) void getNonPaddingCoordinates(unsigned int* coord, unsigned int offset,
+                                                                    unsigned int srcDimNum, const pitch_t* pitch,
+                                                                    const dims_t* dims, unsigned int& k) {
 
   getCoordinates(coord, offset, srcDimNum, pitch);
   k = srcDimNum;
@@ -153,10 +150,14 @@ void getNonPaddingCoordinates(unsigned int *coord, unsigned int offset,
       k = j;
     }
   }
-  for (unsigned int j = k; j < srcDimNum; j++)
+  for (unsigned int j = k; j < srcDimNum; j++) {
     coord[j] = 0;
+  }
+  offset = 0;
+  for (unsigned int d = 1; d < srcDimNum; d++) {
+    offset += coord[d] * pitch[d];
+  }
 }
-
 
 /**
  * @brief Given a tensor, it divides it in cachelines for the minions.
@@ -352,8 +353,9 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
       offset1 -= (index[j] - 1) * pitch1[j];
       offset2 -= (index[j] - 1) * pitch2[j];
       coord[j] = 0;
-    } else
+    } else {
       return true;
+    }
   }
 
   //FIXME: use assertion throw "getOffsets Malfunction";

@@ -36,11 +36,14 @@ template <ElemKind dstElK, ElemKind srcElK>
 inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  using srcType = typename elemKind2elemTy<srcElK>::type;
-  
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
+
+  if (minionId >= activeMinions) {
+    return;
+  }
 
   /* maintain compatibility through the new Iface Libtensor */
   void* srcT = inT->getRawDataPointer<void>();
@@ -61,16 +64,18 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags
   // We give to each minion an initial address the number of positions that it
   // must work on (maxRead).
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
-  if (maxRead == 0)
+
+  if (maxRead == 0) {
     return;
+  }
+
   // We move the initialAddr to the next non-padding position
   unsigned int coord[srcDimNum]; // Vector of coordinates
-  unsigned int k = 0;              // Amount of non-zero coordinates
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, srcIndex,
-                           k);
+  unsigned int k = 0;            // Amount of non-zero coordinates
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, srcIndex, k);
 
   // We get the actual initialAddr, in the input and output.
   unsigned int offsetIn = 0;
@@ -79,21 +84,23 @@ inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags
     offsetIn += srcPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
+
   unsigned int posMax = maxRead + initialAddr;
   // In each iteration we copy a position and switch to the next one, until
   // completion.
   bool done = false;
-  while (!done) {
+  while (not done and (offsetOut < posMax)) {
     ptrDstT[offsetOut] = ptrSrcT[offsetIn];
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, srcIndex,
-                      srcPitch, dstPitch);
-    if (offsetOut >= posMax)
-      break;
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, srcIndex, srcPitch, dstPitch) or (offsetOut >= posMax);
   }
-  if (!DO_EVICTS)
+
+  if (!DO_EVICTS) {
     return;
+  }
   unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
+  if (clperminion > 0) {
+    evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize * initialAddr, clperminion);
+  }
 }
 
 } // namespace inlining
