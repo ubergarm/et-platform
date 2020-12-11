@@ -189,57 +189,79 @@ void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
                            unsigned int minionId, unsigned int activeMinions,
                            void * addr) {
 
-  unsigned int cll = CACHE_LINE_BYTES / elementSize; // Cacheline length
+  // How many elements does a cache line contain
+  unsigned int cacheLineSizeElems = CACHE_LINE_BYTES / elementSize;
 
-  // Checks for unaligned tensor
-  unsigned int ad = (unsigned int) ((uint64_t) addr);
-  unsigned int al = ad % 64;
-  unsigned int ual = 0;                              // Amount of unaligned elements
-  if (al != 0) {
-    ual = cll - (al / elementSize);
-    // Special case where cache line is unaligned and all elements
-    // are in this cacheline
-    if (ual >= numElems) {
-      if (minionId == 0) {
-        maxRead = numElems;
-        offset  = 0;
-      }
-      else {
-        maxRead = 0;
-        offset = 0;
-      }
+  // When unaligned, how many elements from the tensor are in the first cache line,
+  // or zero when aligned.
+  unsigned int unalignedElements =
+    ((((uintptr_t)addr + CACHE_LINE_BYTES - 1) & ~(CACHE_LINE_BYTES - 1)) - (uintptr_t)addr) / elementSize;
+
+  // When unaligned, how many elements from the first cache line do not belong to the tensor,
+  // or zero when aligned.
+  unsigned int missalignmentElements = likely(unalignedElements == 0) ? 0 : cacheLineSizeElems - unalignedElements;
+
+  // Total number of cache lines (rounded up)
+  unsigned int totalCacheLines = (missalignmentElements + numElems - 1) / cacheLineSizeElems + 1;
+
+  // Ensure that all the minions have a least one cache line to do
+  if (unlikely(activeMinions > totalCacheLines)) {
+    activeMinions = totalCacheLines;
+
+    // When there is an excess of minions make redundant the ones for which there is no work
+    if (unlikely(minionId >= activeMinions)) {
+      offset = 0;
+      maxRead = 0;
       return;
     }
-
-    numElems -= ual;
   }
 
-  unsigned int ncl = ((numElems - 1) / cll) + 1;       // Amount of cache lines
-  unsigned int mcl = ((ncl - 1) / activeMinions) + 1;  // Amount of cl for a minion
-  unsigned int div = ncl / mcl;
+  // Each minion will process a number of consecutive cache lines (a region)
+  unsigned int regionSizeLines = totalCacheLines / activeMinions;
 
-  // Minion0 starts at offset0, does regular elements plus the unaligned ones
-  if (minionId == 0) {
-    maxRead = mcl * cll + ual;
-    offset = 0;
+  // After covering with "activeMinions" regions, each region containing "regionSizeLines"
+  // lines, there is still a cache lines remainder.
+  unsigned int cacheLinesRemainder = totalCacheLines % activeMinions;
+
+  // The remainder of cache lines is done by adding one extra line to each minion whose
+  // id is greater or equal than firstMinionDoingOneExtra. For example, if the
+  // remainder is 3 lines and the number of active minions is 4, then minions 1,
+  // 2 and 3 should do an extra cache line.
+  unsigned int firstMinionDoingOneExtra = activeMinions - cacheLinesRemainder;
+
+  if (minionId < firstMinionDoingOneExtra) {
+    maxRead = regionSizeLines;
+    offset = regionSizeLines * minionId;
+  } else {
+    maxRead = regionSizeLines + 1;
+    offset = regionSizeLines * firstMinionDoingOneExtra + maxRead * (minionId - firstMinionDoingOneExtra);
   }
-  // Other minions that do regular work
-  else if (minionId <= div) {
-    maxRead = mcl * cll;
-    offset = (maxRead * minionId) + ual;
+
+  // Convert from cache lines to elements
+  maxRead *= cacheLineSizeElems;
+  offset *= cacheLineSizeElems;
+
+  // Ensure minions other than zero start on a cache line boundary
+  if (unlikely(missalignmentElements > 0 and activeMinions > 1)) {
+    if (minionId == 0) {
+      // Minion zero does "missAlignmentElements" fewer elements
+      maxRead -= missalignmentElements;
+    } else if (likely(minionId != activeMinions - 1)) {
+      // Minions that are neither zero or last move "missAlignmentElements" left
+      offset -= missalignmentElements;
+    } else {
+      // The last minion moves "missAlignmentElements" left and does "missAlignmentElements" extra elements
+      offset -= missalignmentElements;
+      maxRead += missalignmentElements;
+    }
   }
-  // Other minions do nothing
-  else {
+
+  if (unlikely(offset >= numElems)) {
+    // Do nothing when offset is beyond numElems minus one
     maxRead = 0;
-    offset = numElems + ual;
-  }
-
-  // Prevent out of bounds access
-  if (offset >= (numElems + ual)) {
-    maxRead = 0;
-  }
-  else {
-    maxRead = std::min(maxRead, numElems + ual - offset);
+  } else {
+    // Clip maxRead so that offset plus maxRead does not got beyond numElems minus one
+    maxRead = std::min(maxRead, numElems - offset);
   }
 }
 
