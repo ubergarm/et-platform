@@ -53,9 +53,7 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   void *pdst = outT->getRawDataPointer<void>();
   void *pdata = in2T->getRawDataPointer<void>();
   void *pdefault = in3T->getRawDataPointer<void>();
-  
-  unsigned int pLengthsSize = in4T->size();
-  
+
   Addresser<elK> tOutput(pdst, outT->getScale(), outT->getOffset());
   const Addresser<elK> tAInput(pdata, in2T->getScale(), in2T->getOffset());
   const Addresser<elK> tDefVInput(pdefault, in3T->getScale(), in3T->getOffset());
@@ -170,8 +168,7 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
         coordIn[i] = 0;
       }
       ++semiBatchCount;
-      if ((semiBatchCount == mask.size()) and // Assumption (1): pMaskSize = dstIndex[1].
-          (batchCount < pLengthsSize-1)) {
+      if (semiBatchCount == mask.size()) { // Assumption (1): pMaskSize = dstIndex[1].
         semiBatchCount = 0;
         ++batchCount;
         firstIdx = lastIdx;
