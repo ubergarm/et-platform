@@ -33,9 +33,9 @@ namespace inlining {
 
 // Assumptions for the SparseToDenseMaskInst threaded version:
 // (1) The pmask vector size (pMaskSize) has the same length as the second dimension of the output tensor.
-// (2) The dimensions and pitches of the pdefault tensor are the ones of a batch of the data tensor.
+// (2) The dimensions of the pdefault tensor are the ones of a batch of the data tensor.
 
-  template <ElemKind elK, size_t N>
+template <ElemKind elK, size_t N>
 inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
                                         LibTensor* in2T, LibTensor* in3T,
                                         LibTensor* in4T,
@@ -54,32 +54,26 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   void *pdata = in2T->getRawDataPointer<void>();
   void *pdefault = in3T->getRawDataPointer<void>();
   
-  //  unsigned int pdefaultSize = in2T->size();
   unsigned int pLengthsSize = in4T->size();
   
-  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
   Addresser<elK> tOutput(pdst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
   const Addresser<elK> tAInput(pdata, in2T->getScale(), in2T->getOffset());
-  // const Addresser<elK> tDefVInput(pdefault, scale[1], offset[1]);
   const Addresser<elK> tDefVInput(pdefault, in3T->getScale(), in3T->getOffset());
-  // long long *indices = (long long *)pindices;
   size_t *indices = in1T->getRawDataPointer<size_t>();
-  // int32_t *lengths = (int32_t *)plengths;
   int32_t *lengths = in4T->getRawDataPointer<int32_t>();
 
-  // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const dim_t *dataIndex = in2T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
   const dim_t *dataPitch = in2T->strides().data();
+
+  const dim_t * defPitch = in3T->strides().data();
+  const dim_t * defIndex = in3T->dims().data();
+
+  const dim_t * lenIndex = in4T->dims().data();
 
   unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
   unsigned int pdataDimNum = static_cast<unsigned int>(in2T->ndims());
-  
+
   unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
@@ -96,26 +90,38 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
     offsetOut += dstPitch[i]*coordOut[i];
   }
 
-  unsigned int batchCount = offsetOut/dstPitch[0];
-  unsigned int mod = offsetOut - batchCount*dstPitch[0];
-  unsigned int semiBatchCount = mod/dstPitch[1];
-  unsigned int offsetIn = mod - semiBatchCount*dstPitch[1];
-
-// The default value tensor's indexes and pitches can be obtained from the data tensor, as a consequence
-// of assumption (2) listed above.
   unsigned int pdefDimNum = pdataDimNum - 1;
-  unsigned int defPitch[pdefDimNum];
-  unsigned int defIndex[pdefDimNum];
-  for (unsigned int i = 0; i < pdefDimNum; i++) {
-    defPitch[i] = dataPitch[i + 1];
-    defIndex[i] = dataIndex[i + 1];
+
+  unsigned int batchCount;
+  unsigned int semiBatchCount;
+  unsigned int coordIn[pdefDimNum]; // Coordinates in the default value tensor (or an input batch).
+
+  if (lenIndex[0] > 1) {
+    unsigned int remainder = offsetOut;
+    batchCount = remainder / dstPitch[0];
+    remainder = remainder % dstPitch[0];
+    semiBatchCount = remainder / dstPitch[1];
+    remainder = remainder % dstPitch[1];
+    for (size_t i = 0; i < pdefDimNum; ++i) {
+      coordIn[i] = remainder / dstPitch[i + 2];
+      remainder = remainder % dstPitch[i + 2];
+    }
+  } else {
+    batchCount = 0;
+    semiBatchCount = offsetOut / dstPitch[0];
+    unsigned int remainder = offsetOut % dstPitch[0];
+    for (size_t i = 0; i < pdefDimNum; ++i) {
+      coordIn[i] = remainder / dstPitch[i+1];
+      remainder = remainder % dstPitch[i+1];
+    }
   }
 
-  unsigned int coordIn[pdefDimNum]; // Coordinates in the default value tensor (or an input batch).
-  getNonPaddingCoordinates(coordIn, offsetIn, pdefDimNum, defPitch, defIndex, last_non_zero_coord);
-  offsetIn = 0;
-  for (unsigned int i = 0; i < last_non_zero_coord; i++) {
-    offsetIn += defPitch[i]*coordIn[i];
+  unsigned int offsetIn = 0;
+  unsigned int offsetDef = 0;
+
+  for (unsigned int i = 0; i < pdefDimNum; i++) {
+    offsetIn += dataPitch[i+1]*coordIn[i];
+    offsetDef += defPitch[i]*coordIn[i];
   }
 
   unsigned int firstIdx = 0;
@@ -137,17 +143,29 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   bool done = false;
   bool doneIn = false;
 
-  while (!done && (offsetOut < posMax)) {
+  while (not done and offsetOut < posMax) {
 
-    if (defaultVal) tOutput[offsetOut] = tDefVInput[offsetIn];
-    else tOutput[offsetOut] = tAInput[j*dataPitch[0] + offsetIn];
+    srcType value;
+    if (defaultVal){
+      value = tDefVInput[offsetDef];
+    }
+    else {
+      value = tAInput[j*dataPitch[0] + offsetIn];
+    }
+    tOutput[offsetOut] = value;
 
     done = getOffsets(pdstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
-    doneIn = getOffsets(pdefDimNum, coordIn, offsetIn, defIndex, defPitch);
+
+    if (done or not (offsetOut < posMax)) {
+      break;
+    }
+
+    doneIn = getOffsets(pdefDimNum, coordIn, offsetIn, offsetDef, defIndex, dataPitch + 1, defPitch);
 
     if (doneIn) {
       doneIn = false;
       offsetIn = 0;
+      offsetDef = 0;
       for (unsigned int i = 0; i < pdefDimNum; ++i) {
         coordIn[i] = 0;
       }
