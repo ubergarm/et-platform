@@ -36,11 +36,8 @@ namespace inlining {
 // (2) The dimensions of the pdefault tensor are the ones of a batch of the data tensor.
 
 template <ElemKind elK, size_t N>
-inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, LibTensor* in3T,
-                                        LibTensor* in4T,
-                                        const std::array<size_t, N> mask,
-                                        uint64_t flags,
+inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                        LibTensor* in4T, const std::array<size_t, N> mask, uint64_t flags,
                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
@@ -64,10 +61,10 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *dataPitch = in2T->strides().data();
 
-  const dim_t * defPitch = in3T->strides().data();
-  const dim_t * defIndex = in3T->dims().data();
+  const dim_t* defPitch = in3T->strides().data();
+  const dim_t* defIndex = in3T->dims().data();
 
-  const dim_t * lenIndex = in4T->dims().data();
+  const dim_t* lenIndex = in4T->dims().data();
 
   unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
   unsigned int pdataDimNum = static_cast<unsigned int>(in2T->ndims());
@@ -109,8 +106,8 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
     semiBatchCount = offsetOut / dstPitch[0];
     unsigned int remainder = offsetOut % dstPitch[0];
     for (size_t i = 0; i < pdefDimNum; ++i) {
-      coordIn[i] = remainder / dstPitch[i+1];
-      remainder = remainder % dstPitch[i+1];
+      coordIn[i] = remainder / dstPitch[i + 1];
+      remainder = remainder % dstPitch[i + 1];
     }
   }
 
@@ -118,8 +115,8 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   unsigned int offsetDef = 0;
 
   for (unsigned int i = 0; i < pdefDimNum; i++) {
-    offsetIn += dataPitch[i+1]*coordIn[i];
-    offsetDef += defPitch[i]*coordIn[i];
+    offsetIn += dataPitch[i + 1] * coordIn[i];
+    offsetDef += defPitch[i] * coordIn[i];
   }
 
   unsigned int firstIdx = 0;
@@ -144,17 +141,16 @@ inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T,
   while (not done and offsetOut < posMax) {
 
     srcType value;
-    if (defaultVal){
+    if (defaultVal) {
       value = tDefVInput[offsetDef];
-    }
-    else {
-      value = tAInput[j*dataPitch[0] + offsetIn];
+    } else {
+      value = tAInput[j * dataPitch[0] + offsetIn];
     }
     tOutput[offsetOut] = value;
 
     done = getOffsets(pdstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
 
-    if (done or not (offsetOut < posMax)) {
+    if (done or not(offsetOut < posMax)) {
       break;
     }
 
