@@ -427,23 +427,6 @@ namespace dnn_lib {
         {operandState::dirty, operandState::clean}}},
         {0x0, 0x0} // evict available mask
      },
-     /**** ET_crc ****/
-     instrConfig {
-       "notImplemented", // name
-        0, // # outs
-        0,  // # ins
-        {}, // members
-        0, // template param mask
-        {}, // impl versions
-        nullptr, // custom impl selector
-        // L1 states per impl
-        {{operandState::invalid}},
-        // L2 states per impl
-        {{operandState::invalid}},
-        // CB states per impl
-        {{operandState::invalid}},
-        {0} // evict available mask
-     },
      /**** ET_crossentropyloss ****/
      instrConfig {
        "CrossEntropyLoss", // name
