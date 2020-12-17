@@ -72,7 +72,9 @@ class LibManagerSheet:
                       "ScoreThreshold": "float",
                       "IsTFVersion4": "bool",
                       "Layout": "uint32_t",
-                      "CountIncludePads": "bool"
+                      "CountIncludePads": "bool",
+                      "FusedActivation": "size_t",
+                      "FusedActivationArgs": "std::array<float, default_fusedActivationArgs> &"
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)
@@ -85,7 +87,8 @@ class LibManagerSheet:
                        "Mask": "size_t MN",
                        "Axes": "size_t N",
                        "RszScale": "size_t RSZN",
-                       "Dilation": "size_t KN"
+                       "Dilation": "size_t KN",
+                       "FusedActivationArgs": "size_t FAAN"
     }
 
 
@@ -605,6 +608,7 @@ static constexpr size_t default_mask_size = max_tensor_dimensions;
 static constexpr size_t default_axes_size = max_tensor_dimensions;
 static constexpr size_t default_rszscale_size = max_tensor_dimensions;
 static constexpr size_t default_dilation_size = 2;
+static constexpr size_t default_fusedActivationArgs = 10;
 %s
 } // namespace dnn_lib
 

@@ -32,6 +32,7 @@ SCALAR_MB_DEF(ScoreThreshold,float, getInstParameters().scoreThreshold)
 SCALAR_MB_DEF(IsTFVersion4, bool, getInstParameters().isTFVersion4)
 SCALAR_MB_DEF(Layout, uint32_t, getInstParameters().layout)
 SCALAR_MB_DEF(CountIncludePads, bool, getInstParameters().countIncludePads)
+SCALAR_MB_DEF(FusedActivation, size_t, getInstParameters().fusedActivation)
 
 VECTOR_MB_DEF(Kernels, uint32_t, getInstParameters().kernel)
 VECTOR_MB_DEF(Strides, uint32_t, getInstParameters().strides)
@@ -42,6 +43,7 @@ VECTOR_MB_DEF(Mask, uint64_t, getInstParameters().mask)
 VECTOR_MB_DEF(Axes, uint32_t, getInstParameters().axes)
 VECTOR_MB_DEF(RszScale, float, getInstParameters().rszScale)
 VECTOR_MB_DEF(Dilation, uint32_t, getInstParameters().dilation)
+VECTOR_MB_DEF(FusedActivationArgs, float, getInstParameters().fusedActivationArgs)
 
 #undef SCALAR_MB_DEF
 #undef VECTOR_MB_DEF

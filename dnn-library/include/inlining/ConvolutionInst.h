@@ -287,16 +287,13 @@ inline void convolutionStep (float *sum,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN>
-inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T,
-                                          LibTensor* in2T, LibTensor* in3T,
-                                          const std::array<uint32_t, N> &kernels,
-                                          const std::array<uint32_t, N> &strides,
-                                          const std::array<uint32_t, PN> &pads,
-                                          unsigned int group,
-                                          const std::array<uint32_t, KN> dilation,
-                                          uint64_t flags,
-             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN, size_t FN>
+inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                  const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                                  const std::array<uint32_t, PN>& pads, unsigned int group,
+                                  const std::array<uint32_t, KN> dilation, const size_t fusedActivation,
+                                  const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
+                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<dstElK>::type;
@@ -871,15 +868,13 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN>
-inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                            LibTensor* in2T, LibTensor* in3T,
-                                            const std::array<uint32_t, N> &kernels,
-                                            const std::array<uint32_t, N> &strides,
-                                            const std::array<uint32_t, PN> &pads,
-                                            unsigned int group,
-					    const std::array<uint32_t, KN> &dilation,
-                                            uint64_t flags,
+template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN, size_t FN>
+inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                            const std::array<uint32_t, N>& kernels,
+                                            const std::array<uint32_t, N>& strides,
+                                            const std::array<uint32_t, PN>& pads, unsigned int group,
+                                            const std::array<uint32_t, KN>& dilation, const size_t fusedActivation,
+                                            const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
@@ -974,8 +969,6 @@ inline void fwdLibConvolutionInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
-
-
 
 } // namespace inlining
 

@@ -51,19 +51,13 @@ namespace inlining {
  * @param[flags] flags Gives the information of the Active Shires and the
  *  type of evict required.
  */
-template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN>
-inline void fwdLibChannelWiseQuantizedConvolution3DInst(LibTensor* outT, LibTensor* dataT, 
-            LibTensor* filterT, LibTensor* biasT,
-            LibTensor* fsT, LibTensor* foT,
-            LibTensor* bsT, LibTensor* boT,
-            const std::array<uint32_t, N> &kernels,
-            const std::array<uint32_t, N> &strides,
-            const std::array<uint32_t, PN> &pads,
-            const uint32_t group, 
-            const std::array<uint32_t, KN> &dilation,
-            const uint64_t flags, 
-            const uint32_t minionOffset = 0, 
-            const uint32_t assignedMinions = 0) {
+template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, size_t FN>
+inline void fwdLibChannelWiseQuantizedConvolution3DInst(
+  LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
+  LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+  const std::array<uint32_t, PN>& pads, const uint32_t group, const std::array<uint32_t, KN>& dilation,
+  const size_t fusedActivation, const std::array<float, FN>& fusedActivationArgs, const uint64_t flags,
+  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -167,19 +161,13 @@ inline void fwdLibChannelWiseQuantizedConvolution3DInst(LibTensor* outT, LibTens
   }           // N
 }
 
-template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN>
-inline void fwdLibChannelWiseQuantizedConvolutionInst(LibTensor* outT, LibTensor* dataT, 
-            LibTensor* filterT, LibTensor* biasT,
-            LibTensor* fsT, LibTensor* foT,
-            LibTensor* bsT, LibTensor* boT,
-            const std::array<uint32_t, N> &kernels,
-            const std::array<uint32_t, N> &strides,
-            const std::array<uint32_t, PN> &pads,
-            const uint32_t group, 
-            const std::array<uint32_t, KN> &dilation,
-            const uint64_t flags, 
-            const uint32_t minionOffset = 0, 
-            const uint32_t assignedMinions = 0) {
+template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, size_t FN>
+inline void fwdLibChannelWiseQuantizedConvolutionInst(
+  LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
+  LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+  const std::array<uint32_t, PN>& pads, const uint32_t group, const std::array<uint32_t, KN>& dilation,
+  const size_t fusedActivation, const std::array<float, FN>& fusedActivationArgs, const uint64_t flags,
+  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -195,9 +183,9 @@ inline void fwdLibChannelWiseQuantizedConvolutionInst(LibTensor* outT, LibTensor
   assert((outT->dims()[3] % group)==0);
 
   if (dataT->ndims() == 5) {
-    fwdLibChannelWiseQuantizedConvolution3DInst<dstElK, src2ElK>(outT, dataT,
-      filterT, biasT, fsT, foT, bsT, boT, kernels, strides, pads, 
-                  group, dilation, flags, minionOffset, assignedMinions);
+    fwdLibChannelWiseQuantizedConvolution3DInst<dstElK, src2ElK>(
+      outT, dataT, filterT, biasT, fsT, foT, bsT, boT, kernels, strides, pads, group, dilation, fusedActivation,
+      fusedActivationArgs, flags, minionOffset, assignedMinions);
     return;
   }
 
@@ -288,10 +276,7 @@ inline void fwdLibChannelWiseQuantizedConvolutionInst(LibTensor* outT, LibTensor
       }     // C
     }       // G
   }         // N
-
-    
 }
-
 }
 }
 #endif
