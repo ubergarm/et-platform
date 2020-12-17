@@ -103,6 +103,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/inlining.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Addresser.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Converter.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/internal/LoadStore.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Operator.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/internal/PackedBufferProxy.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer.h"

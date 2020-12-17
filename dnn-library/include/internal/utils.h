@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
+ * Copyright (C) 2020, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -18,10 +18,11 @@
 
 #include <syscall.h>
 
+#include "Float16.h"
+#include "LibCommon.h"
+#include "LoadStore.h"
 #include "shire.h"
 #include "tensors.h"
-#include "LibCommon.h"
-#include "Float16.h"
 
 namespace dnn_lib {
 
@@ -31,9 +32,6 @@ namespace dnn_lib {
 #define DO_EVICTS     ((flags & 0x60) >> 5) // 01 = evictL2, 10 = evictL3, 11 = evictMem
 
 #define M_1_LOG2E float(1.0f / M_LOG2E)
-
-constexpr uint64_t fg32b_conf = 0x398A418820;
-constexpr uint64_t fg32h_conf = 0x76543210;
 
 #define SET_MINUS_INFTY(_reg) "fbci.ps " #_reg ", 0xff800 \n" // _reg is vect
 

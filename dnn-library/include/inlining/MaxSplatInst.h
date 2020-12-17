@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2019, Esperanto Technologies Inc.
+ * Copyright (C) 2020, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -30,22 +30,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-constexpr uint64_t getGatherConf(size_t bytesPerElement) {
-  uint64_t result = 0;
-  switch (bytesPerElement) {
-  case 1:
-    result = fg32b_conf;
-    break;
-  case 2:
-    result = fg32h_conf;
-    break;
-  default:
-    result = 0;
-    break;
-  }
-  return result;
-}
-
 template <ElemKind elK, bool aligned>
 inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float* scale, const int32_t* offset) {
 
@@ -59,52 +43,14 @@ inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float
                        : [ splatValueVector ] "=f"(splatValueVector)
                        : [ splatValueScalar ] "r"(splatValueScalar));
 
-  uint64_t gatherConf;
-  (void)gatherConf;
+  uint64_t conf;
+  float indices;
+  float indicesHigh;
+  setupGatherScatterConfig<bytesPerElement, aligned>(conf, indices, indicesHigh);
 
-  float gv;
-  (void)gv;
+  float op0 = 0.f, op0High = 0;
 
-  if constexpr (bytesPerElement != 4) {
-    if constexpr (aligned) {
-      __asm__ __volatile__("li %[gatherConf], %[gatherConfImm]\n"
-                           : [ gatherConf ] "=r"(gatherConf)
-                           : [ gatherConfImm ] "i"(getGatherConf(bytesPerElement)));
-    } else {
-      static const int32_t gatherValues[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
-                                             3 * bytesPerElement, 4 * bytesPerElement, 5 * bytesPerElement,
-                                             6 * bytesPerElement, 7 * bytesPerElement};
-      __asm__ __volatile__("flw.ps %[gv], %[gatherValues]\n"
-                           : [ gv ] "=f"(gv)
-                           : [ gatherValues ] "m"(*(const int32_t(*)[16])gatherValues));
-    }
-  }
-
-  float op0 = 0.f;
-
-  if constexpr (bytesPerElement == 1) {
-    if constexpr (aligned) {
-      __asm__ __volatile__("fg32b.ps %[op0], %[gatherConf](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gatherConf ] "r"(gatherConf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
-    } else {
-      __asm__ __volatile__("fgb.ps %[op0], %[gv](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gv ] "f"(gv), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
-    }
-  } else if constexpr (bytesPerElement == 2) {
-    if constexpr (aligned) {
-      __asm__ __volatile__("fg32h.ps %[op0], %[gatherConf](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gatherConf ] "r"(gatherConf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
-    } else {
-      __asm__ __volatile__("fgh.ps %[op0], %[gv](%[src])\n"
-                           : [ op0 ] "=f"(op0)
-                           : [ gv ] "f"(gv), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
-    }
-  } else if constexpr (bytesPerElement == 4) {
-    __asm__ __volatile__("flw.ps %[op0], %[src]\n" : [ op0 ] "=f"(op0) : [ src ] "m"(*(const char(*)[32])src));
-  }
+  load<bytesPerElement, aligned>(src, conf, indices, indicesHigh, op0, op0High);
 
   float scale_v, offset_v;
   (void)scale_v;
@@ -144,31 +90,7 @@ inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float
     __asm__ __volatile__("fsrli.pi %[op0], %[op0], %[bits]\n" : [ op0 ] "+f"(op0) : [ bits ] "i"(16));
   }
 
-  if constexpr (bytesPerElement == 1) {
-    if constexpr (aligned) {
-      __asm__ __volatile__("fsc32b.ps %[op0], %[gatherConf](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[8])dst)
-                           : [ op0 ] "f"(op0), [ gatherConf ] "r"(gatherConf), [ dst ] "r"(dst));
-    } else {
-      __asm__ __volatile__("fscb.ps  %[op0], %[gv](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[8])dst)
-                           : [ op0 ] "f"(op0), [ gv ] "f"(gv), [ dst ] "r"(dst));
-    }
-  } else if constexpr (bytesPerElement == 2) {
-    if constexpr (aligned) {
-      __asm__ __volatile__("fsc32h.ps %[op0], %[gatherConf](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[16])dst)
-                           : [ op0 ] "f"(op0), [ gatherConf ] "r"(gatherConf), [ dst ] "r"(dst));
-    } else {
-      __asm__ __volatile__("fsch.ps  %[op0], %[gv](%[dst])\n"
-                           : [ dstMem ] "=m"(*(char(*)[16])dst)
-                           : [ op0 ] "f"(op0), [ gv ] "f"(gv), [ dst ] "r"(dst));
-    }
-  } else if constexpr (bytesPerElement == 4) {
-    __asm__ __volatile__("fsw.ps  %[op0], (%[dst])\n"
-                         : [ dstMem ] "=m"(*(char(*)[32])dst)
-                         : [ op0 ] "f"(op0), [ dst ] "r"(dst));
-  }
+  store<bytesPerElement, aligned>(dst, conf, indices, indicesHigh, op0, op0High);
 }
 
   // generic version is vectorized
