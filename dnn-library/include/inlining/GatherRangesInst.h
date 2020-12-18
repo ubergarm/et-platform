@@ -175,7 +175,7 @@ inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
     }
 
     if (!DO_EVICTS) return;
-    unsigned int clperminion = maxRead*sizeof(srcType)/CACHE_LINE_BYTES;
+    unsigned int clperminion = (maxRead * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
   }
 
@@ -208,13 +208,9 @@ inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
 
     // Todo: initialAddr should be the virtual address of the Length tensor.
     if (!DO_EVICTS) return;
-    unsigned int clperminion = lenIndex[0]*lenPitch[0]*sizeof(srcType)/CACHE_LINE_BYTES;
+    unsigned int clperminion = (lenIndex[0] * lenPitch[0] * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0) {
       evict_va_multi(DO_EVICTS, (uintptr_t)dst2T + typeSize*initialAddr, clperminion);
-    }
-    else {
-      //evict all cache line even it wasn't completely written
-      evict_va_multi(DO_EVICTS, (uintptr_t)dst2T + typeSize*initialAddr, 1);      
     }
   }
 }

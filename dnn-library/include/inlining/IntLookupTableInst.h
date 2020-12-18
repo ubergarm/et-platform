@@ -93,7 +93,7 @@ inline void fwdLibIntLookupTableInst(LibTensor* outT,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * sizeof(int8_t) / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * sizeof(int8_t) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + sizeof(int8_t)*initialAddr, clperminion);
 }
 

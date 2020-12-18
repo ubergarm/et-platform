@@ -95,7 +95,7 @@ inline void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 

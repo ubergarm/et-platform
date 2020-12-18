@@ -170,7 +170,7 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
   // Eviction phase
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr,
                                       clperminion);
 }
@@ -300,7 +300,7 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
     done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, newdstIndex, newdstPitch, newPitch);
   }
   if (DO_EVICTS) {
-    unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+    unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0)
       fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
   }

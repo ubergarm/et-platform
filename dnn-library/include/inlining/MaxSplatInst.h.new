@@ -372,7 +372,7 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
@@ -471,7 +471,7 @@ inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
                       n_actPitch, n_dstPitch);
   }
   if (DO_EVICTS) {
-    unsigned int clperminion = maxRead * typeSize / CACHE_LINE_BYTES;
+    unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0)
       fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
   }
