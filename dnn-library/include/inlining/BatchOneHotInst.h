@@ -112,8 +112,7 @@ inline void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T,
 
   unsigned int posMax = maxRead + offsetOut;
 
-
-  bool done = false;
+  bool done = (offsetOut >= posMax);
   bool minionEnd = false;
 
   while (!done && !minionEnd) {

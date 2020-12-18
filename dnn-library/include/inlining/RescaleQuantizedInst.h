@@ -64,8 +64,10 @@ inline void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT,
   // must work on (maxRead).
   unsigned int initialAddr = 0, maxRead; //TODO: review SW-2651
   size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstT);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstT);
+  if (maxRead == 0) {
+    return;
+  }
 
   // We move the initialAddr to the next non-padding position
   unsigned int coord[srcDimNum]; // Vector of coordinates
@@ -84,7 +86,7 @@ inline void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT,
   uint64_t posMax = maxRead + initialAddr;
   // In each iteration we copy a position and switch to the next one, until
   // completion.
-  bool done = false;
+  bool done = (offsetOut >= posMax);
   while (!done) {
     float val = dequantize<srcType>(ptrSrcT[offsetIn], inT->getScale(), inT->getOffset());
     ptrDstT[offsetOut] = quantize<srcType>(val, outT->getScale(), outT->getOffset());

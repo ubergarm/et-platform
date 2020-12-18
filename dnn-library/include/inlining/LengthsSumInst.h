@@ -105,12 +105,12 @@ inline void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T,
 
   unsigned int posMax = maxRead + initialAddr;
   // initialize output tensor
-  for (size_t elem = initialAddr; elem < posMax*sizeof(srcType); elem++)
+  for (size_t elem = initialAddr; elem < posMax; elem++)
     tOutput[elem] = 0;
 
   // In each iteration we copy a position and switch to the next one, until completion.
   bool endmatrix = false;
-  bool done = false;
+  bool done = (offsetOut >= posMax);
   while (!done) {
     for (int32_t posIn = 0; posIn < lengths[coordOut[0]]; posIn++) {
       while (!endmatrix && (offsetOut < posMax)) {
