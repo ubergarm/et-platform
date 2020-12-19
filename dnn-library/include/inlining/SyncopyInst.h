@@ -37,8 +37,9 @@ namespace inlining {
  *
  * It makes a copy of the tensor src into the dst tensor, which will
  * have the same pitches and dimensions. An offset was added to enforce
- * tensors starting at cacheline.
- * 
+ * tensors starting at cacheline. The L1 and L2 after the node do not
+ * keep any contents of the src or destination, so not eviction is required
+ *
  * @tparam srcType The type of the elements in the tensor.
  * @param[out] dst Pointer to the output matrix.
  * @param[in] Dims The "number of dimensions" of the matrix.
@@ -88,7 +89,7 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
   // Computes source and destination
   uint64_t srcAddr = ((uint64_t) src & ~0x3FULL) + initialCacheLine * CACHE_LINE_BYTES; // Aligns to cache line
   uint64_t dstAddr = (uint64_t) dst + initialCacheLine * CACHE_LINE_BYTES;
-  uint64_t dstAddrOrig = dstAddr;
+  uint64_t srcAddrOrig = srcAddr;
 
   // Saves minion cache lines for evicts
   int64_t minionCacheLinesOrig = minionCacheLines;
@@ -112,7 +113,7 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
     dstAddr += 1024;
   }
 
-  // Barrier to get all minions threa0 here
+  // Barrier to get all minions thread0 here
   // Guarantees all data in CB
   shire_barrier(0,                 // FLB0
                 0,                 // FCC0
@@ -133,7 +134,11 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
     }
   }
 
-  // Barrier to get all minions threa0 here
+  // Evicts read data from L2
+  evict_va_multi(0x2, srcAddrOrig, minionCacheLinesOrig);
+  WAIT_CACHEOPS;
+
+  // Barrier to get all minions thread0 here
   // Guarantees all data in L3
   shire_barrier(0,                 // FLB0
                 0,                 // FCC0
@@ -141,19 +146,6 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
                 (((1 << activeMinions)-1) << 16),     // Mask of active thread0 minions
                 0);                // Mask of active thread1 minions
 
-  // Evicts from L3 to DDR
-  minionCacheLines = minionCacheLinesOrig;
-  dstAddr = dstAddrOrig;
-  while (minionCacheLines > 0) {
-    // Caps to 16 cachelines
-    uint32_t cl = (minionCacheLines >= 16) ? 0xF : minionCacheLines-1;
-    // Flush L3 to DDR
-    evict_va_multi(0x3, dstAddr, cl);
-    // Update for next iteration
-    minionCacheLines -= 16;
-    dstAddr += 1024;
-  }
-  WAIT_CACHEOPS;
 }
 
 } // namespace dnn_lib
