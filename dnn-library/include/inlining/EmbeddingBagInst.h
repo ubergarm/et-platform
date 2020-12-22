@@ -478,12 +478,11 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   // Prepare gather indices
   int32_t gather_offsets16[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
 
-  __asm__ __volatile__ (
-    "flw.ps  f20, %[gather_offsets16]\n"
-    :
-    : [gather_offsets16] "m" (*(const int32_t(*)[8]) gather_offsets16)
-    : "f20"
-  );
+  __asm__ __volatile__("mov.m.x m0, zero, 0xff\n"
+                       "flw.ps  f20, %[gather_offsets16]\n"
+                       :
+                       : [ gather_offsets16 ] "m"(*(const int32_t(*)[8])gather_offsets16)
+                       : "f20");
 
   // f20 is doubled in case of FP32 and needing not aligned stores
   if (float32Dst) {
