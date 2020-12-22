@@ -263,13 +263,9 @@ inline void fwdLibChannelWiseQuantizedConvolutionInst(
       sum += nearbyintf(static_cast<float>(biasH.at(std::array<size_t,1>{d}) - biasOffset) *
             (invMatMulScale * biasScale));
 
-      printf("mdbg_ Scale bias sum %d\tmatMulScale=%f\toutScale=%f\toutOffset=%d\n",sum,matMulScale, outT->getScale(), outT->getOffset());
-
       // Scale the bias to match the scale of the matrix mulitplication.
       outH.at(std::array<size_t,4>{n, ax, ay, d}) = 
         quantize<elkType>(sum * matMulScale, outT->getScale(), outT->getOffset());
-
-      printf("[%lu,%lu,%lu,%lu] =  %d\n",n,ax,ay,d,static_cast<elkType>(outH.at(std::array<size_t,4>{n,ax,ay,d})));
 
     } // W
   }   // H
