@@ -189,7 +189,7 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
     for( ;out.offset() < endOffset ; out.step(ndims-2), in.step(ndims-2) ){ // step 2n outer dimension
       assume(out.coords()[ndims-1] == 0 && in.coords()[ndims-1] == 0);
-      for ( dim_t i = 0 ; i < lastDim && oOffset + i < endOffset; i+=step) { // step outer dimension
+      for (dim_t i = 0; (i < lastDim) && ((out.offset() + i) < endOffset); i += step) { // step outer dimension
 #ifndef  CONVERTTO_OK_TO_WRITE_PADDING        
         dim_t valid = lastDim - i;
         // set and restore the mask if we are in the boundary before and after the conversion
@@ -197,9 +197,8 @@ inline __attribute__((always_inline)) void fwdLibConvertToInstVectorized(LibTens
 #endif
         
         //conversion
-        converter.convertVect( reinterpret_cast<uintptr_t>(srcP + in.offset()  + i),
-                               reinterpret_cast<uintptr_t>(dstP + out.offset() + i ),
-                               gatherValues, scatterValues);
+        converter.convertVect(reinterpret_cast<uintptr_t>(srcP + in.offset() + i),
+                              reinterpret_cast<uintptr_t>(dstP + out.offset() + i), gatherValues, scatterValues);
 #ifndef CONVERTTO_OK_TO_WRITE_PADDING        
         // and restore mask
         if ( valid < step)  __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"); // set initial mask
