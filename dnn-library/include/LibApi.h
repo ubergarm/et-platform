@@ -1150,7 +1150,7 @@ namespace dnn_lib {
       "MatMul",               // name
       1,                      // # outs
       2,                      // # ins
-      {mbTransposed},         // members
+      {},                     // members
       2,                      // template param mask
       {},                     // impl versions
       implSel::defaultSel<1>, // custom impl selector

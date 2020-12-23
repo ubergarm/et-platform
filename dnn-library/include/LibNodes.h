@@ -1,6 +1,6 @@
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/rafa/WorkSpace/clean-swplatform/host-software/host-sw/dnn_lib/scripts
+//  cwd=/local/home/nivard/sw-platform/host-software/host-sw/dnn_lib/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
@@ -918,15 +918,22 @@ extern template void fwdLibLocalResponseNormalizationInstVectorized<Float16Ty>(L
 ****************************************************************************/
 // declarations
 template <ElemKind in0Type>
-void fwdLibMatMulInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Transposed, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+void fwdLibMatMulInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibMatMulInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Transposed, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibMatMulInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Transposed, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibMatMulInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Transposed, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibMatMulInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Transposed, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibMatMulInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Transposed, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibMatMulInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Transposed, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibMatMulInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                                               const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibMatMulInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                                                 const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibMatMulInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                                               const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibMatMulInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                                                const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibMatMulInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                                                const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibMatMulInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                                                const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  MaxPool implementations
