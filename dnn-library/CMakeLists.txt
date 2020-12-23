@@ -47,7 +47,6 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceAddInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/BatchedReduceMinInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ChannelWiseQuantizedConvolutionInst.h"
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ChecksumInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ConvertToInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Convolution3DInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ConvolutionInst.h"
@@ -144,7 +143,6 @@ add_library(dnn_lib STATIC
   src/BatchedReduceMinInst.cpp
   src/BatchOneHotInst.cpp
   src/ChannelWiseQuantizedConvolutionInst.cpp
-  src/ChecksumInst.cpp
   src/ConvertToInst.cpp
   src/Convolution3DInst.cpp
   src/ConvolutionInst.cpp

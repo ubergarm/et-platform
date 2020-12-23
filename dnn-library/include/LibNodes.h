@@ -123,21 +123,6 @@ extern template void fwdLibBatchOneHotInst<Int32ITy>(LibTensor* out0, LibTensor*
 extern template void fwdLibBatchOneHotInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
-*  Checksum implementations
-****************************************************************************/
-// declarations
-template <ElemKind in0Type>
-void fwdLibChecksumInst(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-
-// extern template declarations
-extern template void fwdLibChecksumInst<FloatTy>(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibChecksumInst<Float16Ty>(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibChecksumInst<Int8QTy>(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibChecksumInst<Int64ITy>(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibChecksumInst<Int32ITy>(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibChecksumInst<Int16QTy>(LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-
-/****************************************************************************
 *  ConvertTo implementations
 ****************************************************************************/
 // declarations

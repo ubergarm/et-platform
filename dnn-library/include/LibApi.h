@@ -261,23 +261,6 @@ namespace dnn_lib {
       {{{operandState::invalid, operandState::invalid, operandState::invalid, operandState::invalid}}},
       {0x0} // evict available mask
     },
-    /**** ET_checksum ****/
-    instrConfig{
-      "Checksum",             // name
-      0,                      // # outs
-      1,                      // # ins
-      {},                     // members
-      1,                      // template param mask
-      {},                     // impl versions
-      implSel::defaultSel<1>, // custom impl selector
-      // L1 states per impl
-      {{{operandState::invalid}}},
-      // L2 states per impl
-      {{{operandState::invalid}}},
-      // CB states per impl
-      {{{operandState::invalid}}},
-      {0x0} // evict available mask
-    },
     /**** ET_convertto ****/
     instrConfig{
       "ConvertTo",        // name

@@ -20,7 +20,6 @@
 #include "BatchedReduceMinInst.h" // From include/inlining path
 #include "BatchOneHotInst.h" // From include/inlining path
 #include "ChannelWiseQuantizedConvolutionInst.h" // From include/inlining path
-#include "ChecksumInst.h" // From include/inlining path
 #include "ConvertToInst.h" // From include/inlining path
 #include "Convolution3DInst.h" // From include/inlining path
 #include "ConvolutionInst.h" // From include/inlining path
