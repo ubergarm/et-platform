@@ -341,19 +341,13 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
       "fxor.pi %[abs], %[mask], %[source]\n"
       "fxor.pi %[absHigh], %[mask], %[sourceHigh]\n"
       // Convert
-      "fslli.pi %[term], %[abs], 16\n"
-      "fsrli.pi %[term], %[term], 16\n"
-      "fcvt.ps.pw %[destination], %[term]\n"
-      "fbci.ps %[weight], 0x47800\n"
-      "fsrli.pi %[term], %[abs], 16\n"
-      "fmadd.ps %[destination], %[weight], %[term], %[destination]\n"
+      "fcvt.ps.pw %[destination], %[abs]\n"
       "fbci.ps %[weight], 0x4f800\n"
       "fcvt.ps.pw %[term], %[absHigh]\n"
       "fmadd.ps %[destination], %[weight], %[term], %[destination]\n"
       // Add the increment
-      "fsrli.pi %[mask], %[sourceHigh], 31\n"
       "fcvt.ps.pw %[mask], %[mask]\n"
-      "fadd.ps %[destination], %[destination], %[mask]\n"
+      "fsub.ps %[destination], %[destination], %[mask]\n"
       // Inject the sign
       "fsgnj.ps %[destination], %[destination], %[sourceHigh]\n"
       : [ mask ] "=&f"(mask), [ abs ] "=&f"(abs), [ absHigh ] "=&f"(absHigh), [ destination ] "=&f"(destination),
