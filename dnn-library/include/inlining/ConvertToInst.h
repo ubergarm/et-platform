@@ -119,12 +119,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
     // TODO: from FloatTy to Int32QTy probably not required
   } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
-    __asm__("fbci.ps %[destination], 0x3f000\n"
-            "fsgnjn.ps %[destination], %[destination], %[source]\n"
-            "fadd.ps %[destination], %[source], %[destination]\n"
-            "fcvt.pw.ps %[destination], %[destination], rmm\n"
-            : [ destination ] "=&f"(destination)
-            : [ source ] "f"(source));
+    __asm__("fcvt.pw.ps %[destination], %[source], rtz\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
     convert<FloatTy, Int32ITy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
                                dstScaleReciprocal, dstOffset);
