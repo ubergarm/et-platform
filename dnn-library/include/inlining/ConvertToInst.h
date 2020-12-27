@@ -121,10 +121,52 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
     __asm__("fcvt.pw.ps %[destination], %[source], rtz\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
-    convert<FloatTy, Int32ITy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                               dstScaleReciprocal, dstOffset);
-    convert<Int32ITy, Int64ITy>(destination, destinationHigh, destination, destinationHigh, srcScale, srcOffset,
-                                dstScaleReciprocal, dstOffset);
+    float mask, exponent, implicit, minusExponent, tmp, mantissa;
+    __asm__(
+      // Build exoring mask for bit-wise negating when negative
+      "fsrai.pi %[mask], %[source], 31\n"
+      // Extract the exponent bits
+      "fslli.pi %[exponent], %[source], 1\n"
+      "fsrli.pi %[exponent], %[exponent], 24\n"
+      // Set the implicit mantissa bit when the exponent is not 0
+      "fbci.pi %[tmp], 0\n"
+      "fltu.pi %[tmp], %[tmp], %[exponent]\n"
+      "fbci.ps %[implicit], 0x80000\n"
+      "fand.pi %[implicit], %[implicit], %[tmp]\n"
+      // Subtract 127 from the exponent binary (TODO fusion with next ops)
+      "faddi.pi %[exponent], %[exponent], -127\n"
+      // Extract the 23 mantissa bits stored in the source operand
+      "fslli.pi %[mantissa], %[source], 8\n"
+      // Add the implicit bit
+      "for.pi %[mantissa], %[mantissa], %[implicit]\n"
+      // Populate the destination lower 32 bits
+      "fbci.pi %[minusExponent], 31\n"
+      "fsub.pi %[minusExponent], %[minusExponent], %[exponent]\n"
+      "fsrl.pi %[destination], %[mantissa], %[minusExponent]\n"
+      "faddi.pi %[minusExponent], %[exponent], -31\n"
+      "fsll.pi %[tmp], %[mantissa], %[minusExponent]\n"
+      "for.pi %[destination], %[destination], %[tmp]\n"
+      // Populate the destination higher 32 bits
+      "fbci.pi %[minusExponent], 31+32\n"
+      "fsub.pi %[minusExponent], %[minusExponent], %[exponent]\n"
+      "fsrl.pi %[destinationHigh], %[mantissa], %[minusExponent]\n"
+      "faddi.pi %[minusExponent], %[exponent], -31-32\n"
+      "fsll.pi %[tmp], %[mantissa], %[minusExponent]\n"
+      "for.pi %[destinationHigh], %[destinationHigh], %[tmp]\n"
+      // Apply the exoring mask
+      "fxor.pi %[destination], %[mask], %[destination]\n"
+      "fxor.pi %[destinationHigh], %[mask], %[destinationHigh]\n"
+      // Increment
+      "fsub.pi %[destination], %[destination], %[mask]\n"
+      // Todo refactor broadcasting of 0
+      "fbci.pi %[tmp], 0\n"
+      "feq.pi %[tmp], %[tmp], %[destination]\n"
+      "fand.pi %[tmp], %[tmp], %[mask]\n"
+      "fsub.pi %[destinationHigh], %[destinationHigh], %[tmp]\n"
+      : [ mask ] "=&f"(mask), [ exponent ] "=&f"(exponent), [ implicit ] "=&f"(implicit),
+        [ minusExponent ] "=f"(minusExponent), [ tmp ] "=&f"(tmp), [ mantissa ] "=f"(mantissa),
+        [ destination ] "=f"(destination), [ destinationHigh ] "=f"(destinationHigh)
+      : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedQTy) {
     // TODO: from FloatTy to UInt8FusedQTy probably not required
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedFP16QTy) {
