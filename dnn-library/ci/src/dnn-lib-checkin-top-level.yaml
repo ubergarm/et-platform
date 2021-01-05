@@ -1,0 +1,60 @@
+import:
+  - path: '@ci@/ci-tools/templates/template-main-top-level.yaml'
+
+parameters:
+  REPO_SSH_URL:
+    description: Repository URL
+    type: string
+    default_value: "git@gitlab.esperanto.ai:software/dnn-library.git"
+  REPO_NAME:
+    description: Repository name
+    type: string
+    default_value: "dnn-library"
+  SW_PLATFORM_BRANCH:
+    description: SW-Platform branch to track
+    type: string
+    default_value: "origin/master"
+  GLOW_BRANCH:
+    description: ESPERANTO GLOW branch to track
+    type: string
+    default_value: "origin/esperanto/master"
+  HOST_SW_BRANCH:
+    description: HOST-SW branch to track
+    type: string
+    default_value: "origin/master"
+
+stages:
+  CLANG_CHECK:
+    cmds:
+      - job: sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-clang-tests
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/host-sw:${HOST_SW_BRANCH},host-software/dnnLibrary:${BRANCH}"
+          REPO_SSH_URL: "git@gitlab.esperanto.ai:software/sw-platform.git"
+          REPO_NAME: "sw-platform"
+          NODE: WORKER
+          TIMEOUT: "1"
+    exec_before: [r"JOB_.*"]
+    exec_after: ['DSL_JOB']
+
+  GLOW_CI:
+    cmds:
+      - job: sw-platform/glow-integration/glow-checkin-top-level
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/host-sw:${HOST_SW_BRANCH},host-software/dnnLibrary:${BRANCH}"
+          REPO_SSH_URL: "git@gitlab.esperanto.ai:software/sw-platform.git"
+          REPO_NAME: "sw-platform"
+          TIMEOUT: "4"
+    exec_after: ['CLANG_CHECK']
+
+  DNN_LIB_CI:
+    cmds:
+      - job: sw-platform/host-sw-integration/pipelines/dnn-lib-checkin-top-level
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/host-sw:${HOST_SW_BRANCH},host-software/dnnLibrary:${BRANCH}"
+          REPO_SSH_URL: "git@gitlab.esperanto.ai:software/sw-platform.git"
+          REPO_NAME: "sw-platform"
+          TIMEOUT: "4"
+    exec_after: ['CLANG_CHECK']
