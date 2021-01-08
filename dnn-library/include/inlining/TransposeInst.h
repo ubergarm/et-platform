@@ -242,10 +242,10 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dst);
-  if (maxRead == 0)
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
+  if (maxRead == 0) {
     return;
+  }
 
   unsigned int newPitch[srcDimNum];
   unsigned int newdstPitch[srcDimNum];
@@ -258,8 +258,7 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
 
   unsigned int coord[srcDimNum];
   unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
-                           k);
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex, k);
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
@@ -267,45 +266,48 @@ inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
     offsetIn += newPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
 
+  unsigned int posMax = maxRead + initialAddr;
   unsigned int lastDim = srcDimNum - 1;
   unsigned int newPitchSize = newPitch[lastDim] * typeSize;
   int32_t gatherValues[8];
-  for (unsigned int i = 0; i < 8; i++) gatherValues[i] = i*newPitchSize;
+  for (unsigned int i = 0; i < 8; i++) {
+    gatherValues[i] = i * newPitchSize;
+  }
 
-  //We modify the pitches and coord so that the function getOffsets
-  //jumps eight positions in lastDim, the smallest dimension.
-  //Number 8 is the amount of lanes that a register has.
-  unsigned int res = ((dstIndex[lastDim] - 1)%8) + 1;
+  // We modify the pitches and coord so that the function getOffsets
+  // jumps eight positions in lastDim, the smallest dimension.
+  // Number 8 is the amount of lanes that a register has.
+  unsigned int res = ((dstIndex[lastDim] - 1) % 8) + 1;
+  coord[lastDim] /= 8;
   newPitch[lastDim] *= 8;
   newdstPitch[lastDim] *= 8;
-  newdstIndex[lastDim] = (dstIndex[lastDim] - 1)/8 + 1;
+  newdstIndex[lastDim] = ((dstIndex[lastDim] - 1) / 8) + 1;
   unsigned int mask = ((1 << res) - 1);
 
+  bool done = false;
   while (!done && (offsetOut < posMax)) {
-    // dstAddr = (uintptr_t)dst + offsetOut*typeSize;
     dstAddr = reinterpret_cast<uintptr_t>(dst) + offsetOut*typeSize;
-    // srcAddr = (uintptr_t)src + offsetIn*typeSize;
     srcAddr = reinterpret_cast<uintptr_t>(src) + offsetIn*typeSize;
 
-    //When the minion reaches the end of the lastDim, we use a mask
-    //that is always the same because the dst Tensor is aligned to 32 Bytes.
-    if (coord[lastDim] != newdstIndex[lastDim] - 1)
-         __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-    else __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
+    // When the minion reaches the end of the lastDim, we use a mask
+    // that is always the same because the dst Tensor is aligned to 32 Bytes.
+    if (coord[lastDim] != newdstIndex[lastDim] - 1) {
+      __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
+    } else {
+      __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
+    }
 
     transposeOpAligned32Bytes <srcType>(dstAddr, srcAddr, gatherValues);
     done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, newdstIndex, newdstPitch, newPitch);
   }
   if (DO_EVICTS) {
     unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-    if (clperminion > 0)
+    if (clperminion > 0) {
       fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
+    }
   }
 }
-
 
 } // namespace inlining
 
