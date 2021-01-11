@@ -128,12 +128,18 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
       // Extract the exponent bits
       "fslli.pi %[exponent], %[source], 1\n"
       "fsrli.pi %[exponent], %[exponent], 24\n"
-      // Set the implicit mantissa bit when the exponent is not 0
-      "fbci.pi %[tmp], 0\n"
-      "fltu.pi %[tmp], %[tmp], %[exponent]\n"
+      // Set the implicit mantissa bit.
+      //
+      // Note that one does not expect the implicit mantissa bit when the
+      // exponent binary is zero (-127 when converted to integer). However, for
+      // the case when the exponent is -127 the result from the convert
+      // operation should be zero, and for this particular case one can still
+      // set the implicit mantissa bit and get the expected zero value.
+      //
+      // Therefore, we unconditionally set the implicit bit, irrespective of the
+      // the exponent binary value.
       "fbci.ps %[implicit], 0x80000\n"
-      "fand.pi %[implicit], %[implicit], %[tmp]\n"
-      // Subtract 127 from the exponent binary (TODO fusion with next ops)
+      // Subtract 127 from the exponent binary
       "faddi.pi %[exponent], %[exponent], -127\n"
       // Extract the 23 mantissa bits stored in the source operand
       "fslli.pi %[mantissa], %[source], 8\n"
@@ -158,7 +164,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
       "fxor.pi %[destinationHigh], %[mask], %[destinationHigh]\n"
       // Increment
       "fsub.pi %[destination], %[destination], %[mask]\n"
-      // Todo refactor broadcasting of 0
+      // Add carry to the higher 32 bits
       "fbci.pi %[tmp], 0\n"
       "feq.pi %[tmp], %[tmp], %[destination]\n"
       "fand.pi %[tmp], %[tmp], %[mask]\n"
