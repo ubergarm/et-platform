@@ -102,7 +102,9 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
+  if (minionId >= activeMinions) {
+    return;
+  }
 
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
@@ -125,15 +127,15 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dst);
-  if (maxRead == 0)
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
+
+  if (maxRead == 0) {
     return;
+  }
 
   unsigned int coord[srcDimNum];
   unsigned int k = 0;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           k);
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
@@ -147,29 +149,31 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
   unsigned int lastDim = srcDimNum - 1;
   unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
   unsigned int elementsInRow, registersInRow, res;
-  uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
   bool lastRow = false;
-  lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
 
   while (!done && (offsetOut < posMax)) {
-  if (firstRow && coord[lastDim - 1] != maxRow) {
+    if (firstRow && (srcDimNum > 1) && (coord[lastDim - 1] != maxRow)) {
       elementsInRow = dstIndex[lastDim] - coord[lastDim];
-    } else if (coord[lastDim - 1] == maxRow) {
+    } else if ((srcDimNum == 1) || coord[lastDim - 1] == maxRow) {
       lastRow = true;
       elementsInRow = posMax - offsetOut;
+      if (elementsInRow > dstIndex[lastDim]) {
+        elementsInRow = dstIndex[lastDim];
+      }
     } else {
       elementsInRow = dstIndex[lastDim];
     }
     if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
       registersInRow = elementsInRow / 8;
       res = elementsInRow - registersInRow * 8;
-      mask = ((1 << res) - 1);
-      __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      if (!firstRow) midRow = true;
+      if (!firstRow) {
+        midRow = true;
+      }
     }
+
     firstRow = false;
     srcAddr += offsetIn * typeSize;
     dstAddr += offsetOut * typeSize;
@@ -184,12 +188,15 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
     }
 
     if (res > 0) {
-      __asm__ __volatile__("maskand m0, m1, m0 \n");
+      uint8_t mask;
+      mask = ((1 << res) - 1);
+      __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
       maxSplatOp<elK, false>(dstAddr, srcAddr, splatVal, scale, offset);
     }
 
-    if (lastRow)
+    if (lastRow) {
       return;
+    }
 
     dstAddr = (uintptr_t)dst;
     srcAddr = (uintptr_t)src;
@@ -197,9 +204,7 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
     offsetOut -= coord[lastDim] * dstPitch[lastDim];
     coord[lastDim] = 0;
 
-
-    done = getOffsets(lastDim, coord, offsetIn, offsetOut, actIndex,
-                      actPitch, dstPitch);
+    done = getOffsets(lastDim, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
   }
   if (!DO_EVICTS)
     return;

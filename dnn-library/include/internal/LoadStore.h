@@ -42,19 +42,19 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indi
 
   if constexpr (bytesPerElement < 4) {
     if constexpr (aligned) {
-      __asm__("li %[conf], %[confImm]\n"
-              : [ conf ] "=r"(conf)
-              : [ confImm ] "i"(getGatherScatterConfig(bytesPerElement)));
+      __asm__ __volatile__("li %[conf], %[confImm]\n"
+                           : [ conf ] "=r"(conf)
+                           : [ confImm ] "i"(getGatherScatterConfig(bytesPerElement)));
     } else {
-      __asm__("flw.ps %[indices], %[values]\n"
-              : [ indices ] "=f"(indices)
-              : [ values ] "m"(*(const int32_t(*)[16])values));
+      __asm__ __volatile__("flw.ps %[indices], %[values]\n"
+                           : [ indices ] "=f"(indices)
+                           : [ values ] "m"(*(const int32_t(*)[16])values));
     }
   } else if constexpr (bytesPerElement == 8) {
-    __asm__("flw.ps %[indices], %[values]\n"
-            "faddi.pi %[indicesHigh], %[indices], 4\n"
-            : [ indices ] "=f"(indices), [ indicesHigh ] "=f"(indicesHigh)
-            : [ values ] "m"(*(const int32_t(*)[16])values));
+    __asm__ __volatile__("flw.ps %[indices], %[values]\n"
+                         "faddi.pi %[indicesHigh], %[indices], 4\n"
+                         : [ indices ] "=f"(indices), [ indicesHigh ] "=f"(indicesHigh)
+                         : [ values ] "m"(*(const int32_t(*)[16])values));
   }
 }
 
@@ -83,32 +83,32 @@ template <size_t bytesPerElement, bool aligned = false>
 inline void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh, float& op0, float& op0High) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
-      __asm__("fg32b.ps %[op0], %[conf](%[src])\n"
-              : [ op0 ] "=f"(op0)
-              : [ conf ] "r"(conf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
+      __asm__ __volatile__("fg32b.ps %[op0], %[conf](%[src])\n"
+                           : [ op0 ] "=f"(op0)
+                           : [ conf ] "r"(conf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
     } else {
-      __asm__("fgb.ps %[op0], %[indices](%[src])\n"
-              : [ op0 ] "=f"(op0)
-              : [ indices ] "f"(indices), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
+      __asm__ __volatile__("fgb.ps %[op0], %[indices](%[src])\n"
+                           : [ op0 ] "=f"(op0)
+                           : [ indices ] "f"(indices), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
     }
   } else if constexpr (bytesPerElement == 2) {
     if constexpr (aligned) {
-      __asm__("fg32h.ps %[op0], %[conf](%[src])\n"
-              : [ op0 ] "=f"(op0)
-              : [ conf ] "r"(conf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
+      __asm__ __volatile__("fg32h.ps %[op0], %[conf](%[src])\n"
+                           : [ op0 ] "=f"(op0)
+                           : [ conf ] "r"(conf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
     } else {
-      __asm__("fgh.ps %[op0], %[indices](%[src])\n"
-              : [ op0 ] "=f"(op0)
-              : [ indices ] "f"(indices), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
+      __asm__ __volatile__("fgh.ps %[op0], %[indices](%[src])\n"
+                           : [ op0 ] "=f"(op0)
+                           : [ indices ] "f"(indices), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
     }
   } else if constexpr (bytesPerElement == 4) {
-    __asm__("flw.ps %[op0], %[src]\n" : [ op0 ] "=f"(op0) : [ src ] "m"(*(const char(*)[32])src));
+    __asm__ __volatile__("flw.ps %[op0], %[src]\n" : [ op0 ] "=f"(op0) : [ src ] "m"(*(const char(*)[32])src));
   } else if constexpr (bytesPerElement == 8) {
-    __asm__("fgw.ps %[op0], %[indices](%[src])\n"
-            "fgw.ps %[op0High], %[indicesHigh](%[src])\n"
-            : [ op0 ] "=&f"(op0), [ op0High ] "=f"(op0High)
-            : [ indices ] "f"(indices), [ indicesHigh ] "f"(indicesHigh), [ src ] "r"(src),
-              [ srcMem ] "m"(*(const char(*)[64])src));
+    __asm__ __volatile__("fgw.ps %[op0], %[indices](%[src])\n"
+                         "fgw.ps %[op0High], %[indicesHigh](%[src])\n"
+                         : [ op0 ] "=&f"(op0), [ op0High ] "=f"(op0High)
+                         : [ indices ] "f"(indices), [ indicesHigh ] "f"(indicesHigh), [ src ] "r"(src),
+                           [ srcMem ] "m"(*(const char(*)[64])src));
   }
 }
 
@@ -116,32 +116,34 @@ template <size_t bytesPerElement, bool aligned = false>
 inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh, float op0, float op0High) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
-      __asm__("fsc32b.ps %[op0], %[conf](%[dst])\n"
-              : [ dstMem ] "=m"(*(char(*)[8])dst)
-              : [ op0 ] "f"(op0), [ conf ] "r"(conf), [ dst ] "r"(dst));
+      __asm__ __volatile__("fsc32b.ps %[op0], %[conf](%[dst])\n"
+                           : [ dstMem ] "=m"(*(char(*)[8])dst)
+                           : [ op0 ] "f"(op0), [ conf ] "r"(conf), [ dst ] "r"(dst));
     } else {
-      __asm__("fscb.ps %[op0], %[indices](%[dst])\n"
-              : [ dstMem ] "=m"(*(char(*)[8])dst)
-              : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+      __asm__ __volatile__("fscb.ps %[op0], %[indices](%[dst])\n"
+                           : [ dstMem ] "=m"(*(char(*)[8])dst)
+                           : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
     }
   } else if constexpr (bytesPerElement == 2) {
     if constexpr (aligned) {
-      __asm__("fsc32h.ps %[op0], %[conf](%[dst])\n"
-              : [ dstMem ] "=m"(*(char(*)[16])dst)
-              : [ op0 ] "f"(op0), [ conf ] "r"(conf), [ dst ] "r"(dst));
+      __asm__ __volatile__("fsc32h.ps %[op0], %[conf](%[dst])\n"
+                           : [ dstMem ] "=m"(*(char(*)[16])dst)
+                           : [ op0 ] "f"(op0), [ conf ] "r"(conf), [ dst ] "r"(dst));
     } else {
-      __asm__("fsch.ps %[op0], %[indices](%[dst])\n"
-              : [ dstMem ] "=m"(*(char(*)[16])dst)
-              : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+      __asm__ __volatile__("fsch.ps %[op0], %[indices](%[dst])\n"
+                           : [ dstMem ] "=m"(*(char(*)[16])dst)
+                           : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
     }
   } else if constexpr (bytesPerElement == 4) {
-    __asm__("fsw.ps %[op0], (%[dst])\n" : [ dstMem ] "=m"(*(char(*)[32])dst) : [ op0 ] "f"(op0), [ dst ] "r"(dst));
+    __asm__ __volatile__("fsw.ps %[op0], (%[dst])\n"
+                         : [ dstMem ] "=m"(*(char(*)[32])dst)
+                         : [ op0 ] "f"(op0), [ dst ] "r"(dst));
   } else if constexpr (bytesPerElement == 8) {
-    __asm__("fscw.ps %[op0], %[indices](%[dst])\n"
-            "fscw.ps %[op0High], %[indicesHigh](%[dst])\n"
-            : [ dstMem ] "=m"(*(char(*)[64])dst)
-            : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices), [ indicesHigh ] "f"(indicesHigh),
-              [ dst ] "r"(dst));
+    __asm__ __volatile__("fscw.ps %[op0], %[indices](%[dst])\n"
+                         "fscw.ps %[op0High], %[indicesHigh](%[dst])\n"
+                         : [ dstMem ] "=m"(*(char(*)[64])dst)
+                         : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices),
+                           [ indicesHigh ] "f"(indicesHigh), [ dst ] "r"(dst));
   }
 }
 
