@@ -12,7 +12,7 @@ pipeline {
     booleanParam(name: 'CHECK_ON_TOP_OF_MASTER', defaultValue: 'true', description: 'when true this executes checks that ensures Merge Request has merged origin/master with their MR at the time the MR was submiteted')
     string(name: 'SW_PLATFORM_BRANCH', defaultValue: 'origin/master', description: 'SW-Platform branch to track')
     string(name: 'GLOW_BRANCH', defaultValue: 'origin/esperanto/master', description: 'ESPERANTO GLOW branch to track')
-    string(name: 'HOST_SW_BRANCH', defaultValue: 'origin/master', description: 'HOST-SW branch to track')
+    string(name: 'NEURALIZER_BRANCH', defaultValue: 'origin/master', description: 'NEURALIZER branch to track')
     string(name: 'INPUT_TAGS', defaultValue: '', description: 'Parameter to receive tags from parent pipelines')
   }
   agent {
@@ -87,7 +87,7 @@ pipeline {
           propagate: true,
           parameters: [
             string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
-            string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/host-sw:${HOST_SW_BRANCH},host-software/dnnLibrary:${BRANCH}"),
+            string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
             string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
             string(name: 'REPO_NAME', value: 'sw-platform'),
             string(name: 'NODE', value: 'WORKER'),
@@ -105,7 +105,7 @@ pipeline {
               propagate: true,
               parameters: [
                 string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
-                string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/host-sw:${HOST_SW_BRANCH},host-software/dnnLibrary:${BRANCH}"),
+                string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
                 string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
                 string(name: 'REPO_NAME', value: 'sw-platform'),
                 string(name: 'TIMEOUT', value: '4'),
@@ -120,7 +120,7 @@ pipeline {
               propagate: true,
               parameters: [
                 string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
-                string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/host-sw:${HOST_SW_BRANCH},host-software/dnnLibrary:${BRANCH}"),
+                string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
                 string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
                 string(name: 'REPO_NAME', value: 'sw-platform'),
                 string(name: 'TIMEOUT', value: '4'),
