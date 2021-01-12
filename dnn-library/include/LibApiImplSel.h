@@ -26,25 +26,16 @@ namespace dnn_lib {
       LibTensor *inT = inTensors[0];
       ElemKind dstElK = outTensors[0]->getElementType();
       ElemKind srcElK = inTensors[0]->getElementType();
-      
-      if (dstElK == BoolTy || srcElK == BoolTy) {
-        // check for SW-4328
-        return 0;
-      }
-      else if ((inT->dims()[inT->ndims()-1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0]) ||
-          (srcElK == FloatTy  && dstElK == Int64ITy ) ||
-          (srcElK == FloatTy  && dstElK == Int32ITy)  || 
-          (srcElK == Int32ITy && dstElK == FloatTy)   ||
-          (srcElK == Int32ITy && dstElK == Int64ITy)  ||
-          (srcElK == Int32ITy && dstElK == Float16Ty) ||
-          (srcElK == Int64ITy && dstElK == Float16Ty) ||
-          (srcElK == Int64ITy && dstElK == Int32ITy)  || 
-          (srcElK == BoolTy   && dstElK == Float16Ty) ||
-          (srcElK == BoolTy   && dstElK == FloatTy)) {
+
+      if ((inT->dims()[inT->ndims() - 1] == 1 && inT->strides()[0] != inT->stridesNoPadding()[0]) ||
+          (srcElK == FloatTy && dstElK == Int64ITy) || (srcElK == FloatTy && dstElK == Int32ITy) ||
+          (srcElK == Int32ITy && dstElK == FloatTy) || (srcElK == Int32ITy && dstElK == Int64ITy) ||
+          (srcElK == Int32ITy && dstElK == Float16Ty) || (srcElK == Int64ITy && dstElK == Float16Ty) ||
+          (srcElK == Int64ITy && dstElK == Int32ITy) || (srcElK == BoolTy && dstElK == Float16Ty) ||
+          (srcElK == BoolTy && dstElK == FloatTy)) {
         // check for SW-3726
         return 0;
-      }
-      else{
+      } else {
         return 1;
       }
     }
