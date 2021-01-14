@@ -17,13 +17,6 @@ namespace dnn_lib {
     ////////////////////////////////////////////////////////////////////////////////
     // custom implementation selectors
     ////////////////////////////////////////////////////////////////////////////////
-    
-    // Best implementation selector for operator ConvertTo. Return values are:
-    //   0: base implementation (threaded)
-    //   1: Vectorized 
-    static size_t ConvertTo(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
-      return 1;
-    }
   
     // Best implementation selector for operator Convolution. Return values are:
     //   0: base implementation (Threaded)
