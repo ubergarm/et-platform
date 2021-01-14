@@ -119,7 +119,56 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
     // TODO: from FloatTy to Int32QTy probably not required
   } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
-    __asm__("fcvt.pw.ps %[destination], %[source], rtz\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+    float mask, accumulator, bit;
+    __asm__(
+      // When converting from FloatTy to Int32ITy, two floating point unit
+      // standards like RISC-V and x86 deal differently with with -Inf, +Inf,
+      // NaN and sNaN values, as shown in the following table:
+      //
+      // |        | -Inf       | +Inf       | NaN        | sNaN       |
+      // |--------|------------|------------|------------|------------|
+      // | RISC-V | 0x80000000 | 0x7fffffff | 0x7fffffff | 0x7fffffff |
+      // | x86    | 0x80000000 | 0x80000000 | 0x80000000 | 0x80000000 |
+      //
+      // The reference for the RISC-V values in our table is the public
+      // spec. Regarding to the values for x86 they were found by trial and
+      // error and then verified that they matched the behaviour of the
+      // legacy FIST instruction as described on the "Intel 64 and IA-32
+      // Architectures Software Developer's Manual":
+      // https://www.intel.com/content/dam/www/public/us/en/documents/manuals/
+      // 64-ia-32-architectures-software-developer-instruction-set-reference-
+      // manual-325383.pdf
+      //
+      // If one needs to implement a C99 style cast like "(int)(floatValue)",
+      // the language standard gives the freedom of producing any value we wish
+      // for the four inputs in the table. That freedom comes from the fact
+      // that the standard conveniently states that convertions are undefined
+      // for values outside of the range than can be represented. See section
+      // 6.3.1.4 from the C99 standard here:
+      // http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+      //
+      // Note that as a corolary of the wording in the C99 standard we have that
+      // for producing a C99 capable CPU one does not even need to clamp values
+      // above 2^31-1 or below -2^31.
+      //
+      // However, ETSoC goes the extra leg in our sofware by patching our RISC-V
+      // style results for matching the x86 convertion. We do the fix by
+      // incrementing the result when bits 7, 8 or 9 from the fclass returned
+      // mask are set, meaning the input is +Inf, NaN or sNaN.
+      //
+      // Note that this behaviour may be optionally dropped if something like a
+      // "fast math" mode is provided in the future by dnnLibrary.
+      "fclass.ps %[mask], %[source]\n"
+      "fsrli.pi %[accumulator], %[mask], 7\n"
+      "fsrli.pi %[bit], %[mask], 8\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fsrli.pi %[bit], %[mask], 9\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fandi.pi %[accumulator], %[accumulator], 1\n"
+      "fcvt.pw.ps %[destination], %[source], rtz\n"
+      "fadd.pi %[destination], %[destination], %[accumulator]\n"
+      : [ mask ] "=&f"(mask), [ accumulator ] "=&f"(accumulator), [ bit ] "=&f"(bit), [ destination ] "=f"(destination)
+      : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
     float mask, exponent, implicit, minusExponent, tmp, mantissa;
     __asm__(
