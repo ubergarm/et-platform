@@ -222,6 +222,29 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
         [ minusExponent ] "=f"(minusExponent), [ tmp ] "=&f"(tmp), [ mantissa ] "=f"(mantissa),
         [ destination ] "=f"(destination), [ destinationHigh ] "=f"(destinationHigh)
       : [ source ] "f"(source));
+    float accumulator, bit;
+    __asm__ __volatile__(
+      // Override as 0x8000 0000 0000 0000 for -Inf, Inf, NaN and sNaN
+      //
+      // The overriding is needed for matching the x86 implementations. For
+      // details see the explanation on the code converting from FloatTy to
+      // Int32ITy.
+      "fclass.ps %[mask], %[source]\n"
+      "fandi.pi %[accumulator], %[mask], 1\n"
+      "fsrli.pi %[bit], %[mask], 7\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fsrli.pi %[bit], %[mask], 8\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fsrli.pi %[bit], %[mask], 9\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fandi.pi %[accumulator], %[accumulator], 1\n"
+      "fbci.pi %[bit], 0x00000\n"
+      "fcmov.ps %[destination], %[accumulator], %[bit], %[destination]\n"
+      "fbci.ps %[bit], 0x80000\n"
+      "fcmov.ps %[destinationHigh], %[accumulator], %[bit], %[destinationHigh]\n"
+      : [ mask ] "=&f"(mask), [ accumulator ] "=&f"(accumulator), [ bit ] "=&f"(bit), [ destination ] "+f"(destination),
+        [ destinationHigh ] "+f"(destinationHigh)
+      : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedQTy) {
     // TODO: from FloatTy to UInt8FusedQTy probably not required
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedFP16QTy) {
