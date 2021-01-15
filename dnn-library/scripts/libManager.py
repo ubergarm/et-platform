@@ -12,7 +12,7 @@ from openpyxl.utils import get_column_letter
 
 class OperatorsEnum:
     def __init__(self, hostswdir):
-        fname = os.path.join ( hostswdir, 'neuralizer/src/IOperators.inc');
+        fname = os.path.join ( hostswdir, 'host-sw/neuralizer/src/IOperators.inc');
         regexp = re.compile(r'\s*IOPERATOR_ENUM\((.*)\)\s*')
         self.__enum = []
         with open(fname) as f:
@@ -125,7 +125,7 @@ class LibManagerSheet:
         insts = InstructionGenParser(glowdir)
 
         #find implementations in dnn_lib dir
-        implementations = self.__findImplementations(hostswdir + "/dnn_lib/include/inlining")
+        implementations = self.__findImplementations(hostswdir + "/include/inlining")
 
         
         print ("Excel not found: creating. Edit if necessary and rerun.")
@@ -486,23 +486,24 @@ class LibManagerSheet:
     
        
     def formatTable(self, table):
-        s = Template('''     /**** $enum ****/
-     instrConfig {
-       "$name", // name
-        $nrOutputTensors, // # outs
-        $nrInputTensors,  // # ins
-        $members, // members
-        $template, // template param mask
-        $versions, // impl versions
-        $implSel, // custom impl selector
-        // L1 states per impl
-        $stateL1,
-        // L2 states per impl
-        $stateL2,
-        // CB states per impl
-        $stateCB,
-        $evictMask // evict available mask
-     }''')
+        s = Template('''\
+    // $enum
+    instrConfig {
+      "$name", // name
+      $nrOutputTensors, // # outs
+      $nrInputTensors,  // # ins
+      $members, // members
+      $template, // template param mask
+      $versions, // impl versions
+      $implSel, // custom impl selector
+      // L1 states per impl
+      $stateL1,
+      // L2 states per impl
+      $stateL2,
+      // CB states per impl
+      $stateCB,
+      $evictMask // evict available mask
+    }''')
         entries = [ s.substitute(e) for e in table]        
         return ",\n".join(entries)
 
@@ -510,26 +511,26 @@ class LibManagerSheet:
         contents = []
         startMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_BEGIN')
         endMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_END')
-        fname = os.path.join ( hostswdir, 'dnn_lib/include/LibApi.h');
-        found = False
-        written = False
+        fname = os.path.join (hostswdir, 'dnnLibrary/include/LibApi.h');
+        startFound = False
+        endFound = False
         with open(fname) as f:
             for line in f:
-                if not found:
+                if startMark.match(line):
+                    startFound = True
                     contents.append(line)
-                    if startMark.match(line):
-                        contents.append(tableStr + "\n")
-                        written = True
-                        found = True
-                else:
-                    if endMark.match(line):
-                        contents.append(line)
-                        found = False
+                    contents.append(tableStr + "\n")
+                elif endMark.match(line):
+                    endFound = True
+                    contents.append(line)
+                elif not startFound or endFound:
+                    contents.append(line)
 
-        if found:
-            raise Exception("didn't not find end of table in %s" % fname)
-        if not written:
-            raise Exception("didn't not find start of table in %s" % fname)
+        if not startFound:
+            raise Exception("did not find start of table in %s" % fname)
+
+        if not endFound:
+            raise Exception("did not find end of table in %s" % fname)
 
         with open(fname, "w") as f:
             f.writelines(contents)
@@ -571,7 +572,7 @@ class LibManagerSheet:
         #create libNodes.h
         autogenMsg = "// File automatically generated with:\n//  %s\n//  cwd=%s\n" % (' '.join(sys.argv), os.getcwd())
         
-        hFile = os.path.join ( hostswdir, 'dnn_lib/include/LibNodes.h');
+        hFile = os.path.join ( hostswdir, 'dnnLibrary/include/LibNodes.h');
         code = []
         for op in fncs:
             code+= [ "\n/****************************************************************************",
@@ -618,7 +619,7 @@ static constexpr size_t default_fusedActivationArgs = 10;
     def genCppNodes(self, hostswdir, fncs):
         for op in fncs:
             opname = fncs[op][0]['opname']
-            cppFile = os.path.join(hostswdir, "dnn_lib/src/%sInst.cpp" % opname )
+            cppFile = os.path.join(hostswdir, "dnnLibrary/src/%sInst.cpp" % opname )
             with open(cppFile, "w") as f:
                 f.write("""
 #include "LibNodes.h"
@@ -725,7 +726,7 @@ namespace dnn_lib {
         return LibManagerSheet.memberTypeMap[m]
 
     def checkImplSel(self, hostswdir):
-        fname = os.path.join ( hostswdir, 'dnn_lib/include/LibApiImplSel.h');
+        fname = os.path.join ( hostswdir, 'dnnLibrary/include/LibApiImplSel.h');
         
         # read file contents and get the existing implementation selectors
         regexp = re.compile(r'^\s*static\s+size_t\s+([^\(]+)\s*\(')
@@ -762,7 +763,7 @@ if __name__ == "__main__":
     sys.path.append(os.path.join (args.swplatform_root, 'scripts/testing/operatorTests/'))
     from instructionGenParser import InstructionGenParser
 
-    hostsw_dir = os.path.join (args.swplatform_root,'host-software/host-sw/')
+    hostsw_dir = os.path.join (args.swplatform_root,'host-software/')
     glow_dir = os.path.join (args.swplatform_root,'host-software/glow/')
     sheet = LibManagerSheet(args.excel, args.cacheState, hostsw_dir, glow_dir)
 
