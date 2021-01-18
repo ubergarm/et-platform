@@ -147,6 +147,632 @@ inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh
   }
 }
 
+template <size_t bytesPerElement>
+inline void copy(float source, float sourceHigh, float& destination, float& destinationHigh) {
+  __asm__("for.pi %[destination], %[source], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+  if constexpr (bytesPerElement > 4) {
+    __asm__("for.pi %[destinationHigh], %[sourceHigh], %[sourceHigh]\n"
+            : [ destinationHigh ] "=f"(destinationHigh)
+            : [ sourceHigh ] "f"(sourceHigh));
+  }
+}
+
+inline void setupDequantize(float& scale, float& offset, float scaleScalar, int32_t offsetScalar) {
+  __asm__("fbcx.ps %[offset], %[offsetScalar]\n"
+          "fbcx.ps %[scale], %[scaleScalar]\n"
+          : [ offset ] "=&f"(offset), [ scale ] "=&f"(scale)
+          : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
+}
+
+inline void doDequantize(float& destination, float source, float scale, float offset) {
+  __asm__("fsub.pi %[destination], %[source], %[offset]\n"
+          "fcvt.ps.pw %[destination], %[destination]\n"
+          "fmul.ps %[destination], %[destination], %[scale]\n"
+          : [ destination ] "+&f"(destination)
+          : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
+}
+
+inline void setupQuantize(float& scaleReciprocal, float& offset, float scaleScalar, int32_t offsetScalar) {
+  __asm__("fbcx.ps %[scaleReciprocal], %[scaleScalar]\n"
+          "frcp.ps %[scaleReciprocal], %[scaleReciprocal]\n"
+          "fbcx.ps %[offset], %[offsetScalar]\n"
+          "fcvt.ps.pw %[offset], %[offset]\n"
+          : [ offset ] "=&f"(offset), [ scaleReciprocal ] "=&f"(scaleReciprocal)
+          : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
+}
+
+inline void doQuantize(float& destination, float source, float scaleReciprocal, int32_t offset) {
+  __asm__("fmadd.ps %[destination], %[source], %[scaleReciprocal], %[offset]\n"
+          : [ destination ] "+&f"(destination)
+          : [ source ] "f"(source), [ offset ] "f"(offset), [ scaleReciprocal ] "f"(scaleReciprocal));
+}
+
+template <ElemKind srcElK, ElemKind dstElK>
+inline void convert(float source, float sourceHigh, float& destination, float& destinationHigh, float srcScale,
+                    float srcOffset, float dstScaleReciprocal, float dstOffset) {
+
+  /*
+  # The following python code was used for generating a skeleton for this funcion
+
+  import itertools
+
+  formats = [
+    'FloatTy', 'Float16Ty', 'BFloat16Ty', 'Int8QTy', 'UInt8QTy', 'Int16QTy',
+    'Int32QTy', 'Int32ITy', 'Int64ITy', 'UInt8FusedQTy', 'UInt8FusedFP16QTy',
+    'UInt4FusedFP16QTy', 'UInt4FusedQTy', 'BoolTy', ]
+
+  print("  if constexpr (srcElK == dstElK) {")
+  print("    constexpr size_t bytesPerElement = Type::getElementSize(srcElK);")
+  print("    copy<bytesPerElement>(source, sourceHigh, destination, destinationHigh);")
+
+  for index, element in enumerate(itertools.product(formats, formats)):
+    if element[0] != element[1]:
+      print("  }} else if constexpr (srcElK == {0} and dstElK == {1}) {{".format(element[0], element[1]))
+      if element[0] == "FloatTy" or element[1] == "FloatTy":
+        print("    // TODO: from {0} to {1}".format(element[0], element[1]))
+      else:
+        print("    DEFAULT_CONVERT")
+
+  print("  }")
+
+  */
+
+#define DEFAULT_CONVERT                                                                                                \
+  convert<srcElK, FloatTy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,  \
+                           dstOffset);                                                                                 \
+  convert<FloatTy, dstElK>(destination, destinationHigh, destination, destinationHigh, srcScale, srcOffset,            \
+                           dstScaleReciprocal, dstOffset);
+
+  if constexpr (srcElK == dstElK) {
+    constexpr size_t bytesPerElement = Type::getElementSize(srcElK);
+    copy<bytesPerElement>(source, sourceHigh, destination, destinationHigh);
+  } else if constexpr (srcElK == FloatTy and dstElK == Float16Ty) {
+    __asm__("fcvt.f16.ps %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+  } else if constexpr (srcElK == FloatTy and dstElK == BFloat16Ty) {
+    __asm__("fsrli.pi %[op0], %[op0], %[bits]\n"
+            : [ destination ] "=f"(destination)
+            : [ source ] "f"(source), [ bits ] "i"(16));
+  } else if constexpr (srcElK == FloatTy and dstElK == Int8QTy) {
+    // TODO: from FloatTy to Int8QTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == UInt8QTy) {
+    // TODO: from FloatTy to UInt8QTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == Int16QTy) {
+    // TODO: from FloatTy to Int16QTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
+    // TODO: from FloatTy to Int32QTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
+    float mask, accumulator, bit;
+    __asm__(
+      // When converting from FloatTy to Int32ITy, two floating point unit
+      // standards like RISC-V and x86 deal differently with with -Inf, +Inf,
+      // NaN and sNaN values, as shown in the following table:
+      //
+      // |        | -Inf       | +Inf       | NaN        | sNaN       |
+      // |--------|------------|------------|------------|------------|
+      // | RISC-V | 0x80000000 | 0x7fffffff | 0x7fffffff | 0x7fffffff |
+      // | x86    | 0x80000000 | 0x80000000 | 0x80000000 | 0x80000000 |
+      //
+      // The reference for the RISC-V values in our table is the public
+      // spec. Regarding to the values for x86 they were found by trial and
+      // error and then verified that they matched the behaviour of the
+      // legacy FIST instruction as described on the "Intel 64 and IA-32
+      // Architectures Software Developer's Manual":
+      // https://www.intel.com/content/dam/www/public/us/en/documents/manuals/
+      // 64-ia-32-architectures-software-developer-instruction-set-reference-
+      // manual-325383.pdf
+      //
+      // If one needs to implement a C99 style cast like "(int)(floatValue)",
+      // the language standard gives the freedom of producing any value we wish
+      // for the four inputs in the table. That freedom comes from the fact
+      // that the standard conveniently states that convertions are undefined
+      // for values outside of the range than can be represented. See section
+      // 6.3.1.4 from the C99 standard here:
+      // http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+      //
+      // Note that as a corolary of the wording in the C99 standard we have that
+      // for producing a C99 capable CPU one does not even need to clamp values
+      // above 2^31-1 or below -2^31.
+      //
+      // However, ETSoC goes the extra leg in our sofware by patching our RISC-V
+      // style results for matching the x86 convertion. We do the fix by
+      // incrementing the result when bits 7, 8 or 9 from the fclass returned
+      // mask are set, meaning the input is +Inf, NaN or sNaN.
+      //
+      // Note that this behaviour may be optionally dropped if something like a
+      // "fast math" mode is provided in the future by dnnLibrary.
+      "fclass.ps %[mask], %[source]\n"
+      "fsrli.pi %[accumulator], %[mask], 7\n"
+      "fsrli.pi %[bit], %[mask], 8\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fsrli.pi %[bit], %[mask], 9\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fandi.pi %[accumulator], %[accumulator], 1\n"
+      "fcvt.pw.ps %[destination], %[source], rtz\n"
+      "fadd.pi %[destination], %[destination], %[accumulator]\n"
+      : [ mask ] "=&f"(mask), [ accumulator ] "=&f"(accumulator), [ bit ] "=&f"(bit), [ destination ] "=f"(destination)
+      : [ source ] "f"(source));
+  } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
+    float mask, exponent, implicit, minusExponent, tmp, mantissa;
+    __asm__(
+      // Build exoring mask for bit-wise negating when negative
+      "fsrai.pi %[mask], %[source], 31\n"
+      // Extract the exponent bits
+      "fslli.pi %[exponent], %[source], 1\n"
+      "fsrli.pi %[exponent], %[exponent], 24\n"
+      // Set the implicit mantissa bit.
+      //
+      // Note that one does not expect the implicit mantissa bit when the
+      // exponent binary is zero (-127 when converted to integer). However, for
+      // the case when the exponent is -127 the result from the convert
+      // operation should be zero, and for this particular case one can still
+      // set the implicit mantissa bit and get the expected zero value.
+      //
+      // Therefore, we unconditionally set the implicit bit, irrespective of the
+      // the exponent binary value.
+      "fbci.ps %[implicit], 0x80000\n"
+      // Subtract 127 from the exponent binary
+      "faddi.pi %[exponent], %[exponent], -127\n"
+      // Extract the 23 mantissa bits stored in the source operand
+      "fslli.pi %[mantissa], %[source], 8\n"
+      // Add the implicit bit
+      "for.pi %[mantissa], %[mantissa], %[implicit]\n"
+      // Populate the destination lower 32 bits
+      "fbci.pi %[minusExponent], 31\n"
+      "fsub.pi %[minusExponent], %[minusExponent], %[exponent]\n"
+      "fsrl.pi %[destination], %[mantissa], %[minusExponent]\n"
+      "faddi.pi %[minusExponent], %[exponent], -31\n"
+      "fsll.pi %[tmp], %[mantissa], %[minusExponent]\n"
+      "for.pi %[destination], %[destination], %[tmp]\n"
+      // Populate the destination higher 32 bits
+      "fbci.pi %[minusExponent], 31+32\n"
+      "fsub.pi %[minusExponent], %[minusExponent], %[exponent]\n"
+      "fsrl.pi %[destinationHigh], %[mantissa], %[minusExponent]\n"
+      "faddi.pi %[minusExponent], %[exponent], -31-32\n"
+      "fsll.pi %[tmp], %[mantissa], %[minusExponent]\n"
+      "for.pi %[destinationHigh], %[destinationHigh], %[tmp]\n"
+      // Apply the exoring mask
+      "fxor.pi %[destination], %[mask], %[destination]\n"
+      "fxor.pi %[destinationHigh], %[mask], %[destinationHigh]\n"
+      // Increment
+      "fsub.pi %[destination], %[destination], %[mask]\n"
+      // Add carry to the higher 32 bits
+      "fbci.pi %[tmp], 0\n"
+      "feq.pi %[tmp], %[tmp], %[destination]\n"
+      "fand.pi %[tmp], %[tmp], %[mask]\n"
+      "fsub.pi %[destinationHigh], %[destinationHigh], %[tmp]\n"
+      : [ mask ] "=&f"(mask), [ exponent ] "=&f"(exponent), [ implicit ] "=&f"(implicit),
+        [ minusExponent ] "=f"(minusExponent), [ tmp ] "=&f"(tmp), [ mantissa ] "=f"(mantissa),
+        [ destination ] "=f"(destination), [ destinationHigh ] "=f"(destinationHigh)
+      : [ source ] "f"(source));
+    float accumulator, bit;
+    __asm__ __volatile__(
+      // Override as 0x8000 0000 0000 0000 for -Inf, Inf, NaN and sNaN
+      //
+      // The overriding is needed for matching the x86 implementations. For
+      // details see the explanation on the code converting from FloatTy to
+      // Int32ITy.
+      "fclass.ps %[mask], %[source]\n"
+      "fandi.pi %[accumulator], %[mask], 1\n"
+      "fsrli.pi %[bit], %[mask], 7\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fsrli.pi %[bit], %[mask], 8\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fsrli.pi %[bit], %[mask], 9\n"
+      "for.pi %[accumulator], %[accumulator], %[bit]\n"
+      "fandi.pi %[accumulator], %[accumulator], 1\n"
+      "fbci.pi %[bit], 0x00000\n"
+      "fcmov.ps %[destination], %[accumulator], %[bit], %[destination]\n"
+      "fbci.ps %[bit], 0x80000\n"
+      "fcmov.ps %[destinationHigh], %[accumulator], %[bit], %[destinationHigh]\n"
+      : [ mask ] "=&f"(mask), [ accumulator ] "=&f"(accumulator), [ bit ] "=&f"(bit), [ destination ] "+f"(destination),
+        [ destinationHigh ] "+f"(destinationHigh)
+      : [ source ] "f"(source));
+  } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedQTy) {
+    // TODO: from FloatTy to UInt8FusedQTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedFP16QTy) {
+    // TODO: from FloatTy to UInt8FusedFP16QTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == UInt4FusedFP16QTy) {
+    // TODO: from FloatTy to UInt4FusedFP16QTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == UInt4FusedQTy) {
+    // TODO: from FloatTy to UInt4FusedQTy probably not required
+  } else if constexpr (srcElK == FloatTy and dstElK == BoolTy) {
+    float mask;
+    __asm__("fclass.ps %[mask], %[source]\n"
+            "fandi.pi %[mask], %[mask], 0x18\n"
+            "fbci.pi %[destination], 1\n"
+            "fltu.pi %[destination], %[mask], %[destination]\n"
+            "fsrli.pi %[destination], %[destination], 31\n"
+            : [ mask ] "=f"(mask), [ destination ] "=f"(destination)
+            : [ source ] "f"(source));
+  } else if constexpr (srcElK == Float16Ty and dstElK == FloatTy) {
+    __asm__("fcvt.ps.f16 %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+  } else if constexpr (srcElK == Float16Ty and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Float16Ty and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == FloatTy) {
+    __asm__("fslli.pi %[destination], %[source], %[bits]\n"
+            : [ destination ] "=f"(destination)
+            : [ source ] "f"(source), [ bits ] "i"(16));
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BFloat16Ty and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == FloatTy) {
+    doDequantize(destination, source, srcScale, srcOffset);
+  } else if constexpr (srcElK == Int8QTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int8QTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == FloatTy) {
+    doDequantize(destination, source, srcScale, srcOffset);
+  } else if constexpr (srcElK == UInt8QTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8QTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == FloatTy) {
+    doDequantize(destination, source, srcScale, srcOffset);
+  } else if constexpr (srcElK == Int16QTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int16QTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == FloatTy) {
+    doDequantize(destination, source, srcScale, srcOffset);
+  } else if constexpr (srcElK == Int32QTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32QTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == FloatTy) {
+    __asm__("fcvt.ps.pw %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+  } else if constexpr (srcElK == Int32ITy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == Int64ITy) {
+    __asm__("for.pi %[destination], %[source], %[source]\n"
+            "fsrai.pi %[destinationHigh], %[source], 31\n"
+            : [ destination ] "=&f"(destination), [ destinationHigh ] "=f"(destinationHigh)
+            : [ source ] "f"(source));
+  } else if constexpr (srcElK == Int32ITy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int32ITy and dstElK == BoolTy) {
+    __asm__("fbci.pi %[destination], 0\n"
+            "fltu.pi %[destination], %[destination], %[source]\n"
+            "fsrli.pi %[destination], %[destination], 31\n"
+            : [ destination ] "=&f"(destination)
+            : [ source ] "f"(source));
+  } else if constexpr (srcElK == Int64ITy and dstElK == FloatTy) {
+    float mask, abs, absHigh, term, weight;
+    __asm__(
+      // Complement source and sourceHigh when negative
+      "fsrai.pi %[mask], %[sourceHigh], 31\n"
+      "fxor.pi %[abs], %[mask], %[source]\n"
+      "fxor.pi %[absHigh], %[mask], %[sourceHigh]\n"
+      // Convert
+      "fcvt.ps.pw %[destination], %[abs]\n"
+      "fbci.ps %[weight], 0x4f800\n"
+      "fcvt.ps.pw %[term], %[absHigh]\n"
+      "fmadd.ps %[destination], %[weight], %[term], %[destination]\n"
+      // Add the increment
+      "fcvt.ps.pw %[mask], %[mask]\n"
+      "fsub.ps %[destination], %[destination], %[mask]\n"
+      // Inject the sign
+      "fsgnj.ps %[destination], %[destination], %[sourceHigh]\n"
+      : [ mask ] "=&f"(mask), [ abs ] "=&f"(abs), [ absHigh ] "=&f"(absHigh), [ destination ] "=&f"(destination),
+        [ term ] "=&f"(term), [ weight ] "=&f"(weight)
+      : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
+  } else if constexpr (srcElK == Int64ITy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == Int32ITy) {
+    convert<Int32ITy, Int32ITy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == Int64ITy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == Int64ITy and dstElK == BoolTy) {
+    float combinedOr;
+    __asm__("for.pi %[combinedOr], %[source], %[sourceHigh]\n"
+            "fbci.pi %[destination], 0\n"
+            "fltu.pi %[destination], %[destination], %[combinedOr]\n"
+            "fsrli.pi %[destination], %[destination], 31\n"
+            : [ destination ] "=f"(destination), [ combinedOr ] "=f"(combinedOr)
+            : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == FloatTy) {
+    // TODO: from UInt8FusedQTy to FloatTy
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == FloatTy) {
+    // TODO: from UInt8FusedFP16QTy to FloatTy
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == FloatTy) {
+    // TODO: from UInt4FusedFP16QTy to FloatTy
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt4FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == FloatTy) {
+    // TODO: from UInt4FusedQTy to FloatTy
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Float16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == BFloat16Ty) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt8QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int32QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int32ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int64ITy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt8FusedQTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt8FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt4FusedFP16QTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == BoolTy) {
+    DEFAULT_CONVERT
+  } else if constexpr (srcElK == BoolTy and dstElK == FloatTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == Float16Ty) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == BFloat16Ty) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == Int8QTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == UInt8QTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == Int16QTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == Int32QTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == Int32ITy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == Int64ITy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == UInt8FusedQTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == UInt8FusedFP16QTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == UInt4FusedFP16QTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  } else if constexpr (srcElK == BoolTy and dstElK == UInt4FusedQTy) {
+    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                              dstOffset);
+  }
+#undef DEFAULT_CONVERT
+}
+
 } // namespace dnn_lib
 
 #endif // _LOADSTORE_H_
