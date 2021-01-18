@@ -33,7 +33,9 @@ namespace inlining {
 
 template <ElemKind elK, typename std::enable_if<elK == FloatTy,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
+unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
+
+  constexpr size_t typeSize = Type::getElementSize(elK);
 
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
@@ -70,7 +72,10 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 template <ElemKind elK, typename std::enable_if<elK == Float16Ty,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
+unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
+
+  constexpr size_t typeSize = Type::getElementSize(elK);
+
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
 
 
@@ -116,7 +121,10 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 template <ElemKind elK, typename std::enable_if< elK == Int8QTy,std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
+unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
+
+  constexpr size_t typeSize = Type::getElementSize(elK);
+
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
@@ -179,7 +187,7 @@ unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale
 
 template <ElemKind elK, typename std::enable_if<elK!=Int8QTy && elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
 inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
+unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
 }
 
   
@@ -189,7 +197,6 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
                                                                    LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                                                    uint64_t flags,
                                                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -224,7 +231,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = sizeof(srcType);
+  constexpr size_t typeSize = Type::getElementSize(elK);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
@@ -291,13 +298,13 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
 
 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], scale, offset);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
     if(res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], scale, offset);
     }
     if (lastRow)
       return;
