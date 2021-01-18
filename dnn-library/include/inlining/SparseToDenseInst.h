@@ -32,10 +32,8 @@ namespace inlining {
 
 
 template <ElemKind elK, typename std::enable_if<elK == FloatTy,std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitchBytes,
 unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
-
-  constexpr size_t typeSize = Type::getElementSize(elK);
 
   __asm__ __volatile__("add t0, zero, zero\n"
                        "fxor.pi f0, f0, f0\n"
@@ -46,8 +44,7 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
                        "ld t1, 0x0(t3)\n"
                        "bne t1, %[batch], 2f\n"
 
-                       "mul t2, t0, %[typeSize]\n"
-                       "mul t2, t2, %[batchPitch]\n"
+                       "mul t2, t0, %[batchPitchBytes]\n"
                        "add t2, t2, %[src]\n"
                        "flw.ps  f1, 0(t2) \n"
                        "fadd.ps f0, f0, f1 \n"
@@ -64,17 +61,14 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),
                          [ tIndex ] "r"(tIndex),
-                         [ batchPitch ] "r"(batchPitch),
-                         [ typeSize ] "r"(typeSize)
+                         [ batchPitchBytes ] "r"(batchPitchBytes)
                        : "t0", "t1", "t2", "t3", "f0", "f1", "memory");
 
 }
 
 template <ElemKind elK, typename std::enable_if<elK == Float16Ty,std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitchBytes,
 unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
-
-  constexpr size_t typeSize = Type::getElementSize(elK);
 
   int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
 
@@ -89,8 +83,7 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
                        "ld t1, 0x0(t3)\n"
                        "bne t1, %[batch], 2f\n"
 
-                       "mul t2, t0, %[typeSize]\n"
-                       "mul t2, t2, %[batchPitch]\n"
+                       "mul t2, t0, %[batchPitchBytes]\n"
                        "add t2, t2, %[src]\n"
                        "fgh.ps  f1, f31(t2)\n"
                        "fcvt.ps.f16 f1, f1\n"
@@ -110,8 +103,7 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),
                          [ tIndex ] "r"(tIndex),
-                         [ batchPitch ] "r"(batchPitch),
-                         [ typeSize ] "r"(typeSize),
+                         [ batchPitchBytes ] "r"(batchPitchBytes),
                          [ dst ] "r"(dst)
                        : "t0", "t1", "t2", "t3", "f0", "f1", "f31", "memory");
 
@@ -120,10 +112,8 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
 
 
 template <ElemKind elK, typename std::enable_if< elK == Int8QTy,std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitchBytes,
 unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
-
-  constexpr size_t typeSize = Type::getElementSize(elK);
 
   int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
   __asm__ __volatile__("add t0, zero, zero\n"
@@ -143,8 +133,7 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
                        "ld t1, 0x0(t3)\n"
                        "bne t1, %[batch], 2f\n"
 
-                       "mul t2, t0, %[typeSize]\n"
-                       "mul t2, t2, %[batchPitch]\n"
+                       "mul t2, t0, %[batchPitchBytes]\n"
                        "add t2, t2, %[src]\n"
 
                        "fgb.ps  f1, f31(t2) \n"
@@ -174,8 +163,7 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
                          [ numIndices ] "r"(numIndices),
                          [ batch ] "r"(batch),
                          [ tIndex ] "r"(tIndex),
-                         [ batchPitch ] "r"(batchPitch),
-                         [ typeSize ] "r"(typeSize),
+                         [ batchPitchBytes ] "r"(batchPitchBytes),
                          [ dst ] "r"(dst),
                          [ offset ] "r"(offset),
                          [ scale ] "r"(scale)
@@ -186,7 +174,7 @@ unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *
 
 
 template <ElemKind elK, typename std::enable_if<elK!=Int8QTy && elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
+inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitchBytes,
 unsigned int batch, unsigned int numIndices, const float *scale, const int32_t *offset){
 }
 
@@ -247,7 +235,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
 
-  unsigned int batchPitch = srcPitch[0];
+  unsigned int batchPitchBytes = srcPitch[0] * Type::getElementSize(elK);
   // @TODO srcpitch It is a cnst pointer!!!!. Re-do in other way
   // it is not allowed modify tensor properties. It needs a cpy of it.
   size_t cpySrcPitch[srcDimNum] = {0,};
@@ -298,13 +286,13 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
 
 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitchBytes, coord[0], indIndex[0], scale, offset);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
     if(res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], scale, offset);
+      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitchBytes, coord[0], indIndex[0], scale, offset);
     }
     if (lastRow)
       return;
