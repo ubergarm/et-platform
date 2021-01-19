@@ -74,7 +74,19 @@ inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintp
         __asm__ __volatile__("fadd.ps %[accum], %[accum], %[value]\n" : [ accum ] "+f"(accum) : [ value ] "f"(value));
       } else if constexpr (elK == Int64ITy) {
         // Intermediate is int64_t
-        // TODO
+        float carry;
+        __asm__ __volatile__(
+          // Determine whether there is carry from lower to higher 32 bits
+          "fnot.pi %[carry], %[accum]\n"
+          "fltu.pi %[carry], %[carry], %[value]\n"
+          // Add lower 32 bits
+          "fadd.pi %[accum], %[accum], %[value]\n"
+          // Add high 32 bits
+          "fsub.pi %[accumHigh], %[accumHigh], %[carry]\n"
+          "fadd.pi %[accumHigh], %[accumHigh], %[valueHigh]\n"
+          : [ carry ] "=&f"(carry), [ accum ] "+f"(accum), [ accumHigh ] "+f"(accumHigh),
+            [ value ] "+f"(value), [ valueHigh ] "+f"(valueHigh)
+        );
       }
       else {
         // Intermediate is int32_t
