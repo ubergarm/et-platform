@@ -56,7 +56,6 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
   constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
   constexpr bool alignedSrc = false;
   constexpr bool alignedDst = false;
-  constexpr bool sameConfig = isSameConfig<srcElK, dstElK, alignedSrc, alignedDst>();
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -108,14 +107,10 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
   uint64_t conf;
   float indices;
   float indicesHigh;
-  setupGatherScatterConfig<srcBytesPerElement, alignedDst>(conf, indices, indicesHigh);
-
   uint64_t dstConf;
   float dstIndices;
   float dstIndicesHigh;
-  if constexpr (not sameConfig) {
-    setupGatherScatterConfig<dstBytesPerElement, alignedSrc>(dstConf, dstIndices, dstIndicesHigh);
-  }
+  setupGatherScatterConfig<srcElK, dstElK, false, false>(conf, indices, indicesHigh, dstConf, dstIndices, dstIndicesHigh);
 
   float srcScale, srcOffset;
   float srcScaleScalar = inT->getScale();
