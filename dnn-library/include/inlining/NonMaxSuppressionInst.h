@@ -245,16 +245,11 @@ static bool doIOU(Handle<ElemTy> &boxes, dim_t batchIndex,
  * @param[flags] flags Gives the information of the Active Shires and the
  * type of evict required.
  */
- template <ElemKind srcElk>
-void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, 
-                                 LibTensor* boxesT, LibTensor* scoresT, 
-                                 const int64_t centerPointBox, 
-                                 const int64_t maxOutputBoxesPerClass, 
-                                 const float iouThreshold, 
-                                 const float scoreThreshold, 
-                                 const bool isTFVersion4, uint64_t flags, 
-                                 const uint32_t minionOffset = 0, 
-                                 const uint32_t assignedMinions = 0) {
+template <ElemKind srcElk>
+void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, LibTensor* boxesT, LibTensor* scoresT,
+                                 const long long centerPointBox, const long long maxOutputBoxesPerClass,
+                                 const float iouThreshold, const float scoreThreshold, const bool isTFVersion4,
+                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -403,7 +398,7 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT,
   // and evict if need be
   indicesT->evict(DO_EVICTS);
   numOfSelIndT->evict(DO_EVICTS);
- }
+}
 
 } //inlining
 } //dnn_lib
