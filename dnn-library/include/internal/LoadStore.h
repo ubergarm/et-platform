@@ -64,18 +64,16 @@ template <ElemKind srcElK, const ElemKind dstElK, bool alignedSrc, bool alignedD
   return srcBytesPerElement == dstBytesPerElement and alignedSrc == alignedDst;
 }
 
-template <ElemKind srcElK, ElemKind dstElK, bool alignedSrc = false, bool alignedDst>
+template <ElemKind srcElK, ElemKind dstElK, bool alignedSrc = false, bool alignedDst = false>
 inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indicesHigh, uint64_t& dstConf,
                                      float& dstIndices, float& dstIndicesHigh) {
 
   constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
-  constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
-  constexpr bool sameConfig = isSameConfig<srcElK, dstElK, alignedSrc, alignedDst>();
+  setupGatherScatterConfig<srcBytesPerElement, alignedSrc>(conf, indices, indicesHigh);
 
-  setupGatherScatterConfig<srcBytesPerElement>(conf, indices, indicesHigh);
-
-  if constexpr (not sameConfig) {
-    setupGatherScatterConfig<dstBytesPerElement, alignedSrc>(dstConf, dstIndices, dstIndicesHigh);
+  if constexpr (not isSameConfig<srcElK, dstElK, alignedSrc, alignedDst>()) {
+    constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
+    setupGatherScatterConfig<dstBytesPerElement, alignedDst>(dstConf, dstIndices, dstIndicesHigh);
   }
 }
 
@@ -148,12 +146,15 @@ inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh
 }
 
 template <size_t bytesPerElement>
+inline void copy(float source, float& destination) {
+  __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+}
+
+template <size_t bytesPerElement>
 inline void copy(float source, float sourceHigh, float& destination, float& destinationHigh) {
-  __asm__("for.pi %[destination], %[source], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+  copy<bytesPerElement>(source, destination);
   if constexpr (bytesPerElement > 4) {
-    __asm__("for.pi %[destinationHigh], %[sourceHigh], %[sourceHigh]\n"
-            : [ destinationHigh ] "=f"(destinationHigh)
-            : [ sourceHigh ] "f"(sourceHigh));
+    copy<bytesPerElement>(sourceHigh, destinationHigh);
   }
 }
 
