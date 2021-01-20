@@ -31,9 +31,9 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, const uint64_t* indices,
-                                                            unsigned int batchPitchBytes, uint64_t batchElement,
-                                                            unsigned int numIndices) {
+inline __attribute__((always_inline)) void sparseToDenseOp(uintptr_t dst, uintptr_t src, const uint64_t* indices,
+                                                           unsigned int batchPitchBytes, uint64_t batchElement,
+                                                           unsigned int numIndices) {
 
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
@@ -84,11 +84,9 @@ inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintp
           // Add high 32 bits
           "fsub.pi %[accumHigh], %[accumHigh], %[carry]\n"
           "fadd.pi %[accumHigh], %[accumHigh], %[valueHigh]\n"
-          : [ carry ] "=&f"(carry), [ accum ] "+f"(accum), [ accumHigh ] "+f"(accumHigh),
-            [ value ] "+f"(value), [ valueHigh ] "+f"(valueHigh)
-        );
-      }
-      else {
+          : [ carry ] "=&f"(carry), [ accum ] "+f"(accum), [ accumHigh ] "+f"(accumHigh), [ value ] "+f"(value),
+            [ valueHigh ] "+f"(valueHigh));
+      } else {
         // Intermediate is int32_t
         __asm__ __volatile__("fadd.pi %[accum], %[accum], %[value]\n" : [ accum ] "+f"(accum) : [ value ] "f"(value));
       }
@@ -111,7 +109,7 @@ inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintp
   // Store
   store<bytesPerElement>(dst, conf, offset, offsetHigh, accum, accumHigh);
 }
-  
+
 // Vectorized version
 template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
@@ -129,7 +127,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT = in2T->getRawDataPointer<void>();
   const uint64_t* indices = in1T->getRawDataPointer<uint64_t>();
-  
+
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *indIndex = in1T->dims().data();
   
@@ -209,13 +207,13 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
     for (unsigned int i = 0; i < registersInRow; i++) {
-      sparseToDenseOp <elK>(dstAddr, srcAddr, indices, batchPitchBytes, coord[0], indIndex[0]);
+      sparseToDenseOp<elK>(dstAddr, srcAddr, indices, batchPitchBytes, coord[0], indIndex[0]);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
     if(res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      sparseToDenseOp <elK>(dstAddr, srcAddr, indices, batchPitchBytes, coord[0], indIndex[0]);
+      sparseToDenseOp<elK>(dstAddr, srcAddr, indices, batchPitchBytes, coord[0], indIndex[0]);
     }
     if (lastRow)
       return;

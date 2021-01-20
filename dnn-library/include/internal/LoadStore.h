@@ -145,9 +145,10 @@ inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh
   }
 }
 
-template <size_t bytesPerElement>
-inline void copy(float source, float& destination) {
-  __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+template <size_t bytesPerElement> inline void copy(float source, float& destination) {
+  __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n"
+                       : [ destination ] "=f"(destination)
+                       : [ source ] "f"(source));
 }
 
 template <size_t bytesPerElement>
@@ -158,13 +159,11 @@ inline void copy(float source, float sourceHigh, float& destination, float& dest
   }
 }
 
-template <ElemKind elK>
-inline void zero(float& destination) {
+template <ElemKind elK> inline void zero(float& destination) {
   __asm__ __volatile__("fbci.pi %[destination], 0\n" : [ destination ] "=f"(destination));
 }
 
-template <ElemKind elK>
-inline void zero(float& destination, float& destinationHigh) {
+template <ElemKind elK> inline void zero(float& destination, float& destinationHigh) {
   zero<elK>(destination);
   if constexpr (Type::getElementSize(elK) > 4) {
     zero<elK>(destinationHigh);

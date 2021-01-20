@@ -110,7 +110,8 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
   uint64_t dstConf;
   float dstIndices;
   float dstIndicesHigh;
-  setupGatherScatterConfig<srcElK, dstElK, false, false>(conf, indices, indicesHigh, dstConf, dstIndices, dstIndicesHigh);
+  setupGatherScatterConfig<srcElK, dstElK, false, false>(conf, indices, indicesHigh, dstConf, dstIndices,
+                                                         dstIndicesHigh);
 
   float srcScale, srcOffset;
   float srcScaleScalar = inT->getScale();
