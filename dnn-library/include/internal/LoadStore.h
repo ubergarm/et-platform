@@ -158,6 +158,19 @@ inline void copy(float source, float sourceHigh, float& destination, float& dest
   }
 }
 
+template <ElemKind elK>
+inline void zero(float& destination) {
+  __asm__ __volatile__("fbci.pi %[destination], 0\n" : [ destination ] "=f"(destination));
+}
+
+template <ElemKind elK>
+inline void zero(float& destination, float& destinationHigh) {
+  zero<elK>(destination);
+  if constexpr (Type::getElementSize(elK) > 4) {
+    zero<elK>(destinationHigh);
+  }
+}
+
 inline void setupDequantize(float& scale, float& offset, float scaleScalar, int32_t offsetScalar) {
   __asm__("fbcx.ps %[offset], %[offsetScalar]\n"
           "fbcx.ps %[scale], %[scaleScalar]\n"
