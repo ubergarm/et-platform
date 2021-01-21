@@ -12,7 +12,8 @@ from openpyxl.utils import get_column_letter
 
 class OperatorsEnum:
     def __init__(self, hostswdir):
-        fname = os.path.join ( hostswdir, 'host-sw/neuralizer/src/IOperators.inc');
+        fname = os.path.join ( hostswdir, 'neuralizer/src/IOperators.inc');
+        
         regexp = re.compile(r'\s*IOPERATOR_ENUM\((.*)\)\s*')
         self.__enum = []
         with open(fname) as f:
