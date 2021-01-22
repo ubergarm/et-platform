@@ -24,8 +24,8 @@ SCALAR_MB_DEF(Exclusive, bool, getInstParameters().exclusive)
 SCALAR_MB_DEF(Reverse, bool, getInstParameters().reverse)
 SCALAR_MB_DEF(BlockSize, uint32_t, getInstParameters().blockSize)
 SCALAR_MB_DEF(HasEndOffset, bool, getInstParameters().hasEndOffset)
-SCALAR_MB_DEF(CenterPointBox, int64_t, getInstParameters().centerPointBox)
-SCALAR_MB_DEF(MaxOutputBoxesPerClass, int64_t, getInstParameters().maxOutputBoxesPerClass)
+SCALAR_MB_DEF(CenterPointBox, uint64_t, getInstParameters().centerPointBox)
+SCALAR_MB_DEF(MaxOutputBoxesPerClass, uint64_t, getInstParameters().maxOutputBoxesPerClass)
 SCALAR_MB_DEF(IouThreshold, float, getInstParameters().iouThreshold)
 SCALAR_MB_DEF(ScoreThreshold,float, getInstParameters().scoreThreshold)
 SCALAR_MB_DEF(IsTFVersion4, bool, getInstParameters().isTFVersion4)
@@ -43,6 +43,7 @@ VECTOR_MB_DEF(Axes, uint32_t, getInstParameters().axes)
 VECTOR_MB_DEF(RszScale, float, getInstParameters().rszScale)
 VECTOR_MB_DEF(Dilation, uint32_t, getInstParameters().dilation)
 VECTOR_MB_DEF(FusedActivationArgs, float, getInstParameters().fusedActivationArgs)
+
 
 #undef SCALAR_MB_DEF
 #undef VECTOR_MB_DEF
