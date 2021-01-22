@@ -30,189 +30,108 @@ namespace dnn_lib {
 
 namespace inlining {
 
+template <ElemKind elK>
+inline __attribute__((always_inline)) void sparseToDenseOp(uintptr_t dst, uintptr_t src, const uint64_t* indices,
+                                                           unsigned int batchPitchBytes, uint64_t batchElement,
+                                                           unsigned int numIndices) {
 
-template <ElemKind elK, typename std::enable_if<elK == FloatTy,std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
+  constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
-  __asm__ __volatile__("add t0, zero, zero\n"
-                       "fxor.pi f0, f0, f0\n"
+  uint64_t conf;
+  float offset;
+  float offsetHigh;
+  setupGatherScatterConfig<bytesPerElement, false>(conf, offset, offsetHigh);
 
-                       "addi    t3, %[tIndex], 0x0\n"
-                       "1:\n"
+  const uint64_t* indexPtr = indices;
+  const uint64_t* indexPtrEnd = indices + numIndices;
 
-                       "ld t1, 0x0(t3)\n"
-                       "bne t1, %[batch], 2f\n"
+  uintptr_t srcAddress = src;
 
-                       "mul t2, t0, %[typeSize]\n"
-                       "mul t2, t2, %[batchPitch]\n"
-                       "add t2, t2, %[src]\n"
-                       "flw.ps  f1, 0(t2) \n"
-                       "fadd.ps f0, f0, f1 \n"
-                       "2:\n"
+  // Reset accumulator
+  float accum, accumHigh;
+  zero<elK>(accum, accumHigh);
 
-                       "addi t0, t0, 0x1\n"
-                       "addi t3, t3, 0x8\n"
-                       "blt t0, %[numIndices], 1b\n"
+  do {
+    // If current index matchs the batch element load and accumulate
+    if (*indexPtr == batchElement) {
 
-                       "fsw.ps  f0, %[dst] \n"
+      // Load value
+      float value, valueHigh;
+      load<bytesPerElement, false>(srcAddress, conf, offset, offsetHigh, value, valueHigh);
 
-                       : [ dst ] "=m" (* (char(*)[32]) dst)
-                       : [ src ] "r"(src),
-                         [ numIndices ] "r"(numIndices),
-                         [ batch ] "r"(batch),
-                         [ tIndex ] "r"(tIndex),
-                         [ batchPitch ] "r"(batchPitch),
-                         [ typeSize ] "r"(typeSize)
-                       : "t0", "t1", "t2", "t3", "f0", "f1", "memory");
+      // Convert to intermediate format (float or int32)
+      if constexpr (elK == Float16Ty) {
+        __asm__ __volatile__("fcvt.ps.f16 %[value], %[value]\n" : [ value ] "+f"(value));
+      } else if constexpr (elK == BFloat16Ty) {
+        __asm__ __volatile__("fslli.pi %[value], %[value], 16\n" : [ value ] "+f"(value));
+      } else if constexpr (elK == UInt8QTy) {
+        __asm__ __volatile__("fsatu8.pi %[value], %[value]\n" : [ value ] "+f"(value));
+      }
 
+      // Accumulate differently depending on the intermediate value
+      if constexpr (elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty) {
+        // Intermediate is float
+        __asm__ __volatile__("fadd.ps %[accum], %[accum], %[value]\n" : [ accum ] "+f"(accum) : [ value ] "f"(value));
+      } else if constexpr (elK == Int64ITy) {
+        // Intermediate is int64_t
+        float carry;
+        __asm__ __volatile__(
+          // Determine whether there is carry from lower to higher 32 bits
+          "fnot.pi %[carry], %[accum]\n"
+          "fltu.pi %[carry], %[carry], %[value]\n"
+          // Add lower 32 bits
+          "fadd.pi %[accum], %[accum], %[value]\n"
+          // Add high 32 bits
+          "fsub.pi %[accumHigh], %[accumHigh], %[carry]\n"
+          "fadd.pi %[accumHigh], %[accumHigh], %[valueHigh]\n"
+          : [ carry ] "=&f"(carry), [ accum ] "+f"(accum), [ accumHigh ] "+f"(accumHigh), [ value ] "+f"(value),
+            [ valueHigh ] "+f"(valueHigh));
+      } else {
+        // Intermediate is int32_t
+        __asm__ __volatile__("fadd.pi %[accum], %[accum], %[value]\n" : [ accum ] "+f"(accum) : [ value ] "f"(value));
+      }
+    }
+
+    srcAddress += batchPitchBytes;
+    indexPtr++;
+
+  } while (indexPtr != indexPtrEnd);
+
+  // Convert from intermediate format (float, int32 or int64) to elK
+  if constexpr (elK == Float16Ty) {
+    __asm__ __volatile__("fcvt.f16.ps %[accum], %[accum]\n" : [ accum ] "+f"(accum));
+  } else if constexpr (elK == BFloat16Ty) {
+    __asm__ __volatile__("fsrli.pi %[accum], %[accum], 16\n" : [ accum ] "+f"(accum));
+  } else if constexpr (elK == Int8QTy) {
+    __asm__ __volatile__("fsat8.pi %[accum], %[accum]\n" : [ accum ] "+f"(accum));
+  }
+
+  // Store
+  store<bytesPerElement>(dst, conf, offset, offsetHigh, accum, accumHigh);
 }
 
-template <ElemKind elK, typename std::enable_if<elK == Float16Ty,std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
-  int32_t gatherValues[] = {0, 2, 4, 6, 8, 10, 12, 14};
-
-
-  __asm__ __volatile__("add t0, zero, zero\n"
-                       "fxor.pi f0, f0, f0\n"
-                       "fcvt.ps.f16 f0, f0\n"
-                       "addi    t3, %[tIndex], 0x0\n"
-                       "flw.ps f31, %[gatherValues]\n"
-                       "1:\n"
-
-                       "ld t1, 0x0(t3)\n"
-                       "bne t1, %[batch], 2f\n"
-
-                       "mul t2, t0, %[typeSize]\n"
-                       "mul t2, t2, %[batchPitch]\n"
-                       "add t2, t2, %[src]\n"
-                       "fgh.ps  f1, f31(t2)\n"
-                       "fcvt.ps.f16 f1, f1\n"
-                       "fadd.ps f0, f0, f1 \n"
-                       "2:\n"
-
-                       "addi t0, t0, 0x1\n"
-                       "addi t3, t3, 0x8\n"
-                       "ble t0, %[numIndices], 1b\n"
-
-                       "fcvt.f16.ps f0, f0\n"
-                       "fsch.ps  f0, f31(%[dst]) \n"
-
-                       :
-                       : [ gatherValues ] "m" (* ( const int32_t(*)[8]) gatherValues),
-                         [ src ] "r"(src),
-                         [ numIndices ] "r"(numIndices),
-                         [ batch ] "r"(batch),
-                         [ tIndex ] "r"(tIndex),
-                         [ batchPitch ] "r"(batchPitch),
-                         [ typeSize ] "r"(typeSize),
-                         [ dst ] "r"(dst)
-                       : "t0", "t1", "t2", "t3", "f0", "f1", "f31", "memory");
-
-}
-
-
-
-template <ElemKind elK, typename std::enable_if< elK == Int8QTy,std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
-  int32_t gatherValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
-  __asm__ __volatile__("add t0, zero, zero\n"
-                       "fxor.pi f0, f0, f0\n"
-                       "flw.ps f31, %[gatherValues]\n"
-                       "fbc.ps f30, 0x0(%[offset]) \n"
-                       "fbc.ps f29, 0x0(%[scale]) \n"
-
-                       "fsub.pi f0, f0, f30 \n"
-                       "fcvt.ps.pw f0, f0 \n"
-                       "fmul.ps f0, f0, f29 \n"
-
-
-                       "addi    t3, %[tIndex], 0x0\n"
-                       "1:\n"
-
-                       "ld t1, 0x0(t3)\n"
-                       "bne t1, %[batch], 2f\n"
-
-                       "mul t2, t0, %[typeSize]\n"
-                       "mul t2, t2, %[batchPitch]\n"
-                       "add t2, t2, %[src]\n"
-
-                       "fgb.ps  f1, f31(t2) \n"
-                       "fsub.pi f1, f1, f30 \n"
-                       "fcvt.ps.pw f1, f1 \n"
-
-                       "fmadd.ps f0, f1, f29, f0 \n"
-
-                       "2:\n"
-
-                       "addi t0, t0, 0x1\n"
-                       "addi t3, t3, 0x8\n"
-                       "ble t0, %[numIndices], 1b\n"
-
-                       "frcp.ps f29, f29 \n"
-                       "fcvt.ps.pw f30, f30 \n"
-                       "fmadd.ps f0, f0, f29, f30 \n"
-                       "fcvt.pw.ps f0, f0 \n"
-                       "fsat8.pi f0, f0 \n"
-                       "fscb.ps  f0, f31(%[dst]) \n"
-
-
-
-                       :
-                       : [ gatherValues ] "m" (* ( const int32_t(*)[8]) gatherValues),
-                         [ src ] "r"(src),
-                         [ numIndices ] "r"(numIndices),
-                         [ batch ] "r"(batch),
-                         [ tIndex ] "r"(tIndex),
-                         [ batchPitch ] "r"(batchPitch),
-                         [ typeSize ] "r"(typeSize),
-                         [ dst ] "r"(dst),
-                         [ offset ] "r"(offset),
-                         [ scale ] "r"(scale)
-
-                       : "t0", "t1", "t2", "t3", "f0", "f1", "f29", "f30", "f31", "memory");
-
-}
-
-
-template <ElemKind elK, typename std::enable_if<elK!=Int8QTy && elK!=Float16Ty && elK!=FloatTy, std::size_t>::type = 0>
-inline __attribute__((always_inline)) void sparseToDenseOp (uintptr_t dst, uintptr_t src, long long* tIndex, unsigned int batchPitch,
-unsigned int batch, unsigned int numIndices, size_t typeSize, const float *scale, const int32_t *offset){
-}
-
-  
-  // vetorized version
+// Vectorized version
 template <ElemKind elK>
 inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
                                                                    LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
                                                                    uint64_t flags,
                                                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  float scale[] = { in2T->getScale(), in1T->getScale(), outT->getScale()};
-  int32_t offset[] = { in2T->getOffset(), in1T->getOffset(), outT->getOffset()};
   /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT = in2T->getRawDataPointer<void>();
-  // long long *tIndex = (long long *)indicesT;
-  long long *tIndex = in1T->getRawDataPointer<long long>();
-  
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const uint64_t* indices = in1T->getRawDataPointer<uint64_t>();
+
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *indIndex = (unsigned int *)indDims;
   const dim_t *indIndex = in1T->dims().data();
   
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = in2T->strides().data();
   
   unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
@@ -220,11 +139,10 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   uintptr_t dstAddr = (uintptr_t)dstT;    
   uintptr_t srcAddr = (uintptr_t)srcT;
 
-
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = sizeof(srcType);
+  constexpr size_t typeSize = Type::getElementSize(elK);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
@@ -234,13 +152,12 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   for (unsigned int i = 0; i < srcDimNum; i++)
     coord[i] = 0;
   unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex,
-                           k);
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex, k);
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
 
-  unsigned int batchPitch = srcPitch[0];
+  unsigned int batchPitchBytes = srcPitch[0] * Type::getElementSize(elK);
   // @TODO srcpitch It is a cnst pointer!!!!. Re-do in other way
   // it is not allowed modify tensor properties. It needs a cpy of it.
   size_t cpySrcPitch[srcDimNum] = {0,};
@@ -260,7 +177,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   unsigned int lastDim = srcDimNum - 1;
   unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
   unsigned int elementsInRow, registersInRow, res;
-  uint8_t mask;
+
   bool firstRow = true;
   bool midRow = false;
   bool lastRow = false;
@@ -279,7 +196,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
     if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
       registersInRow = elementsInRow / 8;
       res = elementsInRow - registersInRow * 8;
-      mask = ((1 << res) - 1);
+      uint8_t mask = ((1 << res) - 1);
       __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
       if (!firstRow) midRow = true;
     }
@@ -289,15 +206,14 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
-
     for (unsigned int i = 0; i < registersInRow; i++) {
-      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp<elK>(dstAddr, srcAddr, indices, batchPitchBytes, coord[0], indIndex[0]);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
     }
     if(res > 0) {
       __asm__ __volatile__("maskand m0, m1, m0 \n");
-      sparseToDenseOp <elK>(dstAddr, srcAddr, tIndex, batchPitch, coord[0], indIndex[0], typeSize, scale, offset);
+      sparseToDenseOp<elK>(dstAddr, srcAddr, indices, batchPitchBytes, coord[0], indIndex[0]);
     }
     if (lastRow)
       return;
