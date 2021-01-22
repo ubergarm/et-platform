@@ -108,7 +108,7 @@ pipeline {
                 string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
                 string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
                 string(name: 'REPO_NAME', value: 'sw-platform'),
-                string(name: 'TIMEOUT', value: '4'),
+                string(name: 'TIMEOUT', value: '12'),
                 string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
               ]
           }
@@ -123,7 +123,7 @@ pipeline {
                 string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
                 string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
                 string(name: 'REPO_NAME', value: 'sw-platform'),
-                string(name: 'TIMEOUT', value: '4'),
+                string(name: 'TIMEOUT', value: '12'),
                 string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
               ]
           }
