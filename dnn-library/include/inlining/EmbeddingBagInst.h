@@ -213,8 +213,7 @@ void embeddingBagsTailVectorized(
   );
 
   // For all sparse input rows.
-  for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex;
-       j < currSegmentEnd; j++, currIndex++) {
+  for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex; j < currSegmentEnd; j++, currIndex++) {
 
     uint8_t *data_ptr   = tAInput + indices[currIndex] * dataRowPitch
                                   + dataRowGroupOffset;
@@ -261,7 +260,7 @@ void embeddingBagsTailVectorized(
       : "f0"
     );
   }
-  
+
   if (float32Dst) {
     if (destAligned) {
       // Store accumulated results.
@@ -388,7 +387,11 @@ void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTenso
   }
 
   // Compute the element mask for the last VReg in the row.
-  const uint8_t dstRowTailVRegMask = (1 << (dstRowElemSize % dstVRegElems)) - 1;
+  int dstRowTailVRegMask = (1 << (dstRowElemSize % dstVRegElems)) - 1;
+  // If 0, it means all the lanes need to be enabled in last pass
+  if (dstRowTailVRegMask == 0) {
+    dstRowTailVRegMask = (1 << dstVRegElems) - 1;
+  }
 
   uintptr_t totalWorkUnits = dstRowGroups * outT->dims()[0];
 
