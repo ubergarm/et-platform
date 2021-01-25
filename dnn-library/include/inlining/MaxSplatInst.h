@@ -160,8 +160,8 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
     } else if ((srcDimNum == 1) || coord[lastDim - 1] == maxRow) {
       lastRow = true;
       elementsInRow = posMax - offsetOut;
-      if (elementsInRow > dstIndex[lastDim]) {
-        elementsInRow = dstIndex[lastDim];
+      if (elementsInRow > (dstIndex[lastDim] - coord[lastDim])) {
+        elementsInRow = dstIndex[lastDim] - coord[lastDim];
       }
     } else {
       elementsInRow = dstIndex[lastDim];

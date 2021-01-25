@@ -302,15 +302,17 @@ inline void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T,
   bool firstRow = true;
   bool midRow = false;
   bool lastRow = false;
-  lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
 
   while (!done && (offsetOut < posMax)) {
-    if (firstRow && coord[lastDim - 1] != maxRow) {
+    if (firstRow && (srcDimNum > 1) && coord[lastDim - 1] != maxRow) {
       elementsInRow = actIndex[lastDim] - coord[lastDim];
-    } else if (coord[lastDim - 1] == maxRow) {
+    } else if ((srcDimNum == 1) || (coord[lastDim - 1] == maxRow)) {
       lastRow = true;
       elementsInRow = posMax - offsetOut;
+      if (elementsInRow > (actIndex[lastDim] - coord[lastDim])) {
+        elementsInRow = actIndex[lastDim] - coord[lastDim];
+      }
     } else {
       elementsInRow = actIndex[lastDim];
     }
