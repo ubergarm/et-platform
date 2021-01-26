@@ -189,31 +189,31 @@ template <ElemKind elK> inline void zero(float& destination, float& destinationH
 }
 
 inline void setupDequantize(float& scale, float& offset, float scaleScalar, int32_t offsetScalar) {
-  __asm__("fbcx.ps %[offset], %[offsetScalar]\n"
-          "fbcx.ps %[scale], %[scaleScalar]\n"
-          : [ offset ] "=&f"(offset), [ scale ] "=&f"(scale)
-          : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
+  __asm__ __volatile__("fbcx.ps %[offset], %[offsetScalar]\n"
+                       "fbcx.ps %[scale], %[scaleScalar]\n"
+                       : [ offset ] "=&f"(offset), [ scale ] "=&f"(scale)
+                       : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
 }
 
 inline void doDequantize(float& destination, float source, float scale, float offset) {
-  __asm__("fsub.pi %[destination], %[source], %[offset]\n"
-          "fcvt.ps.pw %[destination], %[destination]\n"
-          "fmul.ps %[destination], %[destination], %[scale]\n"
-          : [ destination ] "+&f"(destination)
-          : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
+  __asm__ __volatile__("fsub.pi %[destination], %[source], %[offset]\n"
+                       "fcvt.ps.pw %[destination], %[destination]\n"
+                       "fmul.ps %[destination], %[destination], %[scale]\n"
+                       : [ destination ] "=&f"(destination)
+                       : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
 }
 
 inline void setupQuantize(float& scaleReciprocal, float& offset, float scaleScalar, int32_t offsetScalar) {
-  __asm__("fbcx.ps %[scaleReciprocal], %[scaleScalar]\n"
-          "frcp.ps %[scaleReciprocal], %[scaleReciprocal]\n"
-          "fbcx.ps %[offset], %[offsetScalar]\n"
-          "fcvt.ps.pw %[offset], %[offset]\n"
-          : [ offset ] "=&f"(offset), [ scaleReciprocal ] "=&f"(scaleReciprocal)
-          : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
+  __asm__ __volatile__("fbcx.ps %[scaleReciprocal], %[scaleScalar]\n"
+                       "frcp.ps %[scaleReciprocal], %[scaleReciprocal]\n"
+                       "fbcx.ps %[offset], %[offsetScalar]\n"
+                       "fcvt.ps.pw %[offset], %[offset]\n"
+                       : [ offset ] "=&f"(offset), [ scaleReciprocal ] "=&f"(scaleReciprocal)
+                       : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
 }
 
 inline void doQuantize(float& destination, float source, float scaleReciprocal, int32_t offset) {
-  __asm__("fmadd.ps %[destination], %[source], %[scaleReciprocal], %[offset]\n"
+  __asm__ __volatile__("fmadd.ps %[destination], %[source], %[scaleReciprocal], %[offset]\n"
           : [ destination ] "+&f"(destination)
           : [ source ] "f"(source), [ offset ] "f"(offset), [ scaleReciprocal ] "f"(scaleReciprocal));
 }
@@ -324,7 +324,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
       : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
     float mask, exponent, implicit, minusExponent, tmp, mantissa;
-    __asm__(
+    __asm__ __volatile__(
       // Build exoring mask for bit-wise negating when negative
       "fsrai.pi %[mask], %[source], 31\n"
       // Extract the exponent bits
@@ -408,15 +408,17 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
     // TODO: from FloatTy to UInt4FusedQTy probably not required
   } else if constexpr (srcElK == FloatTy and dstElK == BoolTy) {
     float mask;
-    __asm__("fclass.ps %[mask], %[source]\n"
-            "fandi.pi %[mask], %[mask], 0x18\n"
-            "fbci.pi %[destination], 1\n"
-            "fltu.pi %[destination], %[mask], %[destination]\n"
-            "fsrli.pi %[destination], %[destination], 31\n"
-            : [ mask ] "=f"(mask), [ destination ] "=f"(destination)
-            : [ source ] "f"(source));
+    __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
+                         "fandi.pi %[mask], %[mask], 0x18\n"
+                         "fbci.pi %[destination], 1\n"
+                         "fltu.pi %[destination], %[mask], %[destination]\n"
+                         "fsrli.pi %[destination], %[destination], 31\n"
+                         : [ mask ] "=f"(mask), [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
   } else if constexpr (srcElK == Float16Ty and dstElK == FloatTy) {
-    __asm__("fcvt.ps.f16 %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+    __asm__ __volatile__("fcvt.ps.f16 %[destination], %[source]\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
   } else if constexpr (srcElK == Float16Ty and dstElK == BFloat16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Float16Ty and dstElK == Int8QTy) {
@@ -442,9 +444,9 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == Float16Ty and dstElK == BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == BFloat16Ty and dstElK == FloatTy) {
-    __asm__("fslli.pi %[destination], %[source], %[bits]\n"
-            : [ destination ] "=f"(destination)
-            : [ source ] "f"(source), [ bits ] "i"(16));
+    __asm__ __volatile__("fslli.pi %[destination], %[source], %[bits]\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source), [ bits ] "i"(16));
   } else if constexpr (srcElK == BFloat16Ty and dstElK == Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == BFloat16Ty and dstElK == Int8QTy) {
@@ -574,7 +576,9 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == Int32QTy and dstElK == BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int32ITy and dstElK == FloatTy) {
-    __asm__("fcvt.ps.pw %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+    __asm__ __volatile__("fcvt.ps.pw %[destination], %[source]\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
   } else if constexpr (srcElK == Int32ITy and dstElK == Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int32ITy and dstElK == BFloat16Ty) {
@@ -588,10 +592,10 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == Int32ITy and dstElK == Int32QTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int32ITy and dstElK == Int64ITy) {
-    __asm__("for.pi %[destination], %[source], %[source]\n"
-            "fsrai.pi %[destinationHigh], %[source], 31\n"
-            : [ destination ] "=&f"(destination), [ destinationHigh ] "=f"(destinationHigh)
-            : [ source ] "f"(source));
+    __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n"
+                         "fsrai.pi %[destinationHigh], %[source], 31\n"
+                         : [ destination ] "=&f"(destination), [ destinationHigh ] "=f"(destinationHigh)
+                         : [ source ] "f"(source));
   } else if constexpr (srcElK == Int32ITy and dstElK == UInt8FusedQTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int32ITy and dstElK == UInt8FusedFP16QTy) {
@@ -601,14 +605,14 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == Int32ITy and dstElK == UInt4FusedQTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int32ITy and dstElK == BoolTy) {
-    __asm__("fbci.pi %[destination], 0\n"
-            "fltu.pi %[destination], %[destination], %[source]\n"
-            "fsrli.pi %[destination], %[destination], 31\n"
-            : [ destination ] "=&f"(destination)
-            : [ source ] "f"(source));
+    __asm__ __volatile__("fbci.pi %[destination], 0\n"
+                         "fltu.pi %[destination], %[destination], %[source]\n"
+                         "fsrli.pi %[destination], %[destination], 31\n"
+                         : [ destination ] "=&f"(destination)
+                         : [ source ] "f"(source));
   } else if constexpr (srcElK == Int64ITy and dstElK == FloatTy) {
     float mask, abs, absHigh, term, weight;
-    __asm__(
+    __asm__ __volatile__(
       // Complement source and sourceHigh when negative
       "fsrai.pi %[mask], %[sourceHigh], 31\n"
       "fxor.pi %[abs], %[mask], %[source]\n"
@@ -651,12 +655,12 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int64ITy and dstElK == BoolTy) {
     float combinedOr;
-    __asm__("for.pi %[combinedOr], %[source], %[sourceHigh]\n"
-            "fbci.pi %[destination], 0\n"
-            "fltu.pi %[destination], %[destination], %[combinedOr]\n"
-            "fsrli.pi %[destination], %[destination], 31\n"
-            : [ destination ] "=f"(destination), [ combinedOr ] "=f"(combinedOr)
-            : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
+    __asm__ __volatile__("for.pi %[combinedOr], %[source], %[sourceHigh]\n"
+                         "fbci.pi %[destination], 0\n"
+                         "fltu.pi %[destination], %[destination], %[combinedOr]\n"
+                         "fsrli.pi %[destination], %[destination], 31\n"
+                         : [ destination ] "=f"(destination), [ combinedOr ] "=f"(combinedOr)
+                         : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
   } else if constexpr (srcElK == UInt8FusedQTy and dstElK == FloatTy) {
     // TODO: from UInt8FusedQTy to FloatTy
   } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Float16Ty) {
