@@ -67,7 +67,7 @@ namespace dnn_lib {
       return ElementBinary(outTensors, inTensors);
     }
     static size_t ElementDiv(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return ElementBinary(outTensors, inTensors);
+      return 1;
     }
     static size_t ElementMax(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
       return ElementBinary(outTensors, inTensors);
