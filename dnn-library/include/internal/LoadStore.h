@@ -80,7 +80,8 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indi
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void load(uintptr_t src, const uint64_t& conf, float indices, float indicesHigh, float& op0, float& op0High) {
+inline void load(uintptr_t src, uint64_t conf, float indices, float& op0) {
+  static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fg32b.ps %[op0], %[conf](%[src])\n"
@@ -103,17 +104,25 @@ inline void load(uintptr_t src, const uint64_t& conf, float indices, float indic
     }
   } else if constexpr (bytesPerElement == 4) {
     __asm__ __volatile__("flw.ps %[op0], %[src]\n" : [ op0 ] "=f"(op0) : [ src ] "m"(*(const char(*)[32])src));
-  } else if constexpr (bytesPerElement == 8) {
+  }
+}
+
+template <size_t bytesPerElement, bool aligned = false>
+inline void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh, float& op0, float& op0High) {
+  if constexpr (bytesPerElement == 8) {
     __asm__ __volatile__("fgw.ps %[op0], %[indices](%[src])\n"
                          "fgw.ps %[op0High], %[indicesHigh](%[src])\n"
                          : [ op0 ] "=&f"(op0), [ op0High ] "=f"(op0High)
                          : [ indices ] "f"(indices), [ indicesHigh ] "f"(indicesHigh), [ src ] "r"(src),
                            [ srcMem ] "m"(*(const char(*)[64])src));
+  } else {
+    load<bytesPerElement, aligned>(src, conf, indices, op0);
   }
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh, float op0, float op0High) {
+inline void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
+  static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fsc32b.ps %[op0], %[conf](%[dst])\n"
@@ -138,12 +147,19 @@ inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh
     __asm__ __volatile__("fsw.ps %[op0], (%[dst])\n"
                          : [ dstMem ] "=m"(*(char(*)[32])dst)
                          : [ op0 ] "f"(op0), [ dst ] "r"(dst));
-  } else if constexpr (bytesPerElement == 8) {
+  }
+}
+
+template <size_t bytesPerElement, bool aligned = false>
+inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh, float op0, float op0High) {
+  if constexpr (bytesPerElement == 8) {
     __asm__ __volatile__("fscw.ps %[op0], %[indices](%[dst])\n"
                          "fscw.ps %[op0High], %[indicesHigh](%[dst])\n"
                          : [ dstMem ] "=m"(*(char(*)[64])dst)
                          : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices),
                            [ indicesHigh ] "f"(indicesHigh), [ dst ] "r"(dst));
+  } else {
+    store<bytesPerElement, aligned>(dst, conf, indices, op0);
   }
 }
 
