@@ -114,12 +114,13 @@ private:
   
   dim_t offset_ = 0;
   dim_array_t coords_ = {0};
-  const dim_array_t wrap_;
-  
-  dim_array_t buildWrap(){
-    dim_array_t w = {0};
+  using wrap_t = std::array<dim_t, max_tensor_dimensions - 1>;
+  const wrap_t wrap_;
+
+  wrap_t buildWrap() {
+    wrap_t w;
     for(size_t i = 0; i < ndims_ - 1;i++) {
-      w[i +1 ] = strides_[i] - strides_[i+1] * dims_[i+1];
+      w[i] = strides_[i] - strides_[i + 1] * dims_[i + 1];
     }
     return w;
   }
@@ -127,7 +128,7 @@ private:
   void wrap1(size_t dim){
     if (dim == 0) return;
     if (coords_[dim] >= dims_[dim]){
-      offset_+=wrap_[dim];
+      offset_ += wrap_[dim - 1];
       coords_[dim]=0;
       coords_[dim-1]++;
     }
