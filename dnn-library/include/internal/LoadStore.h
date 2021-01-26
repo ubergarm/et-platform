@@ -212,10 +212,14 @@ inline void setupQuantize(float& scaleReciprocal, float& offset, float scaleScal
                        : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
 }
 
-inline void doQuantize(float& destination, float source, float scaleReciprocal, int32_t offset) {
-  __asm__ __volatile__("fmadd.ps %[destination], %[source], %[scaleReciprocal], %[offset]\n"
-          : [ destination ] "+&f"(destination)
-          : [ source ] "f"(source), [ offset ] "f"(offset), [ scaleReciprocal ] "f"(scaleReciprocal));
+inline void multiplyAdd(float& destination, float source, float scale, float offset) {
+  __asm__ __volatile__("fmadd.ps %[destination], %[source], %[scale], %[offset]\n"
+                       : [ destination ] "=f"(destination)
+                       : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
+}
+
+inline void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
+  multiplyAdd(destination, source, scaleReciprocal, offset);
 }
 
 template <ElemKind srcElK, ElemKind dstElK>
