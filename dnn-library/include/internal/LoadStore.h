@@ -814,20 +814,20 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
 
 template <ElemKind srcElK, ElemKind dstElK>
 inline void convert(float source, float sourceHigh, float& destination, float& destinationHigh) {
-  static_assert(not isQuantizedElemKind(srcElK) and not isQuantizedElemKind(dstElK), "Quantized types are not supported by this simplified convert");
+  static_assert(not isQuantizedElemKind(srcElK) and not isQuantizedElemKind(dstElK),
+                "Quantized types are not supported by this simplified convert");
   float srcScale = 0, srcOffset = 0, dstScaleReciprocal = 0, dstOffset = 0;
-  convert<srcElK, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal, dstOffset);
+  convert<srcElK, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
+                          dstOffset);
 }
 
-template <ElemKind srcElK, ElemKind dstElK>
-inline void convert(float& destination, float& destinationHigh) {
+template <ElemKind srcElK, ElemKind dstElK> inline void convert(float& destination, float& destinationHigh) {
   if constexpr (srcElK != dstElK) {
     convert<srcElK, dstElK>(destination, destinationHigh, destination, destinationHigh);
   }
 }
 
-template <ElemKind srcElK, ElemKind dstElK>
-inline void convert(float& destination) {
+template <ElemKind srcElK, ElemKind dstElK> inline void convert(float& destination) {
   if constexpr (srcElK != dstElK) {
     float destinationHigh = 0;
     convert<srcElK, dstElK>(destination, destinationHigh, destination, destinationHigh);
@@ -837,12 +837,11 @@ inline void convert(float& destination) {
 // Convert a positive infinity to negative
 inline void patchPositiveInf(float& value) {
   float mask;
-  __asm__ __volatile__(
-    "fclass.ps %[mask], %[value]\n"
-    "fsrli.pi %[mask], %[mask], 7\n"
-    "fslli.pi %[mask], %[mask], 31\n"
-    "for.pi %[value], %[value], %[mask]\n"
-    : [ value ] "+f"(value), [ mask ] "=f"(mask));
+  __asm__ __volatile__("fclass.ps %[mask], %[value]\n"
+                       "fsrli.pi %[mask], %[mask], 7\n"
+                       "fslli.pi %[mask], %[mask], 31\n"
+                       "for.pi %[value], %[value], %[mask]\n"
+                       : [ value ] "+f"(value), [ mask ] "=f"(mask));
 }
 
 } // namespace dnn_lib

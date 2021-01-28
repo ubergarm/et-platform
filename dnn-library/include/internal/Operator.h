@@ -1936,9 +1936,10 @@ public:
 
 template <typename opType, ElemKind dstElK, ElemKind lhsElK, ElemKind rhsElK>
 inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float dstScale, float lhsScale,
-                  float rhsScale, int32_t dstOffset, int32_t lhsOffset, int32_t rhsOffset) {
+                 float rhsScale, int32_t dstOffset, int32_t lhsOffset, int32_t rhsOffset) {
 
-  static_assert(isQuantizedElemKind(lhsElK) or dstElK == Int32ITy or dstElK == Int64ITy or dstElK == FloatTy or dstElK == Float16Ty or dstElK == BFloat16Ty);
+  static_assert(isQuantizedElemKind(lhsElK) or dstElK == Int32ITy or dstElK == Int64ITy or dstElK == FloatTy or
+                dstElK == Float16Ty or dstElK == BFloat16Ty);
 
   constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
   constexpr size_t lhsBytesPerElement = Type::getElementSize(lhsElK);
@@ -1971,11 +1972,10 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
   float dstOffset_ = 0;
   (void)dstOffset_;
   if constexpr (isQuantizedElemKind(lhsElK)) {
-    __asm__ __volatile__(
-      "fbcx.ps %[dstOffset_], %[dstOffset]\n"
-      "fcvt.ps.pw %[dstOffset_], %[dstOffset_], rtz\n"
-      : [ dstOffset_ ] "=f"(dstOffset_)
-      : [ dstOffset ] "r"(dstOffset));
+    __asm__ __volatile__("fbcx.ps %[dstOffset_], %[dstOffset]\n"
+                         "fcvt.ps.pw %[dstOffset_], %[dstOffset_], rtz\n"
+                         : [ dstOffset_ ] "=f"(dstOffset_)
+                         : [ dstOffset ] "r"(dstOffset));
   }
 
   // Load LHS
@@ -2020,12 +2020,10 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
     convert<rhsElK, FloatTy>(rhs, rhsHigh);
 
     // Compute lhs rcp(rhs)
-    __asm__ __volatile__(
-      "frcp.ps %[result], %[rhs]\n"
-      "fmul.ps %[result], %[lhs], %[result]\n"
-      : [ result ] "=&f"(result)
-      : [ lhs ] "f"(lhs),
-        [ rhs ] "f"(rhs));
+    __asm__ __volatile__("frcp.ps %[result], %[rhs]\n"
+                         "fmul.ps %[result], %[lhs], %[result]\n"
+                         : [ result ] "=&f"(result)
+                         : [ lhs ] "f"(lhs), [ rhs ] "f"(rhs));
 
     // Convert result to dstElK
     convert<FloatTy, dstElK>(result, resultHigh);

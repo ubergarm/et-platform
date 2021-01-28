@@ -273,8 +273,8 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
         const uintptr_t& rhsAddr = srcAddr2;
         constexpr auto lhsElK = src1ElK;
         constexpr auto rhsElK = src2ElK;
-        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset, lhsOffset,
-                                      rhsOffset);
+        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset,
+                                             lhsOffset, rhsOffset);
       } else {
         op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
       }
@@ -292,8 +292,8 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
         const uintptr_t& rhsAddr = srcAddr2;
         constexpr auto lhsElK = src1ElK;
         constexpr auto rhsElK = src2ElK;
-        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset, lhsOffset,
-                                      rhsOffset);
+        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset,
+                                             lhsOffset, rhsOffset);
       } else {
         op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
       }
