@@ -1987,7 +1987,7 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
   load<rhsBytesPerElement, false>(rhsAddr, rhsConf, rhsIndices, rhsIndicesHigh, rhs, rhsHigh);
 
   // Compute result
-  float result;
+  float result, resultHigh;
 
   if constexpr (isQuantizedElemKind(lhsElK)) {
 
@@ -2014,10 +2014,10 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
   } else {
 
     // Convert lhs to FloatTy
-    convert<lhsElK, FloatTy>(lhs);
+    convert<lhsElK, FloatTy>(lhs, lhsHigh);
 
     // Convert rhs to FloatTy
-    convert<rhsElK, FloatTy>(rhs);
+    convert<rhsElK, FloatTy>(rhs, rhsHigh);
 
     // Compute lhs rcp(rhs)
     __asm__ __volatile__(
@@ -2028,13 +2028,14 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
         [ rhs ] "f"(rhs));
 
     // Convert result to dstElK
-    if constexpr (dstBytesPerElement <= 4) {
-      convert<FloatTy, dstElK>(result);
-    }
+    convert<FloatTy, dstElK>(result, resultHigh);
   }
 
   // Store result
-  if constexpr (dstBytesPerElement <= 4) {
+  if constexpr (dstBytesPerElement > 4) {
+    store<dstBytesPerElement>(dstAddr, dstConf, dstIndices, dstIndicesHigh, result, resultHigh);
+  } else {
+    (void)resultHigh;
     store<dstBytesPerElement>(dstAddr, dstConf, dstIndices, result);
   }
 }
