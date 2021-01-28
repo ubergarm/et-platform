@@ -1938,7 +1938,7 @@ template <typename opType, ElemKind dstElK, ElemKind lhsElK, ElemKind rhsElK>
 inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float dstScale, float lhsScale,
                   float rhsScale, int32_t dstOffset, int32_t lhsOffset, int32_t rhsOffset) {
 
-  static_assert(isQuantizedElemKind(lhsElK) or dstElK == Int64ITy or dstElK == FloatTy or dstElK == Float16Ty or dstElK == BFloat16Ty);
+  static_assert(isQuantizedElemKind(lhsElK) or dstElK == Int32ITy or dstElK == Int64ITy or dstElK == FloatTy or dstElK == Float16Ty or dstElK == BFloat16Ty);
 
   constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
   constexpr size_t lhsBytesPerElement = Type::getElementSize(lhsElK);
