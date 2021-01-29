@@ -26,17 +26,9 @@
 
 namespace dnn_lib {
 
-#define MAX_TENSOR_DIMENSIONS 6
-
-#define ACTIVE_SHIRES ((flags & 0x1F) + 1)
-#define DO_EVICTS     ((flags & 0x60) >> 5) // 01 = evictL2, 10 = evictL3, 11 = evictMem
-
 #define M_1_LOG2E float(1.0f / M_LOG2E)
 
 #define SET_MINUS_INFTY(_reg) "fbci.ps " #_reg ", 0xff800 \n" // _reg is vect
-
-#define likely(x)       __builtin_expect((x),1)
-#define unlikely(x)     __builtin_expect((x),0)
 
 #define print(s) syscall(SYSCALL_LOG_WRITE, (uint64_t)(s), sizeof(s), 0)
 

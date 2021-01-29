@@ -12,6 +12,8 @@
 #ifndef _LOADSTORE_H_
 #define _LOADSTORE_H_
 
+#include "LibTensor.h"
+
 namespace dnn_lib {
 
 constexpr uint64_t fg32b_conf = 0x398A418820;
@@ -78,7 +80,7 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indi
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh, float& op0, float& op0High) {
+inline void load(uintptr_t src, const uint64_t& conf, float indices, float indicesHigh, float& op0, float& op0High) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fg32b.ps %[op0], %[conf](%[src])\n"
@@ -201,8 +203,8 @@ inline void doQuantize(float& destination, float source, float scaleReciprocal, 
 }
 
 template <ElemKind srcElK, ElemKind dstElK>
-inline void convert(float source, float sourceHigh, float& destination, float& destinationHigh, float srcScale,
-                    float srcOffset, float dstScaleReciprocal, float dstOffset) {
+inline void convert(float source, float sourceHigh, float& destination, float& destinationHigh, const float& srcScale,
+                    const float& srcOffset, const float& dstScaleReciprocal, const float& dstOffset) {
 
   /*
   # The following python code was used for generating a skeleton for this funcion

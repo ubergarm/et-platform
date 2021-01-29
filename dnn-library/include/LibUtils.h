@@ -214,6 +214,12 @@ namespace dnn_lib{
 
 #define assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
 
+#define likely(x) __builtin_expect((x), 1)
+#define unlikely(x) __builtin_expect((x), 0)
 
+#define MAX_TENSOR_DIMENSIONS 6
+
+#define ACTIVE_SHIRES ((flags & 0x1F) + 1)
+#define DO_EVICTS ((flags & 0x60) >> 5) // 01 = evictL2, 10 = evictL3, 11 = evictMem
 }
 #endif

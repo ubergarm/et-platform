@@ -408,7 +408,7 @@ class LibTensor final {
 
   /*@brief returns if padding positions are untouchable.
    */
-  bool getUntouchable() const {
+  const bool getUntouchable() const {
     return untouch_;
   }
 
@@ -600,9 +600,7 @@ public:
 
 
   // returns offset and maxRead (in number of elements)
-  void partitionCL(uint64_t minionId,  unsigned activeMinions,
-                   dim_t &offset, dim_t &maxRead) const{
-    assume(minionId < 1024);
+  void partitionCL(const uint64_t minionId, const unsigned activeMinions, dim_t& offset, dim_t& maxRead) const {
     size_t elementSize = type_.getElementSize();
     // Checks for unaligned tensor
     size_t ad = (size_t) ptrData_;
@@ -642,7 +640,6 @@ public:
 
     offset*=CACHE_LINE_BYTES / elementSize;
     maxRead*=CACHE_LINE_BYTES / elementSize;
-
   }
 
   dim_array_t offset2Coord(size_t offset) const {
@@ -678,6 +675,94 @@ public:
 
   void evict(uint64_t dst) const {
     evict(dst, 0, this->actualSize());
+  }
+
+  /* partitions current tensor in cache lines, and loops over all elements
+     in steps of 'step' elements and skipping padding, calling the 'compute'
+     function.
+
+     The compute function has to be of the form:
+       compute( uintptr_t outPtr, uint_ptr inPtr, dim_t valid, computeArgs...)
+     where:
+        outPtr = pointer to the element to write ( *this tensor)
+        inPtr  = pointer to the element to read
+        valid  = number of valid elements in the current row starting at outPtr
+        computeArgs = any extra parameters that will just be forwared
+
+   */
+  template <typename dstType, typename srcType = dstType, dim_t step = 8, bool doEvicts = true, typename compute_t,
+            typename... computeArgs_t>
+  void partitionLoop(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
+                     LibTensor* inT, compute_t compute, computeArgs_t&&... computeArgs) {
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // partition work between minions in multiples of CL
+    ////////////////////////////////////////////////////////////////////////////////
+    dim_t first; // first element in raw array to process
+    dim_t count; // nr  elements in to process (will be in multiples of CL)
+
+    partitionCL(minionId, activeMinions, first, count);
+    if (unlikely(count == 0))
+      return; // minion has no work to do
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // and loop
+    ////////////////////////////////////////////////////////////////////////////////
+
+    // setup
+    const auto N = ndims();
+    const dim_t lastDim = dims()[N - 1];
+
+    dim_t endOffset = first + count;
+
+    srcType* const srcP = inT->getRawDataPointer<srcType>();
+    dstType* const dstP = getRawDataPointer<dstType>();
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // simpler loop if there is just one dimension
+    ////////////////////////////////////////////////////////////////////////////////
+    if (N == 1) {
+      // simplification: just 1 loop, and offset in elements is the same for all the tensors
+      for (dim_t offset = first; offset < endOffset; offset += step) {
+        dim_t valid = lastDim - offset;
+        compute(reinterpret_cast<uintptr_t>(dstP + offset), reinterpret_cast<uintptr_t>(srcP + offset), valid,
+                std::forward<computeArgs_t>(computeArgs)...);
+      }
+    } else {
+      ////////////////////////////////////////////////////////////////////////////////
+      // Loops for more than 1 dim
+      ////////////////////////////////////////////////////////////////////////////////
+      // get iterators to loop through all the dimensions except the last one
+      auto out = getHandle<dstType>().getIterator(first);
+      auto in = inT->getHandle<srcType>().getIterator(out.coords());
+
+      dim_t oOffset = out.offset();
+      dim_t iOffset = in.offset();
+
+      //// First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
+      /// the row)
+      for (; out.coords()[N - 1] != 0 && out.offset() < endOffset; out += step, in += step) {
+        dim_t valid = lastDim - out.coords()[N - 1];
+        compute(reinterpret_cast<uintptr_t>(dstP + oOffset), reinterpret_cast<uintptr_t>(srcP + iOffset), valid,
+                computeArgs...);
+        iOffset += step;
+        oOffset += step;
+      }
+
+      //// Then, complete the remaining iterations
+      for (; out.offset() < endOffset; out.step(N - 2), in.step(N - 2)) { // step 2n outer dimension
+        assume(out.coords()[N - 1] == 0 && in.coords()[N - 1] == 0);
+        oOffset = out.offset();
+        iOffset = in.offset();
+        for (dim_t i = 0; (i < lastDim) && ((oOffset + i) < endOffset); i += step) { // step outer dimension
+          dim_t valid = lastDim - i;
+          compute(reinterpret_cast<uintptr_t>(dstP + oOffset + i), reinterpret_cast<uintptr_t>(srcP + iOffset + i),
+                  valid, std::forward<computeArgs_t>(computeArgs)...);
+        }
+      }
+    }
+
+    evict(DO_EVICTS, first, count);
   }
 
 }; //end LibTensorBase class

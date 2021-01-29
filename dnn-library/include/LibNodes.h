@@ -1,6 +1,6 @@
 // File automatically generated with:
-//  ./libManager.py --swplatform-root /home/abel/work/repo2/sw-platform/ --excel libManager.xlsx --cacheState
-//  cacheState.xlsx cwd=/home/abel/work/repo2/sw-platform/host-software/dnnLibrary/scripts
+//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
+//  cwd=/local/home/sebastia/Esperanto/sw-platform/host-software/dnnLibrary/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
@@ -673,14 +673,10 @@ extern template void fwdLibElementSubInstVectorized<Int64ITy,Int64ITy,Int64ITy>(
 // declarations
 template <ElemKind out0Type>
 void fwdLibEmbeddingBagInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type>
-void fwdLibEmbeddingBagInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibEmbeddingBagInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibEmbeddingBagInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibEmbeddingBagInstVectorized<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibEmbeddingBagInstVectorized<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  MaxSplat implementations

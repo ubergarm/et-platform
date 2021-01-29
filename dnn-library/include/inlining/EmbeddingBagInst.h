@@ -46,147 +46,6 @@ namespace inlining {
  * @param[flags] flags Gives the information of the Active Shires and the
  *  type of evict required.
  */
-template <ElemKind elKind>
-inline typename std::enable_if_t<(elKind == Float16Ty), void>
-fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-                       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
-  if (get_minion_id() != minionOffset) return;
-
-  assert(in1T->getElementType() == outT->getElementType());
-  assert(in1T->getElementType() == Float16Ty);
-  assert((in3T->getElementType() == Int64ITy) && (in3T->getElementType() == in4T->getElementType()));
-
-  using elkType = typename elemKind2elemTy<elKind>::type;
-
-  auto outH = outT->getHandle<elkType>();
-  auto dataH = in1T->getHandle<elkType>();
-  auto weightH = in2T->getHandle<elkType>();
-  auto indxH = in3T->getHandle<int64_t>();
-  auto offH = in4T->getHandle<int64_t>();
-
-  outH.zero();
-
-  const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
-  const dim_t numIndices = in3T->dims()[0];
-
-  // NOTE : Stride is passed as the number of elements, not as bytes.
-  const dim_t inStride    = in1T->strides()[0];
-  const dim_t inElemPerRow = in1T->dims()[1];
-  const dim_t outStride    = outT->strides()[0];
-  
-
-  dim_t curIdx = 0;
-  for (dim_t i = 0; i < segments; i++) {
-    dim_t start = offH.raw(i);
-    dim_t end;
-    if(!hasEndOffset) {
-      // Note that in this case we have to use numIndices to find the end of
-      // the last segment. This is an issue though because it relies on knowing
-      // the total length of the indices tensor which may not be possible.
-      // Future implementations of this operator should always give an end
-      // offset so eventually this case should be removed.
-      end = (i == (segments-1))? numIndices : offH.raw(i + 1);
-    }
-    else {
-      end = offH.raw(i + 1);
-    }
-
-    if (start == end) {
-      continue;
-    }
-    else if (start > end) {
-      break;
-    }
-
-    for (dim_t j = start; j < end; j++) {
-
-      float weightfl;
-      convertFp16ToFp32(static_cast<uint16_t>(weightH.raw(curIdx)), weightfl);
-      dim_t offsetIn = indxH.raw(curIdx++) * inStride;
-      dim_t offsetOut = i * outStride;
-      for (dim_t k = 0; k < inElemPerRow; k++) {
-        float datafl = 0;
-        float outfl = 0;
-        uint16_t out16 = 0;
-        convertFp16ToFp32(static_cast<uint16_t>(dataH.raw(offsetIn++)), datafl);
-        convertFp16ToFp32(static_cast<uint16_t>(outH.raw(offsetOut)), outfl);
-        outfl += datafl * weightfl;
-        convertFp32ToFp16(outfl,out16);
-        outH.raw(offsetOut++) = out16;
-      }
-    }
-  }
-
-  outT->evict(DO_EVICTS);
-}
-
-template <ElemKind elKind>
-inline typename std::enable_if_t<(elKind == FloatTy), void>
-fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-                       LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-                       uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  if (get_minion_id() != minionOffset) return;
-
-  assert(in1T->getElementType() == outT->getElementType());
-  assert(in1T->getElementType() == FloatTy);
-  assert((in3T->getElementType() == Int64ITy) && (in3T->getElementType() == in4T->getElementType()));
-
-  using elkType = typename elemKind2elemTy<elKind>::type;
-
-  auto outH = outT->getHandle<elkType>();
-  auto dataH = in1T->getHandle<elkType>();
-  auto weightH = in2T->getHandle<elkType>();
-  auto indxH = in3T->getHandle<int64_t>();
-  auto offH = in4T->getHandle<int64_t>();
-
-  outH.zero();
-
-  const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
-  const dim_t numIndices = in3T->dims()[0];
-
-  // NOTE : Stride is passed as the number of elements, not as bytes.
-  const dim_t inStride    = in1T->strides()[0];
-  const dim_t inElemPerRow = in1T->dims()[1];
-  const dim_t outStride    = outT->strides()[0];
-
-  dim_t curIdx = 0;
-  for (dim_t i = 0; i < segments; i++) {
-    dim_t start = offH.raw(i);
-    dim_t end;
-    if(!hasEndOffset) {
-      // Note that in this case we have to use numIndices to find the end of
-      // the last segment. This is an issue though because it relies on knowing
-      // the total length of the indices tensor which may not be possible.
-      // Future implementations of this operator should always give an end
-      // offset so eventually this case should be removed.
-      end = (i == (segments-1))? numIndices : offH.raw(i + 1);
-    }
-    else {
-      end = offH.raw(i + 1);
-    }
-
-    if (start == end) {
-      continue;
-    }
-    else if (start > end) {
-      break;
-    }
-
-    for (dim_t j = start; j < end; j++) {
-      elkType weight = weightH.raw(curIdx);      
-      dim_t offsetIn = indxH.raw(curIdx++) * inStride;
-      dim_t offsetOut = i * outStride;
-      for (dim_t k = 0; k < inElemPerRow; k++) {
-        outH.raw(offsetOut++) += dataH.raw(offsetIn++) * weight;
-      }
-    }
-  }
-
-  outT->evict(DO_EVICTS);
-}
 
 template <ElemKind elK>
 inline __attribute((always_inline))
@@ -304,14 +163,11 @@ void embeddingBagsTailVectorized(
   }
 }
 
-
-
 template <ElemKind elK>
-inline __attribute((always_inline))
-void fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-                                 LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-                                 uint64_t flags, const uint32_t minionOffset = 0,
-                                 const uint32_t assignedMinions = 0) {
+inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                                                LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
+                                                                uint64_t flags, const uint32_t minionOffset = 0,
+                                                                const uint32_t assignedMinions = 0) {
 
   const bool float32Dst = (elK == FloatTy);
   const bool float16Dst = (elK == Float16Ty);
