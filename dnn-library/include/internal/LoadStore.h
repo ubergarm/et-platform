@@ -834,16 +834,6 @@ template <ElemKind srcElK, ElemKind dstElK> inline void convert(float& destinati
   }
 }
 
-// Convert a positive infinity to negative
-inline void patchPositiveInf(float& value) {
-  float mask;
-  __asm__ __volatile__("fclass.ps %[mask], %[value]\n"
-                       "fsrli.pi %[mask], %[mask], 7\n"
-                       "fslli.pi %[mask], %[mask], 31\n"
-                       "for.pi %[value], %[value], %[mask]\n"
-                       : [ value ] "+f"(value), [ mask ] "=f"(mask));
-}
-
 } // namespace dnn_lib
 
 #endif // _LOADSTORE_H_
