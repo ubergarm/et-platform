@@ -671,145 +671,6 @@ public:
     dst[d] = src1[s1] * src2[s2];
   }
 
-  template <typename U = opType, typename S = src1Type,
-            typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S, Addresser<Float16Ty>>::value,
-                                    std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
-                         "fgh.ps  f0, f31(%[src1]) \n"
-                         "fcvt.ps.f16 f0, f0 \n"
-                         "fgh.ps  f1, f31(%[src2]) \n"
-                         "fcvt.ps.f16 f1, f1 \n"
-                         "frcp.ps f1, f1 \n"
-                         "fmul.ps f0, f0, f1 \n"
-                         "fcvt.f16.ps f0, f0 \n"
-                         "fsch.ps  f0, f31(%[dst]) \n"
-                         :
-                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
-                           [ src1 ] "r"(srcAddr1),
-                           [ src2 ] "r"(srcAddr2),
-                           [ dst ] "r" (dstAddr)
-                         : "f0", "f1", "f31", "memory");
-  }
-
-
-  template <typename U = opType, typename S = src1Type,
-            typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S, Addresser<FloatTy>>::value,
-                                    std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
-    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
-                         "flw.ps  f1, 0x0(%[src2]) \n"
-                         "frcp.ps f1, f1 \n"
-                         "fmul.ps f0, f0, f1 \n"
-                         "fsw.ps  f0, 0x0(%[dst]) \n"
-                         :
-                         : [ src1 ] "r"(srcAddr1),
-                           [ src2 ] "r"(srcAddr2),
-                           [ dst ] "r" (dstAddr)
-                         : "f0", "f1", "memory");
-  }
-
-  template <typename U = opType, typename S = src1Type, typename D = dstType,
-            typename std::enable_if<std::is_same<U, Div>::value && std::is_same<D, Addresser<UInt8QTy>>::value && !std::is_same<S, Addresser<FloatTy>>::value && !std::is_same<S, Addresser<Float16Ty>>::value,
-                                    std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
-                         "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n"
-                         "fandi.pi f0, f0, 0xff \n"
-                         "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n"
-                         "fgb.ps  f1, f31(%[src2]) \n"
-                         "fandi.pi f1, f1, 0xff \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n"
-                         "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n"
-                         "frcp.ps f1, f1 \n"
-                         "fmul.ps f0, f1, f0 \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n"
-                         "frcp.ps f29, f29 \n"
-                         "fcvt.ps.pw f30, f30 \n"
-                         "fmul.ps f0, f0, f29 \n"
-                         "fcvt.pw.ps f0, f0 \n"
-                         "fsatu8.pi f0, f0 \n"
-                         "fscb.ps  f0, f31(%[dst]) \n"
-                         :
-                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
-                           [ src1 ] "r"(srcAddr1),
-                           [ src2 ] "r"(srcAddr2),
-                           [ dst ] "r"(dstAddr),
-                           [ scale ] "r"(scale)
-                         : "f0", "f1", "f29", "f31", "memory");
-  }
-
-  template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
-            typename std::enable_if<std::is_same<U, Div>::value && (std::is_same<S1, Addresser<UInt8QTy>>::value || std::is_same<S2, Addresser<UInt8QTy>>::value) && std::is_same<D, Addresser<Int8QTy>>::value && !std::is_same<S1, Addresser<FloatTy>>::value && !std::is_same<S1, Addresser<Float16Ty>>::value,
-                                    std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
-    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
-                         "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n"
-                         "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n"
-                         "fgb.ps  f1, f31(%[src2]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n"
-                         "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n"
-                         "frcp.ps f1, f1 \n"
-                         "fmul.ps f0, f1, f0 \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n"
-                         "frcp.ps f29, f29 \n"
-                         "fcvt.ps.pw f30, f30 \n"
-                         "fmul.ps f0, f0, f29 \n"
-                         "fcvt.pw.ps f0, f0 \n"
-                         "fsat8.pi f0, f0 \n"
-                         "fscb.ps  f0, f31(%[dst]) \n"
-                         :
-                         : [ gatherValues ] "m" (*(const int32_t (*)[8]) gatherValues),
-                           [ src1 ] "r"(srcAddr1),
-                           [ src2 ] "r"(srcAddr2),
-                           [ dst ] "r"(dstAddr),
-                           [ scale ] "r"(scale)
-                         : "f0", "f1", "f29", "f31", "memory");
-  }
-
-  template <typename U = opType, typename S1 = src1Type, typename S2 = src2Type, typename D = dstType,
-            typename std::enable_if<std::is_same<U, Div>::value && std::is_same<S1, Addresser<Int8QTy>>::value && std::is_same<S2, Addresser<Int8QTy>>::value && std::is_same<D, Addresser<Int8QTy>>::value, std::size_t>::type = 0>
-  void doOpVect(int32_t *gatherValues, uintptr_t srcAddr1, uintptr_t  srcAddr2, uintptr_t dstAddr, const float *scale, const int32_t *offset) {
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"
-                         "flw.ps f31, %[gatherValues]\n"
-                         "fbc.ps f30, 0x0(%[offset]) \n"
-                         "fbc.ps f29, 0x0(%[scale]) \n"
-                         "fgb.ps  f0, f31(%[src1]) \n"
-                         "fsub.pi f0, f0, f30 \n"
-                         "fcvt.ps.pw f0, f0 \n"
-                         "fmul.ps f0, f0, f29 \n"
-                         "fbc.ps f30, 0x4(%[offset]) \n"
-                         "fbc.ps f29, 0x4(%[scale]) \n"
-                         "fgb.ps  f1, f31(%[src2]) \n"
-                         "fsub.pi f1, f1, f30 \n"
-                         "fcvt.ps.pw f1, f1 \n"
-                         "fmul.ps f1, f1, f29 \n"
-                         "frcp.ps f1, f1 \n"
-                         "fmul.ps f0, f0, f1 \n"
-                         "fbc.ps f30, 0x8(%[offset]) \n"
-                         "fbc.ps f29, 0x8(%[scale]) \n"
-                         "frcp.ps f29, f29 \n"
-                         "fcvt.ps.pw f30, f30 \n"
-                         "fmadd.ps f0, f0, f29, f30 \n"
-                         "fcvt.pw.ps f0, f0 \n"
-                         "fsat8.pi f0, f0 \n"
-                         "fscb.ps  f0, f31(%[dst]) \n"
-                         :
-                         : [ gatherValues ] "m"(*(const int32_t (*)[8]) gatherValues),
-                           [ src1 ] "r"(srcAddr1),
-                           [ src2 ] "r"(srcAddr2),
-                           [ dst ] "r"(dstAddr),
-                           [ offset ] "r"(offset),
-                           [ scale ] "r"(scale)
-                         : "f0", "f1", "f29", "f30", "f31", "memory");
-  }
-
   template <
       typename U = opType, typename S = src1Type,
       typename std::enable_if<std::is_same<U, Div>::value &&
@@ -2073,5 +1934,116 @@ public:
   }
 };
 
-} //namespace dnn_lib
+template <typename opType, ElemKind dstElK, ElemKind lhsElK, ElemKind rhsElK>
+inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float dstScale, float lhsScale,
+                 float rhsScale, int32_t dstOffset, int32_t lhsOffset, int32_t rhsOffset) {
+
+  static_assert(isQuantizedElemKind(lhsElK) or dstElK == Int32ITy or dstElK == Int64ITy or dstElK == FloatTy or
+                dstElK == Float16Ty or dstElK == BFloat16Ty);
+
+  constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
+  constexpr size_t lhsBytesPerElement = Type::getElementSize(lhsElK);
+  constexpr size_t rhsBytesPerElement = Type::getElementSize(rhsElK);
+
+  // Setup scatter configuration for destination
+  uint64_t dstConf;
+  float dstIndices, dstIndicesHigh;
+  setupGatherScatterConfig<dstBytesPerElement, false>(dstConf, dstIndices, dstIndicesHigh);
+
+  // Setup gather configuration for LHS
+  uint64_t lhsConf;
+  float lhsIndices, lhsIndicesHigh;
+  setupGatherScatterConfig<lhsBytesPerElement, false>(lhsConf, lhsIndices, lhsIndicesHigh);
+
+  // Setup gather configuration for RHS
+  uint64_t rhsConf;
+  float rhsIndices, rhsIndicesHigh;
+  setupGatherScatterConfig<rhsBytesPerElement, false>(rhsConf, rhsIndices, rhsIndicesHigh);
+
+  // Setup LHS dequantize
+  float lhsScale_, lhsOffset_;
+  setupDequantize(lhsScale_, lhsOffset_, lhsScale, lhsOffset);
+
+  // Setup RHS dequantize with destination scale pre-multiply
+  float rhsScale_, rhsOffset_;
+  setupDequantize(rhsScale_, rhsOffset_, rhsScale * dstScale, rhsOffset);
+
+  // Convert dstOffset from int32_t to float
+  float dstOffset_ = 0;
+  (void)dstOffset_;
+  if constexpr (isQuantizedElemKind(lhsElK)) {
+    __asm__ __volatile__("fbcx.ps %[dstOffset_], %[dstOffset]\n"
+                         "fcvt.ps.pw %[dstOffset_], %[dstOffset_], rtz\n"
+                         : [ dstOffset_ ] "=f"(dstOffset_)
+                         : [ dstOffset ] "r"(dstOffset));
+  }
+
+  // Load LHS
+  float lhs, lhsHigh;
+  load<lhsBytesPerElement, false>(lhsAddr, lhsConf, lhsIndices, lhsIndicesHigh, lhs, lhsHigh);
+
+  // Load RHS
+  float rhs, rhsHigh;
+  load<rhsBytesPerElement, false>(rhsAddr, rhsConf, rhsIndices, rhsIndicesHigh, rhs, rhsHigh);
+
+  // Compute result
+  float result, resultHigh;
+
+  if constexpr (isQuantizedElemKind(lhsElK)) {
+
+    // Dequantize lhs and rhs
+    doDequantize(lhs, lhs, lhsScale_, lhsOffset_);
+    doDequantize(rhs, rhs, rhsScale_, rhsOffset_);
+
+    // Compute rcp(rhs), with rhs being pre-multiplied with dstScale
+    __asm__ __volatile__("frcp.ps %[rhs], %[rhs]\n" : [ rhs ] "+f"(rhs));
+
+    // Compute lhs * rcp(rhs) + dstOffset
+    float q;
+    multiplyAdd(q, lhs, rhs, dstOffset_);
+
+    // Round like std::round and convert to int32_t
+    float mask, bit;
+    __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
+                         "fsrli.pi %[bit], %[mask], 9\n"
+                         "fsrli.pi %[mask], %[mask], 7\n"
+                         "for.pi %[bit], %[mask], %[bit]\n"
+                         "fandi.pi %[bit], %[bit], 1\n"
+                         "fcvt.pw.ps %[destination], %[source], rmm\n"
+                         "fadd.pi %[destination], %[destination], %[bit]\n"
+                         : [ mask ] "=&f"(mask), [ bit ] "=&f"(bit), [ destination ] "=f"(q)
+                         : [ source ] "f"(q));
+
+    // Convert from int32_t to int8_t
+    __asm__ __volatile__("fsat8.pi %[result], %[q]\n" : [ result ] "=f"(result) : [ q ] "f"(q));
+
+  } else {
+
+    // Convert lhs to FloatTy
+    convert<lhsElK, FloatTy>(lhs, lhsHigh);
+
+    // Convert rhs to FloatTy
+    convert<rhsElK, FloatTy>(rhs, rhsHigh);
+
+    // Compute lhs rcp(rhs)
+    __asm__ __volatile__("frcp.ps %[result], %[rhs]\n"
+                         "fmul.ps %[result], %[lhs], %[result]\n"
+                         : [ result ] "=&f"(result)
+                         : [ lhs ] "f"(lhs), [ rhs ] "f"(rhs));
+
+    // Convert result to dstElK
+    convert<FloatTy, dstElK>(result, resultHigh);
+  }
+
+  // Store result
+  if constexpr (dstBytesPerElement > 4) {
+    store<dstBytesPerElement>(dstAddr, dstConf, dstIndices, dstIndicesHigh, result, resultHigh);
+  } else {
+    (void)resultHigh;
+    store<dstBytesPerElement>(dstAddr, dstConf, dstIndices, result);
+  }
+}
+
+} // namespace dnn_lib
+
 #endif /* OPERATOR_H */

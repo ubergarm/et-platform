@@ -167,12 +167,20 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
-  
-  const float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
-  const int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), outT->getOffset()};
-  
 
- /* maintain compatibility through the new Iface Libtensor */
+  const float lhsScale = in1T->getScale();
+  const float rhsScale = in2T->getScale();
+  const float dstScale = outT->getScale();
+  const float scale[] = {lhsScale, rhsScale, dstScale};
+  (void)scale;
+
+  const int32_t lhsOffset = in1T->getOffset();
+  const int32_t rhsOffset = in2T->getOffset();
+  const int32_t dstOffset = outT->getOffset();
+  const int32_t offset[] = {lhsOffset, rhsOffset, dstOffset};
+  (void)offset;
+
+  /* maintain compatibility through the new Iface Libtensor */
 
   void* dstT = outT->getRawDataPointer<void>();
   void* srcT1 = in1T->getRawDataPointer<void>();
@@ -190,6 +198,7 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   
 
   Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<dstElK>, opType> op;
+  (void)op;
 
   unsigned int numElemsDst = dstPitch[0] * actIndex[0];
 
@@ -216,6 +225,7 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   unsigned int lastDim = srcDimNum - 1;
 
   int32_t gatherValues[] = {0, 0, 0, 0, 0, 0, 0, 0};
+  (void)gatherValues;
   for (unsigned int i = 0; i < 8; i++) {
       gatherValues[i] = i * typeSize;
   }
@@ -254,8 +264,21 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
 
     unsigned int cnt = 0;
 
+    constexpr bool useNewImplementation = std::is_same<opType, Div>();
+
     while(cnt < registersInRow) {
-      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
+
+      if constexpr (useNewImplementation) {
+        const uintptr_t& lhsAddr = srcAddr1;
+        const uintptr_t& rhsAddr = srcAddr2;
+        constexpr auto lhsElK = src1ElK;
+        constexpr auto rhsElK = src2ElK;
+        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset,
+                                             lhsOffset, rhsOffset);
+      } else {
+        op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
+      }
+
       cnt++;
       srcAddr1 += 8 * typeSize;
       srcAddr2 += 8 * typeSize;
@@ -263,7 +286,17 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
     }
     if (res > 0) {
       __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
+
+      if constexpr (useNewImplementation) {
+        const uintptr_t& lhsAddr = srcAddr1;
+        const uintptr_t& rhsAddr = srcAddr2;
+        constexpr auto lhsElK = src1ElK;
+        constexpr auto rhsElK = src2ElK;
+        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset,
+                                             lhsOffset, rhsOffset);
+      } else {
+        op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
+      }
     }
 
     if (lastRow)
