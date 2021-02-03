@@ -2003,16 +2003,7 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
     multiplyAdd(q, lhs, rhs, dstOffset_);
 
     // Round like std::round and convert to int32_t
-    float mask, bit;
-    __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
-                         "fsrli.pi %[bit], %[mask], 9\n"
-                         "fsrli.pi %[mask], %[mask], 7\n"
-                         "for.pi %[bit], %[mask], %[bit]\n"
-                         "fandi.pi %[bit], %[bit], 1\n"
-                         "fcvt.pw.ps %[destination], %[source], rmm\n"
-                         "fadd.pi %[destination], %[destination], %[bit]\n"
-                         : [ mask ] "=&f"(mask), [ bit ] "=&f"(bit), [ destination ] "=f"(q)
-                         : [ source ] "f"(q));
+    convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(q, q);
 
     // Convert from int32_t to int8_t
     __asm__ __volatile__("fsat8.pi %[result], %[q]\n" : [ result ] "=f"(result) : [ q ] "f"(q));

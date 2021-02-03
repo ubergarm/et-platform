@@ -16,6 +16,112 @@
 
 namespace dnn_lib {
 
+enum class RoundingMode {
+  NearestTiesEven = 0,
+  TowardsZero,
+  Down,
+  Up,
+  NearestTiesMax,
+  Invalid1,
+  Invalid2,
+  Dynamic,
+  LikeStdRoundAndCast = NearestTiesMax,
+  LikeCast = TowardsZero
+};
+
+template <RoundingMode mode = RoundingMode::Dynamic, bool canBeSignallingNaN = false>
+inline void convertFloatToInt32(float source, float& destination) {
+
+  static_assert(mode != RoundingMode::Invalid1 and mode != RoundingMode::Invalid2);
+
+  // When converting from FloatTy to Int32ITy, two floating point unit
+  // standards like RISC-V and x86 deal differently with with -Inf, +Inf,
+  // NaN and sNaN values, as shown in the following table:
+  //
+  // |        | -Inf       | +Inf       | NaN        | sNaN       |
+  // |--------|------------|------------|------------|------------|
+  // | RISC-V | 0x80000000 | 0x7fffffff | 0x7fffffff | 0x7fffffff |
+  // | x86    | 0x80000000 | 0x80000000 | 0x80000000 | 0x80000000 |
+  //
+  // The reference for the RISC-V values in our table is the public
+  // spec. Regarding to the values for x86 they were found by trial and
+  // error and then verified that they matched the behaviour of the
+  // legacy FIST instruction as described on the "Intel 64 and IA-32
+  // Architectures Software Developer's Manual":
+  // https://www.intel.com/content/dam/www/public/us/en/documents/manuals/
+  // 64-ia-32-architectures-software-developer-instruction-set-reference-
+  // manual-325383.pdf
+  //
+  // If one needs to implement a C99 style cast like "(int)(floatValue)",
+  // the language standard gives the freedom of producing any value we wish
+  // for the four inputs in the table. That freedom comes from the fact
+  // that the standard conveniently states that convertions are undefined
+  // for values outside of the range than can be represented. See section
+  // 6.3.1.4 from the C99 standard here:
+  // http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
+  //
+  // Note that as a corolary of the wording in the C99 standard we have that
+  // for producing a C99 capable CPU one does not even need to clamp values
+  // above 2^31-1 or below -2^31.
+  //
+  // However, ETSoC goes the extra leg in our sofware by patching our RISC-V
+  // style results for matching the x86 convertion. We do the fix by
+  // incrementing the result when bits 7, 8 or 9 from the fclass returned
+  // mask are set, meaning the input is +Inf orNaN or sNaN.
+  //
+  // Note that this behaviour may be optionally dropped if something like a
+  // "fast math" mode is provided in the future by dnnLibrary.
+
+  float mask, bit, temp;
+  __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
+                       "fsrli.pi %[bit], %[mask], 9\n"
+                       : [ mask ] "=f"(mask), [ bit ] "=f"(bit)
+                       : [ source ] "f"(source));
+
+  if constexpr (canBeSignallingNaN) {
+    __asm__ __volatile__("fsrli.pi %[temp], %[mask], 8\n"
+                         "for.pi %[bit], %[temp], %[bit]\n"
+                         : [ temp ] "=f"(temp), [ bit ] "+f"(bit)
+                         : [ mask ] "f"(mask));
+  }
+
+  __asm__ __volatile__("fsrli.pi %[temp], %[mask], 7\n"
+                       "for.pi %[bit], %[temp], %[bit]\n"
+                       "fandi.pi %[bit], %[bit], 1\n"
+                       : [ temp ] "=f"(temp), [ bit ] "+f"(bit)
+                       : [ mask ] "f"(mask));
+
+  if constexpr (mode == RoundingMode::NearestTiesEven) {
+    __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rne\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
+  } else if constexpr (mode == RoundingMode::TowardsZero) {
+    __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rtz\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
+  } else if constexpr (mode == RoundingMode::Down) {
+    __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rdn\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
+  } else if constexpr (mode == RoundingMode::Up) {
+    __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rup\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
+  } else if constexpr (mode == RoundingMode::NearestTiesMax) {
+    __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rmm\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
+  } else if constexpr (mode == RoundingMode::Dynamic) {
+    __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], dyn\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
+  }
+
+  __asm__ __volatile__("fadd.pi %[destination], %[destination], %[bit]\n"
+                       : [ destination ] "+f"(destination)
+                       : [ bit ] "f"(bit));
+}
+
 constexpr uint64_t fg32b_conf = 0x398A418820;
 constexpr uint64_t fg32h_conf = 0x76543210;
 
@@ -276,56 +382,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
     // TODO: from FloatTy to Int32QTy probably not required
   } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
-    float mask, accumulator, bit;
-    __asm__(
-      // When converting from FloatTy to Int32ITy, two floating point unit
-      // standards like RISC-V and x86 deal differently with with -Inf, +Inf,
-      // NaN and sNaN values, as shown in the following table:
-      //
-      // |        | -Inf       | +Inf       | NaN        | sNaN       |
-      // |--------|------------|------------|------------|------------|
-      // | RISC-V | 0x80000000 | 0x7fffffff | 0x7fffffff | 0x7fffffff |
-      // | x86    | 0x80000000 | 0x80000000 | 0x80000000 | 0x80000000 |
-      //
-      // The reference for the RISC-V values in our table is the public
-      // spec. Regarding to the values for x86 they were found by trial and
-      // error and then verified that they matched the behaviour of the
-      // legacy FIST instruction as described on the "Intel 64 and IA-32
-      // Architectures Software Developer's Manual":
-      // https://www.intel.com/content/dam/www/public/us/en/documents/manuals/
-      // 64-ia-32-architectures-software-developer-instruction-set-reference-
-      // manual-325383.pdf
-      //
-      // If one needs to implement a C99 style cast like "(int)(floatValue)",
-      // the language standard gives the freedom of producing any value we wish
-      // for the four inputs in the table. That freedom comes from the fact
-      // that the standard conveniently states that convertions are undefined
-      // for values outside of the range than can be represented. See section
-      // 6.3.1.4 from the C99 standard here:
-      // http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf
-      //
-      // Note that as a corolary of the wording in the C99 standard we have that
-      // for producing a C99 capable CPU one does not even need to clamp values
-      // above 2^31-1 or below -2^31.
-      //
-      // However, ETSoC goes the extra leg in our sofware by patching our RISC-V
-      // style results for matching the x86 convertion. We do the fix by
-      // incrementing the result when bits 7, 8 or 9 from the fclass returned
-      // mask are set, meaning the input is +Inf, NaN or sNaN.
-      //
-      // Note that this behaviour may be optionally dropped if something like a
-      // "fast math" mode is provided in the future by dnnLibrary.
-      "fclass.ps %[mask], %[source]\n"
-      "fsrli.pi %[accumulator], %[mask], 7\n"
-      "fsrli.pi %[bit], %[mask], 8\n"
-      "for.pi %[accumulator], %[accumulator], %[bit]\n"
-      "fsrli.pi %[bit], %[mask], 9\n"
-      "for.pi %[accumulator], %[accumulator], %[bit]\n"
-      "fandi.pi %[accumulator], %[accumulator], 1\n"
-      "fcvt.pw.ps %[destination], %[source], rtz\n"
-      "fadd.pi %[destination], %[destination], %[accumulator]\n"
-      : [ mask ] "=&f"(mask), [ accumulator ] "=&f"(accumulator), [ bit ] "=&f"(bit), [ destination ] "=f"(destination)
-      : [ source ] "f"(source));
+    convertFloatToInt32<RoundingMode::LikeCast>(source, destination);
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
     float mask, exponent, implicit, minusExponent, tmp, mantissa;
     __asm__ __volatile__(
@@ -385,7 +442,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
       //
       // The overriding is needed for matching the x86 implementations. For
       // details see the explanation on the code converting from FloatTy to
-      // Int32ITy.
+      // Int32ITy on the convertFloatToInt32 function.
       "fclass.ps %[mask], %[source]\n"
       "fandi.pi %[accumulator], %[mask], 1\n"
       "fsrli.pi %[bit], %[mask], 7\n"
