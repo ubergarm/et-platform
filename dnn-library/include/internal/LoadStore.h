@@ -142,46 +142,56 @@ constexpr uint64_t getGatherScatterConfig(size_t bytesPerElement) {
 }
 
 template <size_t bytesPerElement, bool aligned = false>
+inline void setupGatherScatterConfig(uint64_t& conf, float& indices) {
+
+  if constexpr (aligned) {
+    __asm__ __volatile__("li %[conf], %[confImm]\n"
+                         : [ conf ] "=r"(conf)
+                         : [ confImm ] "i"(getGatherScatterConfig(bytesPerElement)));
+    __asm__ __volatile__("" : [ indices ] "=f"(indices));
+  } else {
+    static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
+                                     3 * bytesPerElement, 4 * bytesPerElement, 5 * bytesPerElement,
+                                     6 * bytesPerElement, 7 * bytesPerElement};
+
+    __asm__ __volatile__("flw.ps %[indices], %[values]\n"
+                         : [ indices ] "=f"(indices)
+                         : [ values ] "m"(*(const int32_t(*)[16])values));
+    __asm__ __volatile__("" : [ conf ] "=r"(conf));
+  }
+}
+
+template <size_t bytesPerElement, bool aligned = false>
 inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indicesHigh) {
 
-  static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement, 3 * bytesPerElement,
-                                   4 * bytesPerElement, 5 * bytesPerElement, 6 * bytesPerElement, 7 * bytesPerElement};
-  (void)values;
-
-  if constexpr (bytesPerElement < 4) {
-    if constexpr (aligned) {
-      __asm__ __volatile__("li %[conf], %[confImm]\n"
-                           : [ conf ] "=r"(conf)
-                           : [ confImm ] "i"(getGatherScatterConfig(bytesPerElement)));
-    } else {
-      __asm__ __volatile__("flw.ps %[indices], %[values]\n"
-                           : [ indices ] "=f"(indices)
-                           : [ values ] "m"(*(const int32_t(*)[16])values));
-    }
-  } else if constexpr (bytesPerElement == 8) {
+  if constexpr (bytesPerElement == 8) {
+    static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
+                                     3 * bytesPerElement, 4 * bytesPerElement, 5 * bytesPerElement,
+                                     6 * bytesPerElement, 7 * bytesPerElement};
     __asm__ __volatile__("flw.ps %[indices], %[values]\n"
                          "faddi.pi %[indicesHigh], %[indices], 4\n"
                          : [ indices ] "=f"(indices), [ indicesHigh ] "=f"(indicesHigh)
                          : [ values ] "m"(*(const int32_t(*)[16])values));
+    __asm__ __volatile__("" : [ conf ] "=r"(conf));
+  } else if constexpr (bytesPerElement < 4) {
+    setupGatherScatterConfig<bytesPerElement, aligned>(conf, indices);
+    __asm__ __volatile__("" : [ indicesHigh ] "=f"(indicesHigh));
   }
 }
 
-template <ElemKind srcElK, const ElemKind dstElK, bool alignedSrc, bool alignedDst> constexpr bool isSameConfig() {
-  constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
-  constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
+template <size_t srcBytesPerElement, size_t dstBytesPerElement, bool alignedSrc, bool alignedDst>
+constexpr bool isSameConfig() {
   return srcBytesPerElement == dstBytesPerElement and alignedSrc == alignedDst;
 }
 
-template <ElemKind srcElK, ElemKind dstElK, bool alignedSrc = false, bool alignedDst = false>
+template <size_t srcBytesPerElement, size_t dstBytesPerElement, bool alignedSrc = false, bool alignedDst = false>
 inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indicesHigh, uint64_t& dstConf,
                                      float& dstIndices, float& dstIndicesHigh) {
-
-  constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
   setupGatherScatterConfig<srcBytesPerElement, alignedSrc>(conf, indices, indicesHigh);
-
-  if constexpr (not isSameConfig<srcElK, dstElK, alignedSrc, alignedDst>()) {
-    constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
+  if constexpr (not isSameConfig<srcBytesPerElement, dstBytesPerElement, alignedSrc, alignedDst>()) {
     setupGatherScatterConfig<dstBytesPerElement, alignedDst>(dstConf, dstIndices, dstIndicesHigh);
+  } else {
+    __asm__ __volatile__("" : [ dstIndices ] "=f"(dstIndices), [ dstIndicesHigh ] "=f"(dstIndicesHigh));
   }
 }
 
@@ -889,6 +899,12 @@ template <ElemKind srcElK, ElemKind dstElK> inline void convert(float& destinati
     float destinationHigh = 0;
     convert<srcElK, dstElK>(destination, destinationHigh, destination, destinationHigh);
   }
+}
+
+inline void saturateInt8(float source, float& destination) {
+  __asm__ __volatile__("fsat8.pi %[destination], %[source]\n"
+                       : [ destination ] "=f"(destination)
+                       : [ source ] "f"(source));
 }
 
 } // namespace dnn_lib
