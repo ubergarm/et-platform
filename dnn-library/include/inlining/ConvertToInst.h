@@ -32,7 +32,7 @@ inline void loadConvertStore(uintptr_t srcAddr, uintptr_t dstAddr, uint64_t conf
 
   constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
   constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
-  constexpr bool sameConfig = isSameConfig<srcElK, dstElK, alignedSrc, alignedDst>();
+  constexpr bool sameConfig = isSameConfig<srcBytesPerElement, dstBytesPerElement, alignedSrc, alignedDst>();
 
   float op0 = 0.f, op0High = 0.f;
   load<srcBytesPerElement, alignedSrc>(srcAddr, conf, indices, indicesHigh, op0, op0High);
@@ -110,8 +110,8 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
   uint64_t dstConf;
   float dstIndices;
   float dstIndicesHigh;
-  setupGatherScatterConfig<srcElK, dstElK, false, false>(conf, indices, indicesHigh, dstConf, dstIndices,
-                                                         dstIndicesHigh);
+  setupGatherScatterConfig<srcBytesPerElement, dstBytesPerElement, false, false>(conf, indices, indicesHigh, dstConf,
+                                                                                 dstIndices, dstIndicesHigh);
 
   float srcScale, srcOffset;
   float srcScaleScalar = inT->getScale();

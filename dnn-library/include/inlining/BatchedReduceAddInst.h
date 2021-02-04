@@ -126,7 +126,8 @@ inline void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT,
                                                 unsigned int axis,
                                                 uint64_t flags, const uint32_t minionOffset,
                                                 const uint32_t assignedMinions) {
-    
+  constexpr ElemKind elK = Int8QTy;
+
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
@@ -186,18 +187,29 @@ inline void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT,
     offsetIn += redBatchPitch[j] * offsets[j];
   }
 
+  constexpr size_t dstBytesPerElement = Type::getElementSize(elK);
+
+  // Vector instructions working as scalar
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
+
+  uint64_t dstConf;
+  float dstIndices;
+  setupGatherScatterConfig<dstBytesPerElement, false>(dstConf, dstIndices);
+
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   while (not done && offsetOut < posMax) {
-    float sum = 0.0;
+    float sum = 0.f;
     for (size_t i = 0; i < batchIndex[axis]; i++) {
       sum += tBatch[offsetIn] - inT->getOffset();
       offsetIn += batchPitch[axis];
     }
     offsetIn -= batchIndex[axis] * batchPitch[axis];
-    int32_t res = nearbyintf(sum * inT->getScale() * invScale) + outT->getOffset();
-    tOutput[offsetOut] = clip<int32_t, int8_t>(res);
-
+    sum = sum * inT->getScale() * invScale + outT->getOffset();
+    convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(sum, sum);
+    saturateInt8(sum, sum);
+    uintptr_t dstAddr = reinterpret_cast<uintptr_t>(&tOutput[offsetOut]);
+    store<dstBytesPerElement, false>(dstAddr, dstConf, dstIndices, sum);
     done = getOffsets(pbatchDimNum - 1, offsets, offsetIn, offsetOut, dstIndex,
                       redBatchPitch, dstPitch);
   }
