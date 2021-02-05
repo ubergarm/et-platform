@@ -75,11 +75,14 @@ void abort(void)
      "slti x0,x0,0x7ff\n"
      "lui t0, 0x50BAD\n"
      "csrw validation0, t0\n"
-     "wfi\n"
      : : : "t0");
-  
-  while (1)
-    ;
+
+  syscall(SYSCALL_RETURN_FROM_KERNEL, (uint64_t)-1, 0, 0);
+
+  /* Should never get here */
+  while (1) {
+    __asm__ __volatile__("wfi\n");
+  }
 }
 
 void __assert_func(const char *file, int line, const char *func, const char *failedexpr)
