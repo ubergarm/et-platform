@@ -1969,13 +1969,14 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
   setupDequantize(rhsScale_, rhsOffset_, rhsScale * dstScale, rhsOffset);
 
   // Convert dstOffset from int32_t to float
-  float dstOffset_ = 0;
-  (void)dstOffset_;
+  float dstOffset_;
   if constexpr (isQuantizedElemKind(lhsElK)) {
     __asm__ __volatile__("fbcx.ps %[dstOffset_], %[dstOffset]\n"
                          "fcvt.ps.pw %[dstOffset_], %[dstOffset_], rtz\n"
                          : [ dstOffset_ ] "=f"(dstOffset_)
                          : [ dstOffset ] "r"(dstOffset));
+  } else {
+    __asm__ __volatile__("" : [ dstOffset_ ] "=f"(dstOffset_) : [ dstOffset ] "r"(dstOffset));
   }
 
   // Load LHS
