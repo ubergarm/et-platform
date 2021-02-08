@@ -187,8 +187,10 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   void* srcT2 = in2T->getRawDataPointer<void>();
     
   const dim_t *actIndex = in1T->dims().data();
+
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *act1Pitch = in1T->strides().data();
+  const dim_t* act2Pitch = in2T->strides().data();
 
   unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
 
@@ -214,10 +216,12 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
-  uint64_t offsetIn = 0;
+  uint64_t offsetIn1 = 0;
+  uint64_t offsetIn2 = 0;
   uint64_t offsetOut = 0;
   for (unsigned int j = 0; j < k; j++) {
-    offsetIn += act1Pitch[j] * coord[j];
+    offsetIn1 += act1Pitch[j] * coord[j];
+    offsetIn2 += act2Pitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
   unsigned int posMax = maxRead + initialAddr;
@@ -257,8 +261,8 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
       if (!firstRow) midRow = true;
     }
     firstRow = false;
-    srcAddr1 += offsetIn * typeSize;
-    srcAddr2 += offsetIn * typeSize;
+    srcAddr1 += offsetIn1 * typeSize;
+    srcAddr2 += offsetIn2 * typeSize;
     dstAddr += offsetOut * typeSize;
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
@@ -306,11 +310,11 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
     srcAddr1 = (uintptr_t)srcT1;
     srcAddr2 = (uintptr_t)srcT2;
 
-    offsetIn -= coord[lastDim] * act1Pitch[lastDim];
+    offsetIn1 -= coord[lastDim] * act1Pitch[lastDim];
+    offsetIn2 -= coord[lastDim] * act2Pitch[lastDim];
     offsetOut -= coord[lastDim] * dstPitch[lastDim];
     coord[lastDim] = 0;
-    done = getOffsets(lastDim , coord, offsetIn, offsetOut, actIndex,
-                      act1Pitch, dstPitch);
+    done = getOffsets(lastDim, coord, offsetIn1, offsetIn2, offsetOut, actIndex, act1Pitch, act2Pitch, dstPitch);
   }
 
   if (!DO_EVICTS)
