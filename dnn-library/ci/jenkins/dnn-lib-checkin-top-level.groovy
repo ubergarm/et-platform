@@ -16,7 +16,7 @@ pipeline {
     string(name: 'EMAIL_NIGHTLY_RECIPIENTS', defaultValue: 'et-sw-infra@esperantotech.com', description: 'Comma seperated list of email recipients for a given project')
     string(name: 'CRON_STRING', defaultValue: '0 * * * *', description: 'Cron string to cause a job to execute automatically')
     booleanParam(name: 'CHECK_ON_TOP_OF_MASTER', defaultValue: 'true', description: 'when true this executes checks that ensures Merge Request has merged origin/master with their MR at the time the MR was submiteted')
-    string(name: 'SW_PLATFORM_BRANCH', defaultValue: 'origin/master', description: 'SW-Platform branch to track')
+    string(name: 'SW_PLATFORM_BRANCH', defaultValue: 'origin/develop/ml-compiler', description: 'SW-Platform branch to track')
     string(name: 'GLOW_BRANCH', defaultValue: 'origin/esperanto/master', description: 'ESPERANTO GLOW branch to track')
     string(name: 'NEURALIZER_BRANCH', defaultValue: 'origin/master', description: 'NEURALIZER branch to track')
     string(name: 'INPUT_TAGS', defaultValue: '', description: 'Parameter to receive tags from parent pipelines')
@@ -70,7 +70,7 @@ pipeline {
         }
       }
       steps {
-        sh 'if [ ! -z \"${gitlabTargetBranch}\" ] ; then git fetch && git merge origin/$gitlabTargetBranch | grep Already && ( echo \"Branch is up to date with target branch proceeding...\" && exit 0 ) || ( echo \"Merge request is out of date with respect to target branch. Please, rebase it and re-submit merge request\" && exit 1 ); else echo \"Skipping branch up to date check as environment variable gitlabTargetBranch is not defined!\" ; fi'
+        sh 'git fetch ; git merge origin/master | grep Already && ( echo \"Branch is up to date with Origin/Master proceeding...\" ; exit 0 ) || ( echo \"Merge request is out of date with respect to origin/master. Please, rebase it and re-submit merge request\" ; exit 1 )'
       }
     }
     stage('DSL_JOB') {
@@ -94,10 +94,6 @@ pipeline {
           parameters: [
             string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
             string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
-            string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
-            string(name: 'REPO_NAME', value: 'sw-platform'),
-            string(name: 'NODE', value: 'WORKER'),
-            string(name: 'TIMEOUT', value: '1'),
             string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
           ]
       }
@@ -112,9 +108,6 @@ pipeline {
               parameters: [
                 string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
                 string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
-                string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
-                string(name: 'REPO_NAME', value: 'sw-platform'),
-                string(name: 'TIMEOUT', value: '12'),
                 string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
               ]
           }
@@ -127,9 +120,6 @@ pipeline {
               parameters: [
                 string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
                 string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"),
-                string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
-                string(name: 'REPO_NAME', value: 'sw-platform'),
-                string(name: 'TIMEOUT', value: '12'),
                 string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
               ]
           }
@@ -171,7 +161,7 @@ pipeline {
           if (env.EMAIL_NIGHTLY_TEAM == 'true') {
             if (env.BRANCH == env.EMAIL_NIGHTLY_BRANCH) {
               emailext(subject: "PASSING NIGHTLY Job '${env.JOB_NAME}' (${env.BUILD_NUMBER})",
-                  body: '''<p><font size="6" color="green"> NIGHTLY PIPELINE SUCCEEDED :-)</font></p>
+                  body: '''<p><font size="6" color="green"> NIGHTLY PIPELINE SUCCEEDED :-(</font></p>
                       <p> Build at <a href='${BUILD_URL}'>${JOB_NAME} [${BUILD_NUMBER}]</a></p>
                       <p> Check console output at <a href='${BUILD_URL}consoleText'>${JOB_NAME} [${BUILD_NUMBER}]</a></p>''',
                   mimeType: 'text/html',
