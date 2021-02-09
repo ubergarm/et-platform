@@ -325,7 +325,10 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   // used because there's no cache shared amongst minions.
   // Need both the dest starting address being CL aligned as well as the pitch for
   // the smallest dimension
-  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) dstPitches[0] % dstCacheLineElems) == 0);
+  // The padding must be touchable or the number of elements multiple of cacheline
+  bool destAligned = (((uint64_t)tOutput % CACHE_LINE_BYTES) == 0) &&
+                     (((uint64_t)dstPitches[0] % dstCacheLineElems) == 0) &&
+                     (!outT->getUntouchable() || (((uint64_t)dstDims[0] % dstCacheLineElems) == 0));
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
