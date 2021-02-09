@@ -178,7 +178,9 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   uint64_t minionId = get_minion_id();
 
   // If Minion is outside the group assigned to this Node get out.
-  if (minionId < minionOffset) return;
+  if (minionId < minionOffset) {
+    return;
+  }
 
   // Rebase minion ID.
   minionId -= minionOffset;
@@ -187,7 +189,9 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   uint64_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
-  if (minionId >= activeMinions) return;
+  if (minionId >= activeMinions) {
+    return;
+  }
 
   assert(in1T->getElementType() == outT->getElementType());
   assert(in1T->getElementType() == FloatTy);
@@ -273,14 +277,18 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   }
 
   // No work for this Minion.
-  if (minionWorkUnits == 0)
+  if (minionWorkUnits == 0) {
     return;
+  }
 
   // Computes if the destination is correctly aligned and regulars stores can be
   // used because there's no cache shared amongst minions.
   // Need both the dest starting address being CL aligned as well as the pitch for
   // the smallest dimension
-  bool destAligned = (((uint64_t) tOutput % CACHE_LINE_BYTES) == 0) && (((uint64_t) outT->strides()[0] % dstGroupElems) == 0);
+  // The padding must be touchable or the number of elements multiple of cacheline
+  bool destAligned = (((uint64_t)tOutput % CACHE_LINE_BYTES) == 0) &&
+                     (((uint64_t)outT->strides()[0] % dstGroupElems) == 0) &&
+                     (!outT->getUntouchable() || (((uint64_t)outT->dims()[0] % dstGroupElems) == 0));
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
