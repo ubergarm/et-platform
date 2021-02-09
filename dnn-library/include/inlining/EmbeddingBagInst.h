@@ -288,7 +288,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   // The padding must be touchable or the number of elements multiple of cacheline
   bool destAligned = (((uint64_t)tOutput % CACHE_LINE_BYTES) == 0) &&
                      (((uint64_t)outT->strides()[0] % dstGroupElems) == 0) &&
-                     (!outT->getUntouchable() || (((uint64_t)outT->dims()[0] % dstGroupElems) == 0));
+                     (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstGroupElems) == 0));
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
