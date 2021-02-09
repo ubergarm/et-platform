@@ -328,7 +328,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   // The padding must be touchable or the number of elements multiple of cacheline
   bool destAligned = (((uint64_t)tOutput % CACHE_LINE_BYTES) == 0) &&
                      (((uint64_t)dstPitches[0] % dstCacheLineElems) == 0) &&
-                     (!outT->getUntouchable() || (((uint64_t)dstDims[0] % dstCacheLineElems) == 0));
+                     (!outT->getUntouchable() || (((uint64_t)dstDims[pdstDimNum - 1] % dstCacheLineElems) == 0));
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
