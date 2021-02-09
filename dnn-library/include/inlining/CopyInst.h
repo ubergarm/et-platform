@@ -144,6 +144,8 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT,
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert((minionOffset + activeMinions <= MIN_PER_SHIRE * ACTIVE_SHIRES) && "Minion ID overflow");
+
   if (minionId >= activeMinions)
     return;
 
@@ -256,6 +258,7 @@ inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if ((minionId >= activeMinions) || (minionId >= activeMinions))
     return;
+  assert((minionOffset + activeMinions <= MIN_PER_SHIRE * ACTIVE_SHIRES) && "Minion ID overflow");
 
   /* maintain compatibility through the new Iface Libtensor */
 
