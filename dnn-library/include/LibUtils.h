@@ -193,17 +193,16 @@ namespace dnn_lib{
   template<typename T, size_t SIZE, T padding>
   class pad_array {
   public:
-    template<size_t N>
-    static constexpr std::array<T, SIZE> create(const std::array<T,N> v) {
+    template <size_t N> static constexpr std::array<T, SIZE> create(const std::array<T, N>& v) {
       return _create(v, std::make_index_sequence<SIZE> {} );
     }
+
   private:
-    template<size_t N, size_t ... dims>
-    static constexpr std::array<T,SIZE>  _create(const std::array<T,N> v, std::index_sequence<dims...> ) {
-      return { getEl(v, dims)... };
+    template <size_t N, size_t... dims>
+    static constexpr std::array<T, SIZE> _create(const std::array<T, N>& v, std::index_sequence<dims...>) {
+      return {getEl<dims>(v)...};
     }
-    template<size_t N>
-    static constexpr T getEl(const std::array<T,N> v, const size_t idx) {
+    template <size_t idx, size_t N> static constexpr T getEl(const std::array<T, N>& v) {
       return idx >= N ? padding : v[idx];
     }
   };

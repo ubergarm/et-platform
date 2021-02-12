@@ -148,7 +148,6 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices) {
     __asm__ __volatile__("li %[conf], %[confImm]\n"
                          : [ conf ] "=r"(conf)
                          : [ confImm ] "i"(getGatherScatterConfig(bytesPerElement)));
-    __asm__ __volatile__("" : [ indices ] "=f"(indices));
   } else {
     static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
                                      3 * bytesPerElement, 4 * bytesPerElement, 5 * bytesPerElement,
@@ -157,7 +156,6 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices) {
     __asm__ __volatile__("flw.ps %[indices], %[values]\n"
                          : [ indices ] "=f"(indices)
                          : [ values ] "m"(*(const int32_t(*)[16])values));
-    __asm__ __volatile__("" : [ conf ] "=r"(conf));
   }
 }
 
@@ -172,10 +170,8 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indi
                          "faddi.pi %[indicesHigh], %[indices], 4\n"
                          : [ indices ] "=f"(indices), [ indicesHigh ] "=f"(indicesHigh)
                          : [ values ] "m"(*(const int32_t(*)[16])values));
-    __asm__ __volatile__("" : [ conf ] "=r"(conf));
   } else if constexpr (bytesPerElement < 4) {
     setupGatherScatterConfig<bytesPerElement, aligned>(conf, indices);
-    __asm__ __volatile__("" : [ indicesHigh ] "=f"(indicesHigh));
   }
 }
 
@@ -190,13 +186,11 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indi
   setupGatherScatterConfig<srcBytesPerElement, alignedSrc>(conf, indices, indicesHigh);
   if constexpr (not isSameConfig<srcBytesPerElement, dstBytesPerElement, alignedSrc, alignedDst>()) {
     setupGatherScatterConfig<dstBytesPerElement, alignedDst>(dstConf, dstIndices, dstIndicesHigh);
-  } else {
-    __asm__ __volatile__("" : [ dstIndices ] "=f"(dstIndices), [ dstIndicesHigh ] "=f"(dstIndicesHigh));
   }
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void load(uintptr_t src, uint64_t conf, float indices, float& op0) {
+inline void load(uintptr_t src, uint64_t conf, const float& indices, float& op0) {
   static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {

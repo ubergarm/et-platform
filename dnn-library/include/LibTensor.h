@@ -336,7 +336,7 @@ struct Type final {
       return sizeof(bool);
     }
     assert(true && "Invalid type");
-    return sizeof(bool);
+    __builtin_unreachable();
   }
 
   // /// Given a string \p str containing the name of an ElemKind from
@@ -601,45 +601,54 @@ public:
 
   // returns offset and maxRead (in number of elements)
   void partitionCL(const uint64_t minionId, const unsigned activeMinions, dim_t& offset, dim_t& maxRead) const {
+
+    size_t onlyMin0;   // elements only for minion0 (e.g. unaligned bytes)
+    size_t firstSpare; // first minion with 1 CL less
+    size_t CLperMin;   // CL to process per minion
     size_t elementSize = type_.getElementSize();
-    // Checks for unaligned tensor
-    size_t ad = (size_t) ptrData_;
-    size_t al = ad % 64;
-    size_t ual = 0; // Amount of unaligned bytes
-    if (al != 0) {
-      ual = CACHE_LINE_BYTES - al;
-      // Special case where cache line is unaligned and all elements
-      // are in this cacheline
-      if (ual > type_.getSizeInBytes()) {
-        if (minionId == 0) {
-          offset  = 0;
-          maxRead = type_.getSizeInBytes() / elementSize;
-        }
-        else
-          maxRead = 0;
 
-        return;
-      }
-    }
-
-    size_t ualOffset  = (minionId == 0) ? 0 : ual;
-    size_t ualMaxRead = (minionId == 0) ? ual : 0;
-
-    size_t inCL = (type_.getSizeInBytes() - ual + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-    size_t CLperMin = inCL / activeMinions;
-    size_t spare = inCL - CLperMin * activeMinions;
-    // all minions will have CLperMin cache lines to process
-    // and minions with id < spare will have an extra CL
-    if (minionId < spare) {
-      offset = (CLperMin + 1) * minionId + ualOffset;
-      maxRead = CLperMin + 1 + ualMaxRead;
+    // if less that 1 CL... all to min0
+    if (type_.getSizeInBytes() <= CACHE_LINE_BYTES) {
+      onlyMin0 = type_.getSizeInBytes();
+      firstSpare = 0;
+      CLperMin = 0;
     } else {
-      offset = CLperMin * minionId + spare + ualOffset;
-      maxRead = CLperMin + ualMaxRead;
+      // get number of non aligned elements, and subtract from the total size
+      // these unaligned elements will be processed by minion 0
+      onlyMin0 = (CACHE_LINE_BYTES - reinterpret_cast<size_t>(ptrData_) % CACHE_LINE_BYTES) % CACHE_LINE_BYTES;
+      int64_t aligned = type_.getSizeInBytes() - onlyMin0;
+
+      // total number of involved CL
+      size_t inCL = (aligned + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+      // CL per minion
+      CLperMin = inCL / activeMinions;
+      // and minions with 1 CL lss
+      firstSpare = inCL - CLperMin * activeMinions;
     }
+
+#if 1
+    if (minionId < firstSpare) {
+      offset = (CLperMin + 1) * minionId;
+      maxRead = CLperMin + 1;
+    } else {
+      offset = CLperMin * minionId + firstSpare;
+      maxRead = CLperMin;
+    }
+#else // same as above, but avoiding branches
+    // mask is 0 if minionId >= firstSpare, 0xffff...fff (-1) if minionId < firstSpare
+    uint64_t mask = static_cast<int64_t>(minionId - firstSpare) >> 63;
+    offset = CLperMin * minionId + (minionId & mask) + (~mask & firstSpare);
+    maxRead = CLperMin - mask;
+#endif
 
     offset*=CACHE_LINE_BYTES / elementSize;
     maxRead*=CACHE_LINE_BYTES / elementSize;
+
+    if (minionId == 0) {
+      maxRead += onlyMin0 / elementSize;
+    } else {
+      offset += onlyMin0 / elementSize;
+    }
   }
 
   dim_array_t offset2Coord(size_t offset) const {
@@ -692,8 +701,8 @@ public:
    */
   template <typename dstType, typename srcType = dstType, dim_t step = 8, bool doEvicts = true, typename compute_t,
             typename... computeArgs_t>
-  void partitionLoop(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
-                     LibTensor* inT, compute_t compute, computeArgs_t&&... computeArgs) {
+  INLINE_ATTR void partitionLoop(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
+                                 LibTensor* inT, compute_t compute, computeArgs_t&&... computeArgs) {
 
     ////////////////////////////////////////////////////////////////////////////////
     // partition work between minions in multiples of CL
@@ -715,7 +724,7 @@ public:
 
     dim_t endOffset = first + count;
 
-    srcType* const srcP = inT->getRawDataPointer<srcType>();
+    const srcType* const srcP = inT->getRawDataPointer<srcType>();
     dstType* const dstP = getRawDataPointer<dstType>();
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -723,10 +732,14 @@ public:
     ////////////////////////////////////////////////////////////////////////////////
     if (N == 1) {
       // simplification: just 1 loop, and offset in elements is the same for all the tensors
-      for (dim_t offset = first; offset < endOffset; offset += step) {
-        dim_t valid = lastDim - offset;
-        compute(reinterpret_cast<uintptr_t>(dstP + offset), reinterpret_cast<uintptr_t>(srcP + offset), valid,
+      dim_t offset = first;
+      while (offset < endOffset) {
+        dim_t elems = step;
+        elems = std::min<dim_t>(elems, lastDim - offset);
+        elems = std::min<dim_t>(elems, endOffset - offset);
+        compute(reinterpret_cast<uintptr_t>(dstP + offset), reinterpret_cast<uintptr_t>(srcP + offset), elems,
                 std::forward<computeArgs_t>(computeArgs)...);
+        offset += step;
       }
     } else {
       ////////////////////////////////////////////////////////////////////////////////
@@ -739,25 +752,35 @@ public:
       dim_t oOffset = out.offset();
       dim_t iOffset = in.offset();
 
-      //// First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
-      /// the row)
-      for (; out.coords()[N - 1] != 0 && out.offset() < endOffset; out += step, in += step) {
-        dim_t valid = lastDim - out.coords()[N - 1];
-        compute(reinterpret_cast<uintptr_t>(dstP + oOffset), reinterpret_cast<uintptr_t>(srcP + iOffset), valid,
-                computeArgs...);
+      // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
+      // the row)
+      while ((out.coords()[N - 1] != 0) && (out.offset() < endOffset)) {
+        // Clips min values
+        dim_t elems = step;
+        elems = std::min<dim_t>(elems, lastDim - out.coords()[N - 1]);
+        elems = std::min<dim_t>(elems, endOffset - out.offset());
+        compute(reinterpret_cast<uintptr_t>(dstP + oOffset), reinterpret_cast<uintptr_t>(srcP + iOffset), elems,
+                std::forward<computeArgs_t>(computeArgs)...);
         iOffset += step;
         oOffset += step;
+        out += step;
+        in += step;
       }
 
-      //// Then, complete the remaining iterations
+      // Then, complete the remaining iterations
       for (; out.offset() < endOffset; out.step(N - 2), in.step(N - 2)) { // step 2n outer dimension
         assume(out.coords()[N - 1] == 0 && in.coords()[N - 1] == 0);
         oOffset = out.offset();
         iOffset = in.offset();
-        for (dim_t i = 0; (i < lastDim) && ((oOffset + i) < endOffset); i += step) { // step outer dimension
-          dim_t valid = lastDim - i;
+        dim_t i = 0;
+        while ((i < lastDim) && ((oOffset + i) < endOffset)) { // step outer dimension
+          // Clips min values
+          dim_t elems = step;
+          elems = std::min<dim_t>(elems, lastDim - i);
+          elems = std::min<dim_t>(elems, endOffset - (oOffset + i));
           compute(reinterpret_cast<uintptr_t>(dstP + oOffset + i), reinterpret_cast<uintptr_t>(srcP + iOffset + i),
-                  valid, std::forward<computeArgs_t>(computeArgs)...);
+                  elems, std::forward<computeArgs_t>(computeArgs)...);
+          i += step;
         }
       }
     }
