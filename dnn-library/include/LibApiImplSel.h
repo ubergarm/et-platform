@@ -117,9 +117,9 @@ namespace dnn_lib {
       LibTensor *outT = outTensors[0];
       LibTensor *inT = inTensors[0];
       const static size_t batchDim = inT->ndims() - 2;
-      if (inT->ndims() >= 2 &&
-          ( outT->strides()[batchDim] % 32 == 0 ||  32 % outT->strides()[batchDim] == 0 ) &&
-          (  inT->strides()[batchDim] % 32 == 0 ||  32 %  inT->strides()[batchDim] == 0 ))
+      if (inT->ndims() >= 2 && (uintptr_t)inT->getAddress() % 32 == 0 && (uintptr_t)outT->getAddress() % 32 == 0 &&
+          (outT->strides()[batchDim] % 32 == 0 || 32 % outT->strides()[batchDim] == 0) &&
+          (inT->strides()[batchDim] % 32 == 0 || 32 % inT->strides()[batchDim] == 0))
         return 1;
       else
         return 0;
@@ -136,9 +136,9 @@ namespace dnn_lib {
       LibTensor *in2T = inTensors[1];
     
       const static size_t batchDim = in1T->ndims() - 2;
-      if ( outT->strides()[batchDim] % 32 == 0 && 
-           in1T->strides()[batchDim] % 32 == 0 &&
-           in2T->strides()[batchDim] % 32 == 0 )
+      if ((uintptr_t)outT->getAddress() % 32 == 0 && (uintptr_t)in1T->getAddress() % 32 == 0 &&
+          (uintptr_t)in2T->getAddress() % 32 == 0 && outT->strides()[batchDim] % 32 == 0 &&
+          in1T->strides()[batchDim] % 32 == 0 && in2T->strides()[batchDim] % 32 == 0)
         return 1;
       else 
         return 0;
@@ -167,10 +167,10 @@ namespace dnn_lib {
       LibTensor *inT = inTensors[0];
       ElemKind elK = inTensors[0]->getElementType();
       const size_t batchDim = inT->ndims() - 2;
-      if ( inT->ndims() >= 2 &&
-           (outT->strides()[batchDim] * outT->getElementSize() )% 32 == 0  &&
-           (inT->strides()[batchDim] * inT->getElementSize() ) % 32 == 0  &&
-           (elK == FloatTy || elK == Float16Ty || elK==Int8QTy ) )
+      if (inT->ndims() >= 2 && (uintptr_t)outT->getAddress() % 32 == 0 && (uintptr_t)inT->getAddress() % 32 == 0 &&
+          (outT->strides()[batchDim] * outT->getElementSize()) % 32 == 0 &&
+          (inT->strides()[batchDim] * inT->getElementSize()) % 32 == 0 &&
+          (elK == FloatTy || elK == Float16Ty || elK == Int8QTy))
         return 1;
       else
         return 0;
@@ -211,10 +211,9 @@ namespace dnn_lib {
       // threaded version only works for CL aligned output tensors
       // otherwise, call the single thread version
       // checking size is multiple of 64B => assuming start is CL aligned
-      if (outTensors[0]->getSizeInBytes() % CACHE_LINE_BYTES != 0) {
+      if ((uintptr_t)outTensors[0]->getAddress() % 64 == 0 && outTensors[0]->getSizeInBytes() % CACHE_LINE_BYTES != 0) {
         return 0;
-      }
-      else {
+      } else {
         auto typeSize = outTensors[0]->getElementSize();
         auto cll = CACHE_LINE_BYTES/typeSize;
         auto &dstPitch = outTensors[0]->strides();
