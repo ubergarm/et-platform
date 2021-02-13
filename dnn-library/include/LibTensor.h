@@ -169,8 +169,8 @@ struct Type final {
    */
   const bool hasSameShape(const Type other) const {
     if (numSizes_ != other.getNumDims()) return false;
-    const dim_array_t other_sizes = other.getSizes();
-    const dim_array_t other_strides = other.getStrides();
+    const dim_array_t &other_sizes = other.getSizes();
+    const dim_array_t &other_strides = other.getStrides();
     for (size_t idx = 0; idx < numSizes_; idx++) {
       if (sizes_[idx] != other_sizes[idx]) return false;
       if (strides_[idx] != other_strides[idx]) return false;
@@ -194,11 +194,11 @@ struct Type final {
 
   /*@brief returns the Tensor sizes_.
    */
-  const dim_array_t getSizes() const { return sizes_; }
+  const dim_array_t &getSizes() const { return sizes_; }
 
   /*@brief returns the Tensor strides_.
    */
-  const dim_array_t getStrides() const { return strides_; }
+  const dim_array_t &getStrides() const { return strides_; }
 
   /*@brief returns the Tensor dimension.
    */
@@ -271,6 +271,7 @@ struct Type final {
       return std::is_same<ElemTy, bool>::value;
     }
     assert(true && "Invalid type");
+    __builtin_unreachable();
   }
 
   /*@brief true if the type of this Tensor is one of the quantized
@@ -605,18 +606,18 @@ public:
     size_t onlyMin0;   // elements only for minion0 (e.g. unaligned bytes)
     size_t firstSpare; // first minion with 1 CL less
     size_t CLperMin;   // CL to process per minion
-    size_t elementSize = type_.getElementSize();
+    size_t elementSize = getElementSize();
 
     // if less that 1 CL... all to min0
-    if (type_.getSizeInBytes() <= CACHE_LINE_BYTES) {
-      onlyMin0 = type_.getSizeInBytes();
+    if (getSizeInBytes() <= CACHE_LINE_BYTES) {
+      onlyMin0 = getSizeInBytes();
       firstSpare = 0;
       CLperMin = 0;
     } else {
       // get number of non aligned elements, and subtract from the total size
       // these unaligned elements will be processed by minion 0
-      onlyMin0 = (CACHE_LINE_BYTES - reinterpret_cast<size_t>(ptrData_) % CACHE_LINE_BYTES) % CACHE_LINE_BYTES;
-      int64_t aligned = type_.getSizeInBytes() - onlyMin0;
+      onlyMin0 = (CACHE_LINE_BYTES - reinterpret_cast<size_t>(getAddress()) % CACHE_LINE_BYTES) % CACHE_LINE_BYTES;
+      int64_t aligned = getSizeInBytes() - onlyMin0;
 
       // total number of involved CL
       size_t inCL = (aligned + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
@@ -653,11 +654,11 @@ public:
 
   dim_array_t offset2Coord(size_t offset) const {
     dim_array_t coords = {0};
-    assert (type_.strides_[type_.numSizes_ - 1] == 1);
+    assert (strides()[ndims() - 1] == 1);
     uint32_t rm = offset; // operations in uint32_t.. division is faster
-    for (size_t i = 0; i < type_.numSizes_ ; i++) {
-      coords[i] = rm / static_cast<uint32_t>(type_.strides_[i]);
-      rm = rm - static_cast<uint32_t>(coords[i]) * static_cast<uint32_t>(type_.strides_[i]);
+    for (size_t i = 0; i < ndims() ; i++) {
+      coords[i] = rm / static_cast<uint32_t>(strides()[i]);
+      rm = rm - static_cast<uint32_t>(coords[i]) * static_cast<uint32_t>(strides()[i]);
     }
     return coords;
   }
@@ -666,10 +667,10 @@ public:
   void evict(uint64_t dst, size_t offset, size_t count) const{
 #ifdef __riscv
     FENCE;
-    const size_t typeSize = type_.getElementSize();
+    const size_t typeSize = getElementSize();
     size_t cl = (count * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     assert(cl > 0);
-    uintptr_t addr = reinterpret_cast<uintptr_t>(ptrData_) + typeSize*offset;
+    uintptr_t addr = reinterpret_cast<uintptr_t>(getAddress()) + typeSize*offset;
     while(cl > 16) {
       evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
       addr += (CACHE_LINE_BYTES*16);
@@ -683,7 +684,7 @@ public:
   }
 
   void evict(uint64_t dst) const {
-    evict(dst, 0, this->actualSize());
+    evict(dst, 0, actualSize());
   }
 
   /* partitions current tensor in cache lines, and loops over all elements
@@ -722,7 +723,7 @@ public:
     const auto N = ndims();
     const dim_t lastDim = dims()[N - 1];
 
-    dim_t endOffset = first + count;
+    const dim_t endOffset = first + count;
 
     const srcType* const srcP = inT->getRawDataPointer<srcType>();
     dstType* const dstP = getRawDataPointer<dstType>();
@@ -752,19 +753,18 @@ public:
       dim_t oOffset = out.offset();
       dim_t iOffset = in.offset();
 
-      // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
-      // the row)
-      while ((out.coords()[N - 1] != 0) && (out.offset() < endOffset)) {
-        // Clips min values
-        dim_t elems = step;
-        elems = std::min<dim_t>(elems, lastDim - out.coords()[N - 1]);
-        elems = std::min<dim_t>(elems, endOffset - out.offset());
-        compute(reinterpret_cast<uintptr_t>(dstP + oOffset), reinterpret_cast<uintptr_t>(srcP + iOffset), elems,
-                std::forward<computeArgs_t>(computeArgs)...);
-        iOffset += step;
-        oOffset += step;
-        out += step;
-        in += step;
+      if (out.coords()[N-1] != 0) {
+        // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
+        // the row)
+        size_t stop = std::min(lastDim - out.coords()[N - 1], endOffset - oOffset);
+        for (size_t i = 0 ; i < stop ; i+=step) {
+          // Clips min values
+          dim_t elems = std::min<dim_t>(step, stop -i);
+          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)), reinterpret_cast<uintptr_t>(srcP + (iOffset + i)), elems,
+                  std::forward<computeArgs_t>(computeArgs)...);
+        }
+        out+=stop;
+        in+=stop;
       }
 
       // Then, complete the remaining iterations
@@ -772,15 +772,12 @@ public:
         assume(out.coords()[N - 1] == 0 && in.coords()[N - 1] == 0);
         oOffset = out.offset();
         iOffset = in.offset();
-        dim_t i = 0;
-        while ((i < lastDim) && ((oOffset + i) < endOffset)) { // step outer dimension
+        size_t stop = std::min(lastDim, endOffset - oOffset);
+        for ( size_t i = 0; i < stop; i+=step){
           // Clips min values
-          dim_t elems = step;
-          elems = std::min<dim_t>(elems, lastDim - i);
-          elems = std::min<dim_t>(elems, endOffset - (oOffset + i));
-          compute(reinterpret_cast<uintptr_t>(dstP + oOffset + i), reinterpret_cast<uintptr_t>(srcP + iOffset + i),
+          dim_t elems = std::min<dim_t>(step,  stop - i);
+          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)), reinterpret_cast<uintptr_t>(srcP + (iOffset + i)),
                   elems, std::forward<computeArgs_t>(computeArgs)...);
-          i += step;
         }
       }
     }

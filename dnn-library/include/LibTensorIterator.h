@@ -11,11 +11,12 @@ public:
   using difference_type = std::ptrdiff_t;
   using pointer = ElemTy*;
   using reference = ElemTy&;
-  
+  using HandleT = Handle<ElemTy>;
+
   HandleIterator() = delete;
   HandleIterator(const HandleIterator& x) = default;
   
-  HandleIterator(Handle<ElemTy>& h, const dim_t offset) :
+  HandleIterator(HandleT& h, const dim_t offset) :
     dims_(h.tensor_->dims()),
     strides_(h.tensor_->strides()),
     ndims_(h.tensor_->ndims()),
@@ -34,7 +35,7 @@ public:
     }
   }
   
-  HandleIterator(Handle<ElemTy>& h, const dim_array_t &coords) :
+  HandleIterator(HandleT& h, const dim_array_t &coords) :
     dims_(h.tensor_->dims()),
     strides_(h.tensor_->strides()),
     ndims_(h.tensor_->ndims()),
@@ -43,14 +44,14 @@ public:
     coords_(coords),
     wrap_(buildWrap()) { }
   
-  HandleIterator(Handle<ElemTy>& h) :
+  HandleIterator(HandleT& h) :
     dims_(h.tensor_->dims()),
     strides_(h.tensor_->strides()),
     ndims_(h.tensor_->ndims()),
     ptr_(h.tensor_->template getRawDataPointer<ElemTy>()),
     wrap_(buildWrap())  { } // assuming offset=0, coords=0
   
-  HandleIterator(Handle<ElemTy> &h, dim_t offset, const dim_array_t &coords) :
+  HandleIterator(HandleT &h, dim_t offset, const dim_array_t &coords) :
     dims_(h.tensor_->dims()),
     strides_(h.tensor_->strides()),
     ndims_(h.tensor_->ndims()),
@@ -100,8 +101,8 @@ public:
     return HandleIterator (offset_+ x);
   }
   
-  static HandleIterator begin(Handle<ElemTy>& t) { return t.begin();}
-  static HandleIterator end(Handle<ElemTy>& t) { return t.end(); }
+  static HandleIterator begin(HandleT& t) { return t.begin();}
+  static HandleIterator end(HandleT& t) { return t.end(); }
   
   dim_t offset() const { return offset_; }
   const dim_array_t & coords() const { return coords_;}

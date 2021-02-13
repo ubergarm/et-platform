@@ -895,6 +895,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
                               dstOffset);
   }
 #undef DEFAULT_CONVERT
+
 }
 
 template <ElemKind srcElK, ElemKind dstElK>
