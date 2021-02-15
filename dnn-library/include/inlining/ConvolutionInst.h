@@ -481,9 +481,9 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
             coord[3] * inCperG;
   weightAddr += d * weightPitch[0];
   __asm__ __volatile__(
-    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
     "mov.m.x  m0, zero, 0xff\n"                     // m0 to ones
     "mov.m.x  m1, %[mask], 0\n"                     // m1 the auxiliar mask
+    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
     "1:\n"                                          // for (size_t fx = 0; fx < kernels[0]; fx++) {
     "beq      %[fy], zero, 2f\n"
     "mul      %[fy], %[kernels1], %[actPitch2]\n"
@@ -602,10 +602,10 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
   weightAddr += d * weightPitch[0];
   unsigned int gatherValues[8] = { 0, 2, 4, 6, 8, 10, 12, 14 };
   __asm__ __volatile__(
-    "flw.ps f16, 0x0(%[gatherValues])\n"
-    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
     "mov.m.x  m0, zero, 0xff\n"                     // m0 to ones
     "mov.m.x  m1, %[mask], 0\n"                     // m1 the auxiliar mask
+    "flw.ps f16, 0x0(%[gatherValues])\n"
+    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
     "1:\n"                                          // for (size_t fx = 0; fx < kernels[0]; fx++) {
     "beq      %[fy], zero, 2f\n"
     "mul      %[fy], %[kernels1], %[actPitch2]\n"
