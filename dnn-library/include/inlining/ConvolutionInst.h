@@ -480,102 +480,87 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
   actAddr += coord[0] * actPitch[0] + x * actPitch[1] + y * actPitch[2] +
             coord[3] * inCperG;
   weightAddr += d * weightPitch[0];
-  __asm__ __volatile__(
-    "mov.m.x  m0, zero, 0xff\n"                     // m0 to ones
-    "mov.m.x  m1, %[mask], 0\n"                     // m1 the auxiliar mask
-    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
-    "1:\n"                                          // for (size_t fx = 0; fx < kernels[0]; fx++) {
-    "beq      %[fy], zero, 2f\n"
-    "mul      %[fy], %[kernels1], %[actPitch2]\n"
-    "sub      %[actAddr], %[actAddr], %[fy]\n"
-    "mul      %[fy], %[kernels1], %[weightPitch2]\n"
-    "sub      %[weightAddr], %[weightAddr], %[fy]\n"
-    "addi     %[fy], zero, 0\n"
-    "2:\n"                                            // for (size_t fy = 0; fy < kernels[1]; fy++) {
-    "addi     %[dist], %[inCperG], 0\n"                // dist = inCperG
+  __asm__ __volatile__("mov.m.x  m0, zero, 0xff\n" // m0 to ones
+                       "mov.m.x  m1, %[mask], 0\n" // m1 the auxiliar mask
+                       "fxor.pi  f0, f0, f0\n"     // f0 to zeros
+                       "1:\n"                      // for (size_t fx = 0; fx < kernels[0]; fx++) {
+                       "beq      %[fy], zero, 2f\n"
+                       "mul      %[fy], %[kernels1], %[actPitch2]\n"
+                       "sub      %[actAddr], %[actAddr], %[fy]\n"
+                       "mul      %[fy], %[kernels1], %[weightPitch2]\n"
+                       "sub      %[weightAddr], %[weightAddr], %[fy]\n"
+                       "addi     %[fy], zero, 0\n"
+                       "2:\n"                              // for (size_t fy = 0; fy < kernels[1]; fy++) {
+                       "addi     %[dist], %[inCperG], 0\n" // dist = inCperG
 
-    "mulw     %[oy], %[fy], %[dilation1]\n"             // oy = y + fy *dilation
-    "add      %[oy], %[oy], %[y]\n"
-    "blt      %[oy], zero, 5f\n"                        // if (oy < 0) continue
+                       "mulw     %[oy], %[fy], %[dilation1]\n" // oy = y + fy *dilation
+                       "add      %[oy], %[oy], %[y]\n"
+                       "blt      %[oy], zero, 5f\n" // if (oy < 0) continue
 
-    "mulw     %[ox], %[fx], %[dilation0]\n"             // ox = x + fx *dilation
-    "add      %[ox], %[ox], %[x]\n"
-    "blt      %[ox], zero, 5f\n"                        // if (ox < 0) continue
+                       "mulw     %[ox], %[fx], %[dilation0]\n" // ox = x + fx *dilation
+                       "add      %[ox], %[ox], %[x]\n"
+                       "blt      %[ox], zero, 5f\n" // if (ox < 0) continue
 
-    "ble      %[actIndex1], %[ox], 5f\n"                // if (actIndex[1] <= ox) continue
-    "ble      %[actIndex2], %[oy], 5f\n"                // if (actIndex[2] <= oy) continue
+                       "ble      %[actIndex1], %[ox], 5f\n" // if (actIndex[1] <= ox) continue
+                       "ble      %[actIndex2], %[oy], 5f\n" // if (actIndex[2] <= oy) continue
 
-    "addi     t0, zero, 8\n"                            // t0 = 8
-    "ble      %[dist], t0, 4f\n"                        // if dist <= 8 go to 4
+                       "addi     t0, zero, 8\n"     // t0 = 8
+                       "ble      %[dist], t0, 4f\n" // if dist <= 8 go to 4
 
-    "mov.m.x  m0, zero, 0xff\n"
-    "3:\n"                                              // while (8 < dist) {
-    "flw.ps   f1, 0x0(%[actAddr])\n"                      // actAddr -> f1
-    "flw.ps   f2, 0x0(%[weightAddr])\n"                   // weightaddr -> f2
-    "fmadd.ps f0, f1, f2, f0\n"                           // f0 = (f1 * f2) + f0
-    "addi     %[actAddr], %[actAddr], 32\n"               // actAddr += 32
-    "addi     %[weightAddr], %[weightAddr], 32\n"         // weightAddr += 32
-    "addi     %[dist], %[dist], -8\n"                     // dist -= 8
-    "blt      t0, %[dist], 3b\n"                        // }
+                       "mov.m.x  m0, zero, 0xff\n"
+                       "3:\n"                                        // while (8 < dist) {
+                       "flw.ps   f1, 0x0(%[actAddr])\n"              // actAddr -> f1
+                       "flw.ps   f2, 0x0(%[weightAddr])\n"           // weightaddr -> f2
+                       "fmadd.ps f0, f1, f2, f0\n"                   // f0 = (f1 * f2) + f0
+                       "addi     %[actAddr], %[actAddr], 32\n"       // actAddr += 32
+                       "addi     %[weightAddr], %[weightAddr], 32\n" // weightAddr += 32
+                       "addi     %[dist], %[dist], -8\n"             // dist -= 8
+                       "blt      t0, %[dist], 3b\n"                  // }
 
-    "4:\n"
-    "maskand  m0, m0, m1\n"                             // put mask on
-    "flw.ps   f1, 0x0(%[actAddr])\n"                    // actAddr -> f1
-    "flw.ps   f2, 0x0(%[weightAddr])\n"                 // weightaddr -> f2
-    "fmadd.ps f0, f1, f2, f0\n"                         // f0 = (f1 * f2) + f0
-    "sub      %[dist], %[inCperG], %[dist]\n"           // dist = inCperG - dist
-    "slli     %[dist], %[dist], 2\n"                    // dist = dist * 4
-    "sub      %[actAddr], %[actAddr], %[dist]\n"        // actAddr = actAddr - dist
-    "sub      %[weightAddr], %[weightAddr], %[dist]\n"  // actAddr = actAddr - dist
+                       "4:\n"
+                       "maskand  m0, m0, m1\n"                            // put mask on
+                       "flw.ps   f1, 0x0(%[actAddr])\n"                   // actAddr -> f1
+                       "flw.ps   f2, 0x0(%[weightAddr])\n"                // weightaddr -> f2
+                       "fmadd.ps f0, f1, f2, f0\n"                        // f0 = (f1 * f2) + f0
+                       "sub      %[dist], %[inCperG], %[dist]\n"          // dist = inCperG - dist
+                       "slli     %[dist], %[dist], 2\n"                   // dist = dist * 4
+                       "sub      %[actAddr], %[actAddr], %[dist]\n"       // actAddr = actAddr - dist
+                       "sub      %[weightAddr], %[weightAddr], %[dist]\n" // actAddr = actAddr - dist
 
-    "5:\n"
-    "addi     %[fy], %[fy], 1\n"                        // fy++
-    "add     %[actAddr], %[actPitch2], %[actAddr]\n"   // actAddr = actAddr + actPitch[2]
-    "add     %[weightAddr], %[weightPitch2], %[weightAddr]\n"
-    "blt      %[fy], %[kernels1], 2b\n"               // Closing fy for }
+                       "5:\n"
+                       "addi     %[fy], %[fy], 1\n"                     // fy++
+                       "add     %[actAddr], %[actPitch2], %[actAddr]\n" // actAddr = actAddr + actPitch[2]
+                       "add     %[weightAddr], %[weightPitch2], %[weightAddr]\n"
+                       "blt      %[fy], %[kernels1], 2b\n" // Closing fy for }
 
-    "addi     %[fx], %[fx], 1\n"                      // fx++
+                       "addi     %[fx], %[fx], 1\n" // fx++
 
-    "add     %[actAddr], %[actPitch1], %[actAddr]\n" // actAddr = actAddr + actPitch[1]
-    "add     %[weightAddr], %[weightPitch1], %[weightAddr]\n"
-    "blt      %[fx], %[kernels0], 1b\n"             // Closing fx for{}
+                       "add     %[actAddr], %[actPitch1], %[actAddr]\n" // actAddr = actAddr + actPitch[1]
+                       "add     %[weightAddr], %[weightPitch1], %[weightAddr]\n"
+                       "blt      %[fx], %[kernels0], 1b\n" // Closing fx for{}
 
-    "mov.m.x   m0, zero, 0xff\n"
-    "fswizz.ps f1, f0, 0xe\n"
-    "fadd.ps   f0, f0, f1\n"
-    "fswizz.ps f1, f0, 0x1\n"
-    "fadd.ps   f0, f0, f1\n"
-    "fmvs.x.ps t0, f0, 0x4\n"
-    "fmv.w.x   f31, t0\n"
-    "fadd.s    f31, f31, f0\n"
+                       "mov.m.x   m0, zero, 0xff\n"
+                       "fswizz.ps f1, f0, 0xe\n"
+                       "fadd.ps   f0, f0, f1\n"
+                       "fswizz.ps f1, f0, 0x1\n"
+                       "fadd.ps   f0, f0, f1\n"
+                       "fmvs.x.ps t0, f0, 0x4\n"
+                       "fmv.w.x   f31, t0\n"
+                       "fadd.s    f31, f31, f0\n"
 
-    "fmv.w.x   f0, %[sum]\n"
-    "fadd.s    f31, f31, f0\n"
-    "fmv.x.w   %[sum], f31\n"
+                       "fmv.w.x   f0, %[sum]\n"
+                       "fadd.s    f31, f31, f0\n"
+                       "fmv.x.w   %[sum], f31\n"
 
-    : [ weightAddr ] "+&r" (weightAddr),
-      [ actAddr ] "+&r" (actAddr),
-      [ dist ] "=&r" (dist),
-      [ sum ] "+&r" (sum),
-      [ ox ] "=&r" (ox),
-      [ oy ] "=&r" (oy),
-      [ fy ] "+&r" (fy),
-      [ fx ] "+&r" (fx)
-    : [ weightPitch1 ] "r" (weightPitch[1] * 4),
-      [ weightPitch2 ] "r" (weightPitch[2] * 4),
-      [ actIndex1 ] "r" (actIndex[1]),
-      [ actIndex2 ] "r" (actIndex[2]),
-      [ actPitch1 ] "r" (actPitch[1] * 4),
-      [ actPitch2 ] "r" (actPitch[2] * 4),
-      [ kernels0 ] "r" (kernels[0]),
-      [ kernels1 ] "r" (kernels[1]),
-      [ inCperG ] "r" (inCperG),
-      [ mask ] "r" (mask),
-      [ x ] "r" (x),
-      [ y ] "r" (y),
-      [ dilation0 ] "r" (dilation[0]),
-      [ dilation1 ] "r" (dilation[1])
-    : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
+                       : [ weightAddr ] "+&r"(weightAddr), [ actAddr ] "+&r"(actAddr), [ dist ] "=&r"(dist),
+                         [ sum ] "+&r"(sum), [ ox ] "=&r"(ox), [ oy ] "=&r"(oy), [ fy ] "+&r"(fy), [ fx ] "+&r"(fx)
+                       : [ weightPitch1 ] "r"(weightPitch[1] * 4), [ weightPitch2 ] "r"(weightPitch[2] * 4),
+                         [ actIndex1 ] "r"(actIndex[1]), [ actIndex2 ] "r"(actIndex[2]),
+                         [ actPitch1 ] "r"(actPitch[1] * 4), [ actPitch2 ] "r"(actPitch[2] * 4),
+                         [ kernels0 ] "r"(kernels[0]), [ kernels1 ] "r"(kernels[1]), [ inCperG ] "r"(inCperG),
+                         [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y), [ dilation0 ] "r"(dilation[0]),
+                         [ dilation1 ] "r"(dilation[1])
+                       : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
 
@@ -601,107 +586,91 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
             coord[3] * inCperG;
   weightAddr += d * weightPitch[0];
   unsigned int gatherValues[8] = { 0, 2, 4, 6, 8, 10, 12, 14 };
-  __asm__ __volatile__(
-    "mov.m.x  m0, zero, 0xff\n"                     // m0 to ones
-    "mov.m.x  m1, %[mask], 0\n"                     // m1 the auxiliar mask
-    "flw.ps f16, 0x0(%[gatherValues])\n"
-    "fxor.pi  f0, f0, f0\n"                         // f0 to zeros
-    "1:\n"                                          // for (size_t fx = 0; fx < kernels[0]; fx++) {
-    "beq      %[fy], zero, 2f\n"
-    "mul      %[fy], %[kernels1], %[actPitch2]\n"
-    "sub      %[actAddr], %[actAddr], %[fy]\n"
-    "mul      %[fy], %[kernels1], %[weightPitch2]\n"
-    "sub      %[weightAddr], %[weightAddr], %[fy]\n"
-    "addi     %[fy], zero, 0\n"
-    "2:\n"                                            // for (size_t fy = 0; fy < kernels[1]; fy++) {
-    "addi     %[dist], %[inCperG], 0\n"                // dist = inCperG
+  __asm__ __volatile__("mov.m.x  m0, zero, 0xff\n" // m0 to ones
+                       "mov.m.x  m1, %[mask], 0\n" // m1 the auxiliar mask
+                       "flw.ps f16, 0x0(%[gatherValues])\n"
+                       "fxor.pi  f0, f0, f0\n" // f0 to zeros
+                       "1:\n"                  // for (size_t fx = 0; fx < kernels[0]; fx++) {
+                       "beq      %[fy], zero, 2f\n"
+                       "mul      %[fy], %[kernels1], %[actPitch2]\n"
+                       "sub      %[actAddr], %[actAddr], %[fy]\n"
+                       "mul      %[fy], %[kernels1], %[weightPitch2]\n"
+                       "sub      %[weightAddr], %[weightAddr], %[fy]\n"
+                       "addi     %[fy], zero, 0\n"
+                       "2:\n"                              // for (size_t fy = 0; fy < kernels[1]; fy++) {
+                       "addi     %[dist], %[inCperG], 0\n" // dist = inCperG
 
-    "mulw     %[oy], %[fy], %[dilation1]\n"              // oy = y + fy *dilation
-    "add      %[oy], %[oy], %[y]\n"
-    "blt      %[oy], zero, 5f\n"                        // if (oy < 0) continue
+                       "mulw     %[oy], %[fy], %[dilation1]\n" // oy = y + fy *dilation
+                       "add      %[oy], %[oy], %[y]\n"
+                       "blt      %[oy], zero, 5f\n" // if (oy < 0) continue
 
-    "mulw     %[ox], %[fx], %[dilation0]\n"             // ox = x + fx *dilation
-    "add      %[ox], %[ox], %[x]\n"
-    "blt      %[ox], zero, 5f\n"                        // if (ox < 0) continue
+                       "mulw     %[ox], %[fx], %[dilation0]\n" // ox = x + fx *dilation
+                       "add      %[ox], %[ox], %[x]\n"
+                       "blt      %[ox], zero, 5f\n" // if (ox < 0) continue
 
-    "ble      %[actIndex1], %[ox], 5f\n"                // if (actIndex[1] <= ox) continue
-    "ble      %[actIndex2], %[oy], 5f\n"                // if (actIndex[2] <= oy) continue
+                       "ble      %[actIndex1], %[ox], 5f\n" // if (actIndex[1] <= ox) continue
+                       "ble      %[actIndex2], %[oy], 5f\n" // if (actIndex[2] <= oy) continue
 
-    "addi     t0, zero, 8\n"                            // t0 = 8
-    "ble      %[dist], t0, 4f\n"                        // if dist <= 8 go to 4
+                       "addi     t0, zero, 8\n"     // t0 = 8
+                       "ble      %[dist], t0, 4f\n" // if dist <= 8 go to 4
 
-    "mov.m.x  m0, zero, 0xff\n"
-    "3:\n"                                              // while (8 < dist) {
-    "fgh.ps   f1, f16(%[actAddr])\n"                      // actAddr -> f1
-    "fcvt.ps.f16 f1, f1\n"
-    "fgh.ps   f2, f16(%[weightAddr])\n"                   // weightaddr -> f2
-    "fcvt.ps.f16 f2, f2\n"
-    "fmadd.ps f0, f1, f2, f0\n"                           // f0 = (f1 * f2) + f0
-    "addi     %[actAddr], %[actAddr], 16\n"               // actAddr += 16
-    "addi     %[weightAddr], %[weightAddr], 16\n"         // weightAddr += 16
-    "addi     %[dist], %[dist], -8\n"                     // dist -= 8
-    "blt      t0, %[dist], 3b\n"                        // }
+                       "mov.m.x  m0, zero, 0xff\n"
+                       "3:\n"                           // while (8 < dist) {
+                       "fgh.ps   f1, f16(%[actAddr])\n" // actAddr -> f1
+                       "fcvt.ps.f16 f1, f1\n"
+                       "fgh.ps   f2, f16(%[weightAddr])\n" // weightaddr -> f2
+                       "fcvt.ps.f16 f2, f2\n"
+                       "fmadd.ps f0, f1, f2, f0\n"                   // f0 = (f1 * f2) + f0
+                       "addi     %[actAddr], %[actAddr], 16\n"       // actAddr += 16
+                       "addi     %[weightAddr], %[weightAddr], 16\n" // weightAddr += 16
+                       "addi     %[dist], %[dist], -8\n"             // dist -= 8
+                       "blt      t0, %[dist], 3b\n"                  // }
 
-    "4:\n"
-    "maskand  m0, m0, m1\n"                             // put mask on
-    "fgh.ps   f1, f16(%[actAddr])\n"                    // actAddr -> f1
-    "fcvt.ps.f16 f1, f1\n"
-    "fgh.ps   f2, f16(%[weightAddr])\n"                 // weightaddr -> f2
-    "fcvt.ps.f16 f2, f2\n"
-    "fmadd.ps f0, f1, f2, f0\n"                         // f0 = (f1 * f2) + f0
-    "sub      %[dist], %[inCperG], %[dist]\n"           // dist = inCperG - dist
-    "slli     %[dist], %[dist], 1\n"                    // dist = dist * 2
-    "sub      %[actAddr], %[actAddr], %[dist]\n"        // actAddr = actAddr - dist
-    "sub      %[weightAddr], %[weightAddr], %[dist]\n"  // actAddr = actAddr - dist
+                       "4:\n"
+                       "maskand  m0, m0, m1\n"          // put mask on
+                       "fgh.ps   f1, f16(%[actAddr])\n" // actAddr -> f1
+                       "fcvt.ps.f16 f1, f1\n"
+                       "fgh.ps   f2, f16(%[weightAddr])\n" // weightaddr -> f2
+                       "fcvt.ps.f16 f2, f2\n"
+                       "fmadd.ps f0, f1, f2, f0\n"                        // f0 = (f1 * f2) + f0
+                       "sub      %[dist], %[inCperG], %[dist]\n"          // dist = inCperG - dist
+                       "slli     %[dist], %[dist], 1\n"                   // dist = dist * 2
+                       "sub      %[actAddr], %[actAddr], %[dist]\n"       // actAddr = actAddr - dist
+                       "sub      %[weightAddr], %[weightAddr], %[dist]\n" // actAddr = actAddr - dist
 
-    "5:\n"
-    "addi     %[fy], %[fy], 1\n"                        // fy++
-    "add      %[actAddr], %[actPitch2], %[actAddr]\n"   // actAddr = actAddr + actPitch[2]
-    "add      %[weightAddr], %[weightPitch2], %[weightAddr]\n"
-    "blt      %[fy], %[kernels1], 2b\n"               // Closing fy for{}
+                       "5:\n"
+                       "addi     %[fy], %[fy], 1\n"                      // fy++
+                       "add      %[actAddr], %[actPitch2], %[actAddr]\n" // actAddr = actAddr + actPitch[2]
+                       "add      %[weightAddr], %[weightPitch2], %[weightAddr]\n"
+                       "blt      %[fy], %[kernels1], 2b\n" // Closing fy for{}
 
-    "addi     %[fx], %[fx], 1\n"                      // fx++
+                       "addi     %[fx], %[fx], 1\n" // fx++
 
-    "add      %[actAddr], %[actPitch1], %[actAddr]\n" // actAddr = actAddr + actPitch[1]
-    "add      %[weightAddr], %[weightPitch1], %[weightAddr]\n"
-    "blt      %[fx], %[kernels0], 1b\n"             // Closing fx for{}
+                       "add      %[actAddr], %[actPitch1], %[actAddr]\n" // actAddr = actAddr + actPitch[1]
+                       "add      %[weightAddr], %[weightPitch1], %[weightAddr]\n"
+                       "blt      %[fx], %[kernels0], 1b\n" // Closing fx for{}
 
-    "mov.m.x   m0, zero, 0xff\n"
-    "fswizz.ps f1, f0, 0xe\n"
-    "fadd.ps   f0, f0, f1\n"
-    "fswizz.ps f1, f0, 0x1\n"
-    "fadd.ps   f0, f0, f1\n"
-    "fmvs.x.ps t0, f0, 0x4\n"
-    "fmv.w.x   f31, t0\n"
-    "fadd.s    f31, f31, f0\n"
-    "fmv.w.x   f0, %[sum]\n"
-    "fadd.s    f31, f31, f0\n"
-    "fmv.x.w   %[sum], f31\n"
+                       "mov.m.x   m0, zero, 0xff\n"
+                       "fswizz.ps f1, f0, 0xe\n"
+                       "fadd.ps   f0, f0, f1\n"
+                       "fswizz.ps f1, f0, 0x1\n"
+                       "fadd.ps   f0, f0, f1\n"
+                       "fmvs.x.ps t0, f0, 0x4\n"
+                       "fmv.w.x   f31, t0\n"
+                       "fadd.s    f31, f31, f0\n"
+                       "fmv.w.x   f0, %[sum]\n"
+                       "fadd.s    f31, f31, f0\n"
+                       "fmv.x.w   %[sum], f31\n"
 
-    : [ weightAddr ] "+&r" (weightAddr),
-      [ actAddr ] "+&r" (actAddr),
-      [ dist ] "+&r" (dist),
-      [ sum ] "+&r" (sum),
-      [ ox ] "+&r" (ox),
-      [ oy ] "+&r" (oy),
-      [ fy ] "+&r" (fy),
-      [ fx ] "+&r" (fx)
-    : [ weightPitch1 ] "r" (weightPitch[1] * 2),
-      [ weightPitch2 ] "r" (weightPitch[2] * 2),
-      [ gatherValues ] "r" (gatherValues),
-      [ actPitch1 ] "r" (actPitch[1] * 2),
-      [ actPitch2 ] "r" (actPitch[2] * 2),
-      [ actIndex1 ] "r" (actIndex[1]),
-      [ actIndex2 ] "r" (actIndex[2]),
-      [ kernels0 ] "r" (kernels[0]),
-      [ kernels1 ] "r" (kernels[1]),
-      [ inCperG ] "r" (inCperG),
-      [ mask ] "r" (mask),
-      [ x ] "r" (x),
-      [ y ] "r" (y),
-      [ dilation0 ] "r" (dilation[0]),
-      [ dilation1 ] "r" (dilation[1])
-    : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
+                       : [ weightAddr ] "+&r"(weightAddr), [ actAddr ] "+&r"(actAddr), [ dist ] "+&r"(dist),
+                         [ sum ] "+&r"(sum), [ ox ] "+&r"(ox), [ oy ] "+&r"(oy), [ fy ] "+&r"(fy), [ fx ] "+&r"(fx)
+                       : [ weightPitch1 ] "r"(weightPitch[1] * 2), [ weightPitch2 ] "r"(weightPitch[2] * 2),
+                         [ gatherValues ] "r"(gatherValues), [ actPitch1 ] "r"(actPitch[1] * 2),
+                         [ actPitch2 ] "r"(actPitch[2] * 2), [ actIndex1 ] "r"(actIndex[1]),
+                         [ actIndex2 ] "r"(actIndex[2]), [ kernels0 ] "r"(kernels[0]), [ kernels1 ] "r"(kernels[1]),
+                         [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y),
+                         [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
+                       : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
 
