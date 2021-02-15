@@ -27,10 +27,34 @@ namespace inlining {
 
 template <ElemKind srcElK, ElemKind dstElK, bool alignedSrc, bool alignedDst>
 INLINE_ATTR void loadConvertStore(const uintptr_t dstAddr, const uintptr_t srcAddr, const dim_t valid,
-                                  const uint64_t& conf, const float& indices, const float& indicesHigh,
-                                  const uint64_t& dstConf, const float& dstIndices, const float& dstIndicesHigh,
-                                  const float& srcScale, const float& srcOffset, const float& dstScaleReciprocal,
-                                  const float& dstOffset) {
+                                  const float& srcScaleScalar, const float& srcOffsetScalar,
+                                  const float& dstScaleScalar, const float& dstOffsetScalar) {
+  __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
+
+  constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
+  constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
+
+  uint64_t conf;
+  float indices;
+  float indicesHigh;
+  uint64_t dstConf;
+  float dstIndices;
+  float dstIndicesHigh;
+  setupGatherScatterConfig<srcBytesPerElement, dstBytesPerElement, false, false>(conf, indices, indicesHigh, dstConf,
+                                                                                 dstIndices, dstIndicesHigh);
+  float srcScale, srcOffset;
+  (void)srcScale;
+  (void)srcOffset;
+  if constexpr (isQuantizedElemKind(srcElK)) {
+    setupDequantize(srcScale, srcOffset, srcScaleScalar, srcOffsetScalar);
+  }
+  float dstScaleReciprocal, dstOffset;
+  (void)dstScaleReciprocal;
+  (void)dstOffset;
+  if constexpr (isQuantizedElemKind(srcElK)) {
+    setupQuantize(dstScaleReciprocal, dstOffset, dstScaleScalar, dstOffsetScalar);
+  }
+
   // Enables only the valid elements
   if (valid < 8) {
     uint8_t mask = ((1 << valid) - 1);
@@ -39,8 +63,6 @@ INLINE_ATTR void loadConvertStore(const uintptr_t dstAddr, const uintptr_t srcAd
     __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
   }
 
-  constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
-  constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
   constexpr bool sameConfig = isSameConfig<srcBytesPerElement, dstBytesPerElement, alignedSrc, alignedDst>();
 
   float op0 = 0.f, op0High = 0.f;
@@ -63,8 +85,6 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
-  constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
-  constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -75,41 +95,19 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
   constexpr bool alignedSrc = false;
   constexpr bool alignedDst = false;
 
-  __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
-
-  uint64_t conf;
-  float indices;
-  float indicesHigh;
-  uint64_t dstConf;
-  float dstIndices;
-  float dstIndicesHigh;
-  setupGatherScatterConfig<srcBytesPerElement, dstBytesPerElement, false, false>(conf, indices, indicesHigh, dstConf,
-                                                                                 dstIndices, dstIndicesHigh);
-  float srcScale, srcOffset;
   float srcScaleScalar = inT->getScale();
   int32_t srcOffsetScalar = outT->getOffset();
-  (void)srcScale;
-  (void)srcOffset;
   (void)srcScaleScalar;
   (void)srcOffsetScalar;
-  if constexpr (isQuantizedElemKind(srcElK)) {
-    setupDequantize(srcScale, srcOffset, srcScaleScalar, srcOffsetScalar);
-  }
 
-  float dstScaleReciprocal, dstOffset;
   float dstScaleScalar = outT->getScale();
   int32_t dstOffsetScalar = outT->getOffset();
-  (void)dstScaleReciprocal;
-  (void)dstOffset;
   (void)dstScaleScalar;
   (void)dstOffsetScalar;
-  if constexpr (isQuantizedElemKind(srcElK)) {
-    setupQuantize(dstScaleReciprocal, dstOffset, dstScaleScalar, dstOffsetScalar);
-  }
 
-  outT->partitionLoop<dstType, srcType>(
-    minionId, activeMinions, flags, inT, loadConvertStore<srcElK, dstElK, alignedSrc, alignedDst>, conf, indices,
-    indicesHigh, dstConf, dstIndices, dstIndicesHigh, srcScale, srcOffset, dstScaleReciprocal, dstOffset);
+  outT->partitionLoop<dstType, srcType>(minionId, activeMinions, flags, inT,
+                                        loadConvertStore<srcElK, dstElK, alignedSrc, alignedDst>, srcScaleScalar,
+                                        srcOffsetScalar, dstScaleScalar, dstOffsetScalar);
 }
 
 template <ElemKind dstElK, ElemKind srcElK>
