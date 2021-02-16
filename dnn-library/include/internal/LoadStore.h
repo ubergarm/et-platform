@@ -305,9 +305,33 @@ inline void setupDequantize(float& scale, float& offset, float scaleScalar, int3
                        : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
 }
 
-inline void doDequantize(float& destination, float source, float scale, float offset) {
+/*
+Compute the expression "(float)(source - offset) * scale", with "source" and
+"offset" being int32 and scale being float.
+
+source: packed int32 register with source
+scale:  packed float register with the broadcasted scale value
+offset: packed int32 register with the broadcasted offset
+*/
+inline void doDequantizeInt32(float& destination, float source, float scale, float offset) {
   __asm__ __volatile__("fsub.pi %[destination], %[source], %[offset]\n"
                        "fcvt.ps.pw %[destination], %[destination]\n"
+                       "fmul.ps %[destination], %[destination], %[scale]\n"
+                       : [ destination ] "=&f"(destination)
+                       : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
+}
+
+/*
+Compute the expression "(float)(source - offset) * scale", with "source" and
+"offset" uint32 and scale float.
+
+source: packed uint32 register with source
+scale:  packed float register with the broadcasted scale value
+offset: packed uint32 register with the broadcasted offset
+*/
+inline void doDequantizeUInt32(float& destination, float source, float scale, float offset) {
+  __asm__ __volatile__("fsub.pi %[destination], %[source], %[offset]\n"
+                       "fcvt.ps.pwu %[destination], %[destination]\n"
                        "fmul.ps %[destination], %[destination], %[scale]\n"
                        : [ destination ] "=&f"(destination)
                        : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
@@ -537,7 +561,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == BFloat16Ty and dstElK == BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int8QTy and dstElK == FloatTy) {
-    doDequantize(destination, source, srcScale, srcOffset);
+    doDequantizeInt32(destination, source, srcScale, srcOffset);
   } else if constexpr (srcElK == Int8QTy and dstElK == Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int8QTy and dstElK == BFloat16Ty) {
@@ -563,7 +587,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == Int8QTy and dstElK == BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == UInt8QTy and dstElK == FloatTy) {
-    doDequantize(destination, source, srcScale, srcOffset);
+    doDequantizeUInt32(destination, source, srcScale, srcOffset);
   } else if constexpr (srcElK == UInt8QTy and dstElK == Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == UInt8QTy and dstElK == BFloat16Ty) {
@@ -589,7 +613,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == UInt8QTy and dstElK == BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int16QTy and dstElK == FloatTy) {
-    doDequantize(destination, source, srcScale, srcOffset);
+    doDequantizeInt32(destination, source, srcScale, srcOffset);
   } else if constexpr (srcElK == Int16QTy and dstElK == Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int16QTy and dstElK == BFloat16Ty) {
@@ -615,7 +639,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == Int16QTy and dstElK == BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int32QTy and dstElK == FloatTy) {
-    doDequantize(destination, source, srcScale, srcOffset);
+    doDequantizeInt32(destination, source, srcScale, srcOffset);
   } else if constexpr (srcElK == Int32QTy and dstElK == Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == Int32QTy and dstElK == BFloat16Ty) {
@@ -897,6 +921,12 @@ template <ElemKind srcElK, ElemKind dstElK> inline void convert(float& destinati
 
 inline void saturateInt8(float source, float& destination) {
   __asm__ __volatile__("fsat8.pi %[destination], %[source]\n"
+                       : [ destination ] "=f"(destination)
+                       : [ source ] "f"(source));
+}
+
+inline void saturateUInt8(float source, float& destination) {
+  __asm__ __volatile__("fsatu8.pi %[destination], %[source]\n"
                        : [ destination ] "=f"(destination)
                        : [ source ] "f"(source));
 }

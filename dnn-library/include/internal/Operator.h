@@ -1993,8 +1993,8 @@ inline void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, float 
   if constexpr (isQuantizedElemKind(lhsElK)) {
 
     // Dequantize lhs and rhs
-    doDequantize(lhs, lhs, lhsScale_, lhsOffset_);
-    doDequantize(rhs, rhs, rhsScale_, rhsOffset_);
+    doDequantizeInt32(lhs, lhs, lhsScale_, lhsOffset_);
+    doDequantizeInt32(rhs, rhs, rhsScale_, rhsOffset_);
 
     // Compute rcp(rhs), with rhs being pre-multiplied with dstScale
     __asm__ __volatile__("frcp.ps %[rhs], %[rhs]\n" : [ rhs ] "+f"(rhs));

@@ -30,16 +30,47 @@ namespace dnn_lib {
 
 namespace inlining {
 
+template <typename T> inline bool greaterOrEqualThan(T a, T b) {
+  return a >= b;
+}
 
-  template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
-inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
-                                LibTensor* out2T, LibTensor* inT,
-                                const std::array<uint32_t, N> &kernels,
-                                const std::array<uint32_t, N> &strides,
-                                const std::array<uint32_t, PN> &pads,
-                                uint64_t flags,
-                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-    //  using dstType = typename elemKind2elemTy<dstElK>::type;
+using StorageForFloat16Ty = elemKind2elemTy<Float16Ty>::type;
+
+inline bool greaterOrEqualThanFloat16(StorageForFloat16Ty a, StorageForFloat16Ty b) {
+  float af, bf;
+  dnn_lib::convertFp16ToFp32(a, af);
+  dnn_lib::convertFp16ToFp32(b, bf);
+  return af >= bf;
+}
+
+using StorageForBFloat16Ty = elemKind2elemTy<BFloat16Ty>::type;
+
+inline bool greaterOrEqualThanBFloat16(StorageForBFloat16Ty a, StorageForBFloat16Ty b) {
+  float af, bf;
+  dnn_lib::convertBfloat16ToFp32(a, af);
+  dnn_lib::convertBfloat16ToFp32(b, bf);
+  return af >= bf;
+}
+
+template <ElemKind elK, typename... Types> inline bool greaterOrEqualThan(Types... args) {
+  if constexpr (elK == Float16Ty) {
+    return greaterOrEqualThanFloat16(args...);
+  } else if constexpr (elK == BFloat16Ty) {
+    return greaterOrEqualThanBFloat16(args...);
+  } else {
+    return greaterOrEqualThan(args...);
+  }
+  assert(false);
+  return false;
+}
+
+template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
+inline void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* out2T, LibTensor* inT,
+                                const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                                const std::array<uint32_t, PN>& pads, uint64_t flags, const uint32_t minionOffset = 0,
+                                const uint32_t assignedMinions = 0) {
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -48,26 +79,15 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
   
   /* maintain compatibility through the new Iface Libtensor */
 
-  void* dstMatrix = outT->getRawDataPointer<void>();
-  void* activations = inT->getRawDataPointer<void>();
-  
-  // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<srcElK> tAInput(activations, inT->getScale(), inT->getOffset());
-  // int64_t *tOutput2 = (int64_t *)dst2Matrix;  
+  dstType* tOutput = outT->getRawDataPointer<dstType>();
+  srcType* tInput = inT->getRawDataPointer<srcType>();
   int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
 
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t *actIndex = inT->dims().data();
   
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dst2Pitch = (unsigned int *)dst2MatrixPitches;
   const dim_t *dst2Pitch = out2T->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data(); 
 
   auto srcPitchNoPadding = inT->stridesNoPadding();
@@ -75,8 +95,7 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstMatrix);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, tOutput);
   if (maxRead == 0)
     return;
 
@@ -94,12 +113,37 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
   unsigned int posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y;
+
+  srcType max_value;
+
+  // Vector instructions working as scalar
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
+
+  // Setup scatter configuration for destination
+  constexpr size_t dstBytesPerElement = Type::getElementSize(dstElK);
+  uint64_t dstConf;
+  float dstIndices, dstIndicesHigh;
+  setupGatherScatterConfig<dstBytesPerElement, false>(dstConf, dstIndices, dstIndicesHigh);
+
+  // Setup gather configuration for source
+  constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
+  uint64_t srcConf;
+  float srcIndices, srcIndicesHigh;
+  setupGatherScatterConfig<srcBytesPerElement, false>(srcConf, srcIndices, srcIndicesHigh);
+
+  // Setup source dequantize
+  float srcScale, srcOffset;
+  setupDequantize(srcScale, srcOffset, inT->getScale(), inT->getOffset());
+
+  // Setup destination quantize
+  float dstScaleReciprocal, dstOffset;
+  setupQuantize(dstScaleReciprocal, dstOffset, outT->getScale(), outT->getOffset());
+
   while (!done && (offsetOut < posMax)) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
     y = coord[2] * strides[1] - ssize_t(pads[1]);
 
     bool first = true;
-    auto max_value = tAInput[0];
     max_value = 0;
     int64_t argmaxNHWC = 0;
 
@@ -116,8 +160,8 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
 
         int64_t idx = coord[0] * actPitch[0] + (size_t)ox * actPitch[1] +
           (size_t)oy * actPitch[2] + coord[3] * actPitch[3];
-        auto val = tAInput[idx];
-        if (first || (val >= max_value)) {
+        srcType val = tInput[idx];
+        if (first || greaterOrEqualThan<srcElK>(val, max_value)) {
           first = false;
           max_value = val;
           if (argMax) 
@@ -129,7 +173,13 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
       }
     }
 
-    tOutput[offsetOut] = max_value;
+    // Load result in srcElK format, convert to dstElK and store
+    uintptr_t srcAddr = reinterpret_cast<uintptr_t>(&max_value);
+    uintptr_t dstAddr = reinterpret_cast<uintptr_t>(&tOutput[offsetOut]);
+    float value, valueHigh;
+    load<srcBytesPerElement, false>(srcAddr, srcConf, srcIndices, srcIndicesHigh, value, valueHigh);
+    convert<srcElK, dstElK>(value, valueHigh, value, valueHigh, srcScale, srcOffset, dstScaleReciprocal, dstOffset);
+    store<dstBytesPerElement, false>(dstAddr, dstConf, dstIndices, dstIndicesHigh, value, valueHigh);
 
     if (argMax) {
       int64_t dst2Addr = coord[0] * dst2Pitch[0] + coord[1] * dst2Pitch[1] +
@@ -141,9 +191,9 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  if (clperminion > 0)
+    evict_va_multi(DO_EVICTS, (uintptr_t)tOutput + typeSize * initialAddr, clperminion);
 }
-
 
   ////////////////////////////////////////////////////////////////////////////////
   // Max Pool instruction

@@ -53,6 +53,37 @@ void convertFp32ToFp16(float src, uint16_t &dst) {
                        : [ src ] "f"(src));
 }
 
+inline __attribute__((always_inline)) void convertBfloat16ToFp32(float src, float& dst) {
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
+                       "fslli.pi %[dst], %[src], 16 \n"
+                       : [ dst ] "=f"(dst)
+                       : [ src ] "f"(src));
+}
+
+inline __attribute__((always_inline)) void convertBfloat16ToFp32(uint16_t src, float& dst) {
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
+                       "fmv.s.x %[dst], %[src]\n"
+                       "fslli.pi %[dst], %[dst], 16 \n"
+                       : [ dst ] "=f"(dst)
+                       : [ src ] "r"(src));
+}
+
+inline __attribute__((always_inline)) void convertFp32ToBfloat16(float src, float& dst) {
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
+                       "fsrli.pi %[dst], %[src], 16 \n"
+                       : [ dst ] "=f"(dst)
+                       : [ src ] "f"(src));
+}
+
+inline __attribute__((always_inline)) void convertFp32ToBfloat16(float src, uint16_t& dst) {
+  float tmp;
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
+                       "fsrli.pi %[tmp], %[src], 16 \n"
+                       "fmv.x.w %[dst], %[tmp] \n"
+                       : [ dst ] "=r"(dst), [ tmp ] "=f"(tmp)
+                       : [ src ] "f"(src));
+}
+
 /// Use a proxy type in case we need to change it in the future.
 
 using Float16Storage = float;
