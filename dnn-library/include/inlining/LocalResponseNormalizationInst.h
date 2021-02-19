@@ -31,12 +31,6 @@ namespace dnn_lib {
 
 namespace inlining {
 
-
-// First threaded version, assuming dstMatrix and dst2Matrix have the same
-// Pitches. Without this assumption, coherence might be lost and therefore this
-// version is not correct. Notice that dst2Matrix is only needed for backward
-// pass, i.e. ETSOC won't be using it. Actually, we could skip generating it.
-
 template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
           LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize,
@@ -61,17 +55,12 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
   const dim_t *dstIndex = out1T->dims().data();
   const dim_t *actIndex = inT->dims().data(); 
   const dim_t *dstPitch = out1T->strides().data();
+  const dim_t* dstPitch2 = out2T->strides().data();
   const dim_t *actPitch = inT->strides().data();
-  
-  // LRN node does not change the shape of the input.
-  // assert((dstIndex[0] == actIndex[0]) && (dstIndex[1] == actIndex[1]) &&
-  // (dstIndex[2] == actIndex[2]) && (dstIndex[3] == actIndex[3]) && "Output of
-  // LRN node must be same shape as input");
 
-  // LRN node normalizes across channels, so the input must have a minimum
-  // depth of 1.
-  // assert(actIndex[3] > 0 && "Input of LRN node must have a minimum depth of
-  // 1");
+  // Input and output dimensions should match
+  assert(dstIndex[0] == actIndex[0] and dstIndex[1] == actIndex[1] and dstIndex[2] == actIndex[2] and
+         dstIndex[3] == actIndex[3]);
 
   size_t windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;
@@ -89,15 +78,16 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
 
   const unsigned int srcDimNum = 4;
   unsigned int coord[srcDimNum] = {0, 0, 0, 0};
-  unsigned int t = 0;  //this variable is usually called k, but n this case the name k is already used
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           t);
+  unsigned int numDimensions = 0;
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, numDimensions);
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < t; j++) {
+  unsigned int offsetOut2 = 0;
+  for (unsigned int j = 0; j < numDimensions; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
+    offsetOut2 += dstPitch2[j] * coord[j];
   }
 
   unsigned int posMax = maxRead + initialAddr;
@@ -125,15 +115,14 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
     auto scale = k + normedAlpha * squareSum;
 
     // This will be used to accelerate the backward pass.
-    tScale[offsetOut] = scale;
+    tScale[offsetOut2] = scale;
 
     auto normFactor = getPow(scale, -beta);
     auto op = tAInput[offsetIn];
     op *= normFactor;
     tOutput[offsetOut] = op;
 
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, dstIndex,
-                      actPitch, dstPitch);
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, offsetOut2, dstIndex, actPitch, dstPitch, dstPitch2);
   }
   if (!DO_EVICTS)
     return;
@@ -195,7 +184,12 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
   const dim_t *dstIndex = out1T->dims().data();
   const dim_t *actIndex = inT->dims().data();
   const dim_t *dstPitch = out1T->strides().data();
+  const dim_t* dstPitch2 = out2T->strides().data();
   const dim_t* actPitch = inT->strides().data();
+
+  // Input and output dimensions should match
+  assert(dstIndex[0] == actIndex[0] and dstIndex[1] == actIndex[1] and dstIndex[2] == actIndex[2] and
+         dstIndex[3] == actIndex[3]);
 
   auto windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;
@@ -217,9 +211,11 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
+  unsigned int offsetOut2 = 0;
   for (unsigned int j = 0; j < numDimensions; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
+    offsetOut2 += dstPitch2[j] * coord[j];
   }
 
   __asm__ __volatile__("mov.m.x m0, zero, 0xff");
@@ -299,11 +295,11 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
     // Convert scale to elK and store
     convert<FloatTy, elK>(scale);
     constexpr bool dstAligned2 = false;
-    uintptr_t dstAddr2 = reinterpret_cast<uintptr_t>(dst2Matrix) + offsetOut * bytesPerElement;
+    uintptr_t dstAddr2 = reinterpret_cast<uintptr_t>(dst2Matrix) + offsetOut2 * bytesPerElement;
     store<bytesPerElement, dstAligned2>(dstAddr2, dstConf2, dstIndices2, scale);
 
     // Move to next element
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, offsetOut2, actIndex, actPitch, dstPitch, dstPitch2);
   }
 
   if (!DO_EVICTS)
