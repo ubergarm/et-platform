@@ -150,7 +150,7 @@ inline void reduceAdd(float value, float& result) {
   // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
   float temp, temp2;
   uint64_t extract;
-  __asm__ __volatile__("fswizz.ps %[temp], %[value], 0x13\n"    // 1)
+  __asm__ __volatile__("fswizz.ps %[temp], %[value], 0x31\n"    // 1)
                        "fadd.ps %[temp2], %[value], %[temp]\n"  // 2)
                        "fswizz.ps %[temp], %[temp2], 0x02\n"    // 3)
                        "fadd.ps %[temp2], %[temp2], %[temp]\n"  // 4)
