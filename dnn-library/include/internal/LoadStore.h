@@ -398,7 +398,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   } else if constexpr (srcElK == FloatTy and dstElK == Float16Ty) {
     __asm__("fcvt.f16.ps %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == BFloat16Ty) {
-    __asm__("fsrli.pi %[op0], %[op0], %[bits]\n"
+    __asm__("fsrli.pi %[destination], %[source], %[bits]\n"
             : [ destination ] "=f"(destination)
             : [ source ] "f"(source), [ bits ] "i"(16));
   } else if constexpr (srcElK == FloatTy and dstElK == Int8QTy) {

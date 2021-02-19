@@ -18,23 +18,18 @@
 #include <cmath>
 #include <cstring>
 
-#include "Float16.h"
-#include "Writer.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
-#include "utils.h" // From include/internal path
+#include "Float16.h"
 #include "LibTensor.h"
+#include "LoadStore.h"
+#include "Operator.h" // From include/internal path
+#include "Writer.h"   // From include/internal path
+#include "utils.h"    // From include/internal path
 
 namespace dnn_lib {
 
 namespace inlining {
-
-
-// First threaded version, assuming dstMatrix and dst2Matrix have the same
-// Pitches. Without this assumption, coherence might be lost and therefore this
-// version is not correct. Notice that dst2Matrix is only needed for backward
-// pass, i.e. ETSOC won't be using it. Actually, we could skip generating it.
 
 template <ElemKind elK>
 inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
@@ -53,33 +48,21 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
   void *dst2Matrix = out2T->getRawDataPointer<void>();
   void *activations = inT->getRawDataPointer<void>();
 
-  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
   Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
   Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
   const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());
   
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = out1T->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t *actIndex = inT->dims().data(); 
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   const dim_t *dstPitch = out1T->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
+  const dim_t* dstPitch2 = out2T->strides().data();
   const dim_t *actPitch = inT->strides().data();
-  
-  // LRN node does not change the shape of the input.
-  // assert((dstIndex[0] == actIndex[0]) && (dstIndex[1] == actIndex[1]) &&
-  // (dstIndex[2] == actIndex[2]) && (dstIndex[3] == actIndex[3]) && "Output of
-  // LRN node must be same shape as input");
 
-  // LRN node normalizes across channels, so the input must have a minimum
-  // depth of 1.
-  // assert(actIndex[3] > 0 && "Input of LRN node must have a minimum depth of
-  // 1");
+  // Input and output dimensions should match
+  assert(dstIndex[0] == actIndex[0] and dstIndex[1] == actIndex[1] and dstIndex[2] == actIndex[2] and
+         dstIndex[3] == actIndex[3]);
 
-  auto windowSize = 2 * halfWindowSize + 1;
+  size_t windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;
   fpReciprocalSingleElement(windowSize, inversedWindowSize);
   float normedAlpha = alpha * inversedWindowSize;
@@ -87,7 +70,7 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
+  constexpr size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
@@ -95,47 +78,88 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
 
   const unsigned int srcDimNum = 4;
   unsigned int coord[srcDimNum] = {0, 0, 0, 0};
-  unsigned int t = 0;  //this variable is usually called k, but n this case the name k is already used
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           t);
+  unsigned int numDimensions = 0;
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, numDimensions);
 
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < t; j++) {
+  unsigned int offsetOut2 = 0;
+  for (unsigned int j = 0; j < numDimensions; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
+    offsetOut2 += dstPitch2[j] * coord[j];
   }
 
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   while (!done && (offsetOut < posMax)) {
+
+    size_t c = coord[3];
+    size_t dim = actIndex[3];
+    size_t pitch = actPitch[3];
+
+    size_t startCoord = (c > halfWindowSize) ? (c - halfWindowSize) : 0;
+    size_t endCoord = std::min(c + halfWindowSize, dim);
+
+    size_t startAddr = offsetIn + (startCoord - c) * pitch;
+    size_t endAddr = offsetIn + (endCoord - c) * pitch;
+
     auto squareSum = tAInput[offsetIn];
     squareSum = 0.0;
-    size_t c = size_t(coord[3]);
-    for (unsigned int i = (c >= halfWindowSize ? c - halfWindowSize : 0);
-         i <= std::min(c + halfWindowSize, (long unsigned int)actIndex[3] - 1);
-         i++) {
-      auto val = tAInput[offsetIn + size_t((i - c) * actPitch[3])];
+
+    for (size_t srcAddr = startAddr; srcAddr < endAddr; srcAddr += pitch) {
+      auto val = tAInput[srcAddr];
       squareSum += val * val;
     }
 
     auto scale = k + normedAlpha * squareSum;
 
     // This will be used to accelerate the backward pass.
-    tScale[offsetOut] = scale;
+    tScale[offsetOut2] = scale;
 
     auto normFactor = getPow(scale, -beta);
     auto op = tAInput[offsetIn];
     op *= normFactor;
     tOutput[offsetOut] = op;
 
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, dstIndex,
-                      actPitch, dstPitch);
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, offsetOut2, dstIndex, actPitch, dstPitch, dstPitch2);
   }
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+}
+
+/* Reduce a vector by means of the addition */
+inline void reduceAdd(float value, float& result) {
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  // | h3 |  h2   | h1 |     h0      | l3 |  l2   | l1 |     l0      | value                               |
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  // | -  |  h3   | -  |     h1      | -  |  l3   | -  |     l1      | 1) temp <= swizzle(value, "x3x1")   |
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  // | -  | h2+h3 | -  |    h0+h1    | -  | l2+l3 | -  |    l0+h1    | 2) temp2 <= value + temp            |
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  // | -  |   -   | -  |    h2+h3    | -  |   -   | -  |    l2+h3    | 3) temp <= swizzle(temp2, "xxx2")   |
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  // | -  |   -   | -  | h0+h1+h2+h3 | -  |   -   | -  | l0+h1+l2+h3 | 4) temp2 <= temp2 + temp            |
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  // | -  |   -   | -  |      -      | -  |   -   | -  | h0+h1+h2+h3 | 5) temp <= splat(extract(temp2, 4)) |
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  // |    |       |    |             |    |       | -  | l0+h1+l2+h3 | 6) result <= temp2 + temp           |
+  // | -  |   -   | -  |      -      | -  |   -   | -  | h0+h1+h2+h3 |                                     |
+  // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
+  float temp, temp2;
+  uint64_t extract;
+  __asm__ __volatile__("fswizz.ps %[temp], %[value], 0x13\n"    // 1)
+                       "fadd.ps %[temp2], %[value], %[temp]\n"  // 2)
+                       "fswizz.ps %[temp], %[temp2], 0x02\n"    // 3)
+                       "fadd.ps %[temp2], %[temp2], %[temp]\n"  // 4)
+                       "fmvs.x.ps %[extract], %[temp2], 0x4\n"  // 5)
+                       "fbcx.ps %[temp], %[extract]\n"          //
+                       "fadd.ps %[result], %[temp2], %[temp]\n" // 6)
+                       : [ temp ] "=&f"(temp), [ temp2 ] "=f"(temp2), [ extract ] "=r"(extract), [ result ] "=f"(result)
+                       : [ value ] "f"(value)
+                       :);
 }
 
 template <ElemKind elK>
@@ -144,38 +168,28 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
                   float beta, float k, uint64_t flags,
                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  // only FloatTy is supported => call threaded version instead
-  assert ( elK == FloatTy);
-  using srcType = typename elemKind2elemTy<elK>::type;
-  
+  using type = typename elemKind2elemTy<elK>::type;
+  constexpr size_t bytesPerElement = getsize<type>();
+
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  /* out1T --> dst  out2T--> dst2  inT--> data */
+  if (minionId >= activeMinions) {
+    return;
+  }
 
   void *dstMatrix = out1T->getRawDataPointer<void>();
   void *dst2Matrix = out2T->getRawDataPointer<void>();
   void *activations = inT->getRawDataPointer<void>();
-
-  // uintptr_t srcAddr = (uintptr_t)activations;
-  uintptr_t srcAddr = reinterpret_cast<uintptr_t>(activations);
-  // Addresser<elK> tOutput(dstMatrix, scale[1], offset[1]);
-  Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
-  // Addresser<elK> tScale(dst2Matrix, scale[2], offset[2]);
-  Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
-  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<elK> tAInput(activations, inT->getScale(), inT->getOffset());
   
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = out1T->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   const dim_t *dstPitch = out1T->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = inT->dims().data();
+  const dim_t* dstPitch2 = out2T->strides().data();
+  const dim_t* actPitch = inT->strides().data();
+
+  // Input and output dimensions should match
+  assert(dstIndex[0] == actIndex[0] and dstIndex[1] == actIndex[1] and dstIndex[2] == actIndex[2] and
+         dstIndex[3] == actIndex[3]);
 
   auto windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;
@@ -183,99 +197,116 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
   float normedAlpha = alpha * inversedWindowSize;
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstMatrix);
-  if (maxRead == 0)
+  getCachelinePartition(bytesPerElement, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
+
+  if (maxRead == 0) {
     return;
+  }
 
   const unsigned int srcDimNum = 4;
   unsigned int coord[srcDimNum] = {0, 0, 0, 0};
-  unsigned int t = 0;  //this variable is usually called k, but n this case the name k is already used
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           t);
+  unsigned int numDimensions = 0;
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, numDimensions);
+
   unsigned int offsetIn = 0;
   unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < t; j++) {
+  unsigned int offsetOut2 = 0;
+  for (unsigned int j = 0; j < numDimensions; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
+    offsetOut2 += dstPitch2[j] * coord[j];
   }
+
+  __asm__ __volatile__("mov.m.x m0, zero, 0xff");
+
+  // Setup gather config for source
+  constexpr bool srcAligned = false;
+  uint64_t srcConf;
+  float srcIndices;
+  setupGatherScatterConfig<bytesPerElement, srcAligned>(srcConf, srcIndices);
+
+  // Setup scather config for activation destination tensor
+  constexpr bool dstAligned = false;
+  uint64_t dstConf;
+  float dstIndices;
+  setupGatherScatterConfig<bytesPerElement, dstAligned>(dstConf, dstIndices);
+
+  // Setup scather config for scale destination tensor
+  constexpr bool dstAligned2 = false;
+  uint64_t dstConf2;
+  float dstIndices2;
+  setupGatherScatterConfig<bytesPerElement, dstAligned2>(dstConf2, dstIndices2);
 
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
-  unsigned int mask;
-  while (!done && (offsetOut < posMax)) {
-    float squareSum = 0.0;
+  while (not done and offsetOut < posMax) {
+
     size_t c = size_t(coord[3]);
     unsigned int start = (c >= halfWindowSize ? c - halfWindowSize : 0);
     unsigned int end = std::min(c + halfWindowSize, (long unsigned int)actIndex[3] - 1);
     unsigned int registers = (end - start + 1)/8;
     unsigned int mod = (end - start + 1) - 8*registers;
-    constexpr uint32_t offs = 32;
-    srcAddr += (offsetIn + (start - c)*actPitch[3]) * typeSize;
+    uintptr_t srcAddr =
+      reinterpret_cast<uintptr_t>(activations) + (offsetIn + (start - c) * actPitch[3]) * bytesPerElement;
 
-    mask = ((1 << mod) - 1);
-    __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n"
-                         "mov.m.x m0, zero, 0xff \n"
-                         "fxor.pi f0, f0, f0\n"
-                         "add t0, zero, zero\n"
+    float value, squareSum;
+    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"
+                         "fxor.pi %[squareSum], %[squareSum], %[squareSum]\n"
+                         : [ squareSum ] "=f"(squareSum));
 
+    constexpr uint32_t pitch = 8 * bytesPerElement;
+    for (uint64_t i = 0; i < registers; ++i, srcAddr += pitch) {
+      load<bytesPerElement, srcAligned>(srcAddr, srcConf, srcIndices, value);
+      convert<elK, FloatTy>(value);
+      __asm__ __volatile__("fmadd.ps %[squareSum], %[value], %[value], %[squareSum]\n"
+                           : [ squareSum ] "+f"(squareSum)
+                           : [ value ] "f"(value));
+    }
 
-                         "ble %[registers], t0, 2f\n"
-                         "1:\n"
-                         "flw.ps f1, 0x0(%[src])\n"
-                         "fmul.ps f1, f1, f1\n"
-                         "fadd.ps f0, f0, f1\n"
-                         "addi t0, t0, 0x1\n"
-                         "addi %[src], %[src], %[offs]\n"
-                         "blt t0, %[registers], 1b\n"
-                         "2:\n"
-                         "ble %[mod], zero, 3f\n"
-                         "maskand m0, m1, m0 \n"
-                         "flw.ps f1, 0x0(%[src])\n"
-                         "fmul.ps f1, f1, f1\n"
-                         "fadd.ps f0, f0, f1\n"
-                         "3:\n"
-                         "mov.m.x m0, zero, 0xff \n"
-                         "fswizz.ps f30, f0, 0xe \n"
-                         "fadd.ps f0,f30, f0 \n"
-                         "fswizz.ps f30, f0, 0x1 \n"
-                         "fadd.ps f0,f30, f0 \n"
-                         "fmvs.x.ps %[sum], f0, 0x4 \n"
-                         "fmv.w.x f30, %[sum] \n"
-                         "fadd.s f0, f30, f0 \n"
-                         "fmvs.x.ps %[sum], f0, 0x0 \n"
+    if (mod > 0) {
+      uint64_t mask = (1 << mod) - 1;
+      __asm__ __volatile__("mov.m.x m0, %[mask], 0x0\n" : : [ mask ] "r"(mask));
+      load<bytesPerElement, srcAligned>(srcAddr, srcConf, srcIndices, value);
+      convert<elK, FloatTy>(value);
+      __asm__ __volatile__("fmadd.ps %[squareSum], %[value], %[value], %[squareSum]\n"
+                           : [ squareSum ] "+f"(squareSum)
+                           : [ value ] "f"(value));
+    }
 
-                         : [ sum ] "=r"(squareSum),
-                           [ src ] "+&r"(srcAddr)
-                         : [ mask ] "r"(mask),
-                           [ mod ] "r"(mod),
-                           [ offs ] "I"(offs),
-                           [ registers ] "r"(registers)
+    reduceAdd(squareSum, squareSum);
 
-                         : "t0", "f0", "f1", "f30", "memory");
+    float scale = k + normedAlpha * squareSum;
 
-    auto scale = k + normedAlpha * squareSum;
+    // Load current element and convert to float if needed
+    srcAddr = reinterpret_cast<uintptr_t>(activations) + offsetIn * bytesPerElement;
+    load<bytesPerElement, srcAligned>(srcAddr, srcConf, srcIndices, value);
+    convert<elK, FloatTy>(value);
 
-    tScale[offsetOut] = scale;
+    // Multiply the normalization factor
+    float output = value * getPow(scale, -beta);
 
-    auto normFactor = getPow(scale, -beta);
-    auto op = tAInput[offsetIn];
-    op *= normFactor;
-    tOutput[offsetOut] = op;
+    // Convert to elK and store
+    convert<FloatTy, elK>(output);
+    constexpr bool dstAligned = false;
+    uintptr_t dstAddr = reinterpret_cast<uintptr_t>(dstMatrix) + offsetOut * bytesPerElement;
+    store<bytesPerElement, dstAligned>(dstAddr, dstConf, dstIndices, output);
 
+    // Convert scale to elK and store
+    convert<FloatTy, elK>(scale);
+    constexpr bool dstAligned2 = false;
+    uintptr_t dstAddr2 = reinterpret_cast<uintptr_t>(dst2Matrix) + offsetOut2 * bytesPerElement;
+    store<bytesPerElement, dstAligned2>(dstAddr2, dstConf2, dstIndices2, scale);
 
-
-    srcAddr = (uintptr_t)activations;
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex,
-                      actPitch, dstPitch);
+    // Move to next element
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, offsetOut2, actIndex, actPitch, dstPitch, dstPitch2);
   }
+
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  unsigned int clperminion = (maxRead * bytesPerElement + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  if (clperminion > 0)
+    evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + bytesPerElement * initialAddr, clperminion);
 }
 
 } // namespace inlining
