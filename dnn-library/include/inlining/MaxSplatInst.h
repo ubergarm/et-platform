@@ -31,7 +31,15 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK, bool aligned>
-inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float* scale, const int32_t* offset) {
+inline void maxSplatOp(const uintptr_t dst, const uintptr_t src, const dim_t valid, const float splatVal,
+                       const float* scale, const int32_t* offset) {
+  // Enables only the valid elements
+  if (valid < 8) {
+    uint8_t mask = ((1 << valid) - 1);
+    __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
+  } else {
+    __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
+  }
 
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
@@ -93,11 +101,10 @@ inline void maxSplatOp(uintptr_t dst, uintptr_t src, float splatVal, const float
   store<bytesPerElement, aligned>(dst, conf, indices, indicesHigh, op0, op0High);
 }
 
-  // generic version is vectorized
+// Generic version is vectorized and threaded
 template <ElemKind elK>
-inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
-                                         const float splatVal, uint64_t flags,
-                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, const float splatVal, uint64_t flags,
+                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -106,214 +113,33 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT,
     return;
   }
 
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = inT->getRawDataPointer<void>();
+  constexpr bool aligned = false;
 
-  uintptr_t dstAddr = (uintptr_t)dst;
-  uintptr_t srcAddr = (uintptr_t)src;
+  const float scale[2] = {inT->getScale(), outT->getScale()};
+  const int32_t offset[2] = {inT->getOffset(), outT->getOffset()};
 
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)srcDims;
-  const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const dim_t *actPitch = inT->strides().data();
- 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
-
-  if (maxRead == 0) {
-    return;
-  }
-
-  unsigned int coord[srcDimNum];
-  unsigned int k = 0;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
-
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn += actPitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
-  }
-
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
-  unsigned int lastDim = srcDimNum - 1;
-  unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  unsigned int elementsInRow, registersInRow, res;
-  bool firstRow = true;
-  bool midRow = false;
-  bool lastRow = false;
-  coord[0] *= (srcDimNum != 1);
-
-  while (!done && (offsetOut < posMax)) {
-    if (firstRow && (srcDimNum > 1) && (coord[lastDim - 1] != maxRow)) {
-      elementsInRow = dstIndex[lastDim] - coord[lastDim];
-    } else if ((srcDimNum == 1) || coord[lastDim - 1] == maxRow) {
-      lastRow = true;
-      elementsInRow = posMax - offsetOut;
-      if (elementsInRow > (dstIndex[lastDim] - coord[lastDim])) {
-        elementsInRow = dstIndex[lastDim] - coord[lastDim];
-      }
-    } else {
-      elementsInRow = dstIndex[lastDim];
-    }
-    if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
-      registersInRow = elementsInRow / 8;
-      res = elementsInRow - registersInRow * 8;
-      if (!firstRow) {
-        midRow = true;
-      }
-    }
-
-    firstRow = false;
-    srcAddr += offsetIn * typeSize;
-    dstAddr += offsetOut * typeSize;
-
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-    const float scale[2] = {inT->getScale(), outT->getScale()};
-    const int32_t offset[2] = {inT->getOffset(), outT->getOffset()}; 
-    for (unsigned int i = 0; i < registersInRow; i++) {
-      maxSplatOp<elK, false>(dstAddr, srcAddr, splatVal, scale, offset);
-      srcAddr += 8 * typeSize;
-      dstAddr += 8 * typeSize;
-    }
-
-    if (res > 0) {
-      uint8_t mask;
-      mask = ((1 << res) - 1);
-      __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-      maxSplatOp<elK, false>(dstAddr, srcAddr, splatVal, scale, offset);
-    }
-
-    if (lastRow) {
-      return;
-    }
-
-    dstAddr = (uintptr_t)dst;
-    srcAddr = (uintptr_t)src;
-    offsetIn -= coord[lastDim] * actPitch[lastDim];
-    offsetOut -= coord[lastDim] * dstPitch[lastDim];
-    coord[lastDim] = 0;
-
-    done = getOffsets(lastDim, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
-  }
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
+  outT->partitionLoop<srcType>(minionId, activeMinions, flags, inT, maxSplatOp<elK, aligned>, splatVal, scale, offset);
 }
 
 template <ElemKind elK>
-inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                             const float splatVal, uint64_t flags,
+inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT, const float splatVal, uint64_t flags,
                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
-
-  uintptr_t dstAddr;
-  uintptr_t srcAddr;
-
-  /* maintain compatibility through the new Iface Libtensor */
-  void *dst = outT->getRawDataPointer<void>();
-  void *src = inT->getRawDataPointer<void>();
-  
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)srcDims;
-  const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
-  const dim_t *actPitch = inT->strides().data();
-
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
-  unsigned int initialAddr, maxRead;
-  
-  size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dst);
-  if (maxRead == 0)
+  if (minionId >= activeMinions) {
     return;
-
-  unsigned int coord[srcDimNum];
-  unsigned int k = 0;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           k);
-
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn += actPitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
   }
 
-
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
-
-  unsigned int n_dstPitch[outT->ndims()];
-  unsigned int n_dstIndex[outT->ndims()];
-  unsigned int n_actPitch[inT->ndims()];
-  
-  for(size_t i = 0; i < inT->ndims(); i++) {
-    n_actPitch[i] = actPitch[i];
-    n_dstPitch[i] = dstPitch[i];
-    n_dstIndex[i] = dstIndex[i];    
-  }
-
-  // Operation is performed in groups of 8 elements (vector)
-  // and coordinates, indices and pitches need to be adjusted
-  // to use getOffsets.
-  //
-  // The input coordinate is aligned to 64 bytes so it's
-  // also aligned to 8 elements (4B * 8 = 32B).
-  //
-  unsigned int lastDim = srcDimNum - 1;
-  unsigned int res = ((n_dstIndex[lastDim] - 1) % 8) +1;
-  coord[lastDim] = (coord[lastDim] / 8);
-  n_actPitch[lastDim] *= 8;
-  n_dstPitch[lastDim] *= 8;
-  n_dstIndex[lastDim] = ((n_dstIndex[lastDim] - 1) / 8) + 1;
-  unsigned int mask = ((1 << res) - 1);
+  constexpr bool aligned = true;
 
   const float scale[2] = {inT->getScale(), outT->getScale()};
-  const int32_t offset[2] = {inT->getOffset(), outT->getOffset()}; 
+  const int32_t offset[2] = {inT->getOffset(), outT->getOffset()};
 
-  while (!done && (offsetOut < posMax)) {
-    dstAddr = (uintptr_t)dst + offsetOut*typeSize;
-    srcAddr = (uintptr_t)src + offsetIn*typeSize;
-
-    if (coord[lastDim] != n_dstIndex[lastDim] - 1)
-         __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-    else __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-
-    maxSplatOp <elK, true>(dstAddr, srcAddr, splatVal, scale, offset);
-
-    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, n_dstIndex,
-                      n_actPitch, n_dstPitch);
-  }
-  if (DO_EVICTS) {
-    unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-    if (clperminion > 0)
-      fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
-  }
+  outT->partitionLoop<srcType>(minionId, activeMinions, flags, inT, maxSplatOp<elK, aligned>, splatVal, scale, offset);
 }
 
- 
 } // namespace inlining
 
 } // namespace dnn_lib
