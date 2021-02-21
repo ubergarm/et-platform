@@ -501,19 +501,16 @@ namespace dnn_lib {
       1, // # outs
       2,  // # ins
       {}, // members
-      7, // template param mask
-      {"Vectorized"}, // impl versions
-      implSel::ElementAdd, // custom impl selector
+      1, // template param mask
+      {}, // impl versions
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // L2 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // CB states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-      {0x0, 0x0} // evict available mask
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_elementandi
     instrConfig {
@@ -598,19 +595,16 @@ namespace dnn_lib {
       1, // # outs
       2,  // # ins
       {}, // members
-      7, // template param mask
-      {"Vectorized"}, // impl versions
-      implSel::ElementDiv, // custom impl selector
+      1, // template param mask
+      {}, // impl versions
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // L2 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // CB states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-      {0x0, 0x0} // evict available mask
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_elementexp
     instrConfig {
@@ -669,19 +663,16 @@ namespace dnn_lib {
       1, // # outs
       2,  // # ins
       {}, // members
-      7, // template param mask
-      {"Vectorized"}, // impl versions
-      implSel::ElementMax, // custom impl selector
+      1, // template param mask
+      {}, // impl versions
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // L2 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // CB states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-      {0x0, 0x0} // evict available mask
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_elementmin
     instrConfig {
@@ -689,19 +680,16 @@ namespace dnn_lib {
       1, // # outs
       2,  // # ins
       {}, // members
-      7, // template param mask
-      {"Vectorized"}, // impl versions
-      implSel::ElementMin, // custom impl selector
+      1, // template param mask
+      {}, // impl versions
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // L2 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // CB states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-      {0x0, 0x0} // evict available mask
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_elementmul
     instrConfig {
@@ -709,19 +697,16 @@ namespace dnn_lib {
       1, // # outs
       2,  // # ins
       {}, // members
-      7, // template param mask
-      {"Vectorized"}, // impl versions
-      implSel::ElementMul, // custom impl selector
+      1, // template param mask
+      {}, // impl versions
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // L2 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // CB states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-      {0x0, 0x0} // evict available mask
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_elementori
     instrConfig {
@@ -746,19 +731,16 @@ namespace dnn_lib {
       1, // # outs
       2,  // # ins
       {}, // members
-      7, // template param mask
-      {"Vectorized"}, // impl versions
-      implSel::ElementPow, // custom impl selector
+      1, // template param mask
+      {}, // impl versions
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // L2 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // CB states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-      {0x0, 0x0} // evict available mask
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_elementselect
     instrConfig {
@@ -783,19 +765,16 @@ namespace dnn_lib {
       1, // # outs
       2,  // # ins
       {}, // members
-      7, // template param mask
-      {"Vectorized"}, // impl versions
-      implSel::ElementSub, // custom impl selector
+      1, // template param mask
+      {}, // impl versions
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // L2 states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       // CB states per impl
-      {{{operandState::invalid, operandState::invalid, operandState::invalid},
-        {operandState::invalid, operandState::invalid, operandState::invalid}}},
-      {0x0, 0x0} // evict available mask
+      {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_elementxori
     instrConfig {

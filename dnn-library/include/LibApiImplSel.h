@@ -46,45 +46,6 @@ namespace dnn_lib {
     }
   
 
-    // Best implementation selector for operator generic ElementBinary instructions. Return values are:
-    //   0: base implementation (threaded)
-    //   1: Vectorized 
-    static size_t ElementBinary(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
-      ElemKind dstElK = outTensors[0]->getElementType();
-      LibTensor *in1T = inTensors[0];
-      LibTensor *in2T = inTensors[1];
-      if ( (dstElK == FloatTy || dstElK == Float16Ty || dstElK == Int8QTy) &&
-           in1T->strides()[0] == in2T->strides()[0] )
-        return 1;
-      else
-        return 0;
-    }
-
-    static size_t ElementAdd(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return ElementBinary(outTensors, inTensors);
-    }
-    static size_t ElementSub(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return ElementBinary(outTensors, inTensors);
-    }
-    static size_t ElementDiv(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return 1;
-    }
-    static size_t ElementMax(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return ElementBinary(outTensors, inTensors);
-    }
-    static size_t ElementMin(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return ElementBinary(outTensors, inTensors);
-    }
-    static size_t ElementMul(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return ElementBinary(outTensors, inTensors);
-    }
-    static size_t ElementPow(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
-      return ElementBinary(outTensors, inTensors);
-    }
-
-
-
-
     // Best implementation selector for operator ElementBool instructions. Return values are:
     //   0: base implementation (threaded)
     //   1: Vectorized 

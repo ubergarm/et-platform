@@ -15,16 +15,25 @@ public:
 
   HandleIterator() = delete;
   HandleIterator(const HandleIterator& x) = default;
-  
-  HandleIterator(HandleT& h, const dim_t offset) :
-    dims_(h.tensor_->dims()),
-    strides_(h.tensor_->strides()),
-    ndims_(h.tensor_->ndims()),
-    ptr_(h.tensor_->template getRawDataPointer <ElemTy>()),
-    offset_(offset),
-    coords_(h.tensor_->offset2Coord(offset)),
-    wrap_(buildWrap())
-  {
+
+  HandleIterator(HandleIterator&& x)
+    : dims_(x.dims_)
+    , strides_(x.strides_)
+    , ndims_(x.ndims_)
+    , ptr_(x.ptr_)
+    , offset_(x.offset_)
+    , coords_(x.coords_)
+    , wrap_(x.wrap_) {
+  }
+
+  HandleIterator(HandleT& h, const dim_t offset)
+    : dims_(h.tensor_->dims())
+    , strides_(h.tensor_->strides())
+    , ndims_(h.tensor_->ndims())
+    , ptr_(h.tensor_->template getRawDataPointer<ElemTy>())
+    , offset_(offset)
+    , coords_(h.tensor_->offset2Coord(offset))
+    , wrap_(buildWrap()) {
     // offset2Coord can return coordinates pointing to padding: adjust to point to first element without offset
     for(size_t i = ndims_-1; i > 0 ; --i) {
       if (coords_[i] >= dims_[i]) {
@@ -34,32 +43,35 @@ public:
       }
     }
   }
-  
-  HandleIterator(HandleT& h, const dim_array_t &coords) :
-    dims_(h.tensor_->dims()),
-    strides_(h.tensor_->strides()),
-    ndims_(h.tensor_->ndims()),
-    ptr_(h.tensor_->template getRawDataPointer<ElemTy>()),
-    offset_(h.getElementPtr(coords)),
-    coords_(coords),
-    wrap_(buildWrap()) { }
-  
-  HandleIterator(HandleT& h) :
-    dims_(h.tensor_->dims()),
-    strides_(h.tensor_->strides()),
-    ndims_(h.tensor_->ndims()),
-    ptr_(h.tensor_->template getRawDataPointer<ElemTy>()),
-    wrap_(buildWrap())  { } // assuming offset=0, coords=0
-  
-  HandleIterator(HandleT &h, dim_t offset, const dim_array_t &coords) :
-    dims_(h.tensor_->dims()),
-    strides_(h.tensor_->strides()),
-    ndims_(h.tensor_->ndims()),
-    ptr_(h.tensor_->template getRawDataPointer<ElemTy>()),
-    offset_(offset),
-    coords_(coords),
-    wrap_(buildWrap())  {}
-  
+
+  HandleIterator(HandleT& h, const dim_array_t& coords)
+    : dims_(h.tensor_->dims())
+    , strides_(h.tensor_->strides())
+    , ndims_(h.tensor_->ndims())
+    , ptr_(h.tensor_->template getRawDataPointer<ElemTy>())
+    , offset_(h.getElementPtr(coords))
+    , coords_(coords)
+    , wrap_(buildWrap()) {
+  }
+
+  HandleIterator(HandleT& h)
+    : dims_(h.tensor_->dims())
+    , strides_(h.tensor_->strides())
+    , ndims_(h.tensor_->ndims())
+    , ptr_(h.tensor_->template getRawDataPointer<ElemTy>())
+    , wrap_(buildWrap()) {
+  } // assuming offset=0, coords=0
+
+  HandleIterator(HandleT& h, dim_t offset, const dim_array_t& coords)
+    : dims_(h.tensor_->dims())
+    , strides_(h.tensor_->strides())
+    , ndims_(h.tensor_->ndims())
+    , ptr_(h.tensor_->template getRawDataPointer<ElemTy>())
+    , offset_(offset)
+    , coords_(coords)
+    , wrap_(buildWrap()) {
+  }
+
   // increment
   HandleIterator& operator++( ) {
     assert(strides_[ndims_-1] == 1);
@@ -100,10 +112,14 @@ public:
   HandleIterator operator+(difference_type x) {
     return HandleIterator (offset_+ x);
   }
-  
-  static HandleIterator begin(HandleT& t) { return t.begin();}
-  static HandleIterator end(HandleT& t) { return t.end(); }
-  
+
+  static HandleIterator begin(HandleT& t) {
+    return t.begin();
+  }
+  static HandleIterator end(HandleT& t) {
+    return t.end();
+  }
+
   dim_t offset() const { return offset_; }
   const dim_array_t & coords() const { return coords_;}
   

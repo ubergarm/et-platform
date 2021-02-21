@@ -421,22 +421,26 @@ extern template void fwdLibDequantizeInst<Float16Ty,Int32QTy>(LibTensor* out0, L
 *  ElementAdd implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementAddInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementAddInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibElementAddInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibElementAddInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInst<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInst<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInstVectorized<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInstVectorized<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInstVectorized<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInstVectorized<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementAddInstVectorized<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementAddInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementAddInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                     const uint64_t flags, const uint32_t minionOffset,
+                                                     const uint32_t assignedMinions);
+extern template void fwdLibElementAddInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementAddInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
+extern template void fwdLibElementAddInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementCmpEQ implementations
@@ -505,20 +509,23 @@ extern template void fwdLibElementCmpLTInstVectorized<Int64ITy,Int64ITy>(LibTens
 *  ElementDiv implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementDivInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementDivInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibElementDivInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibElementDivInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementDivInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementDivInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementDivInst<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementDivInstVectorized<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementDivInstVectorized<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementDivInstVectorized<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementDivInstVectorized<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementDivInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementDivInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                     const uint64_t flags, const uint32_t minionOffset,
+                                                     const uint32_t assignedMinions);
+extern template void fwdLibElementDivInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementDivInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementExp implementations
@@ -557,79 +564,92 @@ extern template void fwdLibElementLogInst<Float16Ty,Float16Ty>(LibTensor* out0, 
 *  ElementMax implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementMaxInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementMaxInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibElementMaxInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibElementMaxInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInst<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInst<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInstVectorized<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInstVectorized<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInstVectorized<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInstVectorized<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMaxInstVectorized<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementMaxInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementMaxInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                     const uint64_t flags, const uint32_t minionOffset,
+                                                     const uint32_t assignedMinions);
+extern template void fwdLibElementMaxInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementMaxInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
+extern template void fwdLibElementMaxInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementMin implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementMinInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementMinInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibElementMinInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibElementMinInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInst<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInst<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInstVectorized<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInstVectorized<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInstVectorized<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInstVectorized<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMinInstVectorized<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementMinInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementMinInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                     const uint64_t flags, const uint32_t minionOffset,
+                                                     const uint32_t assignedMinions);
+extern template void fwdLibElementMinInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementMinInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
+extern template void fwdLibElementMinInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementMul implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementMulInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementMulInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibElementMulInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibElementMulInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInst<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInst<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInstVectorized<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInstVectorized<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInstVectorized<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInstVectorized<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementMulInstVectorized<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementMulInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementMulInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                     const uint64_t flags, const uint32_t minionOffset,
+                                                     const uint32_t assignedMinions);
+extern template void fwdLibElementMulInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementMulInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
+extern template void fwdLibElementMulInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementPow implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementPowInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementPowInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibElementPowInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibElementPowInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementPowInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementPowInstVectorized<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementPowInstVectorized<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementPowInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementPowInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                     const uint64_t flags, const uint32_t minionOffset,
+                                                     const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementSelect implementations
@@ -650,22 +670,26 @@ extern template void fwdLibElementSelectInst<Int16QTy>(LibTensor* out0, LibTenso
 *  ElementSub implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementSubInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in0Type, ElemKind in1Type>
-void fwdLibElementSubInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+template <ElemKind out0Type>
+void fwdLibElementSubInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
+                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibElementSubInst<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInst<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInst<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInst<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInst<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInstVectorized<FloatTy,FloatTy,FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInstVectorized<Float16Ty,Float16Ty,Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInstVectorized<Int8QTy,Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInstVectorized<Int32ITy,Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementSubInstVectorized<Int64ITy,Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementSubInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementSubInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                     const uint64_t flags, const uint32_t minionOffset,
+                                                     const uint32_t assignedMinions);
+extern template void fwdLibElementSubInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                   const uint64_t flags, const uint32_t minionOffset,
+                                                   const uint32_t assignedMinions);
+extern template void fwdLibElementSubInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
+extern template void fwdLibElementSubInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
+                                                    const uint64_t flags, const uint32_t minionOffset,
+                                                    const uint32_t assignedMinions);
 
 /****************************************************************************
 *  EmbeddingBag implementations

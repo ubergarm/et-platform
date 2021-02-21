@@ -75,20 +75,20 @@ inline void convertFloatToInt32(float source, float& destination) {
   float mask, bit, temp;
   __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
                        "fsrli.pi %[bit], %[mask], 9\n"
-                       : [ mask ] "=f"(mask), [ bit ] "=f"(bit)
+                       : [ mask ] "=&f"(mask), [ bit ] "=f"(bit)
                        : [ source ] "f"(source));
 
   if constexpr (canBeSignallingNaN) {
     __asm__ __volatile__("fsrli.pi %[temp], %[mask], 8\n"
                          "for.pi %[bit], %[temp], %[bit]\n"
-                         : [ temp ] "=f"(temp), [ bit ] "+f"(bit)
+                         : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
                          : [ mask ] "f"(mask));
   }
 
   __asm__ __volatile__("fsrli.pi %[temp], %[mask], 7\n"
                        "for.pi %[bit], %[temp], %[bit]\n"
                        "fandi.pi %[bit], %[bit], 1\n"
-                       : [ temp ] "=f"(temp), [ bit ] "+f"(bit)
+                       : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
                        : [ mask ] "f"(mask));
 
   if constexpr (mode == RoundingMode::NearestTiesEven) {
@@ -352,11 +352,28 @@ inline void multiplyAdd(float& destination, float source, float scale, float off
                        : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
 }
 
+// hasSign: determines if converting using signed/unsigned instructions
+// clip8bits: saturate result to 8 bits
+// fastconvert: just use fcvt.. do not try to match x86 treatment of inf, snan...
+template <bool hasSign = false, bool clip8bits = false, bool fastConvert = true>
 inline void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
+  // destination = soruce * scaleRcp + offset;
   multiplyAdd(destination, source, scaleReciprocal, offset);
+  if constexpr (fastConvert) {
+    __asm__ __volatile__("fcvt.pw.ps %0, %0\n" : "+f"(destination));
+  } else {
+    convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(destination, destination);
+  }
+  asm __volatile__("csrwi validation3,0");
+  if constexpr (clip8bits && hasSign) {
+    __asm__ __volatile__("fsat8.pi %0, %0\n" : "+f"(destination));
+  }
+  if constexpr (clip8bits && !hasSign) {
+    __asm__("fsatu8.pi %0, %0\n" : "+f"(destination));
+  }
 }
 
-template <ElemKind srcElK, ElemKind dstElK>
+template <ElemKind srcElK, ElemKind dstElK, bool matchx86 = false>
 inline void convert(float source, float sourceHigh, float& destination, float& destinationHigh, const float& srcScale,
                     const float& srcOffset, const float& dstScaleReciprocal, const float& dstOffset) {
 
@@ -402,13 +419,13 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
             : [ destination ] "=f"(destination)
             : [ source ] "f"(source), [ bits ] "i"(16));
   } else if constexpr (srcElK == FloatTy and dstElK == Int8QTy) {
-    // TODO: from FloatTy to Int8QTy probably not required
+    doQuantize<true, true, matchx86>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8QTy) {
-    // TODO: from FloatTy to UInt8QTy probably not required
+    doQuantize<false, true, matchx86>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int16QTy) {
     // TODO: from FloatTy to Int16QTy probably not required
   } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
-    // TODO: from FloatTy to Int32QTy probably not required
+    doQuantize<false, false, matchx86>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
     convertFloatToInt32<RoundingMode::LikeCast>(source, destination);
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
@@ -895,7 +912,6 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
                               dstOffset);
   }
 #undef DEFAULT_CONVERT
-
 }
 
 template <ElemKind srcElK, ElemKind dstElK>

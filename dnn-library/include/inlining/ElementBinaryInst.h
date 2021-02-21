@@ -22,116 +22,128 @@
 #include "Writer.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 
 namespace dnn_lib {
 
 namespace inlining {
-  
-/**
- * @brief Given to tensors, it gives the result of the opType applied elementwise.
- *
- * Given an operator opType and two input tensors A, B, it generates the
- * tensor C in the following way @f$ C_{i,j} = opType(A_{i,j}, B_{i,j}) @f$. 
- * This is the threaded version.
- * 
- * @warning It comes without doubt that A and B must have the same dimensions.
- * 
- * @note This implementation is similar to the CopyInstThreaded, where the
- *  code is more explained.
- *
- * @note This is a generalization of the previous version as it allows the 
- *  types of the three tensors not being the same.
- *
- * @tparam src1Type The type of the elements in the first input tensors.
- * @tparam src2Type The type of the elements in the second input tensors.
- * @tparam dstType The type of the elements in the output tensor.
- * @tparam opType An operator that takes two srcType elements and returns a 
- * srcType (+, ·, etc).
- * @param[out] dstT LibTensor pointer to the output matrix.
- * @param[in] in1T LibTensor pointer to the src1 matrix
- * @param[in] in2T LibTensor pointer to the src2 matrix
- * @param[in] flags Controls the active shires and the type of evict that 
- *  should be done at the end of the function.
+
+////////////////////////////////////////////////////////////////////////////////
+// macro to instantiate compute depending on the operation
+////////////////////////////////////////////////////////////////////////////////
+
+#define EB_COMPUTE(OP_, IS_INDEX_, SKIP_CONVERT_, MATCH_x86)                                                           \
+  do {                                                                                                                 \
+    if constexpr (std::is_same<opType, OP_>::value) {                                                                  \
+      if constexpr (IS_INDEX_) {                                                                                       \
+        /*compute*/                                                                                                    \
+        __asm__ EB_##OP_##_INDEX_COMPUTE;                                                                              \
+      } else {                                                                                                         \
+        /*convert operands to float */                                                                                 \
+        if constexpr (!(SKIP_CONVERT_)) {                                                                              \
+          convert<elK, FloatTy>(in1, in1H, in1, in1H, in1Scale, in1Offset, 0, 0);                                      \
+          convert<elK, FloatTy>(in2, in2H, in2, in2H, in2Scale, in2Offset, 0, 0);                                      \
+        }                                                                                                              \
+        /* compute*/                                                                                                   \
+        __asm__ EB_##OP_##_FLOAT_COMPUTE;                                                                              \
+        /* convert back */                                                                                             \
+        if constexpr (!(SKIP_CONVERT_)) {                                                                              \
+          convert<FloatTy, elK, !MATCH_x86>(out, outH, out, outH, 0, 0, outScaleRcp, outOffset);                       \
+        }                                                                                                              \
+      }                                                                                                                \
+    }                                                                                                                  \
+  } while (0)
+
+////////////////////////////////////////////////////////////////////////////////
+// asm listing for compute depending on the operator
+////////////////////////////////////////////////////////////////////////////////
+#define EB_EXPAND_SINGLE_INST(x) (x " %0, %1, %2" : "=f"(out) : "f"(in1), "f"(in2))
+
+#define EB_Add_FLOAT_COMPUTE EB_EXPAND_SINGLE_INST("fadd.ps")
+#define EB_Add_INDEX_COMPUTE EB_EXPAND_SINGLE_INST("fadd.pi")
+
+#define EB_Sub_FLOAT_COMPUTE EB_EXPAND_SINGLE_INST("fsub.ps")
+#define EB_Sub_INDEX_COMPUTE EB_EXPAND_SINGLE_INST("fsub.pi")
+
+#define EB_Mul_FLOAT_COMPUTE EB_EXPAND_SINGLE_INST("fmul.ps")
+#define EB_Mul_INDEX_COMPUTE EB_EXPAND_SINGLE_INST("fmul.pi")
+
+#define EB_Min_FLOAT_COMPUTE EB_EXPAND_SINGLE_INST("fmin.ps")
+#define EB_Min_INDEX_COMPUTE EB_EXPAND_SINGLE_INST("fmin.pi")
+
+#define EB_Max_FLOAT_COMPUTE EB_EXPAND_SINGLE_INST("fmax.ps")
+#define EB_Max_INDEX_COMPUTE EB_EXPAND_SINGLE_INST("fmax.pi")
+
+#define EB_Div_FLOAT_COMPUTE                                                                                           \
+  ("frcp.ps %0, %2\n"     /* out=1/in2 */                                                                              \
+   "fmul.ps %0, %0, %1\n" /* out=in1/in2 */                                                                            \
+   : "=&f"(out)                                                                                                        \
+   : "f"(in1), "f"(in2))
+
+#define EB_Div_INDEX_COMPUTE ("invalid")
+
+/* compute like this: x^y = exp( y*log(x))
+   with some special cases into account:
+    a) if y == 0 => result is 1
+    b) if x == 0 => result i 0
+    c) if x < 0, NaN if y is not integer
  */
 
-  // threaded version
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
-inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T,
-            LibTensor* in2T, uint64_t flags,
-            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using dstType = typename elemKind2elemTy<dstElK>::type;
-  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+#define EB_Pow_FLOAT_COMPUTE                                                                                           \
+  (                                                                       \
+       "fmv.w.x %[out], x0\n" /* out=0 (all lanes)*/                      \
+       "maskand m7, m0, m0\n" /* save initial mask for later */           \
+       /* m0&=(x!=0) =>  disable lanes where x==0 (case b)*/              \
+       "feqm.ps m1, %[x], %[out]\n"                                       \
+       "masknot m1, m1\n" /* m1= (x != 0) */                              \
+       "maskand m0, m0, m1\n" /* m0 = initial mask with 0's where x==0*/  \
+                                                                          \
+       /* m2 = 1 if y is integer (for case c)*/                           \
+       "fround.ps ft0, %[y]\n"                                            \
+       "feqm.ps m2, ft0, %[y]\n"                                          \
+       /* m3 = 1 if round(y) is odd (for case c)*/                        \
+       "fcvt.pw.ps ft0, ft0\n"                                            \
+       "fandi.pi ft0, ft0, 1\n"                                           \
+       "fsetm.pi m3, ft0\n"                                               \
+       /* m4 = x <0 */                                                    \
+       "fltm.ps m4, %[x], %[out]\n"                                       \
+                                                                          \
+       /* save m0 in m1 */                                                \
+       "maskand m1, m0, m0\n"                                             \
+       /* set m0 to 0 in lanes where y==0*/                               \
+       "feqm.ps m0, %[y], %[out]\n"                                       \
+       "masknot m0, m0\n"                                                 \
+       /* compute y = y*log(abs(x)) */                                    \
+       /* if y was 0, because of the mask, the result will still be 0*/   \
+       "fsgnjx.ps %[x], %[x], %[x]\n" /* x = abs(x) */                    \
+       "flog.ps %[x], %[x]\n" /*x=log(abs(x)*/                            \
+       "fmul.ps %[y], %[y], %[x]\n" /* y = y*log(abs(x)) */               \
+                                                                          \
+       /* compute out = exp(y) */                                         \
+       "maskand m0, m1, m1\n" /*restore saved mask*/                      \
+       "fexp.ps %[out], %[y]\n"                                           \
+                                                                          \
+       /* at this point:                                                  \
+          if x==0 => out=0                                                \
+          if y==0 => out=1                                                \
+          we still need to treat case c                                   \
+       */                                                                 \
+       /* set out=-out for x<0, y=integer, y%2==1*/                       \
+       "maskand m0, m2, m4\n" /*x negative, y integer*/                   \
+       "maskand m0, m0, m3\n"  /*x negative, y integer, y odd*/           \
+       "fsgnjn.ps %[out], %[out], %[out]\n" /*change the sign*/           \
+                                                                          \
+       /* set out=NaN for x<0, y=not integer */                           \
+       "masknot m2, m2\n"                                                 \
+       "maskand m0, m2, m4\n"                                             \
+       "fbcx.ps %[out], %[nan]\n"                                         \
+       /* and restore the mask for the store*/                            \
+       "maskand m0, m7, m7\n"                                             \
+       : [out] "=&f" (out), [x] "+&f" (in1), [y] "+&f" (in2)              \
+       : [nan] "r" ( 0x7f800001)  : "ft0")
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT1 = in1T->getRawDataPointer<void>();
-  void* srcT2 = in2T->getRawDataPointer<void>();
-  
-  // const Addresser<srcType> aSrcT1(srcT1, scale0, offset0);
-  const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
-  // const Addresser<srcType> aSrcT2(srcT2, scale1, offset1);
-  const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
-  // Addresser<srcType> aDstT(dstT, scale2, offset2);
-  Addresser<dstElK> aDstT(dstT, outT->getScale(), outT->getOffset());
-  
-  // unsigned int *actIndex = (unsigned int *)srcDims;
-  const dim_t *actIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
-  const dim_t *act1Pitch = in1T->strides().data();
-  // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
-  const dim_t *act2Pitch = in2T->strides().data();
-  
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
-  
-  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<dstElK>, opType> op;
-
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
-
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<src2Type>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstT);
-  if (maxRead == 0)
-    return;
-
-  unsigned int coord[srcDimNum];
-  unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           k);
-
-  uint64_t offsetIn1 = 0;
-  uint64_t offsetIn2 = 0;
-  uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn1 += act1Pitch[j] * coord[j];
-    offsetIn2 += act2Pitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
-  }
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
-  while (!done && (offsetOut < posMax)) {
-    op.doOp(aDstT, aSrcT1, aSrcT2, offsetOut, offsetIn1, offsetIn2);
-    done = getOffsets(srcDimNum, coord, offsetIn1, offsetIn2, offsetOut, actIndex,
-                      act1Pitch, act2Pitch, dstPitch);
-  }
-
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
-}
-
-
+#define EB_Pow_INDEX_COMPUTE ("invalid")
 
 /**
  * @brief Given two tensors, it gives the result of the opType applied elementwise.
@@ -159,187 +171,117 @@ inline void fwdLibElementInst(LibTensor* outT, LibTensor* in1T,
  * @param[in] flags Controls the active shires and the type of evict that 
  *  should be done at the end of the function.
  */
-template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK, typename opType>
-inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
-                                        LibTensor* in2T, uint64_t flags,
-                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
+template <ElemKind elK, typename opType>
+INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  static_assert(elK != Int64ITy, "Int64Ty not supported");
+  // just return if minion is not to be used
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  const float lhsScale = in1T->getScale();
-  const float rhsScale = in2T->getScale();
-  const float dstScale = outT->getScale();
-  const float scale[] = {lhsScale, rhsScale, dstScale};
-  (void)scale;
+  using storage_t = typename elemKind2elemTy<elK>::type;
+  constexpr auto typeSize = Type::getElementSize(elK);
 
-  const int32_t lhsOffset = in1T->getOffset();
-  const int32_t rhsOffset = in2T->getOffset();
-  const int32_t dstOffset = outT->getOffset();
-  const int32_t offset[] = {lhsOffset, rhsOffset, dstOffset};
-  (void)offset;
+  // set all lanes active by default
+  __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
 
-  /* maintain compatibility through the new Iface Libtensor */
-
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT1 = in1T->getRawDataPointer<void>();
-  void* srcT2 = in2T->getRawDataPointer<void>();
-    
-  const dim_t *actIndex = in1T->dims().data();
-
-  const dim_t *dstPitch = outT->strides().data();
-  const dim_t *act1Pitch = in1T->strides().data();
-  const dim_t* act2Pitch = in2T->strides().data();
-
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
-
-  uintptr_t dstAddr = (uintptr_t)dstT;
-  uintptr_t srcAddr1 = (uintptr_t)srcT1;
-  uintptr_t srcAddr2 = (uintptr_t)srcT2;
-  
-
-  Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<dstElK>, opType> op;
-  (void)op;
-
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
-
-  unsigned int initialAddr, maxRead;
-  size_t typeSize = outT->getElementSize();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstT);
-  if (maxRead == 0)
-    return;
-
-  unsigned int coord[srcDimNum];
-  unsigned int k;
-  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
-                           k);
-
-  uint64_t offsetIn1 = 0;
-  uint64_t offsetIn2 = 0;
-  uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
-    offsetIn1 += act1Pitch[j] * coord[j];
-    offsetIn2 += act2Pitch[j] * coord[j];
-    offsetOut += dstPitch[j] * coord[j];
-  }
-  unsigned int posMax = maxRead + initialAddr;
-  bool done = false;
-  unsigned int lastDim = srcDimNum - 1;
-
-  int32_t gatherValues[] = {0, 0, 0, 0, 0, 0, 0, 0};
-  (void)gatherValues;
-  for (unsigned int i = 0; i < 8; i++) {
-      gatherValues[i] = i * typeSize;
+  // setup quantization (attribute unused just avoids warnings of variable not being used, which happens if not
+  // [de]quantizing)
+  float in1Scale __attribute__((unused));
+  float in1Offset __attribute__((unused));
+  float in2Scale __attribute__((unused));
+  float in2Offset __attribute__((unused));
+  float outScaleRcp __attribute__((unused));
+  float outOffset __attribute__((unused));
+  if constexpr (isQuantizedElemKind(elK)) {
+    setupDequantize(in1Scale, in1Offset, in1T->getScale(), in1T->getOffset());
+    setupDequantize(in2Scale, in2Offset, in2T->getScale(), in2T->getOffset());
+    setupQuantize(outScaleRcp, outOffset, outT->getScale(), outT->getOffset());
   }
 
-  unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  unsigned int elementsInRow, registersInRow, res;
-  uint8_t mask;
-  bool firstRow = true;
-  bool midRow = false;
-  bool lastRow = false;
-  coord[0] *= (srcDimNum != 1);
+  // setup memory access
+  uint64_t memConf;
+  float memIndices, memIndicesHigh;
+  setupGatherScatterConfig<typeSize>(memConf, memIndices, memIndicesHigh);
 
-  while (!done && (offsetOut < posMax)) {
-    if (firstRow && (srcDimNum > 1) && coord[lastDim - 1] != maxRow) {
-      elementsInRow = actIndex[lastDim] - coord[lastDim];
-    } else if ((srcDimNum == 1) || (coord[lastDim - 1] == maxRow)) {
-      lastRow = true;
-      elementsInRow = posMax - offsetOut;
-      if (elementsInRow > (actIndex[lastDim] - coord[lastDim])) {
-        elementsInRow = actIndex[lastDim] - coord[lastDim];
-      }
-    } else {
-      elementsInRow = actIndex[lastDim];
-    }
-    if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
-      registersInRow = elementsInRow / 8;
-      res = elementsInRow - registersInRow * 8;
-      mask = ((1 << res) - 1);
-      if (!firstRow) midRow = true;
-    }
-    firstRow = false;
-    srcAddr1 += offsetIn1 * typeSize;
-    srcAddr2 += offsetIn2 * typeSize;
-    dstAddr += offsetOut * typeSize;
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-
-    unsigned int cnt = 0;
-
-    constexpr bool useNewImplementation = std::is_same<opType, Div>();
-
-    while(cnt < registersInRow) {
-
-      if constexpr (useNewImplementation) {
-        const uintptr_t& lhsAddr = srcAddr1;
-        const uintptr_t& rhsAddr = srcAddr2;
-        constexpr auto lhsElK = src1ElK;
-        constexpr auto rhsElK = src2ElK;
-        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset,
-                                             lhsOffset, rhsOffset);
-      } else {
-        op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
-      }
-
-      cnt++;
-      srcAddr1 += 8 * typeSize;
-      srcAddr2 += 8 * typeSize;
-      dstAddr += 8 * typeSize;
-    }
-    if (res > 0) {
+  // compute function
+  auto compute = [&](const uintptr_t dstAddr, const uintptr_t src1Addr, uintptr_t src2Addr, const dim_t valid) {
+    // set mask
+    if (valid < 8) {
+      uint8_t mask = ((1 << valid) - 1);
       __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-
-      if constexpr (useNewImplementation) {
-        const uintptr_t& lhsAddr = srcAddr1;
-        const uintptr_t& rhsAddr = srcAddr2;
-        constexpr auto lhsElK = src1ElK;
-        constexpr auto rhsElK = src2ElK;
-        doOp<opType, dstElK, lhsElK, rhsElK>(dstAddr, lhsAddr, rhsAddr, dstScale, lhsScale, rhsScale, dstOffset,
-                                             lhsOffset, rhsOffset);
-      } else {
-        op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
-      }
+    } else {
+      __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
     }
 
-    if (lastRow)
-      return;
+    // load operands
+    float in1, in2;
+    float in1H, in2H __attribute__((unused));
+    load<typeSize>(src1Addr, memConf, memIndices, memIndicesHigh, in1, in1H);
+    load<typeSize>(src2Addr, memConf, memIndices, memIndicesHigh, in2, in2H);
 
-    dstAddr = (uintptr_t)dstT;
-    srcAddr1 = (uintptr_t)srcT1;
-    srcAddr2 = (uintptr_t)srcT2;
+    // compute result
+    float out = 0.f;
+    float outH __attribute__((unused)) = 0.f;
 
-    offsetIn1 -= coord[lastDim] * act1Pitch[lastDim];
-    offsetIn2 -= coord[lastDim] * act2Pitch[lastDim];
-    offsetOut -= coord[lastDim] * dstPitch[lastDim];
-    coord[lastDim] = 0;
-    done = getOffsets(lastDim, coord, offsetIn1, offsetIn2, offsetOut, actIndex, act1Pitch, act2Pitch, dstPitch);
-  }
+    // compute (only one will apply, because macro has if constexpr(elk ==XX)
+    EB_COMPUTE(Add, isIndexElemKind(elK), elK == FloatTy, false);
+    EB_COMPUTE(Sub, isIndexElemKind(elK), elK == FloatTy, false);
+    EB_COMPUTE(Mul, isIndexElemKind(elK), elK == FloatTy, false);
+    EB_COMPUTE(Min, isIndexElemKind(elK), elK == FloatTy, false);
+    EB_COMPUTE(Max, isIndexElemKind(elK), elK == FloatTy, false);
+    EB_COMPUTE(Div, false, elK == FloatTy, true);  // for div, always compute in float
+    EB_COMPUTE(Pow, false, elK == FloatTy, false); // for pow, always compute in float
 
-  if (!DO_EVICTS)
-    return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
+    // and finally, store
+    store<typeSize>(dstAddr, memConf, memIndices, memIndicesHigh, out, outH);
+  };
+
+  outT->partitionLoop2<storage_t>(minionId, activeMinions, flags, in1T, in2T, compute);
+
+  // mask back to 0xff
+  __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// especialization of int64, which is not vectorized
+////////////////////////////////////////////////////////////////////////////////
+#define EB_I64_COMPUTE(OP_, BODY_)                                                                                     \
+  template <>                                                                                                          \
+  INLINE_ATTR void fwdLibElementInst<Int64ITy, OP_>(LibTensor * outT, LibTensor * in1T, LibTensor * in2T,              \
+                                                    uint64_t flags, const uint32_t minionOffset,                       \
+                                                    const uint32_t assignedMinions) {                                  \
+    unsigned int minionId = get_minion_id() - minionOffset;                                                            \
+    unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;           \
+    if (minionId >= activeMinions)                                                                                     \
+      return;                                                                                                          \
+                                                                                                                       \
+    auto compute = [](uintptr_t outP, uintptr_t in1P, uintptr_t in2P, size_t) {                                        \
+      int64_t* o = reinterpret_cast<int64_t*>(outP);                                                                   \
+      int64_t a = *(reinterpret_cast<int64_t*>(in1P));                                                                 \
+      int64_t b = *(reinterpret_cast<int64_t*>(in2P));                                                                 \
+      *o = BODY_;                                                                                                      \
+    };                                                                                                                 \
+    outT->partitionLoop2<int64_t, int64_t, int64_t, 1>(minionId, activeMinions, flags, in1T, in2T, compute);           \
+  }
 
+EB_I64_COMPUTE(Add, a + b)
+EB_I64_COMPUTE(Sub, a - b)
+EB_I64_COMPUTE(Div, a / b)
+EB_I64_COMPUTE(Mul, a* b)
+EB_I64_COMPUTE(Min, std::min(a, b))
+EB_I64_COMPUTE(Max, std::max(a, b))
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // individual functions per operator (forwarding call to the previous ones with
-  // the proper parameters)
-  ////////////////////////////////////////////////////////////////////////////////
-#define EltWiseBinaryInst(name, opType)                                                                                          \
-  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
-  fwdLib ## name ## Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                                \
-                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {          \
-    inlining::fwdLibElementInst<dstElK, src1ElK, src2ElK, opType>(outT, in1T, in2T, flags, minionOffset, assignedMinions); \
-  }                                                                                                                        \
-  template <ElemKind dstElK, ElemKind src1ElK, ElemKind src2ElK> inline void                                               \
-  fwdLib ## name ## InstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,                      \
-                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {                \
-    inlining::fwdLibElementInstVectorized <dstElK, src1ElK, src2ElK, opType>(outT, in1T,  in2T,                            \
-                                                                             flags, minionOffset, assignedMinions);        \
+////////////////////////////////////////////////////////////////////////////////
+// individual functions per operator (forwarding call to the previous ones with
+// the proper parameters)
+////////////////////////////////////////////////////////////////////////////////
+#define EltWiseBinaryInst(name, opType)                                                                                \
+  template <ElemKind elK>                                                                                              \
+  INLINE_ATTR void fwdLib##name##Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,               \
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {           \
+    inlining::fwdLibElementInst<elK, opType>(outT, in1T, in2T, flags, minionOffset, assignedMinions);                  \
   }
 
   EltWiseBinaryInst(ElementAdd, Add)
@@ -349,10 +291,9 @@ inline void fwdLibElementInstVectorized(LibTensor* outT, LibTensor* in1T,
   EltWiseBinaryInst(ElementMin, Min)
   EltWiseBinaryInst(ElementMax, Max)
   EltWiseBinaryInst(ElementPow, Pow)
-  
-#undef EltWiseInst
 
-  
+#undef EltWiseBinaryInst
+
 } // namespace inlining
 
 } // namespace dnn_lib
