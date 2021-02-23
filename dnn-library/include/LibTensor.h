@@ -12,12 +12,12 @@
 #ifndef LIB_TENSOR_H
 #define LIB_TENSOR_H
 
-#include <numeric>
-#include <cassert>
-#include <cstring>
-
 #include "LibTypes.h"
 #include "LibUtils.h"
+#include <cassert>
+#include <cstring>
+#include <numeric>
+#include <tuple>
 #ifdef __riscv
 #include "cacheops.h"
 #endif
@@ -169,8 +169,8 @@ struct Type final {
    */
   const bool hasSameShape(const Type other) const {
     if (numSizes_ != other.getNumDims()) return false;
-    const dim_array_t other_sizes = other.getSizes();
-    const dim_array_t other_strides = other.getStrides();
+    const dim_array_t& other_sizes = other.getSizes();
+    const dim_array_t& other_strides = other.getStrides();
     for (size_t idx = 0; idx < numSizes_; idx++) {
       if (sizes_[idx] != other_sizes[idx]) return false;
       if (strides_[idx] != other_strides[idx]) return false;
@@ -194,11 +194,15 @@ struct Type final {
 
   /*@brief returns the Tensor sizes_.
    */
-  const dim_array_t getSizes() const { return sizes_; }
+  const dim_array_t& getSizes() const {
+    return sizes_;
+  }
 
   /*@brief returns the Tensor strides_.
    */
-  const dim_array_t getStrides() const { return strides_; }
+  const dim_array_t& getStrides() const {
+    return strides_;
+  }
 
   /*@brief returns the Tensor dimension.
    */
@@ -271,12 +275,19 @@ struct Type final {
       return std::is_same<ElemTy, bool>::value;
     }
     assert(true && "Invalid type");
+    __builtin_unreachable();
   }
 
   /*@brief true if the type of this Tensor is one of the quantized
    *types.
    */
   bool isQuantizedType() const { return isQuantizedElemKind(elementType_); }
+
+  /*@brief true if the type of this Tensor is one of the and index type
+   */
+  bool isIndexType() const {
+    return isIndexElemKind(elementType_);
+  }
 
   // /*@brief returns true if the type of this Tensor is one of the floating point
   //  *types.
@@ -605,18 +616,18 @@ public:
     size_t onlyMin0;   // elements only for minion0 (e.g. unaligned bytes)
     size_t firstSpare; // first minion with 1 CL less
     size_t CLperMin;   // CL to process per minion
-    size_t elementSize = type_.getElementSize();
+    size_t elementSize = getElementSize();
 
     // if less that 1 CL... all to min0
-    if (type_.getSizeInBytes() <= CACHE_LINE_BYTES) {
-      onlyMin0 = type_.getSizeInBytes();
+    if (getSizeInBytes() <= CACHE_LINE_BYTES) {
+      onlyMin0 = getSizeInBytes();
       firstSpare = 0;
       CLperMin = 0;
     } else {
       // get number of non aligned elements, and subtract from the total size
       // these unaligned elements will be processed by minion 0
-      onlyMin0 = (CACHE_LINE_BYTES - reinterpret_cast<size_t>(ptrData_) % CACHE_LINE_BYTES) % CACHE_LINE_BYTES;
-      int64_t aligned = type_.getSizeInBytes() - onlyMin0;
+      onlyMin0 = (CACHE_LINE_BYTES - reinterpret_cast<size_t>(getAddress()) % CACHE_LINE_BYTES) % CACHE_LINE_BYTES;
+      int64_t aligned = getSizeInBytes() - onlyMin0;
 
       // total number of involved CL
       size_t inCL = (aligned + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
@@ -653,11 +664,11 @@ public:
 
   dim_array_t offset2Coord(size_t offset) const {
     dim_array_t coords = {0};
-    assert (type_.strides_[type_.numSizes_ - 1] == 1);
+    assert(strides()[ndims() - 1] == 1);
     uint32_t rm = offset; // operations in uint32_t.. division is faster
-    for (size_t i = 0; i < type_.numSizes_ ; i++) {
-      coords[i] = rm / static_cast<uint32_t>(type_.strides_[i]);
-      rm = rm - static_cast<uint32_t>(coords[i]) * static_cast<uint32_t>(type_.strides_[i]);
+    for (size_t i = 0; i < ndims(); i++) {
+      coords[i] = rm / static_cast<uint32_t>(strides()[i]);
+      rm = rm - static_cast<uint32_t>(coords[i]) * static_cast<uint32_t>(strides()[i]);
     }
     return coords;
   }
@@ -666,10 +677,10 @@ public:
   void evict(uint64_t dst, size_t offset, size_t count) const{
 #ifdef __riscv
     FENCE;
-    const size_t typeSize = type_.getElementSize();
+    const size_t typeSize = getElementSize();
     size_t cl = (count * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     assert(cl > 0);
-    uintptr_t addr = reinterpret_cast<uintptr_t>(ptrData_) + typeSize*offset;
+    uintptr_t addr = reinterpret_cast<uintptr_t>(getAddress()) + typeSize * offset;
     while(cl > 16) {
       evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
       addr += (CACHE_LINE_BYTES*16);
@@ -683,7 +694,7 @@ public:
   }
 
   void evict(uint64_t dst) const {
-    evict(dst, 0, this->actualSize());
+    evict(dst, 0, actualSize());
   }
 
   /* partitions current tensor in cache lines, and loops over all elements
@@ -722,7 +733,7 @@ public:
     const auto N = ndims();
     const dim_t lastDim = dims()[N - 1];
 
-    dim_t endOffset = first + count;
+    const dim_t endOffset = first + count;
 
     const srcType* const srcP = inT->getRawDataPointer<srcType>();
     dstType* const dstP = getRawDataPointer<dstType>();
@@ -752,19 +763,18 @@ public:
       dim_t oOffset = out.offset();
       dim_t iOffset = in.offset();
 
-      // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
-      // the row)
-      while ((out.coords()[N - 1] != 0) && (out.offset() < endOffset)) {
-        // Clips min values
-        dim_t elems = step;
-        elems = std::min<dim_t>(elems, lastDim - out.coords()[N - 1]);
-        elems = std::min<dim_t>(elems, endOffset - out.offset());
-        compute(reinterpret_cast<uintptr_t>(dstP + oOffset), reinterpret_cast<uintptr_t>(srcP + iOffset), elems,
-                std::forward<computeArgs_t>(computeArgs)...);
-        iOffset += step;
-        oOffset += step;
-        out += step;
-        in += step;
+      if (out.coords()[N - 1] != 0) {
+        // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
+        // the row)
+        size_t stop = std::min(lastDim - out.coords()[N - 1], endOffset - oOffset);
+        for (size_t i = 0; i < stop; i += step) {
+          // Clips min values
+          dim_t elems = std::min<dim_t>(step, stop - i);
+          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)), reinterpret_cast<uintptr_t>(srcP + (iOffset + i)),
+                  elems, std::forward<computeArgs_t>(computeArgs)...);
+        }
+        out += stop;
+        in += stop;
       }
 
       // Then, complete the remaining iterations
@@ -772,20 +782,141 @@ public:
         assume(out.coords()[N - 1] == 0 && in.coords()[N - 1] == 0);
         oOffset = out.offset();
         iOffset = in.offset();
-        dim_t i = 0;
-        while ((i < lastDim) && ((oOffset + i) < endOffset)) { // step outer dimension
+        size_t stop = std::min(lastDim, endOffset - oOffset);
+        for (size_t i = 0; i < stop; i += step) {
           // Clips min values
-          dim_t elems = step;
-          elems = std::min<dim_t>(elems, lastDim - i);
-          elems = std::min<dim_t>(elems, endOffset - (oOffset + i));
-          compute(reinterpret_cast<uintptr_t>(dstP + oOffset + i), reinterpret_cast<uintptr_t>(srcP + iOffset + i),
+          dim_t elems = std::min<dim_t>(step, stop - i);
+          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)), reinterpret_cast<uintptr_t>(srcP + (iOffset + i)),
                   elems, std::forward<computeArgs_t>(computeArgs)...);
-          i += step;
         }
       }
     }
 
     evict(DO_EVICTS, first, count);
+  }
+
+  /* same as above, but generalized to N input tensors, each with different types
+    partitions current tensor in cache lines, and loops over all elements
+   in steps of 'step' elements and skipping padding, calling the 'compute'
+   function.
+
+   The compute function has to be of the form:
+     compute( uintptr_t outPtr, uint_ptr inPtr0,[ uint_ptr inPtr1...,] dim_t valid, computeArgs...)
+   where:
+      outPtr = pointer to the element to write ( *this tensor)
+      inPtrX  = pointer to the elements to read
+      valid  = number of valid elements in the current row starting at outPtr
+      computeArgs = any extra parameters that will just be forwared
+
+   The number of tensors and its type depend on the template parameters that should be auto deduced
+ */
+  template <typename dstType, dim_t step = 8, bool doEvicts = true, typename compute_t, typename... computeArgs_t,
+            typename... srcTypes, typename... tensorTypes, size_t... idx>
+  INLINE_ATTR void partitionLoop(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
+                                 const std::tuple<tensorTypes*...>& inT, const std::tuple<srcTypes...>&,
+                                 const std::index_sequence<idx...>&, compute_t compute,
+                                 computeArgs_t&&... computeArgs) {
+
+    static_assert(sizeof...(srcTypes) == sizeof...(tensorTypes) && sizeof...(idx) == sizeof...(tensorTypes),
+                  "number of src types and parameters has to match!");
+    constexpr size_t nrInputs = sizeof...(srcTypes);
+    ////////////////////////////////////////////////////////////////////////////////
+    // partition work between minions in multiples of CL
+    ////////////////////////////////////////////////////////////////////////////////
+    dim_t first; // first element in raw array to process
+    dim_t count; // nr  elements in to process (will be in multiples of CL)
+
+    partitionCL(minionId, activeMinions, first, count);
+    if (unlikely(count == 0))
+      return; // minion has no work to do
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // and loop
+    ////////////////////////////////////////////////////////////////////////////////
+
+    // setup
+    const auto N = ndims();
+    const dim_t lastDim = dims()[N - 1];
+
+    const dim_t endOffset = first + count;
+
+    const auto srcPs = std::make_tuple(std::get<idx>(inT)->template getRawDataPointer<srcTypes>()...);
+    dstType* const dstP = getRawDataPointer<dstType>();
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // simpler loop if there is just one dimension
+    ////////////////////////////////////////////////////////////////////////////////
+    if (N == 1) {
+      // simplification: just 1 loop, and offset in elements is the same for all the tensors
+      dim_t offset = first;
+      while (offset < endOffset) {
+        dim_t elems = step;
+        elems = std::min<dim_t>(elems, lastDim - offset);
+        elems = std::min<dim_t>(elems, endOffset - offset);
+        compute(reinterpret_cast<uintptr_t>(dstP + offset),
+                reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + offset)..., elems,
+                std::forward<computeArgs_t>(computeArgs)...);
+        offset += step;
+      }
+    } else {
+      ////////////////////////////////////////////////////////////////////////////////
+      // Loops for more than 1 dim
+      ////////////////////////////////////////////////////////////////////////////////
+
+      // get iterators to loop through all the dimensions except the last one
+      auto out = getHandle<dstType>().getIterator(first);
+      dim_t oOffset = out.offset();
+      auto in = std::make_tuple(std::get<idx>(inT)->template getHandle<srcTypes>().getIterator(out.coords())...);
+      std::array<dim_t, nrInputs> iOffsets = {(std::get<idx>(in)).offset()...};
+
+      if (out.coords()[N - 1] != 0) {
+        // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
+        // the row)
+        size_t stop = std::min(lastDim - out.coords()[N - 1], endOffset - oOffset);
+        for (size_t i = 0; i < stop; i += step) {
+          // Clips min values
+          dim_t elems = std::min<dim_t>(step, stop - i);
+          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)),
+                  reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + (iOffsets[idx] + i))..., elems,
+                  std::forward<computeArgs_t>(computeArgs)...);
+        }
+        out += stop;
+        (std::get<idx>(in).operator+=(stop), ...);
+      }
+
+      // Then, complete the remaining iterations
+      for (; out.offset() < endOffset;
+           out.step(N - 2), (std::get<idx>(in).step(N - 2), ...)) { // step 2n outer dimension
+        assume(out.coords()[N - 1] == 0);
+
+        oOffset = out.offset();
+        iOffsets = {(std::get<idx>(in)).offset()...};
+        size_t stop = std::min(lastDim, endOffset - oOffset);
+        for (size_t i = 0; i < stop; i += step) {
+          // Clips min values
+          dim_t elems = std::min<dim_t>(step, stop - i);
+          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)),
+                  reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + (iOffsets[idx] + i))..., elems,
+                  std::forward<computeArgs_t>(computeArgs)...);
+        }
+      }
+    }
+
+    evict(DO_EVICTS, first, count);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // simpler interfaces to the generic partitionLoop for 2 elements
+  ////////////////////////////////////////////////////////////////////////////////
+
+  template <typename dstType, typename srcType1 = dstType, typename srcType2 = dstType, dim_t step = 8,
+            bool doEvicts = true, typename compute_t, typename... computeArgs_t>
+  INLINE_ATTR void partitionLoop2(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
+                                  LibTensor* in1T, LibTensor* in2T, compute_t compute, computeArgs_t&&... computeArgs) {
+
+    partitionLoop<dstType, step, doEvicts, compute_t, computeArgs_t...>(
+      minionId, activeMinions, flags, std::make_tuple(in1T, in2T), std::tuple<srcType1, srcType2>{},
+      std::make_index_sequence<2>{}, compute, std::forward<computeArgs_t>(computeArgs)...);
   }
 
 }; //end LibTensorBase class
@@ -890,13 +1021,12 @@ public:
 
    /*@brief Construct a Tensor handle.
     */
-   explicit Handle(LibTensor* tensor) :
-     tensor_(tensor),
-     strides_(tensor->strides()),
-     sizes_(tensor->dims()),
-     numDims_ (tensor->ndims())
-  {
-  }
+   Handle(LibTensor* tensor)
+     : tensor_(tensor)
+     , strides_(tensor->strides())
+     , sizes_(tensor->dims())
+     , numDims_(tensor->ndims()) {
+   }
 
    /*@brief returns the number of elements in the whole tensor.
     */

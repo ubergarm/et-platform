@@ -96,7 +96,7 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
   constexpr bool alignedDst = false;
 
   float srcScaleScalar = inT->getScale();
-  int32_t srcOffsetScalar = outT->getOffset();
+  int32_t srcOffsetScalar = inT->getOffset();
   (void)srcScaleScalar;
   (void)srcOffsetScalar;
 
