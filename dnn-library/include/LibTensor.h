@@ -649,6 +649,10 @@ public:
     } else {
       offset += onlyMin0 / elementSize;
     }
+
+    // Prevents going beyond the tensor limits (this can actually happen for the
+    // last minion) and overwrite other valid data
+    maxRead = std::min<dim_t>(maxRead, (type_.getSizeInBytes() / elementSize) - offset);
   }
 
   dim_array_t offset2Coord(size_t offset) const {
