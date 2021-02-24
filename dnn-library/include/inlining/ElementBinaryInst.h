@@ -186,25 +186,6 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   // set all lanes active by default
   __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
 
-  // setup quantization (attribute unused just avoids warnings of variable not being used, which happens if not
-  // [de]quantizing)
-  float in1Scale __attribute__((unused));
-  float in1Offset __attribute__((unused));
-  float in2Scale __attribute__((unused));
-  float in2Offset __attribute__((unused));
-  float outScaleRcp __attribute__((unused));
-  float outOffset __attribute__((unused));
-  if constexpr (isQuantizedElemKind(elK)) {
-    setupDequantize(in1Scale, in1Offset, in1T->getScale(), in1T->getOffset());
-    setupDequantize(in2Scale, in2Offset, in2T->getScale(), in2T->getOffset());
-    setupQuantize(outScaleRcp, outOffset, outT->getScale(), outT->getOffset());
-  }
-
-  // setup memory access
-  uint64_t memConf;
-  float memIndices, memIndicesHigh;
-  setupGatherScatterConfig<typeSize>(memConf, memIndices, memIndicesHigh);
-
   // compute function
   auto compute = [&](const uintptr_t dstAddr, const uintptr_t src1Addr, uintptr_t src2Addr, const dim_t valid) {
     // set mask
@@ -214,6 +195,26 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
     } else {
       __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
     }
+
+    // setup quantization (attribute unused just avoids warnings of variable not being used, which happens if not
+    // [de]quantizing)
+    float in1Scale __attribute__((unused));
+    float in1Offset __attribute__((unused));
+    float in2Scale __attribute__((unused));
+    float in2Offset __attribute__((unused));
+    float outScaleRcp __attribute__((unused));
+    float outOffset __attribute__((unused));
+
+    if constexpr (isQuantizedElemKind(elK)) {
+      setupDequantize(in1Scale, in1Offset, in1T->getScale(), in1T->getOffset());
+      setupDequantize(in2Scale, in2Offset, in2T->getScale(), in2T->getOffset());
+      setupQuantize(outScaleRcp, outOffset, outT->getScale(), outT->getOffset());
+    }
+
+    // setup memory access
+    uint64_t memConf;
+    float memIndices, memIndicesHigh;
+    setupGatherScatterConfig<typeSize>(memConf, memIndices, memIndicesHigh);
 
     // load operands
     float in1, in2;
