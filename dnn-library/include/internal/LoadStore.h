@@ -357,7 +357,7 @@ inline void multiplyAdd(float& destination, float source, float scale, float off
 // fastconvert: just use fcvt.. do not try to match x86 treatment of inf, snan...
 template <bool hasSign = false, bool clip8bits = false, bool fastConvert = true>
 inline void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
-  // destination = soruce * scaleRcp + offset;
+  // destination = source * scaleRcp + offset;
   multiplyAdd(destination, source, scaleReciprocal, offset);
   if constexpr (fastConvert) {
     __asm__ __volatile__("fcvt.pw.ps %0, %0\n" : "+f"(destination));
