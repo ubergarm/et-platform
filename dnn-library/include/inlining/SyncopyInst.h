@@ -62,22 +62,21 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
   uint32_t minionId = (hart >> 1) - (32 * 32 + 16);
   uint32_t activeMinions = (assignedMinions == 0) ? 16 : assignedMinions;
   // Disable second thread from now on, as they don't have tensor extensions
-  if (threadId != 0) { return; }
-  if (minionId >= activeMinions) { return; }
-
-  
-  /* maintain compatibility through the new Iface Libtensor */
+  if ((threadId != 0) || (minionId >= activeMinions)) {
+    return;
+  }
 
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
-  
-  // unsigned int *Index = (unsigned int *) Dims;
-  const dim_t *Index = inT->dims().data();
-  // unsigned int *Pitch = (unsigned int *) Pitches;
-  const dim_t *Pitch = inT->strides().data();
-  
+
+  // Need to use the sizes of the output tensor. Graph might change them slightly (vs the input dimensions) to make
+  // sure the function doesn't go beyond the tensor limits (can happen when the source tensor is a son with an offset
+  // with respect to the parent)
+  const dim_t* index = outT->dims().data();
+  const dim_t* pitch = outT->strides().data();
+
   size_t typeSize = getsize<srcType>();
-  uint64_t numBytes = Pitch[0] * Index[0] * typeSize + off; // Total number of elements in the tensor
+  uint64_t numBytes = pitch[0] * index[0] * typeSize + off;       // Total number of elements in the tensor
   uint64_t numCacheLines = (numBytes - 1) / CACHE_LINE_BYTES + 1; // 64 = CacheLineLength
   int64_t  minionCacheLines = (numCacheLines - 1) / activeMinions + 1;
   uint64_t initialCacheLine = minionCacheLines * minionId;
