@@ -99,6 +99,7 @@ file(GLOB INSTALL_HEADERS
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/SyncopyInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TensorViewInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TopKInst.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TouchInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TransposeInst.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/inlining.h"
   "${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Addresser.h"
@@ -205,6 +206,7 @@ add_library(dnn_lib STATIC
   src/TanhInst.cpp
   src/TensorViewInst.cpp
   src/TopKInst.cpp
+  src/TouchInst.cpp
   src/TransposeInst.cpp
   src/libc.c
   src/printf.c

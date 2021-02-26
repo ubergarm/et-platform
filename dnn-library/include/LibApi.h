@@ -512,7 +512,7 @@ namespace dnn_lib {
       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       {0x0} // evict available mask
     },
-    // ET_elementandi
+    // ET_elementand
     instrConfig {
       "notImplemented", // name
       0, // # outs
@@ -708,7 +708,7 @@ namespace dnn_lib {
       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       {0x0} // evict available mask
     },
-    // ET_elementori
+    // ET_elementor
     instrConfig {
       "notImplemented", // name
       0, // # outs
@@ -776,7 +776,7 @@ namespace dnn_lib {
       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       {0x0} // evict available mask
     },
-    // ET_elementxori
+    // ET_elementxor
     instrConfig {
       "notImplemented", // name
       0, // # outs
@@ -1564,20 +1564,20 @@ namespace dnn_lib {
     },
     // ET_touch
     instrConfig {
-      "notImplemented", // name
-      0, // # outs
+      "Touch", // name
+      1, // # outs
       0,  // # ins
       {}, // members
-      0, // template param mask
+      1, // template param mask
       {}, // impl versions
-      nullptr, // custom impl selector
+      implSel::defaultSel<1>, // custom impl selector
       // L1 states per impl
-      {{operandState::invalid}},
+      {{{operandState::invalid}}},
       // L2 states per impl
-      {{operandState::invalid}},
+      {{{operandState::invalid}}},
       // CB states per impl
-      {{operandState::invalid}},
-      {0} // evict available mask
+      {{{operandState::invalid}}},
+      {0x0} // evict available mask
     },
     // ET_traceevent
     instrConfig {

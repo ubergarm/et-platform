@@ -1,6 +1,6 @@
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/sebastia/Esperanto/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/local/home/rafa/WorkSpace/sw-platform/host-software/dnnLibrary/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
@@ -1306,6 +1306,36 @@ extern template void fwdLibTopKInst<Int8QTy>(LibTensor* out0, LibTensor* out1, L
 extern template void fwdLibTopKInst<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibTopKInst<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibTopKInst<Int16QTy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, const uint32_t TopK, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
+ *  Touch implementations
+ ****************************************************************************/
+// declarations
+template <ElemKind out0Type>
+void fwdLibTouchInst(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset = 0,
+                     const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibTouchInst<FloatTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                              const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<Float16Ty>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                                const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<BFloat16Ty>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                                 const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<Int8QTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                              const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<Int32ITy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                               const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<Int64ITy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                               const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<BoolTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                             const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<Int16QTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                               const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<Int32QTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                               const uint32_t assignedMinions);
+extern template void fwdLibTouchInst<UInt8QTy>(LibTensor* out0, const uint64_t flags, const uint32_t minionOffset,
+                                               const uint32_t assignedMinions);
 
 /****************************************************************************
 *  Transpose implementations
