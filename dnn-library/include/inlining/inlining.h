@@ -70,7 +70,6 @@
 #include "SyncopyInst.h" // From include/inlining path
 #include "TensorViewInst.h" // From include/inlining path
 #include "TopKInst.h" // From include/inlining path
-#include "TouchInst.h"     // From include/inlining path
 #include "TransposeInst.h" // From include/inlining path
 
 #define dispatchLibImplEltWiseSingle(functionName, pm1, op, ...) \

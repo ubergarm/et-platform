@@ -1564,20 +1564,20 @@ namespace dnn_lib {
     },
     // ET_touch
     instrConfig {
-      "Touch", // name
-      1, // # outs
+      "notImplemented", // name
+      0, // # outs
       0,  // # ins
       {}, // members
-      1, // template param mask
+      0, // template param mask
       {}, // impl versions
-      implSel::defaultSel<1>, // custom impl selector
+      nullptr, // custom impl selector
       // L1 states per impl
-      {{{operandState::invalid}}},
+      {{operandState::invalid}},
       // L2 states per impl
-      {{{operandState::invalid}}},
+      {{operandState::invalid}},
       // CB states per impl
-      {{{operandState::invalid}}},
-      {0x0} // evict available mask
+      {{operandState::invalid}},
+      {0} // evict available mask
     },
     // ET_traceevent
     instrConfig {
