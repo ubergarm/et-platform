@@ -512,7 +512,7 @@ namespace dnn_lib {
       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       {0x0} // evict available mask
     },
-    // ET_elementandi
+    // ET_elementand
     instrConfig {
       "notImplemented", // name
       0, // # outs
@@ -708,7 +708,7 @@ namespace dnn_lib {
       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       {0x0} // evict available mask
     },
-    // ET_elementori
+    // ET_elementor
     instrConfig {
       "notImplemented", // name
       0, // # outs
@@ -776,7 +776,7 @@ namespace dnn_lib {
       {{{operandState::invalid, operandState::invalid, operandState::invalid}}},
       {0x0} // evict available mask
     },
-    // ET_elementxori
+    // ET_elementxor
     instrConfig {
       "notImplemented", // name
       0, // # outs
