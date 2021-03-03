@@ -36,6 +36,10 @@ namespace inlining {
 template <ElemKind elK>
 inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
+  assert(inT->ndims() == 2 and outT->ndims() == 2 and inT->getElementType() == elK and outT->getElementType() == elK);
+
   using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
@@ -92,17 +96,21 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
 template <ElemKind elK>
 inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  unsigned cll = CACHE_LINE_BYTES / outT->getElementSize();
+  const size_t numDims = outT->ndims();
+  static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
+  assert(inT->ndims() == 2 and outT->ndims() == 2 and inT->getElementType() == elK and outT->getElementType() == elK);
+  assert((uintptr_t)outT->getAddress() % 32 == 0 and numDims >= 2 and outT->strides()[numDims - 2] % cll == 0);
+
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-
   srcType* dstT = outT->getRawDataPointer<srcType>();
   srcType* srcT = inT->getRawDataPointer<srcType>();  
-
 
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> acumInt(dstT, outT->getScale(), outT->getOffset());

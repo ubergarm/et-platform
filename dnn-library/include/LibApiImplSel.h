@@ -141,10 +141,13 @@ namespace dnn_lib {
     //   0: base implementation
     //   1: Vectorized 
     static size_t SoftMax(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
-      unsigned cll = CACHE_LINE_BYTES / inTensors[0]->getElementSize();
-      
-      if (inTensors[0]->strides()[0] % cll == 0) return 1;
-      else return 0;
+      LibTensor* outT = outTensors[0];
+      unsigned cll = CACHE_LINE_BYTES / outT->getElementSize();
+      const size_t numDims = outT->ndims();
+      if ((uintptr_t)outT->getAddress() % CACHE_LINE_BYTES == 0 and numDims >= 2 and outT->strides()[numDims - 2] % cll == 0) {
+        return 1;
+      }
+      return 0;
     }
 
     // Best implementation selector for operator LocalResponseNormalization. Return values are:
