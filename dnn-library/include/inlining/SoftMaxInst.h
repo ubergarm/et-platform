@@ -47,16 +47,13 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
   srcType* dstT = outT->getRawDataPointer<srcType>();
   srcType* srcT = inT->getRawDataPointer<srcType>();
 
-
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> acumInt(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());
-  
+
   const dim_t *srcIndex = inT->dims().data();
   const dim_t *srcPitch = inT->strides().data();
   const dim_t *dstPitch = outT->strides().data();
-  
-  float e, sum, inverseSum;
 
   for (unsigned int n = 0; n < srcIndex[0]; n++) {
     unsigned int start = n * srcPitch[0];
@@ -69,14 +66,16 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
       max = std::max(max, float(tInput[i]));
 
     // Compute exp.
-    sum = 0;
+    float sum = 0;
     for (unsigned int i = start, j = outStart; i < end; i++, j++) {
-      e = getExp(float(tInput[i]) - max);
+      float e = getExp(float(tInput[i]) - max);
       sum += e;
-      tOutput[j] = float(e); // here, the shape hypothesis is important.
+      tOutput[j] = e;
     }
 
+    float inverseSum;
     fpReciprocalSingleElement(sum, inverseSum);
+
     // Normalize the output.
     for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       auto in = acumInt[j];
