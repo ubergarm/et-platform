@@ -38,7 +38,9 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
                                uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
-  assert(inT->ndims() == 2 and outT->ndims() == 2 and inT->getElementType() == elK and outT->getElementType() == elK);
+  assert(inT->getElementType() == elK and outT->getElementType() == elK);
+  assert(inT->ndims() == 2 and outT->ndims() == 2);
+  assert(inT->dims().data()[0] == outT->dims().data()[0] and inT->dims().data()[1] == outT->dims().data()[1]);
 
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -99,8 +101,11 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
   unsigned cll = CACHE_LINE_BYTES / outT->getElementSize();
   const size_t numDims = outT->ndims();
   static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
-  assert(inT->ndims() == 2 and outT->ndims() == 2 and inT->getElementType() == elK and outT->getElementType() == elK);
-  assert((uintptr_t)outT->getAddress() % 32 == 0 and numDims >= 2 and outT->strides()[numDims - 2] % cll == 0);
+  assert(inT->getElementType() == elK and outT->getElementType() == elK);
+  assert(inT->ndims() == 2 and outT->ndims() == 2);
+  assert(inT->dims().data()[0] == outT->dims().data()[0] and inT->dims().data()[1] == outT->dims().data()[1]);
+  assert((uintptr_t)outT->getAddress() % CACHE_LINE_BYTES == 0 and numDims >= 2 and
+         outT->strides()[numDims - 2] % cll == 0);
 
   using srcType = typename elemKind2elemTy<elK>::type;
 

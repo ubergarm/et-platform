@@ -144,7 +144,8 @@ namespace dnn_lib {
       LibTensor* outT = outTensors[0];
       unsigned cll = CACHE_LINE_BYTES / outT->getElementSize();
       const size_t numDims = outT->ndims();
-      if ((uintptr_t)outT->getAddress() % CACHE_LINE_BYTES == 0 and numDims >= 2 and outT->strides()[numDims - 2] % cll == 0) {
+      if ((uintptr_t)outT->getAddress() % CACHE_LINE_BYTES == 0 and numDims >= 2 and
+          outT->strides()[numDims - 2] % cll == 0) {
         return 1;
       }
       return 0;
