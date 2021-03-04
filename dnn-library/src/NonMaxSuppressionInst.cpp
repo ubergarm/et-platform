@@ -1,10 +1,10 @@
 
 #include "LibNodes.h"
- 
+
 namespace dnn_lib {
-  ////////////////////////////////////////////////////////////////////////////////
-  // Forward call to corresponding dnn_lib::inlining implementations
-  ////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Forward call to corresponding dnn_lib::inlining implementations
+////////////////////////////////////////////////////////////////////////////////
 
 template <ElemKind out0Type>
 void fwdLibNonMaxSuppressionInst(LibTensor* out0, LibTensor* out1, LibTensor* in0, LibTensor* in1,
@@ -16,9 +16,9 @@ void fwdLibNonMaxSuppressionInst(LibTensor* out0, LibTensor* out1, LibTensor* in
                                                            minionOffset, assignedMinions);
 }
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // Template specializations (declared with 'extern template' in LibNodes.h)
-  ////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// Template specializations (declared with 'extern template' in LibNodes.h)
+////////////////////////////////////////////////////////////////////////////////
 template void fwdLibNonMaxSuppressionInst<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, LibTensor* in1,
                                                     const uint64_t CenterPointBox,
                                                     const uint64_t MaxOutputBoxesPerClass, const float IouThreshold,
@@ -31,4 +31,4 @@ template void fwdLibNonMaxSuppressionInst<Int64ITy>(LibTensor* out0, LibTensor* 
                                                     const float ScoreThreshold, const bool IsTFVersion4,
                                                     const uint64_t flags, const uint32_t minionOffset,
                                                     const uint32_t assignedMinions);
-} // dnn_lib
+} // namespace dnn_lib
