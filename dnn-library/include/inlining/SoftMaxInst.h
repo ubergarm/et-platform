@@ -290,7 +290,7 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
       : "t0", "t1", "t2", "t3", "f0", "f17", "f28", "f29", "memory");
 
     srcAddr += step;
-    dstAddr += step;
+    dstAddr += outStep;
   }
 
   unsigned int doneRows = activeMinions * rowstodo;
