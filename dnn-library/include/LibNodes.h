@@ -440,16 +440,6 @@ void fwdLibConvolutionInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibT
                            const std::array<uint32_t, default_dilation_size>& Dilation, const size_t FusedActivation,
                            const std::array<float, default_fusedActivationArgs>& FusedActivationArgs,
                            const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
-template <ElemKind out0Type, ElemKind in2Type>
-void fwdLibConvolutionInstVectorized(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-                                     const std::array<uint32_t, default_kernels_size>& Kernels,
-                                     const std::array<uint32_t, default_kernels_size>& Strides,
-                                     const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
-                                     const std::array<uint32_t, default_dilation_size>& Dilation,
-                                     const size_t FusedActivation,
-                                     const std::array<float, default_fusedActivationArgs>& FusedActivationArgs,
-                                     const uint64_t flags, const uint32_t minionOffset = 0,
-                                     const uint32_t assignedMinions = 0);
 
 // extern template declarations
 extern template void fwdLibConvolutionInst<FloatTy, FloatTy>(
@@ -488,48 +478,6 @@ extern template void fwdLibConvolutionInst<Int16QTy, Int16QTy>(
   const std::array<float, default_fusedActivationArgs>& FusedActivationArgs, const uint64_t flags,
   const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibConvolutionInst<Int16QTy, Int32QTy>(
-  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
-  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
-  const std::array<uint32_t, default_dilation_size>& Dilation, const size_t FusedActivation,
-  const std::array<float, default_fusedActivationArgs>& FusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolutionInstVectorized<FloatTy, FloatTy>(
-  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
-  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
-  const std::array<uint32_t, default_dilation_size>& Dilation, const size_t FusedActivation,
-  const std::array<float, default_fusedActivationArgs>& FusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolutionInstVectorized<Float16Ty, Float16Ty>(
-  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
-  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
-  const std::array<uint32_t, default_dilation_size>& Dilation, const size_t FusedActivation,
-  const std::array<float, default_fusedActivationArgs>& FusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolutionInstVectorized<Int8QTy, Int8QTy>(
-  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
-  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
-  const std::array<uint32_t, default_dilation_size>& Dilation, const size_t FusedActivation,
-  const std::array<float, default_fusedActivationArgs>& FusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolutionInstVectorized<Int8QTy, Int32QTy>(
-  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
-  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
-  const std::array<uint32_t, default_dilation_size>& Dilation, const size_t FusedActivation,
-  const std::array<float, default_fusedActivationArgs>& FusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolutionInstVectorized<Int16QTy, Int16QTy>(
-  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
-  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
-  const std::array<uint32_t, default_dilation_size>& Dilation, const size_t FusedActivation,
-  const std::array<float, default_fusedActivationArgs>& FusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolutionInstVectorized<Int16QTy, Int32QTy>(
   LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
   const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
   const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group,
