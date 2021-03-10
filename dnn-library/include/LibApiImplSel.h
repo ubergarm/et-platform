@@ -17,16 +17,7 @@ namespace dnn_lib {
     ////////////////////////////////////////////////////////////////////////////////
     // custom implementation selectors
     ////////////////////////////////////////////////////////////////////////////////
-  
-    // Best implementation selector for operator Convolution. Return values are:
-    //   0: base implementation (Threaded)
-    //   1: Vectorized 
-    static size_t Convolution(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
-      return 1;
-    }
-  
-  
-  
+
     // Best implementation selector for operator Copy. Return values are:
     //   0: base implementation (Vectorized)
     //   1: Tensorized 
@@ -41,7 +32,6 @@ namespace dnn_lib {
       }
       
     }
-  
 
     // Best implementation selector for operator ElementBool instructions. Return values are:
     //   0: base implementation (threaded)
