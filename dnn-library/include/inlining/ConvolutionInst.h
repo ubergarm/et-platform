@@ -504,10 +504,11 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                        "ble      %[actIndex1], %[ox], 5f\n" // if (actIndex[1] <= ox) continue
                        "ble      %[actIndex2], %[oy], 5f\n" // if (actIndex[2] <= oy) continue
 
+                       "mov.m.x  m0, zero, 0xff\n"
+
                        "addi     t0, zero, 8\n"     // t0 = 8
                        "ble      %[dist], t0, 4f\n" // if dist <= 8 go to 4
 
-                       "mov.m.x  m0, zero, 0xff\n"
                        "3:\n"                                        // while (8 < dist) {
                        "flw.ps   f1, 0x0(%[actAddr])\n"              // actAddr -> f1
                        "flw.ps   f2, 0x0(%[weightAddr])\n"           // weightaddr -> f2
@@ -556,10 +557,10 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                          [ sum ] "+&r"(sum), [ ox ] "=&r"(ox), [ oy ] "=&r"(oy), [ fy ] "+&r"(fy), [ fx ] "+&r"(fx)
                        : [ weightPitch1 ] "r"(weightPitch[1] * 4), [ weightPitch2 ] "r"(weightPitch[2] * 4),
                          [ actIndex1 ] "r"(actIndex[1]), [ actIndex2 ] "r"(actIndex[2]),
-                         [ actPitch1 ] "r"(actPitch[1] * 4), [ actPitch2 ] "r"(actPitch[2] * 4),
-                         [ kernels0 ] "r"(kernels[0]), [ kernels1 ] "r"(kernels[1]), [ inCperG ] "r"(inCperG),
-                         [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y), [ dilation0 ] "r"(dilation[0]),
-                         [ dilation1 ] "r"(dilation[1])
+                         [ actPitch1 ] "r"(actPitch[1] * dilation[0] * 4),
+                         [ actPitch2 ] "r"(actPitch[2] * dilation[1] * 4), [ kernels0 ] "r"(kernels[0]),
+                         [ kernels1 ] "r"(kernels[1]), [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x),
+                         [ y ] "r"(y), [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
                        : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
@@ -611,10 +612,11 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                        "ble      %[actIndex1], %[ox], 5f\n" // if (actIndex[1] <= ox) continue
                        "ble      %[actIndex2], %[oy], 5f\n" // if (actIndex[2] <= oy) continue
 
+                       "mov.m.x  m0, zero, 0xff\n"
+
                        "addi     t0, zero, 8\n"     // t0 = 8
                        "ble      %[dist], t0, 4f\n" // if dist <= 8 go to 4
 
-                       "mov.m.x  m0, zero, 0xff\n"
                        "3:\n"                           // while (8 < dist) {
                        "fgh.ps   f1, f16(%[actAddr])\n" // actAddr -> f1
                        "fcvt.ps.f16 f1, f1\n"
@@ -666,10 +668,11 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                          [ sum ] "+&r"(sum), [ ox ] "+&r"(ox), [ oy ] "+&r"(oy), [ fy ] "+&r"(fy), [ fx ] "+&r"(fx)
                        : [ weightPitch1 ] "r"(weightPitch[1] * 2), [ weightPitch2 ] "r"(weightPitch[2] * 2),
                          [ gatherValues ] "r"(gatherValues), [ actPitch1 ] "r"(actPitch[1] * 2),
-                         [ actPitch2 ] "r"(actPitch[2] * 2), [ actIndex1 ] "r"(actIndex[1]),
-                         [ actIndex2 ] "r"(actIndex[2]), [ kernels0 ] "r"(kernels[0]), [ kernels1 ] "r"(kernels[1]),
-                         [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y),
-                         [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
+                         [ actPitch1 ] "r"(actPitch[1] * dilation[0] * 2),
+                         [ actPitch2 ] "r"(actPitch[2] * dilation[1] * 2), [ actIndex2 ] "r"(actIndex[2]),
+                         [ kernels0 ] "r"(kernels[0]), [ kernels1 ] "r"(kernels[1]), [ inCperG ] "r"(inCperG),
+                         [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y), [ dilation0 ] "r"(dilation[0]),
+                         [ dilation1 ] "r"(dilation[1])
                        : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
