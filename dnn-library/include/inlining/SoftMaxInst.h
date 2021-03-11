@@ -154,14 +154,14 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
   int32_t registerSize = 8*typeSize;
   float log2e = M_LOG2E;
 
-#define GATHER_FLOAT(_addr)                       \
-      "beq %[floatType], zero, 16f \n"            \
-      "flw.ps f0, 0x0(" #_addr ") \n"             \
-      "j 32f \n"                                  \
-      "16: \n"                                    \
-      "fg32h.ps f0, t0(" #_addr ") \n"            \
-      "fcvt.ps.f16 f0, f0 \n"                     \
-      "32: \n"
+#define GATHER_FLOAT(_addr)                                                                                            \
+  "beq %[floatType], zero, 16f \n"                                                                                     \
+  "flw.ps f0, 0x0(" #_addr ") \n"                                                                                      \
+  "j 32f \n"                                                                                                           \
+  "16: \n"                                                                                                             \
+  "fgh.ps f0, %[indices](" #_addr ") \n"                                                                               \
+  "fcvt.ps.f16 f0, f0 \n"                                                                                              \
+  "32: \n"
 
 #define SCATTER_FLOAT                                                                                                  \
   "beq %[floatType], zero, 16f \n"                                                                                     \
@@ -188,6 +188,15 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
       "f" #_op ".s  " #_reg ", f17, " #_reg " \n" \
       "fmvs.x.ps    t1, " #_reg ", 0x0 \n"        \
       "fbcx.ps      " #_reg ", t1 \n"
+
+  constexpr size_t bytesPerElement = Type::getElementSize(elK);
+  float indices;
+  static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement, 3 * bytesPerElement,
+                                   4 * bytesPerElement, 5 * bytesPerElement, 6 * bytesPerElement, 7 * bytesPerElement};
+
+  __asm__ __volatile__("flw.ps %[indices], %[values]\n"
+                       : [ indices ] "=f"(indices)
+                       : [ values ] "m"(*(const int32_t(*)[16])values));
 
   for (unsigned int n = firstrow; n < lastrow; n++) {
 
@@ -296,7 +305,8 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
         [dstAddrInit] "r" (dstAddr),
         [numRegs] "r" (numRegs),
         [extraLanes] "r" (extraLanes),
-        [gs32_offsets] "i" (  fg32h_conf )
+        [gs32_offsets] "i" (fg32h_conf),
+        [indices] "f" (indices)
       : "t0", "t1", "f0", "f17", "f28", "f29", "memory");
 
     srcAddr += step;
