@@ -37,6 +37,7 @@ namespace dnn_lib {
     //   0: base implementation (threaded)
     //   1: Vectorized 
     static size_t ElementBool(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      // SW-6832: Support source operands with different padding in vectorized ElementBool
       ElemKind src1ElK = inTensors[0]->getElementType();
       LibTensor *in1T = inTensors[0];
       LibTensor *in2T = inTensors[1];
@@ -46,14 +47,15 @@ namespace dnn_lib {
       else
         return 0;
     }
-    
-    
+
     static size_t ElementCmpEQ(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
       return ElementBool(outTensors, inTensors);
     }
+
     static size_t ElementCmpLTE(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
       return ElementBool(outTensors, inTensors);
     }
+
     static size_t ElementCmpLT(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors) {
       return ElementBool(outTensors, inTensors);
     }
@@ -62,6 +64,7 @@ namespace dnn_lib {
     //   0: base implementation (vectorized)
     //   1: Aligned32Bytes 
     static size_t MaxSplat(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      // SW-6834: Exploit the case when only one MaxSplat operand is aligned to 32 bytes
       LibTensor *outT = outTensors[0];
       LibTensor *inT = inTensors[0];
       const static size_t batchDim = inT->ndims() - 2;
@@ -73,12 +76,11 @@ namespace dnn_lib {
         return 0;
     }
 
-
-
     // Best implementation selector for operator RowwiseQuantizedFullyConnected. Return values are:
     //   0: base implementation (Vectorized)
     //   1: Aligned32Bytes 
     static size_t RowwiseQuantizedFullyConnected(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      // SW-6838: Exploit all the operand alignment combinations for RowwiseQuantizedFullyConnected
       LibTensor *outT = outTensors[0];
       LibTensor *in1T = inTensors[0];
       LibTensor *in2T = inTensors[1];
@@ -92,20 +94,18 @@ namespace dnn_lib {
         return 0;
     
     }
-
   
     // Best implementation selector for operator RowwiseQuantizedSparseLengthsWeightedSum. Return values are:
     //   0: base implementation
     //   1: Vectorized 
     static size_t RowwiseQuantizedSparseLengthsWeightedSum(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      // SW-3119: RowwiseQSL(W)S Operator tests failing
       LibTensor *dataT = inTensors[0];
-      // check for SW-3119
       if (dataT->dims()[dataT->ndims()-1] < 4)
         return 0;
       else
         return 1;
     }
-
     
     // Best implementation selector for operator Transpose. Return values are:
     //   0: base implementation (Vectorized)
@@ -128,6 +128,7 @@ namespace dnn_lib {
     //   0: base implementation
     //   1: Vectorized 
     static size_t SoftMax(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
+      // SW-6840: Vectorized SoftMax with unconstrained destination alignment
       LibTensor* outT = outTensors[0];
       unsigned cll = CACHE_LINE_BYTES / outT->getElementSize();
       const size_t numDims = outT->ndims();
