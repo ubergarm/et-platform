@@ -161,6 +161,7 @@ namespace dnn_lib {
       // threaded version only works for CL aligned output tensors
       // otherwise, call the single thread version
       // checking size is multiple of 64B => assuming start is CL aligned
+      /* [SW-6938] Threaded version results in coherency write hazards
       if ((uintptr_t)outTensors[0]->getAddress() % 64 == 0 && outTensors[0]->getSizeInBytes() % CACHE_LINE_BYTES != 0) {
         return 0;
       } else {
@@ -169,7 +170,7 @@ namespace dnn_lib {
         auto &dstPitch = outTensors[0]->strides();
         auto dstDimNum = outTensors[0]->ndims();
         return ((dstDimNum >= 2) && (dstPitch[dstDimNum - 2]%cll != 0)) ? 0 : 1;
-      }
+      }*/
 
       return 0;
     }
