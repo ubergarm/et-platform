@@ -198,24 +198,17 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   /* maintain compatibility through the new Iface Libtensor */
   void* dst = outT->getRawDataPointer<void>();
   void* src = inT->getRawDataPointer<void>();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
 
   unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
    
   int32_t typeSize = (int32_t) getsize<srcType>();
 
-  
-  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(src2, scale[0], offset[0]);
   const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)src2Dims;
   const dim_t *actIndex = inT->dims().data();
-  // unsigned int *actPitch = (unsigned int *)src2Pitches;
   const dim_t *actPitch = inT->strides().data();
  
   // We compute the offset address
