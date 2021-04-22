@@ -3,6 +3,7 @@
 
 #include "LibApiImplSel.h"
 #include <experimental/array>
+#include <string>
 
 namespace dnn_lib {
 
@@ -22,28 +23,28 @@ namespace dnn_lib {
 
   // type and name maps
   template<dnn_lib::instrMembers mb> struct memberMap;
-  
-#define SCALAR_MB_DEF(NAME, TYPE, GETTER)          \
-  template<>                                       \
-  struct memberMap<dnn_lib::mb##NAME> {            \
-    using type = TYPE;                             \
-    static const std::string name() {              \
-      return #NAME;                                \
-    }                                              \
-  };                                               \
-  
-#define VECTOR_MB_DEF(NAME, TYPE, GETTER)          \
-  template<>                                       \
-  struct memberMap<dnn_lib::mb##NAME> {            \
-    using type = std::vector<TYPE>;                \
-    static const std::string name() {              \
-      return #NAME;                                \
-    }                                              \
-  };                                               \
 
-#include "dnn_lib/LibApiMembers.def"
+  // clang-format off
+#define SCALAR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
+  template <> struct memberMap<dnn_lib::mb##NAME> {                                                                    \
+    using type = TYPE;                                                                                                 \
+    static const std::string name() {                                                                                  \
+      return #NAME;                                                                                                    \
+    }                                                                                                                  \
+  };
 
- ////////////////////////////////////////////////////////////////////////////////
+#define VECTOR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
+  template <> struct memberMap<dnn_lib::mb##NAME> {                                                                    \
+    using type = std::vector<TYPE>;                                                                                    \
+    static const std::string name() {                                                                                  \
+      return #NAME;                                                                                                    \
+    }                                                                                                                  \
+  };
+  // clang-format on
+
+#include "LibApiMembers.def"
+
+  ////////////////////////////////////////////////////////////////////////////////
   // INSTRUCTION PROPERTIES CLASS
   ////////////////////////////////////////////////////////////////////////////////
   static constexpr size_t maxImplVersions = 4;
@@ -1650,5 +1651,23 @@ namespace dnn_lib {
     // INSTR_CONFIG_TABLE_END
       // clang-format on
   );
+
+  static inline bool caseInsCharCompare(char a, char b) {
+    return (toupper(a) == toupper(b));
+  }
+
+  static inline bool caseInsCompare(const std::string& s1, const std::string& s2) {
+    return ((s1.size() == s2.size()) && equal(s1.begin(), s1.end(), s2.begin(), caseInsCharCompare));
+  }
+
+  static inline bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig) {
+    for (auto it = instrConfigTable.begin(); it != instrConfigTable.end(); ++it) {
+      if (caseInsCompare(it->name, operatorName)) {
+        instConfig = *it;
+        return true;
+      }
+    }
+    return false;
+  }
 }
 #endif
