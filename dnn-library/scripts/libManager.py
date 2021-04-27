@@ -14,7 +14,7 @@ class OperatorsEnum:
     def __init__(self, hostswdir):
         fname = os.path.join ( hostswdir, 'neuralizer/src/IOperators.inc');
         
-        regexp = re.compile(r'\s*IOPERATOR_ENUM\((.*)\)\s*')
+        regexp = re.compile(r'\s*IOPERATOR_ENUM\((\S*),.*\)\s*')
         self.__enum = []
         with open(fname) as f:
             for line in f:
@@ -357,9 +357,9 @@ class LibManagerSheet:
                     "template": 0,
                     "versions": "{}",
                     "implSel": "nullptr",
-                    "stateL1": "{{operandState::invalid}}",
-                    "stateL2": "{{operandState::invalid}}",
-                    "stateCB": "{{operandState::invalid}}",
+                    "stateL1": "{{operandState::untouched}}",
+                    "stateL2": "{{operandState::untouched}}",
+                    "stateCB": "{{operandState::untouched}}",
                     "evictMask": "{0}"
                     
             }
@@ -395,7 +395,7 @@ class LibManagerSheet:
             print ("Cache state for %s not found. Creating worksheet %s in %s. Edit and rerun" % (op, sheetName, self.__cacheStateFile))
             
             # fill with invalid values
-            invState = [ "invalid" for i in range(nrOut + nrIn)]
+            invState = [ "untouched" for i in range(nrOut + nrIn)]
             invEvict = [ 0 for i in range(nrOut + nrIn)]
              
             for impl in versions:
