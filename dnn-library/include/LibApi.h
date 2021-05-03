@@ -94,10 +94,10 @@ namespace dnn_lib {
       return getOperandStateL1(implIdx, idx + nrOutputTensors);
     }
     operandState getSrcStateL2(size_t implIdx, size_t idx) {
-      return getOperandStateL1(implIdx, idx + nrOutputTensors);
+      return getOperandStateL2(implIdx, idx + nrOutputTensors);
     }
     operandState getSrcStateCB(size_t implIdx, size_t idx) {
-      return getOperandStateL1(implIdx, idx + nrOutputTensors);
+      return getOperandStateCB(implIdx, idx + nrOutputTensors);
     }
     bool getSrcAutoEvict(size_t implIdx, size_t idx) {
       return getOperandAutoEvict(implIdx, idx + nrOutputTensors);
@@ -109,11 +109,11 @@ namespace dnn_lib {
     }
     operandState getDstStateL2(size_t implIdx, size_t idx) {
       assert( idx < nrOutputTensors );
-      return getOperandStateL1(implIdx, idx);
+      return getOperandStateL2(implIdx, idx);
     }
     operandState getDstStateCB(size_t implIdx, size_t idx) {
       assert( idx < nrOutputTensors );
-      return getOperandStateL1(implIdx, idx);
+      return getOperandStateCB(implIdx, idx);
     }
     bool getDstAutoEvict(size_t implIdx, size_t idx) {
       assert( idx < nrOutputTensors );
