@@ -142,7 +142,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_allocactivation
     instrConfig {
@@ -176,7 +176,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_avgpool
     instrConfig {
@@ -196,7 +196,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched}}},
-      {0x0, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_batchedadd
     instrConfig {
@@ -213,7 +213,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_batchedreduceadd
     instrConfig {
@@ -230,7 +230,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_batchedreducemin
     instrConfig {
@@ -247,7 +247,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_batchonehot
     instrConfig {
@@ -264,7 +264,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_convertto
     instrConfig {
@@ -284,7 +284,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_int8converter
     instrConfig {
@@ -301,7 +301,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_channelwisequantizedconvolution
     instrConfig {
@@ -352,7 +352,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_convolution3d
     instrConfig {
@@ -369,7 +369,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_convtranspose
     instrConfig {
@@ -440,7 +440,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_deallocactivation
     instrConfig {
@@ -491,7 +491,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementadd
     instrConfig {
@@ -508,7 +508,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementand
     instrConfig {
@@ -545,7 +545,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_elementcmplte
     instrConfig {
@@ -565,7 +565,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_elementcmplt
     instrConfig {
@@ -585,7 +585,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_elementdiv
     instrConfig {
@@ -602,7 +602,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementexp
     instrConfig {
@@ -619,7 +619,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementisnan
     instrConfig {
@@ -636,7 +636,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementlog
     instrConfig {
@@ -653,7 +653,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementmax
     instrConfig {
@@ -670,7 +670,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementmin
     instrConfig {
@@ -687,7 +687,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementmul
     instrConfig {
@@ -704,7 +704,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementor
     instrConfig {
@@ -738,7 +738,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementselect
     instrConfig {
@@ -755,7 +755,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementsub
     instrConfig {
@@ -772,7 +772,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_elementxor
     instrConfig {
@@ -806,7 +806,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_embeddingbagbyterowwiseoffsets
     instrConfig {
@@ -860,7 +860,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_extracttensor
     instrConfig {
@@ -877,7 +877,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_flip
     instrConfig {
@@ -928,7 +928,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_fusedrowwisequantizedsparselengthsweightedsum
     instrConfig {
@@ -996,7 +996,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x3} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_inserttensor
     instrConfig {
@@ -1033,7 +1033,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_lengthsrangefill
     instrConfig {
@@ -1050,7 +1050,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_lengthssum
     instrConfig {
@@ -1067,7 +1067,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_lengthstoranges
     instrConfig {
@@ -1104,7 +1104,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_matmul
     instrConfig {
@@ -1121,7 +1121,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_maxpool
     instrConfig {
@@ -1138,7 +1138,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_maxpoolwithargmax
     instrConfig {
@@ -1155,7 +1155,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_modulo
     instrConfig {
@@ -1172,7 +1172,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_nonmaxsuppression
     instrConfig {
@@ -1189,7 +1189,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x3} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_quantizationprofile
     instrConfig {
@@ -1223,7 +1223,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_rescalequantized
     instrConfig {
@@ -1240,7 +1240,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_resizebilinear
     instrConfig {
@@ -1274,7 +1274,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_rowwisequantizedfullyconnected
     instrConfig {
@@ -1294,7 +1294,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_rowwisequantizedsparselengthsweightedsum
     instrConfig {
@@ -1368,7 +1368,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched}}},
-      {0x0, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_spacetodepth
     instrConfig {
@@ -1402,7 +1402,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_sparselengthsweightedsum
     instrConfig {
@@ -1422,7 +1422,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_sparsetodense
     instrConfig {
@@ -1439,7 +1439,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_sparsetodensemask
     instrConfig {
@@ -1507,7 +1507,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x2} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_tanh
     instrConfig {
@@ -1524,7 +1524,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_tensorview
     instrConfig {
@@ -1541,7 +1541,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_topk
     instrConfig {
@@ -1558,7 +1558,7 @@ namespace dnn_lib {
       {{{operandState::dirty, operandState::dirty, operandState::clean}}},
       // CB states per impl
       {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-      {0x1} // evict available mask
+      {0x0} // evict available mask
     },
     // ET_touch
     instrConfig {
@@ -1612,7 +1612,7 @@ namespace dnn_lib {
       // CB states per impl
       {{{operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched}}},
-      {0x1, 0x1} // evict available mask
+      {0x0, 0x0} // evict available mask
     },
     // ET_inhosttransform
     instrConfig {
