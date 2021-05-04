@@ -1,5 +1,5 @@
 // File automatically generated with:
-//  ./libManager.py --swplatform-root /home/szhuang/sw-platform/ --excel libManager.xlsx --cacheState cacheState.xlsx
+//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
 //  cwd=/home/szhuang/sw-platform/host-software/dnnLibrary/scripts
 
 #ifndef LIBNODES_H_
