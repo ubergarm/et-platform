@@ -210,13 +210,17 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = inT->dims().data();
   const dim_t *actPitch = inT->strides().data();
- 
-  // We compute the offset address
+
+  // We compute the offset address: offset in the output tensor where first copy/slice starts (counting is in elements)
   unsigned int offsetNum = coord[0] * dstPitch[0];
-  for (unsigned int i = 1; i < dstDimNum; i++)
-    offsetNum += coord[i] * dstPitch[i]; // Offset Address
+  for (unsigned int i = 1; i < dstDimNum; i++) {
+    offsetNum += coord[i] * dstPitch[i];
+  }
+
+  // Jump between copies in case of count > 1
   unsigned int jump = dstPitch[axis] * actIndex[axis];
 
+  // Dimension in the output to use as rows, last dim will be processed as chunks
   unsigned int dimRow = 0;
   if (dstDimNum > 1)
     dimRow = dstDimNum - 2;
@@ -226,8 +230,11 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                               4 * typeSize, 5 * typeSize, 6 * typeSize,
                               7 * typeSize};
 
+  // Taking the number of elements in the input last dimension (contiguous elements), we compute how many lanes will be
+  // used and the reminder elements when performing a copy of this last dimension chunk size
   std::pair<int, int> lanes = getLanesResFromNElements<srcType>(actIndex[lastDim]);
 
+  // Setup masks m1 and m2 to enable lanes and remining elements to be processed per last dim chunk operation
   uint32_t mask = (1 << (((lanes.first - 1) % 8) + 1)) - 1;
   __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                         :
@@ -238,50 +245,65 @@ void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                         : [ mask ] "r" (mask));
 
   if (axis != lastDim) {
+    // Compute number or rows taking into account the count parameter
     unsigned int auxNRows = count * actIndex[0];
-    for (unsigned i = 1; i < lastDim; i++)
+    for (unsigned i = 1; i < lastDim; i++) {
       auxNRows *= actIndex[i];
+    }
+    // Compute rows per minion and reminder to distribute among the first assigned minions
     unsigned int mRows = auxNRows / activeMinions;
     unsigned int mod = auxNRows - activeMinions * mRows;
     if (minionId < mod) {
       ++mRows;
       mod = 0;
     }
-    if (unlikely(mRows == 0))
+    if (unlikely(mRows == 0)) {
       return; // No work to do
+    }
 
+    // rows per count operation
     auxNRows /= count;
+    // count index where current minion will start
     unsigned int aux = (mod + mRows * minionId) / auxNRows;
+    // jump according to the count index (counting is in elements)
     offsetNum += jump * aux;
+    // offset in the input (counting in elements): (totat output offset - count times rows per count) times stride
     unsigned int initialAddrIn = ((mod + mRows * minionId) - aux * auxNRows) * actPitch[dimRow];
-
-    unsigned int offsetIn[dstDimNum], offsetOut[dstDimNum];
+    // output start offset (counting is in elements)
     unsigned int initialAddr = offsetNum;
-    getCoordinates(offsetIn, initialAddrIn, dstDimNum, actPitch);
-    getCoordinates(offsetOut, initialAddr, dstDimNum, dstPitch);
 
+    // compute vector of coordinates in both input and output tensors for the start position
+    unsigned int k, offsetIn[dstDimNum], offsetOut[dstDimNum];
+    getNonPaddingCoordinates(offsetIn, initialAddrIn, dstDimNum, actPitch, actIndex, k);
+    getNonPaddingCoordinates(offsetOut, initialAddr, dstDimNum, dstPitch, dstIndex, k);
+
+    // translate offsets from elements to elements with padding
     unsigned int addrOut = 0;
     for (int i = lastDim; i >= 0; i--) {
       offsetOut[i] += offsetIn[i];
       addrOut += dstPitch[i] * offsetOut[i];
     }
+    unsigned int addrOutBase = addrOut;
+    unsigned int addrIn = 0;
+    for (int i = lastDim; i >= 0; i--) {
+      addrIn += actPitch[i] * offsetIn[i];
+    }
     while (mRows > 0) {
-      insertRow<srcType>((uint8_t *) dst, (uint8_t *) src, addrOut,
-                         initialAddrIn, typeSize, lanes, gatherValues, flags);
+      insertRow<srcType>((uint8_t*)dst, (uint8_t*)src, addrOut, addrIn, typeSize, lanes, gatherValues, flags);
       for (int j = dimRow; j >= 0; j--) {
         if (likely(offsetIn[j] != (actIndex[j] - 1))) {
-          initialAddrIn += actPitch[j];
+          addrIn += actPitch[j];
           addrOut += dstPitch[j];
           offsetIn[j]++;
           break;
         } else if (likely(j != 0)){
-          initialAddrIn -= (actIndex[j] - 1) * actPitch[j];
+          addrIn -= (actIndex[j] - 1) * actPitch[j];
           addrOut -= (actIndex[j] - 1) * dstPitch[j];
           offsetIn[j] = 0;
         } else {
-          initialAddrIn = offsetIn[j]  = 0;
-          offsetNum += jump;
-          addrOut = offsetNum;
+          addrIn = offsetIn[j] = 0;
+          addrOutBase += jump;
+          addrOut = addrOutBase;
         }
       }
       mRows--;
