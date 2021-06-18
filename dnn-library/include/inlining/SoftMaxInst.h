@@ -194,9 +194,9 @@ inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_
   static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement, 3 * bytesPerElement,
                                    4 * bytesPerElement, 5 * bytesPerElement, 6 * bytesPerElement, 7 * bytesPerElement};
 
-  __asm__ __volatile__("flw.ps %[indices], %[values]\n"
+  __asm__ __volatile__("flq2 %[indices], %[values]\n"
                        : [ indices ] "=f"(indices)
-                       : [ values ] "m"(*(const int32_t(*)[16])values));
+                       : [ values ] "m"(*(const int32_t(*)[8])values));
 
   for (unsigned int n = firstrow; n < lastrow; n++) {
 
