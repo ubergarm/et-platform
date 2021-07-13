@@ -261,49 +261,42 @@ inline void matmulStep (float *sum,
     float scales[2] = { tAInput.getScale(), tWInput.getScale() };
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
-        // Sets 1 lane enabled, moves scalar to float
-        "mov.m.x     mt0, %[mask], 0\n"
-        "flw.ps      f2, 0(%[sum])\n"            // Loads initial value
-        "flw.ps      f3, 0(%[gatherOffsetsA])\n" // Loads gatherOffsets for gathers
-        "flw.ps      f4, 0(%[gatherOffsetsW])\n" // Loads gatherOffsets for gathers
-        // Loads scale and offset
-        "fbc.ps      f5, 0x0(%[offsetA])\n"
-        "fbc.ps      f6, 0x0(%[offsetW])\n"
-        "fbc.ps      f7, 0x0(%[scaleA])\n"
-        "fbc.ps      f8, 0x0(%[scaleW])\n"
-        // Main loop
-        "1:\n"
-        "fgb.ps      f0, f3(%[tAAddr])\n"   // Loads data
-        "fgb.ps      f1, f4(%[tWAddr])\n"
-        "fsub.pi     f0, f0, f5\n"         // INT to FP32 dequantize: apply offset
-        "fsub.pi     f1, f1, f6\n"
-        "fcvt.ps.pw  f0, f0\n"             // INT to FP32 dequantize: convert to FP32
-        "fcvt.ps.pw  f1, f1\n"
-        "fmul.ps     f0, f0, f7\n"         // INT to FP32 dequantize: apply scale
-        "fmul.ps     f1, f1, f8\n"
-        "fmadd.ps    f2, f1, f0, f2\n"     // Accum
-        // End of loop
-        "addi   %[aCols], %[aCols], -1\n"
-        "add    %[tAAddr], %[tAAddr], %[size]\n"         // Increment pointers
-        "add    %[tWAddr], %[tWAddr], %[weightPitch]\n"
-        "bne    %[aCols], x0, 1b\n"
-        // Copies back to memory
-        "fsw.ps f2, 0(%[sum])\n"
-      : [tAAddr] "+&r" (tAAddr),
-        [tWAddr] "+&r" (tWAddr),
-        [aCols] "+&r" (aCols),
-        [sum] "+&r" (sum)
-      : [weightPitch] "r" (weightPitch),
-        [mask] "r" (mask),
-        [gatherOffsetsA] "r" (gatherOffsetsA),
-        [gatherOffsetsW] "r" (gatherOffsetsW),
-        [offsetA] "r" (&offsets[0]),
-        [offsetW] "r" (&offsets[1]),
-        [scaleA] "r" (&scales[0]),
-        [scaleW] "r" (&scales[1]),
-        [size] "r" (size)
-      : "memory", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8"
-    );
+      // Sets 1 lane enabled, moves scalar to float
+      "mov.m.x     mt0, %[mask], 0\n"
+      "flw.ps      f2, 0(%[sum])\n"            // Loads initial value
+      "flw.ps      f3, 0(%[gatherOffsetsA])\n" // Loads gatherOffsets for gathers
+      "flw.ps      f4, 0(%[gatherOffsetsW])\n" // Loads gatherOffsets for gathers
+      "fxor.pi     f9, f9, f9\n"               // Reset integer accumulator
+      // Loads scale and offset
+      "fbc.ps      f5, 0x0(%[offsetA])\n"
+      "fbc.ps      f6, 0x0(%[offsetW])\n"
+      "fbc.ps      f7, 0x0(%[scaleA])\n"
+      "fbc.ps      f8, 0x0(%[scaleW])\n"
+      // Main loop
+      "1:\n"
+      "fgb.ps      f0, f3(%[tAAddr])\n" // Loads data
+      "fgb.ps      f1, f4(%[tWAddr])\n"
+      "fsub.pi     f0, f0, f5\n" // Apply offset
+      "fsub.pi     f1, f1, f6\n"
+      "fmul.pi     f1, f1, f0\n" // Actual matmul operation
+      "fadd.pi     f9, f9, f1\n" // Accumulate in int32
+      // End of loop
+      "addi   %[aCols], %[aCols], -1\n"
+      "add    %[tAAddr], %[tAAddr], %[size]\n" // Increment pointers
+      "add    %[tWAddr], %[tWAddr], %[weightPitch]\n"
+      "bne    %[aCols], x0, 1b\n"
+      // Dequantize
+      "fcvt.ps.pw  f9, f9\n"     // INT to FP32 dequantize: convert to FP32
+      "fmul.ps     f9, f9, f7\n" // Apply input scale
+      "fmul.ps     f9, f9, f8\n" // Apply weight scale
+      "fadd.ps     f2, f2, f9\n" // Accumulate in FP32
+      // Copies back to memory
+      "fsw.ps f2, 0(%[sum])\n"
+      : [ tAAddr ] "+&r"(tAAddr), [ tWAddr ] "+&r"(tWAddr), [ aCols ] "+&r"(aCols), [ sum ] "+&r"(sum)
+      : [ weightPitch ] "r"(weightPitch), [ mask ] "r"(mask), [ gatherOffsetsA ] "r"(gatherOffsetsA),
+        [ gatherOffsetsW ] "r"(gatherOffsetsW), [ offsetA ] "r"(&offsets[0]), [ offsetW ] "r"(&offsets[1]),
+        [ scaleA ] "r"(&scales[0]), [ scaleW ] "r"(&scales[1]), [ size ] "r"(size)
+      : "memory", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9");
   }
   // Others
   else {
