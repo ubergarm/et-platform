@@ -49,16 +49,21 @@ struct accumulatorType {
 // vector f31 should be set to {0, 1, 2, 3, 4, 5, 6, 7}
 // vector f29 should be set to {0, 2, 4, 6, 8, 10, 12, 14}
 //
-  template <ElemKind elK>
-inline __attribute((always_inline))
-void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
-    uintptr_t minionCurrIndex, uintptr_t currSegmentLength,
-    uint8_t *tAInput, int64_t *indices, uintptr_t dataRowPitch,
-    uintptr_t dataRowSize, uintptr_t dataRowOffset, uintptr_t dstElemSize,
-    uint8_t *tWInput, uint8_t *dst_ptr, bool destAligned, const bool Weighted = true) { 
+template <ElemKind elK>
+inline __attribute((always_inline)) void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
+  uintptr_t minionCurrIndex, uintptr_t currSegmentLength, uint8_t* tAInput, int64_t* indices, uintptr_t dataRowPitch,
+  uintptr_t dataRowSize, uintptr_t dataRowOffset, uintptr_t dstElemSize, uintptr_t fusedElemSize, ElemKind fusedElK,
+  uint8_t* tWInput, uint8_t* dst_ptr, bool destAligned, const bool Weighted = true) {
 
   const bool float32Dst = elK == FloatTy;
   const bool float16Dst = elK == Float16Ty;
+
+  assert(float32Dst || float16Dst);
+
+  const bool float32Fused = fusedElK == UInt8FusedQTy;
+  const bool float16Fused = fusedElK == UInt8FusedFP16QTy;
+
+  assert(float32Fused || float16Fused);
 
   // Clear vector accumulator at the start.
   __asm__ __volatile__ (
@@ -72,22 +77,22 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
   for (uintptr_t j = 0, currIndex = minionCurrIndex;
        j < currSegmentLength; j++, currIndex++) {
     uint8_t * data_ptr   = tAInput + indices[currIndex] * dataRowPitch;
-    void    * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
-    void    * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
+    void* scale_ptr = (void*)&data_ptr[dataRowSize - fusedElemSize * 2];
+    void* offset_ptr = (void*)&data_ptr[dataRowSize - fusedElemSize];
     // Adjust to the current element offset of the row
     data_ptr += dataRowOffset;
   
     if (Weighted){
-      uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
-  
+      uint8_t* weight_ptr = &tWInput[currIndex * fusedElemSize];
+
       __asm__ __volatile__ (
         "fbc.ps  f26, 0x0(%[weight_ptr])\n"
         :
         : [weight_ptr] "r" (weight_ptr)
         : "f26"
       );
-  
-      if (float16Dst) {
+
+      if (float16Fused) {
         __asm__ __volatile__ (
           "fcvt.ps.f16 f26, f26\n"
           :
@@ -105,8 +110,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
        [scale_ptr]  "r"   (scale_ptr)
      : "f27", "f28"
    );
-  
-   if (float16Dst) {
+
+   if (float16Fused) {
      __asm__ __volatile__ (
        "fcvt.ps.f16 f27, f27\n"
        "fcvt.ps.f16 f28, f28\n"
@@ -115,7 +120,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
        : "f27", "f28"
      );
    }
-  
+
    __asm__ __volatile__ (
       // Load a full input cache line (64 elements, 8 vregs)
       "fgb.ps     f25, f31, %[data_ptr]\n"
@@ -184,7 +189,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
     }
   }
 }
- 
+
 template <ElemKind elK, bool Weighted = true>
 inline __attribute((always_inline))
 void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
@@ -195,6 +200,15 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   const bool float16Dst = elK == Float16Ty;
 
   assert(elK == FloatTy || elK == Float16Ty);
+
+  // Element kind of weights is the same as fused scale/offset kind.
+  ElemKind fusedElK = in1T->getElementType();
+  const bool float32Fused = fusedElK == UInt8FusedQTy;
+  const bool float16Fused = fusedElK == UInt8FusedFP16QTy;
+
+  assert(float32Fused || float16Fused);
+
+  assert(!Weighted || in2T->getElementType() == fusedElK);
 
   // Get offset of the Minion inside the group of Minions assigned to this Node.
 
@@ -253,8 +267,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   uintptr_t dataRowSize = dataDims[1];
 
   // Compute the number of elements per output row (first tensor dimension).
-  uintptr_t dstRowElemSize = 1;
-  for (uintptr_t i = 1; i < pdstDimNum; i++) dstRowElemSize *= dstDims[i];
+  assert(pdstDimNum == 2);
+  uintptr_t dstRowElemSize = dstDims[1];
 
   // Get size of the output element.
   uintptr_t dstElemSize;
@@ -263,8 +277,15 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   else if (float16Dst)
     dstElemSize = 2;
 
+  // Element kind of weights is the same as fused scale/offset kind.
+  uintptr_t fusedElemSize = 4;
+  if (float32Fused)
+    fusedElemSize = 4;
+  else if (float16Fused)
+    fusedElemSize = 2;
+
   // For *Quantized* Sparse use the input cache line as the minimum
-  // assignment unit per Minion. As the output will always be ofa  larger
+  // assignment unit per Minion. As the output will always be of a larger
   // type the output assignment is multiple cache lines per minion and
   // there shouldn't be any problem with coherence.
   //
@@ -412,13 +433,14 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       for (uintptr_t j = 0, currIndex = minionCurrIndex;
            j < currSegmentLength; j++, currIndex++) {
         uint8_t * data_ptr   = tAInput + indices[currIndex] * dataPitches[0];
-        void    * scale_ptr  = (void *) &data_ptr[dataRowSize - dstElemSize * 2];
-        void    * offset_ptr = (void *) &data_ptr[dataRowSize - dstElemSize    ];
+        void* scale_ptr = (void*)&data_ptr[dataRowSize - fusedElemSize * 2];
+        void* offset_ptr = (void*)&data_ptr[dataRowSize - fusedElemSize];
         // Adjust what elements read from the dense matrix based on the current group
         data_ptr += minionCurrRowGroup * CACHE_LINE_BYTES;
 
         if (Weighted){
-          uint8_t        * weight_ptr = &tWInput[currIndex * dstElemSize];
+          // Element kind of weights is the same as fused scale/offset kind.
+          uint8_t* weight_ptr = &tWInput[currIndex * fusedElemSize];
 
           __asm__ __volatile__ (
             "fbc.ps  f26, 0x0(%[weight_ptr])\n"
@@ -427,7 +449,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
             : "f26"
           );
 
-          if (float16Dst) {
+          if (float16Fused) {
             __asm__ __volatile__ (
               "fcvt.ps.f16 f26, f26\n"
               :
@@ -437,32 +459,22 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
           }
         }
 
-        __asm__ __volatile__ (
-          "fbc.ps  f27, 0x0(%[offset_ptr])\n"
-          "fbc.ps  f28, 0x0(%[scale_ptr])\n"
-          :
-          : [offset_ptr] "r" (offset_ptr),
-            [scale_ptr]  "r" (scale_ptr)
-          : "f27", "f28"
-        );
+        // Load first quantized data to f25 (uint8)
+        // Load offset to f27, scale to f28
+        __asm__ __volatile__("fgb.ps  f25, f31, %[data_ptr]\n"
+                             "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+                             "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+                             :
+                             : [ data_ptr ] "r"(data_ptr), [ offset_ptr ] "r"(offset_ptr), [ scale_ptr ] "r"(scale_ptr)
+                             : "f25", "f27", "f28", "f31");
 
-        if (float16Dst) {
-          __asm__ __volatile__ (
-            "fgb.ps      f25, f31, %[data_ptr]\n"
-            "fcvt.ps.f16 f27, f27\n"
-            "fcvt.ps.f16 f28, f28\n"
-            :
-            : [data_ptr] "r" (data_ptr)
-            : "f25", "f27", "f28", "f31"
-          );
-        }
-        else {
-          __asm__ __volatile__ (
-            "fgb.ps f25, f31, %[data_ptr]\n"
-            :
-            : [data_ptr] "r" (data_ptr)
-            :  "f25", "f31"
-          );
+        // Upconvert FP16 scale and offset to FP32
+        if (float16Fused) {
+          __asm__ __volatile__("fcvt.ps.f16 f27, f27\n"
+                               "fcvt.ps.f16 f28, f28\n"
+                               :
+                               :
+                               : "f27", "f28");
         }
 
         __asm__ __volatile__ (
@@ -676,11 +688,11 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       );
 
       for (int k = 0; k < (dstRowTailVRegs - 1); k++) {
-          fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
-          minionCurrIndex, currSegmentLength, tAInput, indices,
-          dataPitches[0], dataRowSize, minionCurrRowGroup * CACHE_LINE_BYTES + k * 8,
-          dstElemSize, tWInput, dst_ptr, destAligned, Weighted);
-          dst_ptr += 8 * dstElemSize;
+        fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
+          minionCurrIndex, currSegmentLength, tAInput, indices, dataPitches[0], dataRowSize,
+          minionCurrRowGroup * CACHE_LINE_BYTES + k * 8, dstElemSize, fusedElemSize, fusedElK, tWInput, dst_ptr,
+          destAligned, Weighted);
+        dst_ptr += 8 * dstElemSize;
       }
 
       // Set mask for last VReg in group.
@@ -691,10 +703,9 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       );
 
       fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
-        minionCurrIndex, currSegmentLength, tAInput, indices,
-        dataPitches[0], dataRowSize,
-        minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8,
-        dstElemSize, tWInput, dst_ptr, destAligned, Weighted);
+        minionCurrIndex, currSegmentLength, tAInput, indices, dataPitches[0], dataRowSize,
+        minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8, dstElemSize, fusedElemSize, fusedElK,
+        tWInput, dst_ptr, destAligned, Weighted);
 
       minionCurrIndex += currSegmentLength;
 
