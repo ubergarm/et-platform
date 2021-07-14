@@ -1,6 +1,6 @@
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/home/szhuang/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/local/home/isb/prog/sw-platform/host-software/dnnLibrary/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
@@ -1224,6 +1224,9 @@ void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst(LibTensor* out0, Li
 
 // extern template declarations
 extern template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst<FloatTy>(
+  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const uint64_t flags,
+  const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibFusedRowwiseQuantizedSparseLengthsWeightedSumInst<Float16Ty>(
   LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const uint64_t flags,
   const uint32_t minionOffset, const uint32_t assignedMinions);
 
