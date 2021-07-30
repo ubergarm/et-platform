@@ -30,6 +30,11 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+// FIXME: fix errors and remove diagnostic pragmas
+#pragma GCC diagnostic warning "-Wstrict-prototypes"
+#pragma GCC diagnostic warning "-Wconversion"
+#pragma GCC diagnostic warning "-Wsign-conversion"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -885,7 +890,7 @@ void printf_unlock() {
      : : [lock] "r" (&_printf_free[0]), [v] "r" (v): "memory");
 }
 
-#include <syscall.h>
+#include <device-common/syscall.h>
 
 static inline void log_write(const char *str, int len)
 {

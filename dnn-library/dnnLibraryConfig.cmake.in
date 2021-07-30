@@ -8,22 +8,10 @@
 # agreement/contract under which the program(s) have been supplied.
 #------------------------------------------------------------------------------
 
-set(DNN_LIB_VERSION 0.1.0)
-
 @PACKAGE_INIT@
 
-set_and_check(DNN_LIB_INCLUDE_DIR "@PACKAGE_INCLUDE_INSTALL_DIR@")
-
 include(CMakeFindDependencyMacro)
+find_dependency(EsperantoDeviceMinionRuntime REQUIRED)
 
-check_required_components(dnn_lib)
-
-get_filename_component(DNN_LIB_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-
-# Our library dependencies (contains definitions for IMPORTED targets)
-if(NOT TARGET dnn_lib)
-  include("${DNN_LIB_CMAKE_DIR}/dnnLibTargets.cmake")
-endif()
-
-# These are IMPORTED targets created by dnnLibTargets.cmake
-set(DNN_LIB_LIBRARIES neuralizer)
+include(${CMAKE_CURRENT_LIST_DIR}/dnnLibraryTargets.cmake)
+check_required_components(dnnLibrary)

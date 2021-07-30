@@ -1,6 +1,13 @@
+// FIXME: fix errors and remove diagnostic pragmas
+#pragma GCC diagnostic warning "-Wpragmas"
+#pragma GCC diagnostic warning "-Wmissing-prototypes"
+#pragma GCC diagnostic warning "-Wconversion"
+#pragma GCC diagnostic warning "-Wpointer-arith"
+#pragma GCC diagnostic warning "-Wcast-qual"
+
+#include <device-common/syscall.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <syscall.h>
 
 void *memset(void *s, int c, size_t n)
 {

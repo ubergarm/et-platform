@@ -18,14 +18,15 @@
 #include <cmath>
 #include <cstring>
 
+#include <device-common/barriers.h>
+#include <device-common/shire.h>
+
 #include "Float16.h"
 #include "Writer.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
-#include "shire.h"
-#include "barriers.h"
 #include "LibTensor.h"
 
 namespace dnn_lib {

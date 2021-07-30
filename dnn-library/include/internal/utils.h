@@ -16,13 +16,13 @@
 #include <cstdint>
 #include <utility>
 
-#include <syscall.h>
+#include <device-common/shire.h>
+#include <device-common/syscall.h>
+#include <device-common/tensors.h>
 
 #include "Float16.h"
 #include "LibCommon.h"
 #include "LoadStore.h"
-#include "shire.h"
-#include "tensors.h"
 
 namespace dnn_lib {
 
