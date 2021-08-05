@@ -18,14 +18,14 @@
 #include <cmath>
 #include <cstring>
 
-#include "Float16.h"
-#include "Writer.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
-#include "utils.h" // From include/internal path
-#include "cacheops.h"
+#include "Float16.h"
 #include "LibTensor.h"
+#include "Operator.h" // From include/internal path
+#include "Writer.h"   // From include/internal path
+#include "utils.h"    // From include/internal path
+#include <device-common/cacheops.h>
 
 namespace dnn_lib {
 

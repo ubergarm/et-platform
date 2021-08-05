@@ -19,7 +19,7 @@
 #include <numeric>
 #include <tuple>
 #ifdef __riscv
-#include "cacheops.h"
+#include <device-common/cacheops.h>
 #endif
 
 namespace dnn_lib {
