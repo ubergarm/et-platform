@@ -27,14 +27,10 @@ namespace dnn_lib {
 using dim_t = uint32_t;
 using sdim_t = int32_t;
 #else
-  using dim_t = size_t;
+using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
  
-
-  //@WARNING this enumerate is not the same as jitter defines ....!!
-  //
-/// It has to be an identically copy as it is in   glow_fork/include/glow/Base/Type.h
 /// An enum representing the type used by the elements of a tensor. The types of
 /// Handles for these tensors should match the element kind.
 enum ElemKind : unsigned char {
