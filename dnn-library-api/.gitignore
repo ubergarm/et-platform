@@ -1,0 +1,9 @@
+*~
+\#*\#
+# Ignore vim .swp files
+*.swp
+*.swo
+.*.sw?
+build/
+cmake-build-*/
+.idea/
