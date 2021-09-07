@@ -1,0 +1,57 @@
+import:
+  - path: '@ci@/ci-tools/templates/template-main-top-level.yaml'
+
+parameters:
+  REPO_SSH_URL:
+    description: Repository URL
+    type: string
+    default_value: "git@gitlab.esperanto.ai:software/dnn-library-api.git"
+  REPO_NAME:
+    description: Repository name
+    type: string
+    default_value: "dnnLibraryApi"
+  SW_PLATFORM_BRANCH:
+    description: SW-Platform branch to track
+    type: string
+    default_value: "origin/develop/ml-compiler"
+  GLOW_BRANCH:
+    description: ESPERANTO GLOW branch to track
+    type: string
+    default_value: "origin/esperanto/master"
+  NEURALIZER_BRANCH:
+    description: NEURALIZER branch to track
+    type: string
+    default_value: "origin/master"
+  DNNLIB_BRANCH:
+    description: dnnLibrary branch to track
+    type: string
+    default_value: "origin/master"
+
+stages:
+  CLANG_CHECK:
+    cmds:
+      - job: sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-clang-tests
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"
+    exec_before: [r"JOB_.*"]
+    exec_after: ['DSL_JOB']
+
+  DNN_LIB_CI:
+    cmds:
+      - job: sw-platform/host-sw-integration/pipelines/dnn-lib-checkin-top-level
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"
+    exec_after: ['CLANG_CHECK']
+
+  GLOW_FRONTEND_CI:
+    cmds:
+      - job: sw-platform/glow-integration/pipelines/glow-test-plan/frontend-etrt-devfw-sysemu
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"
+          REPO_SSH_URL: "git@gitlab.esperanto.ai:software/sw-platform.git"
+          REPO_NAME: "sw-platform"
+          TIMEOUT: "12"
+    exec_after: ['CLANG_CHECK']

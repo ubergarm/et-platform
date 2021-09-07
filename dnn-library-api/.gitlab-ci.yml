@@ -1,0 +1,16 @@
+check_formatting:
+  image: ubuntu:bionic
+  stage: build
+  tags:
+    - docker
+  before_script:
+    - echo -e "\e[0Ksection_start:`date +%s`:install_system_deps_section[collapsed=true]\r\e[0KInstall system dependencies"
+    - apt update
+    - apt install -y clang-format git-core
+    - echo -e "\e[0Ksection_end:`date +%s`:install_system_deps_section\r\e[0K"
+  script:
+    - echo `which clang-format`
+    - cd "$CI_PROJECT_DIR"
+    - linter_errors=$(git clang-format --commit "HEAD~1" -q --diff | grep -v --color=never "no modified files to format" || true)
+    - echo "$linter_errors"
+    - if [ ! -z "$linter_errors" ]; then echo "Detected formatting issues; please fix"; exit 1; else echo "Formatting is correct"; exit 0; fi
