@@ -49,9 +49,6 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Float16.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/GenInstances.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Operators.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/LibApi.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/LibApiMembers.def
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/LibApiImplSel.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/LibCommon.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/LibTypes.h
