@@ -180,10 +180,7 @@ namespace dnn_lib {
     static size_t AvgPool(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &inTensors){
       return (inTensors[0]->ndims() == 5) ? 0 : 1;
     }
-    
-
   };
-  
 }
 
 #endif

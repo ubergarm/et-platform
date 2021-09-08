@@ -15,13 +15,10 @@
 #include <stdint.h>
 #include <array>
 
-#define INLINE_ATTR __attribute__((always_inline)) inline
-
-#define CACHE_LINE_BYTES 64
-#define MIN_PER_SHIRE 32
-
 //#define DIM_T_32
 namespace dnn_lib {
+
+#define CACHE_LINE_BYTES 64
 
 #ifdef DIM_T_32
 using dim_t = uint32_t;
@@ -66,75 +63,34 @@ enum ElemKind : unsigned char {
   BoolTy,
 };
 
-// enum class PrecisionMode {
-//  //TODO: Get same enumerate as Jitter
-//  PM_FP_32   = 0,   // fp32
-//  PM_FP_16   = 1,   // fp16
-//  PM_BFP_16  = 2,   // bfloat16
-//  PM_INT_32  = 3,   // quant int32
-//  PM_INT_8   = 4,   // quant int8
-//  PM_INT_16  = 5,   // quant int16
-//  PM_INT_I32 = 6,   // idx int32
-//  PM_INT_I64 = 7,   // idx int64
-//  PM_UINT_8  = 8,   // quant uint8
-//  PM_UINT_4  = 9,   // quant uint4
-//  PM_BOOL    = 10,  // bool
-//  MAX_PRECISION_MODES
-// };
-
-// template<class T>
-// constexpr std::size_t getsize() {
-//   return sizeof(T);
-// }
-// template<>
-// constexpr std::size_t getsize<float16>() {
-//   return 2;
-// }
-
-  template <bool>
-  struct conditional_;
-  template<>
-  struct conditional_<false> {
-    template <typename, typename T>
-    using apply = T;
-  };
-
-  template <bool V, typename T, typename F>
-  using conditional_t = typename conditional_<V>::template apply<T, F>;
-  
-  /*@brief returns is \p elk is a quantized ElemKind.
-   */
-  inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
-    if (elk == dnn_lib::ElemKind::Int8QTy ||
-        elk == dnn_lib::ElemKind::UInt8QTy ||
-        elk == dnn_lib::ElemKind::Int16QTy ||
-        elk == dnn_lib::ElemKind::Int32QTy ||
-        elk == dnn_lib::ElemKind::UInt8FusedQTy ||
-        elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
-        elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
-      return true;
-    else
-      return false;
+/*@brief returns is \p elk is a quantized ElemKind.
+ */
+inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
+  if (elk == dnn_lib::ElemKind::Int8QTy || elk == dnn_lib::ElemKind::UInt8QTy || elk == dnn_lib::ElemKind::Int16QTy ||
+      elk == dnn_lib::ElemKind::Int32QTy || elk == dnn_lib::ElemKind::UInt8FusedQTy ||
+      elk == dnn_lib::ElemKind::UInt8FusedFP16QTy || elk == dnn_lib::ElemKind::UInt4FusedFP16QTy) {
+    return true;
+  } else {
+    return false;
   }
-
-  /*@brief returns whether \p elk is an "index" ElemKind.
-   */
-  inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
-    return elk == dnn_lib::ElemKind::Int32ITy or elk == dnn_lib::ElemKind::Int64ITy;
-  }
-
-  /*@brief returns wheter \p elk is a fused quantized ElemKind.
-   */
-  inline bool isFusedQuantizedElemKind(ElemKind elk) {
-    if (elk == dnn_lib::ElemKind::UInt8FusedQTy ||
-        elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
-        elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
-      return true;
-    else
-      return false;
-  }
-
-
-  
 }
+
+/*@brief returns whether \p elk is an "index" ElemKind.
+ */
+inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
+  return elk == dnn_lib::ElemKind::Int32ITy or elk == dnn_lib::ElemKind::Int64ITy;
+}
+
+/*@brief returns wheter \p elk is a fused quantized ElemKind.
+ */
+inline bool isFusedQuantizedElemKind(ElemKind elk) {
+  if (elk == dnn_lib::ElemKind::UInt8FusedQTy || elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
+      elk == dnn_lib::ElemKind::UInt4FusedFP16QTy) {
+    return true;
+  } else {
+    return false;
+  }
+}
+}
+
 #endif //LIB_TYPES_H
