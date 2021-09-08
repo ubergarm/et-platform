@@ -11,6 +11,6 @@ check_formatting:
   script:
     - echo `which clang-format`
     - cd "$CI_PROJECT_DIR"
-    - linter_errors=$(git clang-format --commit "HEAD~1" -q --diff | grep -v --color=never "no modified files to format" || true)
+    - linter_errors=$(git clang-format-6.0 origin/master -q --diff | grep -v --color=never "no modified files to format" || true)
     - echo "$linter_errors"
     - if [ ! -z "$linter_errors" ]; then echo "Detected formatting issues; please fix"; exit 1; else echo "Formatting is correct"; exit 0; fi
