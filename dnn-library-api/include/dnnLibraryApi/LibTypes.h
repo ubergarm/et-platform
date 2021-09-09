@@ -12,8 +12,8 @@
 #ifndef LIB_TYPES_H
 #define LIB_TYPES_H
 
-#include <stdint.h>
 #include <array>
+#include <stdint.h>
 
 //#define DIM_T_32
 namespace dnn_lib {
@@ -27,7 +27,7 @@ using sdim_t = int32_t;
 using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
- 
+
 /// An enum representing the type used by the elements of a tensor. The types of
 /// Handles for these tensors should match the element kind.
 enum ElemKind : unsigned char {
@@ -83,7 +83,7 @@ inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
 
 /*@brief returns wheter \p elk is a fused quantized ElemKind.
  */
-inline bool isFusedQuantizedElemKind(ElemKind elk) {
+inline constexpr bool isFusedQuantizedElemKind(ElemKind elk) {
   if (elk == dnn_lib::ElemKind::UInt8FusedQTy || elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
       elk == dnn_lib::ElemKind::UInt4FusedFP16QTy) {
     return true;
@@ -91,6 +91,6 @@ inline bool isFusedQuantizedElemKind(ElemKind elk) {
     return false;
   }
 }
-}
+} // namespace dnn_lib
 
-#endif //LIB_TYPES_H
+#endif // LIB_TYPES_H

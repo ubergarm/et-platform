@@ -45,56 +45,58 @@ struct Type final {
 
   /*@brief On quantized tensors, this represents the scale of the values.
    */
-  const float scale_ {};
+  const float scale_{};
 
   /*@brief On quantized tensors, this represents the offset of the values.
    */
-  const int32_t offset_ {};
+  const int32_t offset_{};
 
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims, const float scale, const int32_t offset) :
-    sizes_(make_dims(dims)),
-    elementType_(elk), numSizes_(numSizes),
-    scale_(scale), offset_(offset)
-  {
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims, const float scale,
+                 const int32_t offset)
+    : sizes_(make_dims(dims))
+    , elementType_(elk)
+    , numSizes_(numSizes)
+    , scale_(scale)
+    , offset_(offset) {
     assert(isQuantizedElemKind(elk));
   }
 
   /*@brief Initialize a new non-quantized type.
    */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims) :
-    sizes_(make_dims(dims)),
-    elementType_(elk), numSizes_(numSizes)
-  {
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims)
+    : sizes_(make_dims(dims))
+    , elementType_(elk)
+    , numSizes_(numSizes) {
     assert(not isQuantizedElemKind(elk));
   }
 
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides,
-                 const float scale, const int32_t offset) :
-    sizes_(make_dims(dims)),
-    strides_(make_strides(strides)),
-    elementType_(elk),
-    numSizes_(numSizes),
-    scale_(scale), offset_(offset)
-  {
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims,
+                 const std::array<dim_t, numSizes>& strides, const float scale, const int32_t offset)
+    : sizes_(make_dims(dims))
+    , strides_(make_strides(strides))
+    , elementType_(elk)
+    , numSizes_(numSizes)
+    , scale_(scale)
+    , offset_(offset) {
     assert(isQuantizedElemKind(elk));
   }
 
   /*@brief Initialize a new non-quantized type.
    */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides) :
-    sizes_(make_dims(dims)),
-    strides_(make_strides(strides)),
-    elementType_(elk),
-    numSizes_(numSizes)
-  {
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims,
+                 const std::array<dim_t, numSizes>& strides)
+    : sizes_(make_dims(dims))
+    , strides_(make_strides(strides))
+    , elementType_(elk)
+    , numSizes_(numSizes) {
     assert(not isQuantizedElemKind(elk));
   }
 
@@ -103,32 +105,31 @@ struct Type final {
    */
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t &dims, const dim_array_t &strides,
-                 const float scale, const int32_t offset) :
-    sizes_(dims),
-    strides_(strides),
-    elementType_(elk),
-    numSizes_(numSizes),
-    scale_(scale), offset_(offset)
-  {
+  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims,
+                 const dim_array_t& strides, const float scale, const int32_t offset)
+    : sizes_(dims)
+    , strides_(strides)
+    , elementType_(elk)
+    , numSizes_(numSizes)
+    , scale_(scale)
+    , offset_(offset) {
     assert(isQuantizedElemKind(elk));
   }
 
   /*@brief Initialize a new non-quantized type.
    */
-  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t &dims, const dim_array_t &strides) :
-    sizes_(dims),
-    strides_(strides),
-    elementType_(elk),
-    numSizes_(numSizes)
-  {
+  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims,
+                 const dim_array_t& strides)
+    : sizes_(dims)
+    , strides_(strides)
+    , elementType_(elk)
+    , numSizes_(numSizes) {
     assert(not isQuantizedElemKind(elk));
   }
 
   /*@brief Reshape existing type this takes care of quantized types.
    */
-  template<size_t numSizes>
-  static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims) {
+  template <size_t numSizes> static Type newShape(const Type& T, const std::array<dim_t, numSizes>& dims) {
     if (T.isQuantizedType()) {
       return Type(T.elementType_, dims, T.scale_, T.offset_);
     } else {
@@ -137,9 +138,10 @@ struct Type final {
   }
 
   /*@brief Reshape existing type and change alignments.
-    */
-  template<size_t numSizes>
-  static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &pitches){
+   */
+  template <size_t numSizes>
+  static Type newShape(const Type& T, const std::array<dim_t, numSizes>& dims,
+                       const std::array<dim_t, numSizes>& pitches) {
     if (T.isQuantizedType()) {
       return Type(T.elementType_, dims, pitches, T.scale_, T.offset_);
     } else {
@@ -147,98 +149,54 @@ struct Type final {
     }
   }
 
-  static Type newShape(const Type &T, size_t numSizes, const dim_array_t &dims, const dim_array_t &pitches){
-    if (T.isQuantizedType()) {
-      return Type(T.elementType_, numSizes, dims, pitches, T.scale_, T.offset_);
-    } else {
-      return Type(T.elementType_, numSizes, dims, pitches);
-    }
-  }
+  static Type newShape(const Type& T, size_t numSizes, const dim_array_t& dims, const dim_array_t& pitches);
 
   /*@brief Reshape existing type by taking shapes and strides of \p shapeType.
    */
-  static Type newShape(const Type &kindType, const Type shapeType) {
-    //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
-    if (kindType.isQuantizedType()) {
-      return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
-    } else {
-      return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
-    }
-
-    //TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate extended
-    // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
-  }
+  static Type newShape(const Type& kindType, const Type shapeType);
 
   /* brief returns true if \p other has same shape.
    */
-  const bool hasSameShape(const Type other) const {
-    if (numSizes_ != other.getNumDims()) return false;
-    const dim_array_t& other_sizes = other.getSizes();
-    const dim_array_t& other_strides = other.getStrides();
-    for (size_t idx = 0; idx < numSizes_; idx++) {
-      if (sizes_[idx] != other_sizes[idx]) {
-        return false;
-      }
-      if (strides_[idx] != other_strides[idx]) {
-        return false;
-      }
-    }
-    return true;
-  }
+  const bool hasSameShape(const Type other) const;
 
   /*@brief returns the scale of a quantized type.
    */
-  float getScale() const {
-    //@TODO assert(isQuantizedType() && "Can't get the scale of non-quantized type");
-    return scale_;
-  }
+  float getScale() const;
 
   /*@brief returns the offset of quantized type.
    */
-  int32_t getOffset() const {
-    //@TODO assert(isQuantizedType() && "Can't get the offset of a non-quantized type");
-    return offset_;
-  }
+  int32_t getOffset() const;
 
   /*@brief returns the Tensor sizes_.
    */
-  const dim_array_t& getSizes() const {
-    return sizes_;
-  }
+  const dim_array_t& getSizes() const;
 
   /*@brief returns the Tensor strides_.
    */
-  const dim_array_t& getStrides() const {
-    return strides_;
-  }
+  const dim_array_t& getStrides() const;
 
   /*@brief returns the Tensor dimension.
    */
-  dim_t getNumDims() const { return numSizes_;}
-
+  dim_t getNumDims() const;
 
   /*@brief returns the elemet type
    */
-  ElemKind getElementType() const { return elementType_; }
+  ElemKind getElementType() const;
 
   /*@brief return the number of elements in the tensor.
    */
-  const dim_t size() const {
-    dim_t acum = 1;
-    for(auto i: sizes_) acum*=i;
-    return acum;
-  }
+  const dim_t size() const;
 
   /*@brief returns true if the templated parameter \p Elemkind matches this type.
    */
-  template<class ElemTy> bool isType() const {
+  template <class ElemTy> bool isType() const {
     return isType<ElemTy>(elementType_);
   }
 
   /*@brief returns true if the templated parameter \p ElemKind matches the type
    *that's specified by the parameter \p Ty.
    */
-  template<class ElemTy> static bool isType(dnn_lib::ElemKind elk) {
+  template <class ElemTy> static bool isType(dnn_lib::ElemKind elk) {
     switch (elk) {
     case dnn_lib::ElemKind::FloatTy:
       return std::is_same<ElemTy, float>::value;
@@ -276,35 +234,25 @@ struct Type final {
   /*@brief true if the type of this Tensor is one of the quantized
    *types.
    */
-  bool isQuantizedType() const {
-    return isQuantizedElemKind(elementType_);
-  }
+  bool isQuantizedType() const;
 
   /*@brief true if the type of this Tensor is one of the and index type
    */
-  bool isIndexType() const {
-    return isIndexElemKind(elementType_);
-  }
+  bool isIndexType() const;
 
   /*@brief returns the size of the type element.
    */
-  unsigned getElementSize() const {
-    return getElementSize(elementType_);
-  }
+  unsigned getElementSize() const;
 
   /*@brief returns the size in bytes for this Tensor.
    */
-  size_t getSizeInBytes() const {
-    return sizes_[0] * strides_[0] * getElementSize();
-  }
+  size_t getSizeInBytes() const;
 
   /*@brief the actual number of elements in the tensor taking striding into
    * account. Since size() does not take striding into account, size() is
    * always <= actualSize()
    */
-  size_t actualSize() const {
-    return (sizes_[0] * strides_[0]);
-  }
+  size_t actualSize() const;
 
   /// \return the size of the element \p Ty.
   static constexpr size_t getElementSize(dnn_lib::ElemKind Ty) {
@@ -342,7 +290,7 @@ struct Type final {
     __builtin_unreachable();
   }
 
-}; //class Type
+}; // class Type
 
 class LibTensor final {
 private:
@@ -353,114 +301,78 @@ private:
 public:
   /* @brief returns the start address of the tensor.
    */
-  char* getAddress() const {
-    return ptrData_;
-  }
+  char* getAddress() const;
 
   /* @brief returns the type of the tensor.
    */
-  const Type& getType() const {
-    return type_;
-  }
+  const Type& getType() const;
 
   /*@brief returns the element type of the tensor.
    */
-  const ElemKind getElementType() const {
-    return type_.getElementType();
-  }
+  const ElemKind getElementType() const;
 
   /*@brief Get number of dimensions the tensor has
    */
-  const dim_t ndims() const {
-    return type_.numSizes_;
-  }
+  const dim_t ndims() const;
 
   /*@brief returns the dimensions (padded with 1 until max_tensor_dimensions)
    */
-  const dim_array_t& dims() const {
-    return type_.sizes_;
-  }
+  const dim_array_t& dims() const;
 
   /*@brief returns the strides (padded with 0 until max_tensor_dimensions)
    */
-  const dim_array_t& strides() const {
-    return type_.strides_;
-  }
+  const dim_array_t& strides() const;
 
   /*@brief returns strides as if there were no padding
    */
-  const dim_array_t stridesNoPadding() const {
-    dim_array_t v;
-    v[ndims()-1] = 1;
-    for (int64_t i = ndims()-2; i >=0; i--){
-      v[i] = v[i+1] * dims()[i+1];
-    }
-    return v;
-  }
+  const dim_array_t stridesNoPadding() const;
 
   /*@brief returns the number of real menaingful elements in the tensor. Does
    *not take strides into account.
    */
-  dim_t size() const {
-    return type_.size();
-  }
+  dim_t size() const;
 
   /*@brief returns the actaul number of elements in the tensor taking stridding
    *into account. Since size() does not take striding into account, size() is
    *always <= actualSize(),
    */
-  dim_t actualSize() const {
-    return type_.actualSize();
-  }
+  dim_t actualSize() const;
 
   /*@brief returns the number of bytes required to store the tensor based on its
    *Type. Note that this includes the size required for padding.
    */
-  uint64_t getSizeInBytes() const {
-    return type_.getSizeInBytes();
-  }
+  uint64_t getSizeInBytes() const;
 
-  //constructor for quant types
-  template<size_t numSizes>
-  LibTensor(dnn_lib::ElemKind elk, void * const rawdata, const std::array<dim_t, numSizes> &dims,
-            const std::array<dim_t, numSizes> &pitches, const bool untouch, const float scale, const int offset)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(elk, dims, pitches, scale, offset),
-      untouch_(untouch) {}
+  // constructor for quant types
+  template <size_t numSizes>
+  LibTensor(dnn_lib::ElemKind elk, void* const rawdata, const std::array<dim_t, numSizes>& dims,
+            const std::array<dim_t, numSizes>& pitches, const bool untouch, const float scale, const int offset)
+    : ptrData_(reinterpret_cast<char*>(rawdata))
+    , type_(elk, dims, pitches, scale, offset)
+    , untouch_(untouch) {
+  }
 
   // constructor for non quant types
-  template<size_t numSizes>
-  LibTensor(dnn_lib::ElemKind elk, void * const rawdata, const std::array<dim_t, numSizes> &dims,
-            const std::array<dim_t, numSizes> &pitches, const bool untouch)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(elk, dims, pitches),
-      untouch_(untouch) {}
+  template <size_t numSizes>
+  LibTensor(dnn_lib::ElemKind elk, void* const rawdata, const std::array<dim_t, numSizes>& dims,
+            const std::array<dim_t, numSizes>& pitches, const bool untouch)
+    : ptrData_(reinterpret_cast<char*>(rawdata))
+    , type_(elk, dims, pitches)
+    , untouch_(untouch) {
+  }
 
   // constructor from type
-  LibTensor(const Type &type, void * const rawdata, const bool untouch)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(type),
-      untouch_(untouch) {}
+  LibTensor(const Type& type, void* const rawdata, const bool untouch);
 
-  LibTensor(const Type &&type, void * const rawdata, const bool untouch)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(std::move(type)),
-      untouch_(untouch) {}
+  LibTensor(const Type&& type, void* const rawdata, const bool untouch);
 
-  float getScale() const {
-    return type_.getScale();
-  }
+  float getScale() const;
 
-  int32_t getOffset() const {
-    return type_.getOffset();
-  }
+  int32_t getOffset() const;
 
-  size_t getElementSize() const {
-    return type_.getElementSize();
-  }
+  size_t getElementSize() const;
+};
 
-}; //end LibTensorBase class
-
-}
+} // namespace dnn_lib
 
 #endif // _LIB_TENSOR_H_

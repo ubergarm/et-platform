@@ -29,11 +29,11 @@ private:
   template <size_t idx, size_t N> static constexpr T getEl(const std::array<T, N>& v) {
     return idx >= N ? padding : v[idx];
   }
-  };
+};
 
-#define make_dims  pad_array<dim_t, max_tensor_dimensions, 1>::create
-#define make_strides  pad_array<dim_t, max_tensor_dimensions, 0>::create
+#define make_dims pad_array<dim_t, max_tensor_dimensions, 1>::create
+#define make_strides pad_array<dim_t, max_tensor_dimensions, 0>::create
 
-  } // namespace dnn_lib
+} // namespace dnn_lib
 
 #endif

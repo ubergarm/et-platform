@@ -5,6 +5,8 @@ project(dnnLibraryApi
     LANGUAGES CXX
 )
 
+option(ENABLE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
@@ -12,15 +14,25 @@ include(CMakePackageConfigHelpers)
 # dnnLibrary API library
 #---------------
 
-set(CMAKE_CXX_STANDARD 17)
-
-add_library(dnnLibraryApi INTERFACE)
+add_library(dnnLibraryApi
+    include/dnnLibraryApi/LibApi.h
+    include/dnnLibraryApi/LibApiImplSel.h
+    include/dnnLibraryApi/LibTensor.h
+    include/dnnLibraryApi/LibTypes.h
+    include/dnnLibraryApi/LibUtils.h
+    src/Api.cpp
+    src/ApiImplSel.cpp
+    src/Tensor.cpp
+)
 add_library(dnnLibraryApi::dnnLibraryApi ALIAS dnnLibraryApi)
+target_compile_features(dnnLibraryApi PUBLIC cxx_std_17)
+target_compile_options(dnnLibraryApi PRIVATE -Wall $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>)
 target_include_directories(dnnLibraryApi
-    INTERFACE
+    PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+set_target_properties(dnnLibraryApi PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #-------------------
 # Configure package

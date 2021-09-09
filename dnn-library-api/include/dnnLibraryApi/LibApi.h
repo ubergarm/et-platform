@@ -1,31 +1,42 @@
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2021, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
+
 #ifndef _LIB_API_H_
 #define _LIB_API_H_
 
 #include "LibApiImplSel.h"
-#include <experimental/array>
+#include <experimental/array> // not available on macos - if we ever need dnnLibraryApi available there
+                              // we should remove the std::experimental::make_array
 #include <string>
 #include <vector>
 
 namespace dnn_lib {
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // definitions for non-tensor operands (aka members)
-  ////////////////////////////////////////////////////////////////////////////////  
+////////////////////////////////////////////////////////////////////////////////
+// definitions for non-tensor operands (aka members)
+////////////////////////////////////////////////////////////////////////////////
 
-  // enum with list of known members
+// enum with list of known members
 #define SCALAR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
-#define VECTOR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,   
-  enum instrMembers
-    {
-     mbInvalid = 0,
+#define VECTOR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
+enum instrMembers {
+  mbInvalid = 0,
 #include "LibApiMembers.def"
-     mbMaxMembers
-    };
+  mbMaxMembers
+};
 
-  // type and name maps
-  template<dnn_lib::instrMembers mb> struct memberMap;
+// type and name maps
+template <dnn_lib::instrMembers mb> struct memberMap;
 
-  // clang-format off
+// clang-format off
 #define SCALAR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
   template <> struct memberMap<dnn_lib::mb##NAME> {                                                                    \
     using type = TYPE;                                                                                                 \
@@ -41,92 +52,60 @@ namespace dnn_lib {
       return #NAME;                                                                                                    \
     }                                                                                                                  \
   };
-  // clang-format on
+// clang-format on
 
 #include "LibApiMembers.def"
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // INSTRUCTION PROPERTIES CLASS
-  ////////////////////////////////////////////////////////////////////////////////
-  static constexpr size_t maxImplVersions = 4;
-  static constexpr size_t maxInstrConfigStrLen = 256;
-  static constexpr size_t maxNrOperands = 12;
+////////////////////////////////////////////////////////////////////////////////
+// INSTRUCTION PROPERTIES CLASS
+////////////////////////////////////////////////////////////////////////////////
+static constexpr size_t maxImplVersions = 4;
+static constexpr size_t maxInstrConfigStrLen = 256;
+static constexpr size_t maxNrOperands = 12;
 
-  enum class operandState { dirty, clean, untouched };
+enum class operandState { dirty, clean, untouched };
 
-  struct instrConfig {
-    using operandStateArray = std::array<operandState, maxNrOperands>;
-    using implStateArray = std::array<operandStateArray, maxImplVersions + 1>;
-    using sel_fnc_t = size_t (*)(std::vector<LibTensor*> &, std::vector<LibTensor*> &);
-    
-    char name[maxInstrConfigStrLen];
-    size_t nrOutputTensors; // number of output and in/out tensor operands
-    size_t nrInputTensors;  // number of input tensor operands
-    std::array<instrMembers, mbMaxMembers> members;
-    uint64_t templateMask;
-    std::array<char[maxInstrConfigStrLen], maxImplVersions> versions;
-    sel_fnc_t implSel;
+struct instrConfig {
+  using operandStateArray = std::array<operandState, maxNrOperands>;
+  using implStateArray = std::array<operandStateArray, maxImplVersions + 1>;
+  using sel_fnc_t = size_t (*)(std::vector<LibTensor*>&, std::vector<LibTensor*>&);
 
-    implStateArray stateL1;
-    implStateArray stateL2;
-    implStateArray stateCB;
-    std::array<uint64_t,maxImplVersions + 1>  evictAvailableMask;
-    
-    // functions to retrieve operand information
-    operandState getOperandStateL1(size_t implIdx, size_t operand) {
-      assert( operand < nrOutputTensors + nrInputTensors);
-      return stateL1[implIdx][operand];
-    } 
-    operandState getOperandStateL2(size_t implIdx, size_t operand) {
-      assert( operand < nrOutputTensors + nrInputTensors);
-      return stateL2[implIdx][operand];
-    }
-    operandState getOperandStateCB(size_t implIdx, size_t operand) {
-      assert( operand < nrOutputTensors + nrInputTensors);
-      return stateCB[implIdx][operand];
-    }
-    bool getOperandAutoEvict(size_t implIdx, size_t operand) {
-      assert( operand < nrOutputTensors + nrInputTensors);
-      return ((evictAvailableMask[implIdx] >> operand) & 1);
-    }
-    
-    // and same as before, but index is either input or output
-    operandState getSrcStateL1(size_t implIdx, size_t idx) {
-      return getOperandStateL1(implIdx, idx + nrOutputTensors);
-    }
-    operandState getSrcStateL2(size_t implIdx, size_t idx) {
-      return getOperandStateL2(implIdx, idx + nrOutputTensors);
-    }
-    operandState getSrcStateCB(size_t implIdx, size_t idx) {
-      return getOperandStateCB(implIdx, idx + nrOutputTensors);
-    }
-    bool getSrcAutoEvict(size_t implIdx, size_t idx) {
-      return getOperandAutoEvict(implIdx, idx + nrOutputTensors);
-    }
+  char name[maxInstrConfigStrLen];
+  size_t nrOutputTensors; // number of output and in/out tensor operands
+  size_t nrInputTensors;  // number of input tensor operands
+  std::array<instrMembers, mbMaxMembers> members;
+  uint64_t templateMask;
+  std::array<char[maxInstrConfigStrLen], maxImplVersions> versions;
+  sel_fnc_t implSel;
 
-    operandState getDstStateL1(size_t implIdx, size_t idx) {
-      assert( idx < nrOutputTensors );
-      return getOperandStateL1(implIdx, idx);
-    }
-    operandState getDstStateL2(size_t implIdx, size_t idx) {
-      assert( idx < nrOutputTensors );
-      return getOperandStateL2(implIdx, idx);
-    }
-    operandState getDstStateCB(size_t implIdx, size_t idx) {
-      assert( idx < nrOutputTensors );
-      return getOperandStateCB(implIdx, idx);
-    }
-    bool getDstAutoEvict(size_t implIdx, size_t idx) {
-      assert( idx < nrOutputTensors );
-      return getOperandAutoEvict(implIdx, idx);
-    }
-  };
+  implStateArray stateL1;
+  implStateArray stateL2;
+  implStateArray stateCB;
+  std::array<uint64_t, maxImplVersions + 1> evictAvailableMask;
 
-  ////////////////////////////////////////////////////////////////////////////////
-  // INSTRUCTION TABLE (autogenerated from excels)
-  ////////////////////////////////////////////////////////////////////////////////
-  static constexpr auto instrConfigTable = std::experimental::make_array(
-    // clang-format off
+  // functions to retrieve operand information
+  operandState getOperandStateL1(size_t implIdx, size_t operand);
+  operandState getOperandStateL2(size_t implIdx, size_t operand);
+  operandState getOperandStateCB(size_t implIdx, size_t operand);
+  bool getOperandAutoEvict(size_t implIdx, size_t operand);
+
+  // and same as before, but index is either input or output
+  operandState getSrcStateL1(size_t implIdx, size_t idx);
+  operandState getSrcStateL2(size_t implIdx, size_t idx);
+  operandState getSrcStateCB(size_t implIdx, size_t idx);
+  bool getSrcAutoEvict(size_t implIdx, size_t idx);
+
+  operandState getDstStateL1(size_t implIdx, size_t idx);
+  operandState getDstStateL2(size_t implIdx, size_t idx);
+  operandState getDstStateCB(size_t implIdx, size_t idx);
+  bool getDstAutoEvict(size_t implIdx, size_t idx);
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// INSTRUCTION TABLE (autogenerated from excels ?)
+////////////////////////////////////////////////////////////////////////////////
+static constexpr auto instrConfigTable = std::experimental::make_array(
+  // clang-format off
     // INSTR_CONFIG_TABLE_BEGIN
     // ET_adaptiveavgpool
     instrConfig {
@@ -1650,73 +1629,13 @@ namespace dnn_lib {
       {0} // evict available mask
     }
     // INSTR_CONFIG_TABLE_END
-      // clang-format on
-  );
+    // clang-format on
+);
 
-  static inline bool caseInsCharCompare(char a, char b) {
-    return (toupper(a) == toupper(b));
-  }
+bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig);
+size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions,
+                         const std::vector<LibTensor*>& operands);
 
-  static inline bool caseInsCompare(const std::string& s1, const std::string& s2) {
-    return ((s1.size() == s2.size()) && equal(s1.begin(), s1.end(), s2.begin(), caseInsCharCompare));
-  }
+} // end namespace dnn_lib
 
-  static inline bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig) {
-    for (auto it = instrConfigTable.begin(); it != instrConfigTable.end(); ++it) {
-      if (caseInsCompare(it->name, operatorName)) {
-        instConfig = *it;
-        return true;
-      }
-    }
-    return false;
-  }
-
-  static inline size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions,
-                                         const std::vector<LibTensor*> operands) {
-    size_t result = 2000;
-    if (caseInsCompare("FusedRowwiseQuantizedSparseLengthsWeightedSum", operatorName)) {
-      // Computes lines to read from DDR
-      size_t lineSize = operands[0]->strides()[0];
-      size_t lineCL = (size_t)ceilf((float)lineSize / 64.0f); // Converts to cachelines
-      size_t lookups = operands[1]->dims()[0];
-      // Data read from the embedding
-      size_t totalBytes = lineCL * lookups * 64;
-      // Data read to get lookup indices and the weight
-      // TODO: need to get the lookup index size and weight size
-      totalBytes += lookups * 8 + lookups * 4;
-
-      // Cycles is amount of CL to read by cycles per CL
-      // TODO: gather this info from device
-      float ddrBytesPerCycle = 133.0f * 0.55f;
-      float ddrBytesPerMinion = ddrBytesPerCycle / 1024.0f;
-      float minions = (float)assignedMinions;
-      float ddrCycles = (float)totalBytes / ddrBytesPerMinion / minions;
-
-      // Total amount of time is fixed time plus ddr time
-      result = 4000 + (size_t)ddrCycles;
-    } else if (caseInsCompare("FusedRowwiseQuantizedSparseLengthsSum", operatorName)) {
-      // Computes lines to read from DDR
-      size_t lineSize = operands[0]->strides()[0];
-      size_t lineCL = (size_t)ceilf((float)lineSize / 64.0f); // Converts to cachelines
-      size_t lookups = operands[1]->dims()[0];
-      // Data read from the embedding
-      size_t totalBytes = lineCL * lookups * 64;
-      // Data read to get lookup indices and the weight
-      // TODO: need to get the lookup index size
-      totalBytes += lookups * 8;
-
-      // Cycles is amount of CL to read by cycles per CL
-      // TODO: gather this info from device
-      float ddrBytesPerCycle = 133.0f * 0.55f;
-      float ddrBytesPerMinion = ddrBytesPerCycle / 1024.0f;
-      float minions = (float)assignedMinions;
-      float ddrCycles = (float)totalBytes / ddrBytesPerMinion / minions;
-
-      // Total amount of time is fixed time plus ddr time
-      result = 4000 + (size_t)ddrCycles;
-    }
-
-    return result;
-  }
-}
 #endif
