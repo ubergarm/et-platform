@@ -156,6 +156,29 @@ pipeline {
         }
         stage('PARALLEL1') {
           parallel {
+            stage('CODE_QUALITY') {
+              steps {
+                script {
+                  if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" sw-platform/code-analysis/dnnLibraryApi-sonarqube \'{  "COMPONENT_COMMITS":"' + "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}" + '" }\'') != 0) {
+                    build job:
+                      'sw-platform/code-analysis/dnnLibraryApi-sonarqube',
+                      propagate: true,
+                      parameters: [
+                        string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
+                        string(name: 'GITLAB_SOURCE_BRANCH', value: "${env.gitlabSourceBranch}"),
+                        string(name: 'GITLAB_TARGET_BRANCH', value: "${env.gitlabTargetBranch}"),
+                        string(name: 'GITLAB_MR_ID', value: "${env.gitlabMergeRequestIid}"),
+                        string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"),
+                        booleanParam(name: "FORCE_CHILD_RETRIGGER", value: "${FORCE_CHILD_RETRIGGER}"),
+                        string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
+                      ]
+                  }
+                  else {
+                    sh 'echo Skipping job because it passed'
+                  }
+                }
+              }
+            }
             stage('DNN_LIB_CI') {
               steps {
                 script {

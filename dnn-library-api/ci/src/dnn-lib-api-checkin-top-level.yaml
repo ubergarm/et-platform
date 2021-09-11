@@ -37,6 +37,20 @@ stages:
     exec_before: [r"JOB_.*"]
     exec_after: ['DSL_JOB']
 
+  CODE_QUALITY:
+    cmds:
+      - job: sw-platform/code-analysis/dnnLibraryApi-sonarqube
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          GITLAB_SOURCE_BRANCH:
+            raw_cmd: '"${env.gitlabSourceBranch}"'
+          GITLAB_TARGET_BRANCH: 
+            raw_cmd: '"${env.gitlabTargetBranch}"'
+          GITLAB_MR_ID: 
+            raw_cmd: '"${env.gitlabMergeRequestIid}"'
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"
+    exec_after: ['CLANG_CHECK']
+
   DNN_LIB_CI:
     cmds:
       - job: sw-platform/host-sw-integration/pipelines/dnn-lib-checkin-top-level
