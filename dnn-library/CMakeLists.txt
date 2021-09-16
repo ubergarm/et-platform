@@ -18,30 +18,8 @@ option(ENABLE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 
 include(GNUInstallDirs)
 
-option(ENABLE_DEPRECATED "Enable DEPRECATED cmake code" ON)
-if (ENABLE_DEPRECATED)
-    set(GCC_SYSROOT_PATH /esperanto/minion/ CACHE STRING "Path to the gcc riscv toolchain sysroot folder")
-    option(CLANG_BUILD "Build using clang" OFF)
-    if(CLANG_BUILD)
-        set(CMAKE_C_COMPILER "$ENV{LLVM_RVET}/bin/clang")
-        set(CMAKE_CXX_COMPILER "$ENV{LLVM_RVET}/bin/clang")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -O3 -mcmodel=medium -target riscv64 -march=rv64-et -mabi=lp64f")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} --sysroot=$(RISCV)/riscv64-unknown-elf")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I$(RISCV)/riscv64-unknown-elf/include/c++/8.2.0/")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I$(RISCV)/riscv64-unknown-elf/include/c++/8.2.0/riscv64-unknown-elf")
-        set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
-    else()
-        set(CMAKE_C_COMPILER "${GCC_SYSROOT_PATH}/bin/riscv64-unknown-elf-gcc")
-        set(CMAKE_CXX_COMPILER "${GCC_SYSROOT_PATH}/bin/riscv64-unknown-elf-g++")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g3 -O2 -mcmodel=medany -march=rv64imf -mabi=lp64f")
-        set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}")
-    endif()
-endif()
-
 find_package(EsperantoDeviceMinionRuntime REQUIRED)
 
-# set(INCLUDE_INSTALL_DIR include/ CACHE STRING "Include install dir")
-# set(LIB_INSTALL_DIR     lib/     CACHE STRING "Library install dir")
 
 file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Fully-macro-defs.S
