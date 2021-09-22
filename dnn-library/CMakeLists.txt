@@ -18,7 +18,7 @@ option(ENABLE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 
 include(GNUInstallDirs)
 
-find_package(EsperantoDeviceMinionRuntime REQUIRED)
+find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 
 
 file(GLOB LIB_DNN_PUBLIC_HEADERS
@@ -176,8 +176,6 @@ add_library(dnn_lib STATIC
     src/TensorViewInst.cpp
     src/TopKInst.cpp
     src/TransposeInst.cpp
-    src/libc.c
-    src/printf.c
     src/Float16.cpp
 )
 add_library(dnnLibrary::dnn_lib ALIAS dnn_lib)
@@ -196,7 +194,7 @@ target_compile_options(dnn_lib
 )
 target_link_libraries(dnn_lib
     PRIVATE
-        EsperantoDeviceMinionRuntime::device_common
+        et-common-libs::cm-umode
 )
 set_target_properties(dnn_lib PROPERTIES
     PUBLIC_HEADER "${LIB_DNN_PUBLIC_HEADERS}"

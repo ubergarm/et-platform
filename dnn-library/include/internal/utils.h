@@ -16,9 +16,10 @@
 #include <cstdint>
 #include <utility>
 
-#include <device-common/shire.h>
-#include <device-common/syscall.h>
-#include <device-common/tensors.h>
+#include <etsoc/common/utils.h>
+#include <etsoc/isa/cacheops-umode.h>
+#include <etsoc/isa/hart.h>
+#include <etsoc/isa/tensors.h>
 
 #include "Float16.h"
 #include "LibCommon.h"
@@ -30,8 +31,7 @@ namespace dnn_lib {
 
 #define SET_MINUS_INFTY(_reg) "fbci.ps " #_reg ", 0xff800 \n" // _reg is vect
 
-#define print(s) syscall(SYSCALL_LOG_WRITE, (uint64_t)(s), sizeof(s), 0)
-
+#define print(s) et_printf((s))
 
 //-------------------------------------------------------------------------------------------------
 //
@@ -41,7 +41,7 @@ namespace dnn_lib {
 inline  __attribute__((always_inline))
 void fence_evict_va(uint64_t use_tmask, uint64_t dst, uint64_t addr, uint64_t num_lines = 0, uint64_t stride = 0, uint64_t id = 0) {
   FENCE;
-  evict_va(use_tmask,dst, addr, num_lines, stride,id);
+  cache_ops_evict_va(use_tmask, dst, addr, num_lines, stride, id);
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -55,12 +55,12 @@ inline __attribute__((always_inline))
 void evict_va_multi(uint64_t dst, uintptr_t addr, uint64_t num_lines) {
   FENCE;
   while (num_lines > 16) {
-    evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
+    cache_ops_evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
     addr += (CACHE_LINE_BYTES*16);
     num_lines -= 16;
   }
   if (num_lines > 0)
-    evict_va(0, dst, addr, num_lines-1, CACHE_LINE_BYTES, 0);
+    cache_ops_evict_va(0, dst, addr, num_lines - 1, CACHE_LINE_BYTES, 0);
 }
 
 inline __attribute__((always_inline))

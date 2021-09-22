@@ -25,7 +25,6 @@
 #include "Operator.h" // From include/internal path
 #include "Writer.h"   // From include/internal path
 #include "utils.h"    // From include/internal path
-#include <device-common/cacheops.h>
 
 namespace dnn_lib {
 
