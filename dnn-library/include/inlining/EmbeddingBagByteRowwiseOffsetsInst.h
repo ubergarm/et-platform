@@ -16,7 +16,7 @@
 #include <fenv.h>
 #include <limits>
 #include <cmath>
-#include <cstring>
+#include <string.h>
 
 #include "Float16.h"
 #include "utils.h" // From include/internal path

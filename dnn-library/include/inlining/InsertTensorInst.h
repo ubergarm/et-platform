@@ -16,7 +16,7 @@
 #include <fenv.h>
 #include <limits>
 #include <cmath>
-#include <cstring>
+#include <string.h>
 
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path

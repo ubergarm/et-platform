@@ -16,7 +16,7 @@
 #include <fenv.h>
 #include <limits>
 #include <cmath>
-#include <cstring>
+#include <string.h>
 #include <cfenv>
 
 #include "utils.h" // From include/internal path

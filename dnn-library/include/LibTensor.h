@@ -15,7 +15,7 @@
 #include "LibTypes.h"
 #include "LibUtils.h"
 #include <cassert>
-#include <cstring>
+#include <string.h>
 #include <numeric>
 #include <tuple>
 #ifdef __riscv

@@ -14,7 +14,7 @@
 
 #include <cmath>
 #include <limits>
-#include <cstring>
+#include <string.h>
 #include <type_traits>
 #include <algorithm>
 
