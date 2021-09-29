@@ -9,7 +9,7 @@
  *-------------------------------------------------------------------------
  */
 
-#include "dnnLibraryApi/LibApiImplSel.h"
+#include "LibApiImplSel.h"
 
 namespace dnn_lib {
 

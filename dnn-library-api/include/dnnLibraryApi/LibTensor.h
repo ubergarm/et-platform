@@ -13,14 +13,10 @@
 #define LIB_TENSOR_H
 
 #include "LibTypes.h"
-#include "LibUtils.h"
 #include <cassert>
 #include <cstring>
 #include <numeric>
 #include <tuple>
-#ifdef __riscv
-#include <device-common/cacheops.h>
-#endif
 
 namespace dnn_lib {
 
@@ -51,55 +47,6 @@ struct Type final {
    */
   const int32_t offset_{};
 
-  /*@brief Initialize a new quantized type with \p scale an \p offset.
-   */
-  template <size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims, const float scale,
-                 const int32_t offset)
-    : sizes_(make_dims(dims))
-    , elementType_(elk)
-    , numSizes_(numSizes)
-    , scale_(scale)
-    , offset_(offset) {
-    assert(isQuantizedElemKind(elk));
-  }
-
-  /*@brief Initialize a new non-quantized type.
-   */
-  template <size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims)
-    : sizes_(make_dims(dims))
-    , elementType_(elk)
-    , numSizes_(numSizes) {
-    assert(not isQuantizedElemKind(elk));
-  }
-
-  /*@brief Initialize a new quantized type with \p scale an \p offset.
-   */
-  template <size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims,
-                 const std::array<dim_t, numSizes>& strides, const float scale, const int32_t offset)
-    : sizes_(make_dims(dims))
-    , strides_(make_strides(strides))
-    , elementType_(elk)
-    , numSizes_(numSizes)
-    , scale_(scale)
-    , offset_(offset) {
-    assert(isQuantizedElemKind(elk));
-  }
-
-  /*@brief Initialize a new non-quantized type.
-   */
-  template <size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims,
-                 const std::array<dim_t, numSizes>& strides)
-    : sizes_(make_dims(dims))
-    , strides_(make_strides(strides))
-    , elementType_(elk)
-    , numSizes_(numSizes) {
-    assert(not isQuantizedElemKind(elk));
-  }
-
   /*@brief non templated version of the previous constructors (receiving dimensions/strides with max_tensor_dimensions,
     and an extra parameter to set the actual number of dimensions
    */
@@ -126,34 +73,6 @@ struct Type final {
     , numSizes_(numSizes) {
     assert(not isQuantizedElemKind(elk));
   }
-
-  /*@brief Reshape existing type this takes care of quantized types.
-   */
-  template <size_t numSizes> static Type newShape(const Type& T, const std::array<dim_t, numSizes>& dims) {
-    if (T.isQuantizedType()) {
-      return Type(T.elementType_, dims, T.scale_, T.offset_);
-    } else {
-      return Type(T.elementType_, dims);
-    }
-  }
-
-  /*@brief Reshape existing type and change alignments.
-   */
-  template <size_t numSizes>
-  static Type newShape(const Type& T, const std::array<dim_t, numSizes>& dims,
-                       const std::array<dim_t, numSizes>& pitches) {
-    if (T.isQuantizedType()) {
-      return Type(T.elementType_, dims, pitches, T.scale_, T.offset_);
-    } else {
-      return Type(T.elementType_, dims, pitches);
-    }
-  }
-
-  static Type newShape(const Type& T, size_t numSizes, const dim_array_t& dims, const dim_array_t& pitches);
-
-  /*@brief Reshape existing type by taking shapes and strides of \p shapeType.
-   */
-  static Type newShape(const Type& kindType, const Type shapeType);
 
   /* brief returns true if \p other has same shape.
    */
@@ -342,24 +261,6 @@ public:
    *Type. Note that this includes the size required for padding.
    */
   uint64_t getSizeInBytes() const;
-
-  // constructor for quant types
-  template <size_t numSizes>
-  LibTensor(dnn_lib::ElemKind elk, void* const rawdata, const std::array<dim_t, numSizes>& dims,
-            const std::array<dim_t, numSizes>& pitches, const bool untouch, const float scale, const int offset)
-    : ptrData_(reinterpret_cast<char*>(rawdata))
-    , type_(elk, dims, pitches, scale, offset)
-    , untouch_(untouch) {
-  }
-
-  // constructor for non quant types
-  template <size_t numSizes>
-  LibTensor(dnn_lib::ElemKind elk, void* const rawdata, const std::array<dim_t, numSizes>& dims,
-            const std::array<dim_t, numSizes>& pitches, const bool untouch)
-    : ptrData_(reinterpret_cast<char*>(rawdata))
-    , type_(elk, dims, pitches)
-    , untouch_(untouch) {
-  }
 
   // constructor from type
   LibTensor(const Type& type, void* const rawdata, const bool untouch);

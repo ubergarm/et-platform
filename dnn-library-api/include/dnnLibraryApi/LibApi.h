@@ -12,7 +12,8 @@
 #ifndef _LIB_API_H_
 #define _LIB_API_H_
 
-#include "LibApiImplSel.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
 #include <experimental/array> // not available on macos - if we ever need dnnLibraryApi available there
                               // we should remove the std::experimental::make_array
 #include <string>

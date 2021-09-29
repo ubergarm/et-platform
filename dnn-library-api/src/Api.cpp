@@ -9,6 +9,7 @@
  *-------------------------------------------------------------------------
  */
 
+#include "LibApiImplSel.h"
 #include "dnnLibraryApi/LibApi.h"
 
 #include <cctype>

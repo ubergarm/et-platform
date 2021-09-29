@@ -13,27 +13,6 @@
 
 namespace dnn_lib {
 
-Type Type::newShape(const Type& T, size_t numSizes, const dim_array_t& dims, const dim_array_t& pitches) {
-  if (T.isQuantizedType()) {
-    return Type(T.elementType_, numSizes, dims, pitches, T.scale_, T.offset_);
-  } else {
-    return Type(T.elementType_, numSizes, dims, pitches);
-  }
-}
-
-Type Type::newShape(const Type& kindType, const Type shapeType) {
-  //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
-  if (kindType.isQuantizedType()) {
-    return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
-  } else {
-    return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
-  }
-
-  // TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate
-  // extended
-  // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
-}
-
 const bool Type::hasSameShape(const Type other) const {
   if (numSizes_ != other.getNumDims())
     return false;
