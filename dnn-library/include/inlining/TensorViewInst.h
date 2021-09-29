@@ -13,9 +13,9 @@
 #define _TENSOR_VIEW_INST_H_
 
 #include <assert.h>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
 #include <string.h>
 #include <utility>
 

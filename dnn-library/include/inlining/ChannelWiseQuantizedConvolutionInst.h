@@ -13,11 +13,11 @@
 #define _CHANNEL_WISE_QUANTIZED_CONVOLUTION_INST_H_
 
 #include <assert.h>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
-#include <string.h>
 #include <math.h>
+#include <string.h>
 
 #include "Float16.h"
 #include "utils.h" // From include/internal path

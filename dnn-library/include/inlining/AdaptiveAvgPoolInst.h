@@ -13,11 +13,11 @@
 #define _ADAPTIVE_AVG_POOL_INST_H_
 
 #include <assert.h>
+#include <cfenv>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
 #include <string.h>
-#include <cfenv>
 
 #include "utils.h" // From include/internal path
 #include "LibTypes.h"

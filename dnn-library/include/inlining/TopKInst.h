@@ -13,11 +13,11 @@
 #define _TOPK_INST_H_
 
 #include <assert.h>
+#include <climits>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
 #include <string.h>
-#include <climits>
 
 #include "Float16.h"
 #include "Writer.h" // From include/internal path

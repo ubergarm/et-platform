@@ -15,8 +15,8 @@
 #include "LibTypes.h"
 #include "LibUtils.h"
 #include <cassert>
-#include <string.h>
 #include <numeric>
+#include <string.h>
 #include <tuple>
 #ifdef __riscv
 #include <etsoc/isa/cacheops-umode.h>
