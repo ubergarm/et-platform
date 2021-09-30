@@ -9,11 +9,15 @@
  *-------------------------------------------------------------------------
  */
 
+// Local
 #include "LibApiImplSel.h"
 #include "dnnLibraryApi/LibApi.h"
 
+// STD
 #include <cctype>
 #include <cmath>
+#include <experimental/array> // not available on macos - if we ever need dnnLibraryApi available there
+                              // we should remove the std::experimental::make_array
 
 namespace dnn_lib {
 
@@ -62,7 +66,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "ArgMax", // name
       1, // # outs
       1,  // # ins
-      {mbAxis, mbKeepDims}, // members
+      {instrMembers::mbAxis, instrMembers::mbKeepDims}, // members
       3, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -79,7 +83,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "AvgPool", // name
       1, // # outs
       1,  // # ins
-      {mbKernels, mbStrides, mbPads, mbLayout, mbCountIncludePads}, // members
+      {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbLayout, instrMembers::mbCountIncludePads}, // members
       1, // template param mask
       {"Threaded"}, // impl versions
       implSel::AvgPool, // custom impl selector
@@ -116,7 +120,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "BatchedReduceAdd", // name
       1, // # outs
       1,  // # ins
-      {mbAxis}, // members
+      {instrMembers::mbAxis}, // members
       2, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -133,7 +137,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "BatchedReduceMin", // name
       1, // # outs
       1,  // # ins
-      {mbAxes}, // members
+      {instrMembers::mbAxes}, // members
       2, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -204,7 +208,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "ChannelWiseQuantizedConvolution", // name
       1, // # outs
       7,  // # ins
-      {mbKernels, mbStrides, mbPads, mbGroup, mbDilation, mbFusedActivation, mbFusedActivationArgs}, // members
+      {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbGroup, instrMembers::mbDilation, instrMembers::mbFusedActivation, instrMembers::mbFusedActivationArgs}, // members
       9, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -238,7 +242,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Convolution", // name
       1, // # outs
       3,  // # ins
-      {mbKernels, mbStrides, mbPads, mbGroup, mbDilation, mbFusedActivation, mbFusedActivationArgs}, // members
+      {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbGroup, instrMembers::mbDilation, instrMembers::mbFusedActivation, instrMembers::mbFusedActivationArgs}, // members
       9, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -255,7 +259,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Convolution3D", // name
       1, // # outs
       3,  // # ins
-      {mbKernels, mbStrides, mbPads, mbGroup}, // members
+      {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbGroup}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -272,7 +276,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "ConvTranspose", // name
       1, // # outs
       3,  // # ins
-      {mbKernels, mbStrides, mbPads, mbGroup, mbDilation}, // members
+      {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbGroup, instrMembers::mbDilation}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -326,7 +330,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "CumSum", // name
       1, // # outs
       1,  // # ins
-      {mbExclusive, mbReverse}, // members
+      {instrMembers::mbExclusive, instrMembers::mbReverse}, // members
       2, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -692,7 +696,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "EmbeddingBag", // name
       1, // # outs
       4,  // # ins
-      {mbHasEndOffset}, // members
+      {instrMembers::mbHasEndOffset}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -743,7 +747,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "MaxSplat", // name
       1, // # outs
       1,  // # ins
-      {mbValue}, // members
+      {instrMembers::mbValue}, // members
       2, // template param mask
       {"Aligned32Bytes"}, // impl versions
       implSel::MaxSplat, // custom impl selector
@@ -763,7 +767,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "ExtractTensor", // name
       1, // # outs
       1,  // # ins
-      {mbOffsets}, // members
+      {instrMembers::mbOffsets}, // members
       2, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -780,7 +784,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Flip", // name
       1, // # outs
       1,  // # ins
-      {mbAxis}, // members
+      {instrMembers::mbAxis}, // members
       2, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -865,7 +869,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Gather", // name
       1, // # outs
       2,  // # ins
-      {mbBatchDims}, // members
+      {instrMembers::mbBatchDims}, // members
       6, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -899,7 +903,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "InsertTensor", // name
       1, // # outs
       1,  // # ins
-      {mbOffsets, mbCount, mbAxis}, // members
+      {instrMembers::mbOffsets, instrMembers::mbCount, instrMembers::mbAxis}, // members
       2, // template param mask
       {"Threaded"}, // impl versions
       implSel::InsertTensor, // custom impl selector
@@ -987,7 +991,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "LocalResponseNormalization", // name
       2, // # outs
       1,  // # ins
-      {mbHalfWindowSize, mbAlpha, mbBeta, mbK}, // members
+      {instrMembers::mbHalfWindowSize, instrMembers::mbAlpha, instrMembers::mbBeta, instrMembers::mbK}, // members
       2, // template param mask
       {"Vectorized"}, // impl versions
       implSel::LocalResponseNormalization, // custom impl selector
@@ -1024,7 +1028,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "MaxPool", // name
       1, // # outs
       1,  // # ins
-      {mbKernels, mbStrides, mbPads, mbLayout}, // members
+      {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbLayout}, // members
       3, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1041,7 +1045,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "MaxPoolWithArgMax", // name
       2, // # outs
       1,  // # ins
-      {mbKernels, mbStrides, mbPads, mbLayout}, // members
+      {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbLayout}, // members
       5, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1058,7 +1062,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Modulo", // name
       1, // # outs
       1,  // # ins
-      {mbDivisor, mbSignFollowDivisor}, // members
+      {instrMembers::mbDivisor, instrMembers::mbSignFollowDivisor}, // members
       2, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1075,7 +1079,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "NonMaxSuppression", // name
       2, // # outs
       2,  // # ins
-      {mbCenterPointBox, mbMaxOutputBoxesPerClass, mbIouThreshold, mbScoreThreshold, mbIsTFVersion4}, // members
+      {instrMembers::mbCenterPointBox, instrMembers::mbMaxOutputBoxesPerClass, instrMembers::mbIouThreshold, instrMembers::mbScoreThreshold, instrMembers::mbIsTFVersion4}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1143,7 +1147,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "ResizeBilinear", // name
       1, // # outs
       1,  // # ins
-      {mbRszScale}, // members
+      {instrMembers::mbRszScale}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1160,7 +1164,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "ResizeNearest", // name
       1, // # outs
       1,  // # ins
-      {mbRszScale}, // members
+      {instrMembers::mbRszScale}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1271,7 +1275,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "SpaceToDepth", // name
       1, // # outs
       1,  // # ins
-      {mbBlockSize}, // members
+      {instrMembers::mbBlockSize}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1342,7 +1346,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "SparseToDenseMask", // name
       1, // # outs
       4,  // # ins
-      {mbMask}, // members
+      {instrMembers::mbMask}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1359,7 +1363,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Splat", // name
       1, // # outs
       0,  // # ins
-      {mbValue}, // members
+      {instrMembers::mbValue}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1393,7 +1397,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Syncopy", // name
       1, // # outs
       1,  // # ins
-      {mbSyncOffset}, // members
+      {instrMembers::mbSyncOffset}, // members
       2, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1427,7 +1431,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "TensorView", // name
       1, // # outs
       1,  // # ins
-      {mbOffsets}, // members
+      {instrMembers::mbOffsets}, // members
       1, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1444,7 +1448,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "TopK", // name
       2, // # outs
       1,  // # ins
-      {mbTopK}, // members
+      {instrMembers::mbTopK}, // members
       4, // template param mask
       {}, // impl versions
       implSel::defaultSel<1>, // custom impl selector
@@ -1495,7 +1499,7 @@ static constexpr auto instrConfigTable = std::experimental::make_array(
       "Transpose", // name
       1, // # outs
       1,  // # ins
-      {mbShuffle}, // members
+      {instrMembers::mbShuffle}, // members
       2, // template param mask
       {"Aligned32Bytes"}, // impl versions
       implSel::Transpose, // custom impl selector

@@ -28,18 +28,18 @@ namespace dnn_lib {
 // enum with list of known members
 #define SCALAR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
 #define VECTOR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
-enum instrMembers {
+enum class instrMembers {
   mbInvalid = 0,
 #include "LibApiMembers.def"
   mbMaxMembers
 };
 
 // type and name maps
-template <dnn_lib::instrMembers mb> struct memberMap;
+template <instrMembers mb> struct memberMap;
 
 // clang-format off
 #define SCALAR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
-  template <> struct memberMap<dnn_lib::mb##NAME> {                                                                    \
+  template <> struct memberMap<instrMembers::mb##NAME> {                                                                    \
     using type = TYPE;                                                                                                 \
     static const std::string name() {                                                                                  \
       return #NAME;                                                                                                    \
@@ -47,7 +47,7 @@ template <dnn_lib::instrMembers mb> struct memberMap;
   };
 
 #define VECTOR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
-  template <> struct memberMap<dnn_lib::mb##NAME> {                                                                    \
+  template <> struct memberMap<instrMembers::mb##NAME> {                                                                    \
     using type = std::vector<TYPE>;                                                                                    \
     static const std::string name() {                                                                                  \
       return #NAME;                                                                                                    \
@@ -74,7 +74,7 @@ struct instrConfig {
   char name[maxInstrConfigStrLen];
   size_t nrOutputTensors; // number of output and in/out tensor operands
   size_t nrInputTensors;  // number of input tensor operands
-  std::array<instrMembers, mbMaxMembers> members;
+  std::array<instrMembers, (long unsigned int)instrMembers::mbMaxMembers> members;
   uint64_t templateMask;
   std::array<char[maxInstrConfigStrLen], maxImplVersions> versions;
   sel_fnc_t implSel;
