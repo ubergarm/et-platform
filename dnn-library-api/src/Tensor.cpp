@@ -13,7 +13,7 @@
 
 namespace dnn_lib {
 
-const bool Type::hasSameShape(const Type other) const {
+bool Type::hasSameShape(const Type other) const {
   if (numSizes_ != other.getNumDims())
     return false;
   const dim_array_t& other_sizes = other.getSizes();

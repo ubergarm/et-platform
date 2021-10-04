@@ -13,6 +13,8 @@
 
 namespace dnn_lib {
 
+#define CACHE_LINE_BYTES 64
+
 size_t implSel::Copy(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
   // Tensorized only works with same shape in-out and CL aligment
   if (inTensors[0]->getType().hasSameShape(outTensors[0]->getType()) and

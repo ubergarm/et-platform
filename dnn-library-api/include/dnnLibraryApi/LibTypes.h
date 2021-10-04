@@ -12,13 +12,13 @@
 #ifndef LIB_TYPES_H
 #define LIB_TYPES_H
 
+// STD
 #include <array>
 #include <stdint.h>
+#include <string>
+#include <vector>
 
-//#define DIM_T_32
 namespace dnn_lib {
-
-#define CACHE_LINE_BYTES 64
 
 #ifdef DIM_T_32
 using dim_t = uint32_t;
@@ -28,14 +28,17 @@ using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
 
-constexpr unsigned max_tensor_dimensions = 6;
+constexpr unsigned max_tensor_dimensions = 6; // TODO: deprecate it
+constexpr unsigned maxTensorDimensions = 6;
 
-using dim_array_t = std::array<dim_t, max_tensor_dimensions>;
-using sdim_array_t = std::array<sdim_t, max_tensor_dimensions>;
+using dim_array_t = std::array<dim_t, maxTensorDimensions>;   // TODO: deprecate
+using sdim_array_t = std::array<sdim_t, maxTensorDimensions>; // TODO: deprecate
+using dimVector_t = std::vector<dim_t>;
+using sdimVector_t = std::vector<sdim_t>;
 
-/// An enum representing the type used by the elements of a tensor. The types of
-/// Handles for these tensors should match the element kind.
-enum ElemKind : unsigned char {
+// An enum representing the type used by the elements of a tensor. The types of Handles for these tensors should match
+// the element kind
+enum ElemKind {
   // 32-bit float type (float)
   FloatTy,
   // 16-bit float type (half, fp16)
@@ -66,6 +69,85 @@ enum ElemKind : unsigned char {
   UInt4FusedQTy,
   // Bool type (bool)
   BoolTy,
+};
+
+// Enum with list of known members
+#define SCALAR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
+#define VECTOR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
+enum class instrMembers {
+  mbInvalid = 0,
+#include "LibApiMembers.def"
+  mbMaxMembers
+};
+
+// Type and name maps
+template <dnn_lib::instrMembers mb> struct memberMap;
+
+// clang-format off
+#define SCALAR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
+  template <> struct memberMap<dnn_lib::instrMembers::mb##NAME> {                                                                    \
+    using type = TYPE;                                                                                                 \
+    static const std::string name() {                                                                                  \
+      return #NAME;                                                                                                    \
+    }                                                                                                                  \
+  };
+
+#define VECTOR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
+  template <> struct memberMap<dnn_lib::instrMembers::mb##NAME> {                                                                    \
+    using type = std::vector<TYPE>;                                                                                    \
+    static const std::string name() {                                                                                  \
+      return #NAME;                                                                                                    \
+    }                                                                                                                  \
+  };
+// clang-format on
+
+#include "LibApiMembers.def"
+
+// Cache operand state after operation
+enum class operandState { dirty, clean, untouched };
+
+// Local
+class LibTensor; // TODO: eventually deprecate
+
+static constexpr size_t maxImplVersions = 4;
+static constexpr size_t maxInstrConfigStrLen = 256;
+static constexpr size_t maxNrOperands = 12;
+
+// Instruction properties struct
+struct instrConfig {
+  using operandStateArray = std::array<operandState, maxNrOperands>;
+  using implStateArray = std::array<operandStateArray, maxImplVersions + 1>;
+  using sel_fnc_t = size_t (*)(std::vector<LibTensor*>&, std::vector<LibTensor*>&);
+
+  char name[maxInstrConfigStrLen];
+  size_t nrOutputTensors; // number of output and in/out tensor operands
+  size_t nrInputTensors;  // number of input tensor operands
+  std::array<instrMembers, (long unsigned int)instrMembers::mbMaxMembers> members;
+  uint64_t templateMask;
+  std::array<char[maxInstrConfigStrLen], maxImplVersions> versions;
+  sel_fnc_t implSel;
+
+  implStateArray stateL1;
+  implStateArray stateL2;
+  implStateArray stateCB;
+  std::array<uint64_t, maxImplVersions + 1> evictAvailableMask;
+
+  // functions to retrieve operand information
+  operandState getOperandStateL1(size_t implIdx, size_t operand);
+  operandState getOperandStateL2(size_t implIdx, size_t operand);
+  operandState getOperandStateCB(size_t implIdx, size_t operand);
+  bool getOperandAutoEvict(size_t implIdx, size_t operand);
+
+  // and same as before, but index is either input or output
+  operandState getSrcStateL1(size_t implIdx, size_t idx);
+  operandState getSrcStateL2(size_t implIdx, size_t idx);
+  operandState getSrcStateCB(size_t implIdx, size_t idx);
+  bool getSrcAutoEvict(size_t implIdx, size_t idx);
+
+  operandState getDstStateL1(size_t implIdx, size_t idx);
+  operandState getDstStateL2(size_t implIdx, size_t idx);
+  operandState getDstStateCB(size_t implIdx, size_t idx);
+  bool getDstAutoEvict(size_t implIdx, size_t idx);
 };
 
 /*@brief returns is \p elk is a quantized ElemKind.

@@ -52,8 +52,8 @@ struct Type final {
    */
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims,
-                 const dim_array_t& strides, const float scale, const int32_t offset)
+  Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
+       const float scale, const int32_t offset)
     : sizes_(dims)
     , strides_(strides)
     , elementType_(elk)
@@ -65,8 +65,7 @@ struct Type final {
 
   /*@brief Initialize a new non-quantized type.
    */
-  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims,
-                 const dim_array_t& strides)
+  Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides)
     : sizes_(dims)
     , strides_(strides)
     , elementType_(elk)
@@ -76,7 +75,7 @@ struct Type final {
 
   /* brief returns true if \p other has same shape.
    */
-  const bool hasSameShape(const Type other) const;
+  bool hasSameShape(const Type other) const;
 
   /*@brief returns the scale of a quantized type.
    */
