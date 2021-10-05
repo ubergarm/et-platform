@@ -17,7 +17,8 @@
 #include <cctype>
 #include <cmath>
 #include <experimental/array> // not available on macos - if we ever need dnnLibraryApi available there
-                              // we should remove the std::experimental::make_array
+#include <memory>
+// we should remove the std::experimental::make_array
 
 namespace dnn_lib {
 
@@ -1663,6 +1664,43 @@ size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions
   }
 
   return result;
+}
+
+size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions, const std::vector<Tensor>& operands) {
+  std::vector<std::unique_ptr<LibTensor>> operandsConverted;
+  std::vector<LibTensor*> operandsConvertedPtr;
+
+  for (auto& operand : operands) {
+    auto libTensor = std::make_unique<dnn_lib::LibTensor>(operand);
+    operandsConvertedPtr.push_back(libTensor.get());
+    operandsConverted.push_back(std::move(libTensor));
+  }
+  return getInstrNumCycles(operatorName, assignedMinions, operandsConvertedPtr);
+}
+
+size_t getImplementation(const std::string& operatorName, const std::vector<Tensor>& outOperands,
+                         const std::vector<Tensor>& inOperands) {
+  instrConfig instConfig;
+  // If the operator doesn't exist, return a negative
+  if (!getInstrConfig(operatorName, instConfig)) {
+    return (size_t)-1;
+  }
+
+  // Converts the Tensor to LibTensor
+  std::vector<std::unique_ptr<LibTensor>> outOperandsConverted, inOperandsConverted;
+  std::vector<LibTensor*> outOperandsConvertedPtr, inOperandsConvertedPtr;
+
+  for (auto& operand : outOperands) {
+    auto libTensor = std::make_unique<dnn_lib::LibTensor>(operand);
+    outOperandsConvertedPtr.push_back(libTensor.get());
+    outOperandsConverted.push_back(std::move(libTensor));
+  }
+  for (auto& operand : inOperands) {
+    auto libTensor = std::make_unique<dnn_lib::LibTensor>(operand);
+    inOperandsConvertedPtr.push_back(libTensor.get());
+    inOperandsConverted.push_back(std::move(libTensor));
+  }
+  return instConfig.implSel(outOperandsConvertedPtr, inOperandsConvertedPtr);
 }
 
 } // end namespace dnn_lib

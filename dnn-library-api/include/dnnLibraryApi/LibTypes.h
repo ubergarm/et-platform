@@ -33,8 +33,8 @@ constexpr unsigned maxTensorDimensions = 6;
 
 using dim_array_t = std::array<dim_t, maxTensorDimensions>;   // TODO: deprecate
 using sdim_array_t = std::array<sdim_t, maxTensorDimensions>; // TODO: deprecate
-using dimVector_t = std::vector<dim_t>;
-using sdimVector_t = std::vector<sdim_t>;
+using dimArray_t = std::array<dim_t, maxTensorDimensions>;
+using sdimArray_t = std::array<sdim_t, maxTensorDimensions>;
 
 // An enum representing the type used by the elements of a tensor. The types of Handles for these tensors should match
 // the element kind
@@ -105,6 +105,18 @@ template <dnn_lib::instrMembers mb> struct memberMap;
 
 // Cache operand state after operation
 enum class operandState { dirty, clean, untouched };
+
+// Tensor information for the operands
+struct Tensor {
+  ElemKind elementType;    // Element type of the contents
+  dimArray_t sizes;        // Sizes of the dimensions
+  dimArray_t strides;      // Strides for each dimension
+  dim_t numDims;           // Number of dimensions
+  float scale;             // Quantization scale
+  int32_t offset;          // Quantization offset
+  uint64_t alignOffset;    // Offset within an initial address that might unalign the tensor
+  bool untouchablePadding; // If the padding of the tensor is untouchable
+};
 
 // Local
 class LibTensor; // TODO: eventually deprecate

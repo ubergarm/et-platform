@@ -60,7 +60,6 @@ struct Type final {
     , numSizes_(numSizes)
     , scale_(scale)
     , offset_(offset) {
-    assert(isQuantizedElemKind(elk));
   }
 
   /*@brief Initialize a new non-quantized type.
@@ -265,6 +264,8 @@ public:
   LibTensor(const Type& type, void* const rawdata, const bool untouch);
 
   LibTensor(const Type&& type, void* const rawdata, const bool untouch);
+
+  LibTensor(const Tensor& tensor);
 
   float getScale() const;
 

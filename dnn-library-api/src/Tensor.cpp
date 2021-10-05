@@ -142,6 +142,12 @@ LibTensor::LibTensor(const Type&& type, void* const rawdata, const bool untouch)
   , untouch_(untouch) {
 }
 
+LibTensor::LibTensor(const Tensor& tensor)
+  : ptrData_(reinterpret_cast<char*>(tensor.alignOffset))
+  , type_(tensor.elementType, tensor.numDims, tensor.sizes, tensor.strides, tensor.scale, tensor.offset)
+  , untouch_(tensor.untouchablePadding) {
+}
+
 float LibTensor::getScale() const {
   return type_.getScale();
 }

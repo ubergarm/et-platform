@@ -47,6 +47,28 @@ bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig);
 size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions,
                          const std::vector<LibTensor*>& operands);
 
+/*!
+ * getInstrNumCycles returns the expected number of execution cycles required to execute a specific operator on an
+ * ETSOC device. It requires knowing the operator type, number of assigned minions as well as the shapes of the
+ * different operands
+ * \param[in] operatorName is the name of the operator that the consumer is requesting
+ * \param[in] assignedMinions is the total amount of compute resources assigned to the execution of the operator
+ * \param[in] operands is a vector with the different input and output operands of the operator
+ * \returns the total expected number of cycles required to execute the operator
+ */
+size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions, const std::vector<Tensor>& operands);
+
+/*!
+ * getImplementation returns the best implementation of a specific operator that the Library can execute based on the
+ * shapes of the different tensors passed as arguments.
+ * \param[in] operatorName is the name of the operator that the consumer is requesting
+ * \param[in] outOperands is a vector with the different output tensors of the operation
+ * \param[in] inOperands is a vector with the different input tensors of the operation
+ * \returns the selected implementation ID based on the different tensor constraints
+ */
+size_t getImplementation(const std::string& operatorName, const std::vector<Tensor>& outOperands,
+                         const std::vector<Tensor>& inOperands);
+
 } // end namespace dnn_lib
 
 #endif
