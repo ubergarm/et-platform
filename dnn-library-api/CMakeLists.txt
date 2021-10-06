@@ -16,7 +16,6 @@ include(CMakePackageConfigHelpers)
 
 add_library(dnnLibraryApi
     include/dnnLibraryApi/LibApi.h
-    include/dnnLibraryApi/LibTensor.h
     include/dnnLibraryApi/LibTypes.h
     src/Api.cpp
     src/ApiImplSel.cpp

@@ -39,36 +39,22 @@ using sdimArray_t = std::array<sdim_t, maxTensorDimensions>;
 // An enum representing the type used by the elements of a tensor. The types of Handles for these tensors should match
 // the element kind
 enum ElemKind {
-  // 32-bit float type (float)
-  FloatTy,
-  // 16-bit float type (half, fp16)
-  Float16Ty,
-  // 16-bit float type (bfloat16)
-  BFloat16Ty,
-  // 8-bit quantized type (int8_t)
-  Int8QTy,
-  // unsigned 8-bit quantized type (uint8_t)
-  UInt8QTy,
-  // 16-bit quantized type (int16_t)
-  Int16QTy,
-  // 32-bit quantized type (int32_t)
-  Int32QTy,
-  // 32-bit index type (int32_t)
-  Int32ITy,
-  // 64-bit index type (int64_t)
-  Int64ITy,
-  // 8-bit quantized type with fused scale/offset (uint8_t)
-  UInt8FusedQTy,
-  // 8-bit quantized type with fused FP16 scale/offset (uint8_t)
-  UInt8FusedFP16QTy,
-  // 4-bit quantized type with fused FP16 scale/offset (uint8_t, each byte
-  // represents 2 4-bit quantized data)
-  UInt4FusedFP16QTy,
-  // 4-bit quantized type with fused FP32 scale/offset (uint8_t, each byte
-  // represents 2 4-bit quantized data)
-  UInt4FusedQTy,
-  // Bool type (bool)
-  BoolTy,
+  FloatTy,           // 32-bit float type (float)
+  Float16Ty,         // 16-bit float type (half, fp16)
+  BFloat16Ty,        // 16-bit float type (bfloat16)
+  Int8QTy,           // 8-bit quantized type (int8_t)
+  UInt8QTy,          // unsigned 8-bit quantized type (uint8_t)
+  Int16QTy,          // 16-bit quantized type (int16_t)
+  Int32QTy,          // 32-bit quantized type (int32_t)
+  Int32ITy,          // 32-bit index type (int32_t)
+  Int64ITy,          // 64-bit index type (int64_t)
+  UInt8FusedQTy,     // 8-bit quantized type with fused scale/offset (uint8_t)
+  UInt8FusedFP16QTy, // 8-bit quantized type with fused FP16 scale/offset (uint8_t)
+  UInt4FusedFP16QTy, // 4-bit quantized type with fused FP16 scale/offset (uint8_t, each byte represents 2 4-bit
+                     // quantized data)
+  UInt4FusedQTy, // 4-bit quantized type with fused FP32 scale/offset (uint8_t, each byte represents 2 4-bit quantized
+                 // data)
+  BoolTy,        // Bool type (bool)
 };
 
 // Enum with list of known members
@@ -162,34 +148,6 @@ struct instrConfig {
   bool getDstAutoEvict(size_t implIdx, size_t idx);
 };
 
-/*@brief returns is \p elk is a quantized ElemKind.
- */
-inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
-  if (elk == dnn_lib::ElemKind::Int8QTy || elk == dnn_lib::ElemKind::UInt8QTy || elk == dnn_lib::ElemKind::Int16QTy ||
-      elk == dnn_lib::ElemKind::Int32QTy || elk == dnn_lib::ElemKind::UInt8FusedQTy ||
-      elk == dnn_lib::ElemKind::UInt8FusedFP16QTy || elk == dnn_lib::ElemKind::UInt4FusedFP16QTy) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-/*@brief returns whether \p elk is an "index" ElemKind.
- */
-inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
-  return elk == dnn_lib::ElemKind::Int32ITy or elk == dnn_lib::ElemKind::Int64ITy;
-}
-
-/*@brief returns wheter \p elk is a fused quantized ElemKind.
- */
-inline constexpr bool isFusedQuantizedElemKind(ElemKind elk) {
-  if (elk == dnn_lib::ElemKind::UInt8FusedQTy || elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
-      elk == dnn_lib::ElemKind::UInt4FusedFP16QTy) {
-    return true;
-  } else {
-    return false;
-  }
-}
 } // namespace dnn_lib
 
 #endif // LIB_TYPES_H

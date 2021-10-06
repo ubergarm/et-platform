@@ -12,7 +12,10 @@
 #ifndef _LIB_API_IMPL_SEL_H_
 #define _LIB_API_IMPL_SEL_H_
 
-#include "dnnLibraryApi/LibTensor.h"
+// Local
+#include "LibTensor.h"
+
+// STD
 #include <vector>
 
 namespace dnn_lib {

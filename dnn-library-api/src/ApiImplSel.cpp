@@ -33,10 +33,12 @@ size_t implSel::ElementBool(std::vector<LibTensor*>& outTensors, std::vector<Lib
   ElemKind src1ElK = inTensors[0]->getElementType();
   LibTensor* in1T = inTensors[0];
   LibTensor* in2T = inTensors[1];
-  if ((src1ElK == FloatTy || src1ElK == Float16Ty || src1ElK == Int8QTy) && in1T->strides()[0] == in2T->strides()[0])
+  if (((src1ElK == ElemKind::FloatTy) or (src1ElK == ElemKind::Float16Ty) or (src1ElK == ElemKind::Int8QTy)) and
+      (in1T->strides()[0] == in2T->strides()[0])) {
     return 1;
-  else
+  } else {
     return 0;
+  }
 }
 
 size_t implSel::ElementCmpEQ(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
@@ -56,12 +58,14 @@ size_t implSel::MaxSplat(std::vector<LibTensor*>& outTensors, std::vector<LibTen
   LibTensor* outT = outTensors[0];
   LibTensor* inT = inTensors[0];
   const static size_t batchDim = inT->ndims() - 2;
-  if (inT->ndims() >= 2 && (uintptr_t)inT->getAddress() % 32 == 0 && (uintptr_t)outT->getAddress() % 32 == 0 &&
-      (outT->strides()[batchDim] % 32 == 0 || 32 % outT->strides()[batchDim] == 0) &&
-      (inT->strides()[batchDim] % 32 == 0 || 32 % inT->strides()[batchDim] == 0))
+  if ((inT->ndims() >= 2) and (((uintptr_t)inT->getAddress() % 32) == 0) and
+      (((uintptr_t)outT->getAddress() % 32) == 0) and
+      (((outT->strides()[batchDim] % 32) == 0) or ((32 % outT->strides()[batchDim]) == 0)) and
+      (((inT->strides()[batchDim] % 32) == 0) or ((32 % inT->strides()[batchDim]) == 0))) {
     return 1;
-  else
+  } else {
     return 0;
+  }
 }
 
 size_t implSel::RowwiseQuantizedFullyConnected(std::vector<LibTensor*>& outTensors,
@@ -72,22 +76,24 @@ size_t implSel::RowwiseQuantizedFullyConnected(std::vector<LibTensor*>& outTenso
   LibTensor* in2T = inTensors[1];
 
   const static size_t batchDim = in1T->ndims() - 2;
-  if ((uintptr_t)outT->getAddress() % 32 == 0 && (uintptr_t)in1T->getAddress() % 32 == 0 &&
-      (uintptr_t)in2T->getAddress() % 32 == 0 && outT->strides()[batchDim] % 32 == 0 &&
-      in1T->strides()[batchDim] % 32 == 0 && in2T->strides()[batchDim] % 32 == 0)
+  if ((((uintptr_t)outT->getAddress() % 32) == 0) and (((uintptr_t)in1T->getAddress() % 32) == 0) and
+      (((uintptr_t)in2T->getAddress() % 32) == 0) and ((outT->strides()[batchDim] % 32) == 0) and
+      ((in1T->strides()[batchDim] % 32) == 0) and ((in2T->strides()[batchDim] % 32) == 0)) {
     return 1;
-  else
+  } else {
     return 0;
+  }
 }
 
 size_t implSel::RowwiseQuantizedSparseLengthsWeightedSum(std::vector<LibTensor*>& outTensors,
                                                          std::vector<LibTensor*>& inTensors) {
   // SW-3119: RowwiseQSL(W)S Operator tests failing
   LibTensor* dataT = inTensors[0];
-  if (dataT->dims()[dataT->ndims() - 1] < 4)
+  if (dataT->dims()[dataT->ndims() - 1] < 4) {
     return 0;
-  else
+  } else {
     return 1;
+  }
 }
 
 size_t implSel::Transpose(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
@@ -95,13 +101,15 @@ size_t implSel::Transpose(std::vector<LibTensor*>& outTensors, std::vector<LibTe
   LibTensor* inT = inTensors[0];
   ElemKind elK = inTensors[0]->getElementType();
   const size_t batchDim = inT->ndims() - 2;
-  if (inT->ndims() >= 2 && (uintptr_t)outT->getAddress() % 32 == 0 && (uintptr_t)inT->getAddress() % 32 == 0 &&
-      (outT->strides()[batchDim] * outT->getElementSize()) % 32 == 0 &&
-      (inT->strides()[batchDim] * inT->getElementSize()) % 32 == 0 &&
-      (elK == FloatTy || elK == Float16Ty || elK == Int8QTy))
+  if ((inT->ndims() >= 2) and (((uintptr_t)outT->getAddress() % 32) == 0) and
+      (((uintptr_t)inT->getAddress() % 32) == 0) and
+      (((outT->strides()[batchDim] * outT->getElementSize()) % 32) == 0) and
+      (((inT->strides()[batchDim] * inT->getElementSize()) % 32) == 0) and
+      ((elK == ElemKind::FloatTy) or (elK == ElemKind::Float16Ty) or (elK == ElemKind::Int8QTy))) {
     return 1;
-  else
+  } else {
     return 0;
+  }
 }
 
 size_t implSel::SoftMax(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
@@ -109,11 +117,12 @@ size_t implSel::SoftMax(std::vector<LibTensor*>& outTensors, std::vector<LibTens
   LibTensor* outT = outTensors[0];
   unsigned cll = CACHE_LINE_BYTES / outT->getElementSize();
   const size_t numDims = outT->ndims();
-  if ((uintptr_t)outT->getAddress() % CACHE_LINE_BYTES == 0 and numDims >= 2 and
-      outT->strides()[numDims - 2] % cll == 0) {
+  if ((((uintptr_t)outT->getAddress() % CACHE_LINE_BYTES) == 0) and (numDims >= 2) and
+      ((outT->strides()[numDims - 2] % cll) == 0)) {
     return 1;
+  } else {
+    return 0;
   }
-  return 0;
 }
 
 size_t implSel::LocalResponseNormalization(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
@@ -125,17 +134,18 @@ size_t implSel::SparseLengthsWeightedSum(std::vector<LibTensor*>& outTensors, st
 }
 
 size_t implSel::InsertTensor(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
-
   auto dstTypeSize = outTensors[0]->getElementSize();
   auto dstCll = CACHE_LINE_BYTES / dstTypeSize;
   auto& dstPitch = outTensors[0]->strides();
   auto dstDimNum = outTensors[0]->ndims();
 
-  if ((uintptr_t)outTensors[0]->getAddress() % CACHE_LINE_BYTES != 0)
+  if (((uintptr_t)outTensors[0]->getAddress() % CACHE_LINE_BYTES) != 0) {
     return 0;
+  }
 
-  if (dstDimNum < 2 or dstPitch[dstDimNum - 2] % dstCll != 0)
+  if ((dstDimNum < 2) or ((dstPitch[dstDimNum - 2] % dstCll) != 0)) {
     return 0;
+  }
 
   return 1;
 }

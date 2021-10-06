@@ -12,7 +12,10 @@
 #ifndef LIB_TENSOR_H
 #define LIB_TENSOR_H
 
-#include "LibTypes.h"
+// Local
+#include "dnnLibraryApi/LibTypes.h"
+
+// STD
 #include <cassert>
 #include <cstring>
 #include <numeric>
@@ -20,57 +23,16 @@
 
 namespace dnn_lib {
 
-struct Type final {
-
-  /*@brief contains the dimensions (sizes) of the tensor.
-   */
-  const dim_array_t sizes_;
-
-  /*@brief contains the strides for each dimension (in elements) same order
-   * as in sizes_.
-   */
-  const dim_array_t strides_;
-
-  /*@brief Specifies the element type of the tensor.
-   */
-  const dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
-
-  /*@brief contains the number of dimensions used by the tensor.
-   */
-  const dim_t numSizes_;
-
-  /*@brief On quantized tensors, this represents the scale of the values.
-   */
-  const float scale_{};
-
-  /*@brief On quantized tensors, this represents the offset of the values.
-   */
-  const int32_t offset_{};
-
-  /*@brief non templated version of the previous constructors (receiving dimensions/strides with max_tensor_dimensions,
-    and an extra parameter to set the actual number of dimensions
-   */
+class Type {
+public:
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
-       const float scale, const int32_t offset)
-    : sizes_(dims)
-    , strides_(strides)
-    , elementType_(elk)
-    , numSizes_(numSizes)
-    , scale_(scale)
-    , offset_(offset) {
-  }
+       const float scale, const int32_t offset);
 
   /*@brief Initialize a new non-quantized type.
    */
-  Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides)
-    : sizes_(dims)
-    , strides_(strides)
-    , elementType_(elk)
-    , numSizes_(numSizes) {
-    assert(not isQuantizedElemKind(elk));
-  }
+  Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides);
 
   /* brief returns true if \p other has same shape.
    */
@@ -171,6 +133,9 @@ struct Type final {
    */
   size_t actualSize() const;
 
+  bool isQuantizedElemKind() const;
+  bool isIndexElemKind() const;
+
   /// \return the size of the element \p Ty.
   static constexpr size_t getElementSize(dnn_lib::ElemKind Ty) {
     switch (Ty) {
@@ -206,6 +171,32 @@ struct Type final {
     assert(true && "Invalid type");
     __builtin_unreachable();
   }
+
+private:
+  /*@brief contains the dimensions (sizes) of the tensor.
+   */
+  const dim_array_t sizes_;
+
+  /*@brief contains the strides for each dimension (in elements) same order
+   * as in sizes_.
+   */
+  const dim_array_t strides_;
+
+  /*@brief Specifies the element type of the tensor.
+   */
+  const dnn_lib::ElemKind elementType_{dnn_lib::ElemKind::Int64ITy};
+
+  /*@brief contains the number of dimensions used by the tensor.
+   */
+  const dim_t numSizes_;
+
+  /*@brief On quantized tensors, this represents the scale of the values.
+   */
+  const float scale_{};
+
+  /*@brief On quantized tensors, this represents the offset of the values.
+   */
+  const int32_t offset_{};
 
 }; // class Type
 

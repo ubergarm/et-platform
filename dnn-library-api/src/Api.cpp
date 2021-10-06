@@ -11,14 +11,14 @@
 
 // Local
 #include "LibApiImplSel.h"
+#include "LibTensor.h"
 #include "dnnLibraryApi/LibApi.h"
 
 // STD
 #include <cctype>
 #include <cmath>
-#include <experimental/array> // not available on macos - if we ever need dnnLibraryApi available there
+#include <experimental/array> // not available on macos - if we ever need dnnLibraryApi available there we should remove the std::experimental::make_array
 #include <memory>
-// we should remove the std::experimental::make_array
 
 namespace dnn_lib {
 
@@ -1618,14 +1618,13 @@ bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig) {
   return false;
 }
 
-size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions,
-                         const std::vector<LibTensor*>& operands) {
+size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions, const std::vector<Tensor>& operands) {
   size_t result = 2000;
   if (caseInsCompare("FusedRowwiseQuantizedSparseLengthsWeightedSum", operatorName)) {
     // Computes lines to read from DDR
-    size_t lineSize = operands[0]->strides()[0];
+    size_t lineSize = operands[0].strides[0];
     size_t lineCL = (size_t)ceilf((float)lineSize / 64.0f); // Converts to cachelines
-    size_t lookups = operands[1]->dims()[0];
+    size_t lookups = operands[1].sizes[0];
     // Data read from the embedding
     size_t totalBytes = lineCL * lookups * 64;
     // Data read to get lookup indices and the weight
@@ -1643,9 +1642,9 @@ size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions
     result = 4000 + (size_t)ddrCycles;
   } else if (caseInsCompare("FusedRowwiseQuantizedSparseLengthsSum", operatorName)) {
     // Computes lines to read from DDR
-    size_t lineSize = operands[0]->strides()[0];
+    size_t lineSize = operands[0].strides[0];
     size_t lineCL = (size_t)ceilf((float)lineSize / 64.0f); // Converts to cachelines
-    size_t lookups = operands[1]->dims()[0];
+    size_t lookups = operands[1].sizes[0];
     // Data read from the embedding
     size_t totalBytes = lineCL * lookups * 64;
     // Data read to get lookup indices and the weight
@@ -1664,18 +1663,6 @@ size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions
   }
 
   return result;
-}
-
-size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions, const std::vector<Tensor>& operands) {
-  std::vector<std::unique_ptr<LibTensor>> operandsConverted;
-  std::vector<LibTensor*> operandsConvertedPtr;
-
-  for (auto& operand : operands) {
-    auto libTensor = std::make_unique<dnn_lib::LibTensor>(operand);
-    operandsConvertedPtr.push_back(libTensor.get());
-    operandsConverted.push_back(std::move(libTensor));
-  }
-  return getInstrNumCycles(operatorName, assignedMinions, operandsConvertedPtr);
 }
 
 size_t getImplementation(const std::string& operatorName, const std::vector<Tensor>& outOperands,

@@ -19,9 +19,10 @@
 #ifndef _LIB_API_H_
 #define _LIB_API_H_
 
-#include "dnnLibraryApi/LibTensor.h"
+// Local
 #include "dnnLibraryApi/LibTypes.h"
 
+// STD
 #include <string>
 #include <vector>
 
@@ -34,18 +35,6 @@ namespace dnn_lib {
  * \returns true if the operator name was found in the database
  */
 bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig);
-
-/*!
- * getInstrNumCycles returns the expected number of execution cycles required to execute a specific operator on an
- * ETSOC device. It requires knowing the operator type, number of assigned minions as well as the shapes of the
- * different operands
- * \param[in] operatorName is the name of the operator that the consumer is requesting
- * \param[in] assignedMinions is the total amount of compute resources assigned to the execution of the operator
- * \param[in] operands is a vector with the different input and output operands of the operator
- * \returns the total expected number of cycles required to execute the operator
- */
-size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions,
-                         const std::vector<LibTensor*>& operands);
 
 /*!
  * getInstrNumCycles returns the expected number of execution cycles required to execute a specific operator on an

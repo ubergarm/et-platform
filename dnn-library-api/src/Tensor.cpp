@@ -9,9 +9,27 @@
  *-------------------------------------------------------------------------
  */
 
-#include "dnnLibraryApi/LibTensor.h"
+#include "LibTensor.h"
 
 namespace dnn_lib {
+
+Type::Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
+           const float scale, const int32_t offset)
+  : sizes_(dims)
+  , strides_(strides)
+  , elementType_(elk)
+  , numSizes_(numSizes)
+  , scale_(scale)
+  , offset_(offset) {
+}
+
+Type::Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides)
+  : sizes_(dims)
+  , strides_(strides)
+  , elementType_(elk)
+  , numSizes_(numSizes) {
+  assert(not isQuantizedElemKind());
+}
 
 bool Type::hasSameShape(const Type other) const {
   if (numSizes_ != other.getNumDims())
@@ -63,11 +81,11 @@ const dim_t Type::size() const {
 }
 
 bool Type::isQuantizedType() const {
-  return isQuantizedElemKind(elementType_);
+  return isQuantizedElemKind();
 }
 
 bool Type::isIndexType() const {
-  return isIndexElemKind(elementType_);
+  return isIndexElemKind();
 }
 
 unsigned Type::getElementSize() const {
@@ -81,6 +99,22 @@ size_t Type::getSizeInBytes() const {
 size_t Type::actualSize() const {
   return (sizes_[0] * strides_[0]);
 }
+
+bool Type::isQuantizedElemKind() const {
+  if ((elementType_ == dnn_lib::ElemKind::Int8QTy) or (elementType_ == dnn_lib::ElemKind::UInt8QTy) or
+      (elementType_ == dnn_lib::ElemKind::Int16QTy) or (elementType_ == dnn_lib::ElemKind::Int32QTy) or
+      (elementType_ == dnn_lib::ElemKind::UInt8FusedQTy) or (elementType_ == dnn_lib::ElemKind::UInt8FusedFP16QTy) or
+      (elementType_ == dnn_lib::ElemKind::UInt4FusedFP16QTy)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+bool Type::isIndexElemKind() const {
+  return (elementType_ == dnn_lib::ElemKind::Int32ITy) or (elementType_ == dnn_lib::ElemKind::Int64ITy);
+}
+
 // end Type class
 
 ///////
@@ -98,15 +132,15 @@ const ElemKind LibTensor::getElementType() const {
 }
 
 const dim_t LibTensor::ndims() const {
-  return type_.numSizes_;
+  return type_.getNumDims();
 }
 
 const dim_array_t& LibTensor::dims() const {
-  return type_.sizes_;
+  return type_.getSizes();
 }
 
 const dim_array_t& LibTensor::strides() const {
-  return type_.strides_;
+  return type_.getStrides();
 }
 
 const dim_array_t LibTensor::stridesNoPadding() const {
