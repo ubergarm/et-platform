@@ -13,10 +13,10 @@
 #define _INSERT_TENSOR_INST_H_
 
 #include <assert.h>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
-#include <cstring>
+#include <string.h>
 
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
@@ -25,7 +25,6 @@
 #include "Operator.h" // From include/internal path
 #include "Writer.h"   // From include/internal path
 #include "utils.h"    // From include/internal path
-#include <device-common/cacheops.h>
 
 namespace dnn_lib {
 

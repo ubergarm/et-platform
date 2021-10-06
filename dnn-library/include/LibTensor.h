@@ -15,11 +15,12 @@
 #include "LibTypes.h"
 #include "LibUtils.h"
 #include <cassert>
-#include <cstring>
 #include <numeric>
+#include <string.h>
 #include <tuple>
 #ifdef __riscv
-#include <device-common/cacheops.h>
+#include <etsoc/isa/cacheops-umode.h>
+#include <etsoc/isa/utils.h>
 #endif
 
 namespace dnn_lib {
@@ -686,12 +687,12 @@ public:
     assert(cl > 0);
     uintptr_t addr = reinterpret_cast<uintptr_t>(getAddress()) + typeSize * offset;
     while(cl > 16) {
-      evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
+      cache_ops_evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
       addr += (CACHE_LINE_BYTES*16);
       cl -= 16;
     }
     if (cl > 0)
-      evict_va(0, dst, addr, cl-1, CACHE_LINE_BYTES, 0);
+      cache_ops_evict_va(0, dst, addr, cl - 1, CACHE_LINE_BYTES, 0);
 #else
     assert("shouldn't call this function unless it is from minion");
 #endif

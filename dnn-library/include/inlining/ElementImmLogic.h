@@ -13,10 +13,10 @@
 #define _ELEMENT_IMM_LOGIC_H_
 
 #include <assert.h>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
-#include <cstring>
+#include <string.h>
 
 #include "Float16.h"
 #include "Writer.h" // From include/internal path

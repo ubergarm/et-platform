@@ -12,11 +12,11 @@
 #ifndef LIB_COMMON_H
 #define LIB_COMMON_H
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
-#include <cstring>
+#include <string.h>
 #include <type_traits>
-#include <algorithm>
 
 #include "LibTypes.h"
 #include "Float16.h"

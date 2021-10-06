@@ -18,7 +18,7 @@ option(ENABLE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 
 include(GNUInstallDirs)
 
-find_package(EsperantoDeviceMinionRuntime REQUIRED)
+find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 
 
 file(GLOB LIB_DNN_PUBLIC_HEADERS
@@ -101,8 +101,10 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Operator.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/PackedBufferProxy.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/printf.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/utils.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub/assert.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub/stdlib.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub/string.h
 )
 
 add_library(dnn_lib STATIC
@@ -176,9 +178,9 @@ add_library(dnn_lib STATIC
     src/TensorViewInst.cpp
     src/TopKInst.cpp
     src/TransposeInst.cpp
-    src/libc.c
-    src/printf.c
     src/Float16.cpp
+    src/libc_stub/stdlib.c
+    src/libc_stub/string.c
 )
 add_library(dnnLibrary::dnn_lib ALIAS dnn_lib)
 target_include_directories(dnn_lib
@@ -186,6 +188,7 @@ target_include_directories(dnn_lib
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/inlining>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/internal>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub>
         $<INSTALL_INTERFACE:include/dnn_lib>
 )
 target_compile_features(dnn_lib PRIVATE cxx_std_17)
@@ -196,7 +199,7 @@ target_compile_options(dnn_lib
 )
 target_link_libraries(dnn_lib
     PRIVATE
-        EsperantoDeviceMinionRuntime::device_common
+        et-common-libs::cm-umode
 )
 set_target_properties(dnn_lib PROPERTIES
     PUBLIC_HEADER "${LIB_DNN_PUBLIC_HEADERS}"

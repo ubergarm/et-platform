@@ -13,10 +13,10 @@
 #define _LOCAL_RESPONSE_NORMALIZATION_INST_H_
 
 #include <assert.h>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
-#include <cstring>
+#include <string.h>
 
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path

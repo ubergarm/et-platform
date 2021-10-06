@@ -13,13 +13,14 @@
 #define _SYNCOPY_INST_TENSORIZED_H_
 
 #include <assert.h>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
-#include <cstring>
+#include <string.h>
 
-#include <device-common/barriers.h>
-#include <device-common/shire.h>
+#include <etsoc/isa/barriers.h>
+#include <etsoc/isa/tensors.h>
+#include <etsoc/isa/utils.h>
 
 #include "Float16.h"
 #include "Writer.h" // From include/internal path
@@ -125,12 +126,12 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
   if (activeMinions >= 4) {
     // 4 minions in parallel
     if(minionId < 4)
-      cb_drain(SHIRE_OWN, minionId);
+      cache_ops_cb_drain(SHIRE_OWN, minionId);
   } else {
-    cb_drain(SHIRE_OWN, minionId);
+    cache_ops_cb_drain(SHIRE_OWN, minionId);
     uint32_t mod = (4 % activeMinions);
     if(minionId < mod) {
-      cb_drain(SHIRE_OWN, minionId + activeMinions);
+      cache_ops_cb_drain(SHIRE_OWN, minionId + activeMinions);
     }
   }
 

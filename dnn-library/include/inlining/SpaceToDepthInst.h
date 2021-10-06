@@ -13,11 +13,11 @@
 #define _SPACE_TO_DEPTH_H_
 
 #include <assert.h>
+#include <cfenv>
+#include <cmath>
 #include <fenv.h>
 #include <limits>
-#include <cmath>
-#include <cstring>
-#include <cfenv>
+#include <string.h>
 
 #include "utils.h" // From include/internal path
 #include "LibTypes.h"
