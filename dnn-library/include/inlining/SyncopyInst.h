@@ -125,12 +125,18 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
   // Flush CB (4 banks)
   if (activeMinions >= 4) {
     // 4 minions in parallel
-    if(minionId < 4)
+    if (minionId < 4) {
       cache_ops_cb_drain(SHIRE_OWN, minionId);
+    }
+  } else if (activeMinions == 1) {
+    cache_ops_cb_drain(SHIRE_OWN, 0);
+    cache_ops_cb_drain(SHIRE_OWN, 1);
+    cache_ops_cb_drain(SHIRE_OWN, 2);
+    cache_ops_cb_drain(SHIRE_OWN, 3);
   } else {
     cache_ops_cb_drain(SHIRE_OWN, minionId);
-    uint32_t mod = (4 % activeMinions);
-    if(minionId < mod) {
+    uint32_t pending = 4 - activeMinions;
+    if (minionId < pending) {
       cache_ops_cb_drain(SHIRE_OWN, minionId + activeMinions);
     }
   }
