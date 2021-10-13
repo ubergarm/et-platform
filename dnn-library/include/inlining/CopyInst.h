@@ -290,6 +290,7 @@ inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
     srcAddr += 1024;
     minionCacheLines -= 16;
     tensor_store_scp(0, 0, 0xF, dstAddr, 0x40);
+    WAIT_TENSOR_STORE;
     dstAddr += 1024;
   }
   if (minionCacheLines == 0) return;
@@ -297,6 +298,7 @@ inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
   tensor_load(0, 0, 0, 0, 0, srcAddr, 0, minionCacheLines-1, 0x40, 0);
   WAIT_TENSOR_LOAD_0;
   tensor_store_scp(0, 0, minionCacheLines-1, dstAddr, 0x40);
+  WAIT_TENSOR_STORE;
 }
 
 } // namespace inlining
