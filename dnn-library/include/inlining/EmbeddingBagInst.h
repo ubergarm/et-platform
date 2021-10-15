@@ -194,7 +194,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   }
 
   assert(in1T->getElementType() == outT->getElementType());
-  assert(in1T->getElementType() == FloatTy);
+  assert((in1T->getElementType() == FloatTy) || (in1T->getElementType() == Float16Ty));
   assert((in3T->getElementType() == Int64ITy) && (in3T->getElementType() == in4T->getElementType()));
 
   auto offH = in4T->getHandle<int64_t>();
@@ -203,7 +203,6 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   auto tAInput = in1T->getRawDataPointer<uint8_t>();
   auto tWInput = in2T->getRawDataPointer<uint8_t>();
   auto indices = in3T->getRawDataPointer<int64_t>();
-  //auto offsets = in4T->getRawDataPointer<int64_t>();
 
   const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
   const dim_t numIndices = in3T->dims()[0];
@@ -315,9 +314,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
     } else {
       end = offH.raw(segment + 1);
     }
-    if (start == end) {
-      emptySegment = true;
-    } else if (start > end) {
+    if (start >= end) {
       emptySegment = true;
     } else {
       emptySegment = false;
@@ -522,7 +519,9 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
         minionCurrSegment++;
         minionCurrRowGroup = 0;
 
-        minionCurrIndex += (currSegmentEnd - currSegmentStart);
+        if (currSegmentEnd > currSegmentStart) {
+          minionCurrIndex += (currSegmentEnd - currSegmentStart);
+        }
 
         getNextSegment(minionCurrSegment);
 
