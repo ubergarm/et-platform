@@ -14,6 +14,7 @@ class Select {};
 class Pow {};
 class ElementLog {};
 class ElementExp {};
+class ElementErf {};
 class ElementIsNaN {};
 class Tanh {};
 class Sigmoid {};

@@ -253,28 +253,27 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
   // instances for particular instructions calling the above functions
   ////////////////////////////////////////////////////////////////////////////////
 
-  // instances where src and dst can have different types  
-#define ELT_SINGLE_INSTANCE_1K(name, version, dstElK, srcElK)                                                             \
-  template <ElemKind elK>                                                                                                 \
-  inline void fwdLib ## name ## Inst                                                                                      \
-  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) { \
-    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions); \
-  } 
+// instances where src and dst can have different types
+#define ELT_SINGLE_INSTANCE_1K(name, version, dstElK, srcElK)                                                          \
+  template <ElemKind elK>                                                                                              \
+  INLINE_ATTR void fwdLib##name##Inst(LibTensor* outT, LibTensor* inT, uint64_t flags,                                 \
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {           \
+    inlining::fwdLibElementSingleInst##version<dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions); \
+  }
 
   // instances where src and dst can have different types
-#define ELT_SINGLE_INSTANCE_2K(name, version, dstElK, srcElK)                                                             \
-  template <ElemKind elK1, ElemKind elK2>                                                                                 \
-  inline void fwdLib ## name ## Inst                                                                                      \
-  (LibTensor* outT, LibTensor* inT,uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) { \
-    inlining::fwdLibElementSingleInst ## version <dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions); \
-  } 
-  
+#define ELT_SINGLE_INSTANCE_2K(name, version, dstElK, srcElK)                                                          \
+  template <ElemKind elK1, ElemKind elK2>                                                                              \
+  INLINE_ATTR void fwdLib##name##Inst(LibTensor* outT, LibTensor* inT, uint64_t flags,                                 \
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {           \
+    inlining::fwdLibElementSingleInst##version<dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions); \
+  }
 
-  
   // Log has vectorized as generic version
   ELT_SINGLE_INSTANCE_2K(ElementLog, Vectorized, elK1, elK2)
-  
-  // others have threaded as generic version (vectorized not implemented) 
+
+  // others have threaded as generic version (vectorized not implemented)
+  ELT_SINGLE_INSTANCE_1K(ElementErf, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(ElementExp, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(ElementIsNaN, Threaded, BoolTy, elK)
   ELT_SINGLE_INSTANCE_1K(Sigmoid, Threaded, elK, elK)

@@ -1826,6 +1826,66 @@ public:
     dst.at(p) = res;
   }
 
+  //// Erf operations ////
+
+  // scalar erf implementation
+  // from  A&S (Handbook of Mathematical Functions) formula 7.1.26
+  static INLINE_ATTR float erfImpl(float res) {
+    constexpr float a1 = 0.254829592f;
+    constexpr float a2 = -0.284496736f;
+    constexpr float a3 = 1.421413741f;
+    constexpr float a4 = -1.453152027f;
+    constexpr float a5 = 1.061405429f;
+    constexpr float p = 0.3275911f;
+    // preserve sign for later and get abs value
+    float sign = res < 0 ? -1 : 1;
+    res = (res < 0) ? -res : res;
+
+    // t = 1.0 / (1, 0 +p *res) using reciprocal
+    float divisorRcp = (1.0 + p * res);
+    __asm__ __volatile__("frcp.ps %[divisorRcp], %[divisorRcp]\n" : [ divisorRcp ] "+f"(divisorRcp));
+    float t = 1.0 * divisorRcp;
+
+    float ex = -res * res;
+    // e ^ ex
+    ex *= static_cast<float>(M_LOG2E);
+    __asm__ __volatile__("fexp.ps %0, %0\n" : "+f"(ex));
+
+    float y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * ex;
+    // restore sign
+    return y * sign;
+  }
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
+    float res;
+    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), res);
+    res = erfImpl(res);
+    convertFp32ToFp16(res, dst.raw(d));
+  }
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
+    float res;
+    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), res);
+    res = erfImpl(res);
+    convertFp32ToFp16(res, dst.at(p));
+  }
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, uint64_t& d, uint64_t& s) {
+    float res = src.raw(s);
+    res = erfImpl(res);
+    dst.raw(d) = res;
+  }
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, dim_array_t& p) {
+    float res = src.at(p);
+    res = erfImpl(res);
+    dst.at(p) = res;
+  }
+
   //// Tanh operations ////
 
   template <typename U = opType,
