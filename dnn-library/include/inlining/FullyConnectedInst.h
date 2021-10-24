@@ -173,32 +173,31 @@ inline void matmulStep (float *sum,
     }
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
-        // Sets 1 lane enabled, moves scalar to float
-        "mov.m.x     mt0, %[mask], 0\n"
-        "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
-        "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
-        // Main loop
-        "1:\n"
-        "fbc.ps      f0, 0(%[tAAddr])\n"   // Loads data
-        "flw.ps      f1, 0(%[tWAddr])\n"
-        "fmadd.ps    f2, f1, f0, f2\n"     // Accum
-        // End of loop
-        "addi   %[aCols], %[aCols], -1\n"
-        "add    %[tAAddr], %[tAAddr], %[size]\n"              // Increment pointers
-        "add    %[tWAddr], %[tWAddr], %[weightPitch]\n"
-        "bne    %[aCols], x0, 1b\n"
-        // Copies back to memory
-        "fsw.ps f2, 0(%[sum])\n"
-      : [tAAddr] "+&r" (tAAddr),
-        [tWAddr] "+&r" (tWAddr),
-        [aCols] "+&r" (aCols),
-        [sum] "+&r" (sum)
-      : [weightPitch] "r" (weightPitch),
-        [mask] "r" (mask),
-        [offsets] "r" (offsets),
-        [size] "r" (size)
-      : "memory", "f0", "f1", "f2", "f3"
-    );
+      // Sets 1 lane enabled, moves scalar to float
+      "mov.m.x     mt0, %[mask], 0\n"
+      "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
+      "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
+      "li          x31, 1\n"
+      // Main loop
+      "1:\n"
+      "beq         x31, %[aCols], 2f\n" // Skip prefetches on last iteration
+      "ld          x0, 4(%[tAAddr])\n"  // Prefetches next A
+      "add         x30, %[tWAddr], %[weightPitch]\n"
+      "ld          x0, 0(x30)\n" // Prefetches next W
+      "2:\n"
+      "fbc.ps      f0, 0(%[tAAddr])\n" // Loads data
+      "flw.ps      f1, 0(%[tWAddr])\n"
+      "fmadd.ps    f2, f1, f0, f2\n" // Accum
+      // End of loop
+      "addi   %[aCols], %[aCols], -1\n"
+      "add    %[tAAddr], %[tAAddr], %[size]\n" // Increment pointers
+      "add    %[tWAddr], %[tWAddr], %[weightPitch]\n"
+      "bne    %[aCols], x0, 1b\n"
+      // Copies back to memory
+      "fsw.ps f2, 0(%[sum])\n"
+      : [ tAAddr ] "+&r"(tAAddr), [ tWAddr ] "+&r"(tWAddr), [ aCols ] "+&r"(aCols), [ sum ] "+&r"(sum)
+      : [ weightPitch ] "r"(weightPitch), [ mask ] "r"(mask), [ offsets ] "r"(offsets), [ size ] "r"(size)
+      : "memory", "f0", "f1", "f2", "f3", "x31", "x30");
   }
   // Float16 version
   else if (srcElK == Float16Ty) {
@@ -214,34 +213,33 @@ inline void matmulStep (float *sum,
     }
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
-        // Sets 1 lane enabled, moves scalar to float
-        "mov.m.x     mt0, %[mask], 0\n"
-        "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
-        "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
-        // Main loop
-        "1:\n"
-        "fbc.ps      f0, 0(%[tAAddr])\n"   // Loads data
-        "fgh.ps      f1, f3(%[tWAddr])\n"
-        "fcvt.ps.f16 f0, f0\n"             // Converts to FP32
-        "fcvt.ps.f16 f1, f1\n"
-        "fmadd.ps    f2, f1, f0, f2\n"     // Accum
-        // End of loop
-        "addi   %[aCols], %[aCols], -1\n"
-        "add    %[tAAddr], %[tAAddr], %[size]\n"              // Increment pointers
-        "add    %[tWAddr], %[tWAddr], %[weightPitch]\n"
-        "bne    %[aCols], x0, 1b\n"
-        // Copies back to memory
-        "fsw.ps f2, 0(%[sum])\n"
-      : [tAAddr] "+&r" (tAAddr),
-        [tWAddr] "+&r" (tWAddr),
-        [aCols] "+&r" (aCols),
-        [sum] "+&r" (sum)
-      : [weightPitch] "r" (weightPitch),
-        [mask] "r" (mask),
-        [offsets] "r" (offsets),
-        [size] "r" (size)
-      : "memory", "f0", "f1", "f2", "f3"
-    );
+      // Sets 1 lane enabled, moves scalar to float
+      "mov.m.x     mt0, %[mask], 0\n"
+      "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
+      "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
+      "li          x31, 1\n"
+      // Main loop
+      "1:\n"
+      "beq         x31, %[aCols], 2f\n" // Skip prefetches on last iteration
+      "ld          x0, 2(%[tAAddr])\n"  // Prefetches next A
+      "add         x30, %[tWAddr], %[weightPitch]\n"
+      "ld          x0, 0(x30)\n" // Prefetches next W
+      "2:\n"
+      "fbc.ps      f0, 0(%[tAAddr])\n" // Loads data
+      "fgh.ps      f1, f3(%[tWAddr])\n"
+      "fcvt.ps.f16 f0, f0\n" // Converts to FP32
+      "fcvt.ps.f16 f1, f1\n"
+      "fmadd.ps    f2, f1, f0, f2\n" // Accum
+      // End of loop
+      "addi   %[aCols], %[aCols], -1\n"
+      "add    %[tAAddr], %[tAAddr], %[size]\n" // Increment pointers
+      "add    %[tWAddr], %[tWAddr], %[weightPitch]\n"
+      "bne    %[aCols], x0, 1b\n"
+      // Copies back to memory
+      "fsw.ps f2, 0(%[sum])\n"
+      : [ tAAddr ] "+&r"(tAAddr), [ tWAddr ] "+&r"(tWAddr), [ aCols ] "+&r"(aCols), [ sum ] "+&r"(sum)
+      : [ weightPitch ] "r"(weightPitch), [ mask ] "r"(mask), [ offsets ] "r"(offsets), [ size ] "r"(size)
+      : "memory", "f0", "f1", "f2", "f3", "x31", "x30");
   }
   // Int8QTy version
   else if (srcElK == Int8QTy) {
@@ -272,8 +270,14 @@ inline void matmulStep (float *sum,
       "fbc.ps      f6, 0x0(%[offsetW])\n"
       "fbc.ps      f7, 0x0(%[scaleA])\n"
       "fbc.ps      f8, 0x0(%[scaleW])\n"
+      "li          x31, 1\n"
       // Main loop
       "1:\n"
+      "beq         x31, %[aCols], 2f\n" // Skip prefetches on last iteration
+      "ld          x0, 1(%[tAAddr])\n"  // Prefetches next A
+      "add         x30, %[tWAddr], %[weightPitch]\n"
+      "ld          x0, 0(x30)\n" // Prefetches next W
+      "2:\n"
       "fgb.ps      f0, f3(%[tAAddr])\n" // Loads data
       "fgb.ps      f1, f4(%[tWAddr])\n"
       "fsub.pi     f0, f0, f5\n" // Apply offset
@@ -296,7 +300,7 @@ inline void matmulStep (float *sum,
       : [ weightPitch ] "r"(weightPitch), [ mask ] "r"(mask), [ gatherOffsetsA ] "r"(gatherOffsetsA),
         [ gatherOffsetsW ] "r"(gatherOffsetsW), [ offsetA ] "r"(&offsets[0]), [ offsetW ] "r"(&offsets[1]),
         [ scaleA ] "r"(&scales[0]), [ scaleW ] "r"(&scales[1]), [ size ] "r"(size)
-      : "memory", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9");
+      : "memory", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "x31", "x30");
   }
   // Others
   else {
