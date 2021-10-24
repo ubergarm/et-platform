@@ -28,13 +28,10 @@ using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
 
-constexpr unsigned max_tensor_dimensions = 6; // TODO: deprecate it
 constexpr unsigned maxTensorDimensions = 6;
 
 using dim_array_t = std::array<dim_t, maxTensorDimensions>;   // TODO: deprecate
-using sdim_array_t = std::array<sdim_t, maxTensorDimensions>; // TODO: deprecate
 using dimArray_t = std::array<dim_t, maxTensorDimensions>;
-using sdimArray_t = std::array<sdim_t, maxTensorDimensions>;
 
 // An enum representing the type used by the elements of a tensor. The types of Handles for these tensors should match
 // the element kind
@@ -104,31 +101,21 @@ struct Tensor {
   bool untouchablePadding; // If the padding of the tensor is untouchable
 };
 
-// Local
-class LibTensor; // TODO: eventually deprecate
-
-static constexpr size_t maxImplVersions = 4;
-static constexpr size_t maxInstrConfigStrLen = 256;
-static constexpr size_t maxNrOperands = 12;
-
 // Instruction properties struct
 struct instrConfig {
-  using operandStateArray = std::array<operandState, maxNrOperands>;
-  using implStateArray = std::array<operandStateArray, maxImplVersions + 1>;
-  using sel_fnc_t = size_t (*)(std::vector<LibTensor*>&, std::vector<LibTensor*>&);
+  using implStateVector = std::vector<std::vector<operandState>>;
 
-  char name[maxInstrConfigStrLen];
+  std::string name;
   size_t nrOutputTensors; // number of output and in/out tensor operands
   size_t nrInputTensors;  // number of input tensor operands
-  std::array<instrMembers, (long unsigned int)instrMembers::mbMaxMembers> members;
+  std::vector<instrMembers> members;
   uint64_t templateMask;
-  std::array<char[maxInstrConfigStrLen], maxImplVersions> versions;
-  sel_fnc_t implSel;
+  std::vector<std::string> versions;
 
-  implStateArray stateL1;
-  implStateArray stateL2;
-  implStateArray stateCB;
-  std::array<uint64_t, maxImplVersions + 1> evictAvailableMask;
+  implStateVector stateL1;
+  implStateVector stateL2;
+  implStateVector stateCB;
+  std::vector<uint64_t> evictAvailableMask;
 
   // functions to retrieve operand information
   operandState getOperandStateL1(size_t implIdx, size_t operand);
