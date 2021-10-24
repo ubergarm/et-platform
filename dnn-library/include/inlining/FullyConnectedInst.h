@@ -177,13 +177,18 @@ inline void matmulStep (float *sum,
       "mov.m.x     mt0, %[mask], 0\n"
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
-      "li          x31, 1\n"
+      "li          x31, 2\n"
+      "ld          x0, 0(%[tAAddr])\n"                    // First line of A
+      "ld          x0, 0(%[tWAddr])\n"                    // First line of B
+      "add         x29, %[tWAddr], %[weightPitch]\n"      // Pitch for two rows
+      "ld          x0, 0(x29)\n"                          // Second line of B
+      "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
-      "beq         x31, %[aCols], 2f\n" // Skip prefetches on last iteration
-      "ld          x0, 4(%[tAAddr])\n"  // Prefetches next A
-      "add         x30, %[tWAddr], %[weightPitch]\n"
-      "ld          x0, 0(x30)\n" // Prefetches next W
+      "ble         %[aCols], x31, 2f\n" // Skip prefetches on last iteration
+      "ld          x0, 8(%[tAAddr])\n"  // Prefetches A two iterations ahead
+      "add         x30, %[tWAddr], x29\n"
+      "ld          x0, 0(x30)\n" // Prefetches W two iterations ahead
       "2:\n"
       "fbc.ps      f0, 0(%[tAAddr])\n" // Loads data
       "flw.ps      f1, 0(%[tWAddr])\n"
@@ -197,7 +202,7 @@ inline void matmulStep (float *sum,
       "fsw.ps f2, 0(%[sum])\n"
       : [ tAAddr ] "+&r"(tAAddr), [ tWAddr ] "+&r"(tWAddr), [ aCols ] "+&r"(aCols), [ sum ] "+&r"(sum)
       : [ weightPitch ] "r"(weightPitch), [ mask ] "r"(mask), [ offsets ] "r"(offsets), [ size ] "r"(size)
-      : "memory", "f0", "f1", "f2", "f3", "x31", "x30");
+      : "memory", "f0", "f1", "f2", "f3", "x31", "x30", "x29");
   }
   // Float16 version
   else if (srcElK == Float16Ty) {
@@ -217,13 +222,18 @@ inline void matmulStep (float *sum,
       "mov.m.x     mt0, %[mask], 0\n"
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
-      "li          x31, 1\n"
+      "li          x31, 2\n"
+      "ld          x0, 0(%[tAAddr])\n"                    // First line of A
+      "ld          x0, 0(%[tWAddr])\n"                    // First line of B
+      "add         x29, %[tWAddr], %[weightPitch]\n"      // Pitch for two rows
+      "ld          x0, 0(x29)\n"                          // Second line of B
+      "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
-      "beq         x31, %[aCols], 2f\n" // Skip prefetches on last iteration
-      "ld          x0, 2(%[tAAddr])\n"  // Prefetches next A
-      "add         x30, %[tWAddr], %[weightPitch]\n"
-      "ld          x0, 0(x30)\n" // Prefetches next W
+      "ble         %[aCols], x31, 2f\n" // Skip prefetches on last iteration
+      "ld          x0, 4(%[tAAddr])\n"  // Prefetches A two iterations ahead
+      "add         x30, %[tWAddr], x29\n"
+      "ld          x0, 0(x30)\n" // Prefetches W two iterations ahead
       "2:\n"
       "fbc.ps      f0, 0(%[tAAddr])\n" // Loads data
       "fgh.ps      f1, f3(%[tWAddr])\n"
@@ -239,7 +249,7 @@ inline void matmulStep (float *sum,
       "fsw.ps f2, 0(%[sum])\n"
       : [ tAAddr ] "+&r"(tAAddr), [ tWAddr ] "+&r"(tWAddr), [ aCols ] "+&r"(aCols), [ sum ] "+&r"(sum)
       : [ weightPitch ] "r"(weightPitch), [ mask ] "r"(mask), [ offsets ] "r"(offsets), [ size ] "r"(size)
-      : "memory", "f0", "f1", "f2", "f3", "x31", "x30");
+      : "memory", "f0", "f1", "f2", "f3", "x31", "x30", "x29");
   }
   // Int8QTy version
   else if (srcElK == Int8QTy) {
@@ -270,13 +280,18 @@ inline void matmulStep (float *sum,
       "fbc.ps      f6, 0x0(%[offsetW])\n"
       "fbc.ps      f7, 0x0(%[scaleA])\n"
       "fbc.ps      f8, 0x0(%[scaleW])\n"
-      "li          x31, 1\n"
+      "li          x31, 2\n"
+      "ld          x0, 0(%[tAAddr])\n"                    // First line of A
+      "ld          x0, 0(%[tWAddr])\n"                    // First line of B
+      "add         x29, %[tWAddr], %[weightPitch]\n"      // Pitch for two rows
+      "ld          x0, 0(x29)\n"                          // Second line of B
+      "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
-      "beq         x31, %[aCols], 2f\n" // Skip prefetches on last iteration
-      "ld          x0, 1(%[tAAddr])\n"  // Prefetches next A
-      "add         x30, %[tWAddr], %[weightPitch]\n"
-      "ld          x0, 0(x30)\n" // Prefetches next W
+      "ble         %[aCols], x31, 2f\n" // Skip prefetches on last iteration
+      "ld          x0, 2(%[tAAddr])\n"  // Prefetches A two iterations ahead
+      "add         x30, %[tWAddr], x29\n"
+      "ld          x0, 0(x30)\n" // Prefetches W two iterations ahead
       "2:\n"
       "fgb.ps      f0, f3(%[tAAddr])\n" // Loads data
       "fgb.ps      f1, f4(%[tWAddr])\n"
@@ -300,7 +315,7 @@ inline void matmulStep (float *sum,
       : [ weightPitch ] "r"(weightPitch), [ mask ] "r"(mask), [ gatherOffsetsA ] "r"(gatherOffsetsA),
         [ gatherOffsetsW ] "r"(gatherOffsetsW), [ offsetA ] "r"(&offsets[0]), [ offsetW ] "r"(&offsets[1]),
         [ scaleA ] "r"(&scales[0]), [ scaleW ] "r"(&scales[1]), [ size ] "r"(size)
-      : "memory", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "x31", "x30");
+      : "memory", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "x31", "x30", "x29");
   }
   // Others
   else {
