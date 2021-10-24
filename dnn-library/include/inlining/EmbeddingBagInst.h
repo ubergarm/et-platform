@@ -409,7 +409,14 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
             : "f21"
           );
         }
-        
+
+        if (j < currSegmentEnd - 1) {
+          uint8_t* data_ptr_next =
+            tAInput + (indices[currIndex + 1] * in1T->strides()[0] + minionCurrRowGroup * dstGroupElems) * elemSize;
+          // Prefetch next index of current segment
+          __asm__ __volatile__("ld          x0, (%[data_ptr_next])\n" : : [ data_ptr_next ] "r"(data_ptr_next) :);
+        }
+
         if (float16Dst) {
           __asm__ __volatile__ (
             "fgh.ps      f10, f20, %[data_ptr]\n"
