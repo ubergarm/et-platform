@@ -1927,6 +1927,11 @@ bool instrConfig::getDstGlobalStore(size_t implIdx, size_t idx) {
   return ((dstGlobalStore[implIdx] >> idx) & 1);
 }
 
+uint64_t instrConfig::getDstGlobalStore(size_t implIdx) {
+  assert(implIdx < dstGlobalStore.size());
+  return dstGlobalStore[implIdx];
+}
+
 //////////////
 
 bool caseInsCharCompare(char a, char b) {

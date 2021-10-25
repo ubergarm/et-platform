@@ -135,6 +135,7 @@ struct instrConfig {
   operandState getDstStateCB(size_t implIdx, size_t idx);
   bool getDstAutoEvict(size_t implIdx, size_t idx);
   bool getDstGlobalStore(size_t implIdx, size_t idx);
+  uint64_t getDstGlobalStore(size_t implIdx);
 };
 
 } // namespace dnn_lib
