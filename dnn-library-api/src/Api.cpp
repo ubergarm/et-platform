@@ -41,6 +41,7 @@ struct instrConfigInt {
   implStateVector stateL2;
   implStateVector stateCB;
   std::vector<uint64_t> evictAvailableMask;
+  std::vector<uint64_t> dstGlobalStore;
 };
 
 // The instruction table contains all the instructions available in the DNN Library
@@ -64,7 +65,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -83,7 +85,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -102,7 +105,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -122,7 +126,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -142,7 +147,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -161,7 +167,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -180,7 +187,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -199,7 +207,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -218,7 +227,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -237,7 +247,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -256,7 +267,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -279,7 +291,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -298,7 +311,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -318,7 +332,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -337,7 +352,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -357,7 +373,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -376,7 +393,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::untouched, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::dirty, operandState::untouched}}},
-    {0x1, 0x0} // evict available mask
+    {0x1, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -395,7 +413,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -414,7 +433,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -433,7 +453,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -452,7 +473,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -471,7 +493,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -490,7 +513,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -509,7 +533,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -531,7 +556,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched},
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -553,7 +579,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched},
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -575,7 +602,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched},
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -594,7 +622,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -613,7 +642,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -632,7 +662,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -651,7 +682,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -670,7 +702,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -689,7 +722,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -708,7 +742,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -727,7 +762,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -746,7 +782,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -765,7 +802,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -784,7 +822,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -803,7 +842,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -823,7 +863,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x1}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -842,7 +883,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -861,7 +903,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -880,7 +923,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -899,7 +943,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -918,7 +963,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -937,7 +983,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -956,7 +1003,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -976,7 +1024,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x1}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -995,7 +1044,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x1}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1014,7 +1064,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x1} // evict available mask
+    {0x1}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1033,7 +1084,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1052,7 +1104,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x1, 0x1} // evict available mask
+    {0x1, 0x1}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1071,7 +1124,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1090,7 +1144,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1109,7 +1164,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1128,7 +1184,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1150,7 +1207,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched},
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1169,7 +1227,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1188,7 +1247,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1207,7 +1267,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1226,7 +1287,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1246,7 +1308,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1265,7 +1328,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1284,7 +1348,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1303,7 +1368,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1322,7 +1388,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1341,7 +1408,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1369,7 +1437,8 @@ void initInstrConfigTable() {
        operandState::untouched, operandState::untouched},
       {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1397,7 +1466,8 @@ void initInstrConfigTable() {
        operandState::untouched, operandState::untouched, operandState::untouched},
       {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1416,7 +1486,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1435,7 +1506,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1454,7 +1526,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1473,7 +1546,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1492,7 +1566,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1516,7 +1591,8 @@ void initInstrConfigTable() {
        operandState::untouched},
       {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1535,7 +1611,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1555,7 +1632,8 @@ void initInstrConfigTable() {
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1574,7 +1652,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty}}},
     // CB states per impl
     {{{operandState::untouched}}},
-    {0x1} // evict available mask
+    {0x1}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1593,7 +1672,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1612,7 +1692,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1631,7 +1712,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1650,7 +1732,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1669,7 +1752,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1688,7 +1772,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1707,7 +1792,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1726,7 +1812,8 @@ void initInstrConfigTable() {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0} // evict available mask
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1745,7 +1832,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -1764,53 +1852,79 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     // CB states per impl
     {{operandState::untouched}},
-    {0} // evict available mask
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   };
 }
 
 operandState instrConfig::getOperandStateL1(size_t implIdx, size_t operand) {
-  assert(operand < nrOutputTensors + nrInputTensors);
+  assert(operand < (nrOutputTensors + nrInputTensors));
+  assert(implIdx < stateL1.size());
   return stateL1[implIdx][operand];
 }
+
 operandState instrConfig::getOperandStateL2(size_t implIdx, size_t operand) {
-  assert(operand < nrOutputTensors + nrInputTensors);
+  assert(operand < (nrOutputTensors + nrInputTensors));
+  assert(implIdx < stateL2.size());
   return stateL2[implIdx][operand];
 }
+
 operandState instrConfig::getOperandStateCB(size_t implIdx, size_t operand) {
-  assert(operand < nrOutputTensors + nrInputTensors);
+  assert(operand < (nrOutputTensors + nrInputTensors));
+  assert(implIdx < stateCB.size());
   return stateCB[implIdx][operand];
 }
+
 bool instrConfig::getOperandAutoEvict(size_t implIdx, size_t operand) {
-  assert(operand < nrOutputTensors + nrInputTensors);
+  assert(operand < (nrOutputTensors + nrInputTensors));
+  assert(implIdx < evictAvailableMask.size());
   return ((evictAvailableMask[implIdx] >> operand) & 1);
 }
+
 operandState instrConfig::getSrcStateL1(size_t implIdx, size_t idx) {
+  assert(idx < nrInputTensors);
   return getOperandStateL1(implIdx, idx + nrOutputTensors);
 }
+
 operandState instrConfig::getSrcStateL2(size_t implIdx, size_t idx) {
+  assert(idx < nrInputTensors);
   return getOperandStateL2(implIdx, idx + nrOutputTensors);
 }
+
 operandState instrConfig::getSrcStateCB(size_t implIdx, size_t idx) {
+  assert(idx < nrInputTensors);
   return getOperandStateCB(implIdx, idx + nrOutputTensors);
 }
+
 bool instrConfig::getSrcAutoEvict(size_t implIdx, size_t idx) {
+  assert(idx < nrInputTensors);
   return getOperandAutoEvict(implIdx, idx + nrOutputTensors);
 }
+
 operandState instrConfig::getDstStateL1(size_t implIdx, size_t idx) {
   assert(idx < nrOutputTensors);
   return getOperandStateL1(implIdx, idx);
 }
+
 operandState instrConfig::getDstStateL2(size_t implIdx, size_t idx) {
   assert(idx < nrOutputTensors);
   return getOperandStateL2(implIdx, idx);
 }
+
 operandState instrConfig::getDstStateCB(size_t implIdx, size_t idx) {
   assert(idx < nrOutputTensors);
   return getOperandStateCB(implIdx, idx);
 }
+
 bool instrConfig::getDstAutoEvict(size_t implIdx, size_t idx) {
   assert(idx < nrOutputTensors);
   return getOperandAutoEvict(implIdx, idx);
+}
+
+bool instrConfig::getDstGlobalStore(size_t implIdx, size_t idx) {
+  assert(idx < nrOutputTensors);
+  assert(implIdx < dstGlobalStore.size());
+  return ((dstGlobalStore[implIdx] >> idx) & 1);
 }
 
 //////////////
@@ -1859,6 +1973,7 @@ bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig) {
   instConfig.stateL2 = instConfigInt.stateL2;
   instConfig.stateCB = instConfigInt.stateCB;
   instConfig.evictAvailableMask = instConfigInt.evictAvailableMask;
+  instConfig.dstGlobalStore = instConfigInt.dstGlobalStore;
 
   return true;
 }

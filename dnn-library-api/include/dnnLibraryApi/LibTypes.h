@@ -116,6 +116,7 @@ struct instrConfig {
   implStateVector stateL2;
   implStateVector stateCB;
   std::vector<uint64_t> evictAvailableMask;
+  std::vector<uint64_t> dstGlobalStore;
 
   // functions to retrieve operand information
   operandState getOperandStateL1(size_t implIdx, size_t operand);
@@ -133,6 +134,7 @@ struct instrConfig {
   operandState getDstStateL2(size_t implIdx, size_t idx);
   operandState getDstStateCB(size_t implIdx, size_t idx);
   bool getDstAutoEvict(size_t implIdx, size_t idx);
+  bool getDstGlobalStore(size_t implIdx, size_t idx);
 };
 
 } // namespace dnn_lib
