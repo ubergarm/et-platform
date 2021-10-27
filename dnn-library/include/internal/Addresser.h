@@ -13,29 +13,29 @@
 #define ADDRESSER_H
 
 #include "Float16.h"
-#include "Writer.h"
 #include "LibCommon.h"
+#include "Writer.h"
 
 namespace dnn_lib {
 
-#define ONLY_FOR(cond) template <ElemKind U = elK, typename std::enable_if< (cond), size_t>::type = 0>
+#define ONLY_FOR(cond) template <ElemKind U = elK, typename std::enable_if<(cond), size_t>::type = 0>
 
-  
-template <ElemKind elK> class Addresser {
+template <ElemKind elK, bool globalStore = false> class Addresser {
   using T = typename elemKind2elemTy<elK>::type;
+
 public:
-  Addresser(void *ptr, float scale = 1.0, int32_t offset = 0):
-    scale_(scale),
-    offset_(offset),
-    ptr_( reinterpret_cast<T*>(ptr) )
-  { }
+  Addresser(void* ptr, float scale = 1.0, int32_t offset = 0)
+    : scale_(scale)
+    , offset_(offset)
+    , ptr_(reinterpret_cast<T*>(ptr)) {
+  }
 
   ////////////////////////////////////////////////////////////////////////////////
   // READ
   ////////////////////////////////////////////////////////////////////////////////
 
-  // Float16 => converts to float 
-  ONLY_FOR( U == Float16Ty)
+  // Float16 => converts to float
+  ONLY_FOR(U == Float16Ty)
   const float operator[](const size_t index) const {
     float f;
     dnn_lib::convertFp16ToFp32(ptr_[index], f);
@@ -43,30 +43,32 @@ public:
   }
 
   // Integer quantized types: converts to float
-  ONLY_FOR( U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
+  ONLY_FOR(U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
   const float operator[](const size_t index) const {
     return dnn_lib::dequantize<T>(ptr_[index], scale_, offset_);
   }
-  
+
   // none of the above cases (Float, index types...) read directly from ptr
-  ONLY_FOR( U != Float16Ty && U != Int8QTy && U != UInt8QTy && U != Int16QTy && U != Int32QTy)
+  ONLY_FOR(U != Float16Ty && U != Int8QTy && U != UInt8QTy && U != Int16QTy && U != Int32QTy)
   const T operator[](const size_t index) const {
     return ptr_[index];
   }
-  
+
   ////////////////////////////////////////////////////////////////////////////////
   // WRITE
   ////////////////////////////////////////////////////////////////////////////////
 
   // quantized and float16: return a writer to write via float
-  ONLY_FOR( U == Float16Ty || U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
-  Writer<elK> operator[](const size_t index) {
-    return Writer<elK>(ptr_ + index, scale_, offset_);
+  ONLY_FOR((U == FloatTy) || (U == Float16Ty) || (U == BFloat16Ty) || (U == Int8QTy) || (U == UInt8QTy) ||
+           (U == Int16QTy) || (U == Int32QTy))
+  Writer<elK, globalStore> operator[](const size_t index) {
+    return Writer<elK, globalStore>(ptr_ + index, scale_, offset_);
   }
 
   // other types, direct write: return reference
-  ONLY_FOR( U != Float16Ty && U != Int8QTy && U != UInt8QTy && U != Int16QTy && U != Int32QTy)
-  T &operator[](const size_t index) {
+  ONLY_FOR((U != FloatTy) && (U != Float16Ty) && (U != BFloat16Ty) && (U != Int8QTy) && (U != UInt8QTy) &&
+           (U != Int16QTy) && (U != Int32QTy))
+  T& operator[](const size_t index) {
     return ptr_[index];
   }
 
@@ -88,7 +90,7 @@ private:
 };
 
 #undef ONLY_FOR
-  
-} // dnn_lib
+
+} // namespace dnn_lib
 
 #endif /* ADDRESSER_H */

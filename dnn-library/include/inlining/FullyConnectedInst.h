@@ -375,8 +375,8 @@ inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
     biasScale = in3T->getScale();
     biasOffset = in3T->getOffset();
   }
-  
-  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+
+  Addresser<dstElK, true> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<dstElK> tAInput(activations, in1T->getScale(), in1T->getOffset());
   const Addresser<dstElK> tWInput(weights, in2T->getScale(), in2T->getOffset());
   const Addresser<src3ElK> tBias(biases, biasScale, biasOffset);

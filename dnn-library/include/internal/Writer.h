@@ -14,37 +14,69 @@
 
 #include "Float16.h"
 #include "LibCommon.h"
+#include <etsoc/isa/atomic.h>
 
 namespace dnn_lib {
-#define ONLY_FOR(cond) template <ElemKind U = elK, typename std::enable_if< cond, size_t>::type = 0>
-  
-template <ElemKind elK> class Writer {
+
+template <ElemKind elK, bool globalStore = false> class Writer {
+private:
   using T = typename elemKind2elemTy<elK>::type;
   const float scale_;
   const int32_t offset_;
   T* const ptr_;
-public:
-  Writer(T* ptr, float scale = 1.0, int32_t offset = 0 ) : scale_(scale), offset_(offset), ptr_(ptr)
-  {}
 
-  ONLY_FOR(U == Float16Ty)
-  Writer &operator=(float value) {
+  inline static void write(T* ptr, T value) {
+    constexpr size_t bytesPerElement = Type::getElementSize(elK);
+    static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4);
+    if constexpr (globalStore) {
+      if constexpr (bytesPerElement == 1) {
+        atomic_store_global_8(reinterpret_cast<uint8_t*>(ptr), static_cast<uint8_t>(value));
+      } else if constexpr (bytesPerElement == 2) {
+        atomic_store_global_16(reinterpret_cast<uint16_t*>(ptr), static_cast<uint16_t>(value));
+      } else if constexpr (elK == FloatTy) {
+        uint64_t x;
+        __asm__("fmv.x.w %[destination], %[source]\n" : [ destination ] "=r"(x) : [ source ] "f"(value));
+        atomic_store_global_32(reinterpret_cast<uint32_t*>(ptr), x);
+      } else {
+        atomic_store_global_32(reinterpret_cast<uint32_t*>(ptr), static_cast<uint32_t>(value));
+      }
+    } else {
+      *ptr = value;
+    }
+  }
+
+public:
+  Writer(T* ptr, float scale = 1.0, int32_t offset = 0)
+    : scale_(scale)
+    , offset_(offset)
+    , ptr_(ptr) {
+  }
+
+#define WHEN(cond) template <ElemKind U = elK, typename std::enable_if<cond, size_t>::type = 0>
+
+  WHEN(U == Float16Ty)
+  inline Writer& operator=(float value) {
     uint16_t v;
     dnn_lib::convertFp32ToFp16(value, v);
-    *ptr_ = v;
+    write(ptr_, v);
     return *this;
   }
 
-  ONLY_FOR( U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
-  Writer &operator=(float value) {
-    *ptr_ = dnn_lib::quantize<T>(value, scale_, offset_);
+  WHEN(isQuantizedElemKind(U))
+  inline Writer& operator=(float value) {
+    T quantizedValue = dnn_lib::quantize<T>(value, scale_, offset_);
+    write(ptr_, quantizedValue);
     return *this;
   }
 
-};
-
+  WHEN(U != Float16Ty and not isQuantizedElemKind(U))
+  inline Writer& operator=(T value) {
+    write(ptr_, value);
+    return *this;
+  }
 
 #undef ONLY_FOR
+};
 
 } // namespace dnn_lib
 
