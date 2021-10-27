@@ -178,10 +178,12 @@ inline void matmulStep (float *sum,
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
       "li          x31, 2\n"
-      "ld          x0, 0(%[tAAddr])\n"                    // First line of A
-      "ld          x0, 0(%[tWAddr])\n"                    // First line of B
-      "add         x29, %[tWAddr], %[weightPitch]\n"      // Pitch for two rows
-      "ld          x0, 0(x29)\n"                          // Second line of B
+      "ld          x0, 0(%[tAAddr])\n"               // First line of A
+      "ld          x0, 0(%[tWAddr])\n"               // First line of B
+      "blt         %[aCols], x31, 3f\n"              // Skip second row prefetch if only 1 row
+      "add         x29, %[tWAddr], %[weightPitch]\n" // Pitch for two rows
+      "ld          x0, 0(x29)\n"                     // Second line of B
+      "3:\n"
       "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
@@ -223,10 +225,12 @@ inline void matmulStep (float *sum,
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
       "li          x31, 2\n"
-      "ld          x0, 0(%[tAAddr])\n"                    // First line of A
-      "ld          x0, 0(%[tWAddr])\n"                    // First line of B
-      "add         x29, %[tWAddr], %[weightPitch]\n"      // Pitch for two rows
-      "ld          x0, 0(x29)\n"                          // Second line of B
+      "ld          x0, 0(%[tAAddr])\n"               // First line of A
+      "ld          x0, 0(%[tWAddr])\n"               // First line of B
+      "blt         %[aCols], x31, 3f\n"              // Skip second row prefetch if only 1 row
+      "add         x29, %[tWAddr], %[weightPitch]\n" // Pitch for two rows
+      "ld          x0, 0(x29)\n"                     // Second line of B
+      "3:\n"
       "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
@@ -281,10 +285,12 @@ inline void matmulStep (float *sum,
       "fbc.ps      f7, 0x0(%[scaleA])\n"
       "fbc.ps      f8, 0x0(%[scaleW])\n"
       "li          x31, 2\n"
-      "ld          x0, 0(%[tAAddr])\n"                    // First line of A
-      "ld          x0, 0(%[tWAddr])\n"                    // First line of B
-      "add         x29, %[tWAddr], %[weightPitch]\n"      // Pitch for two rows
-      "ld          x0, 0(x29)\n"                          // Second line of B
+      "ld          x0, 0(%[tAAddr])\n"               // First line of A
+      "ld          x0, 0(%[tWAddr])\n"               // First line of B
+      "blt         %[aCols], x31, 3f\n"              // Skip second row prefetch if only 1 row
+      "add         x29, %[tWAddr], %[weightPitch]\n" // Pitch for two rows
+      "ld          x0, 0(x29)\n"                     // Second line of B
+      "3:\n"
       "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
