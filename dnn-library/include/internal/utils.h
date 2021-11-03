@@ -150,6 +150,76 @@ inline __attribute__((always_inline)) void getNonPaddingCoordinates(unsigned int
 }
 
 /**
+ * @brief Given a tensor, it divides it in elements for the minions.
+ *
+ * It gives to each minion an offset to start and how many elements to work on.
+ * The division ensures that all active minions minions (except for, possibly,
+ * the last one) work with the same number of elements and the following
+ * have no positions to work with.
+ *
+ * @warning The number maxRead does not take into account padding, so if maxRead
+ *  is 16, that does not mean that the minion has to work on 16 elements: some of
+ *  them may be padding. Moreover, @f$ offset + maxRead@f$ may be outside the tensor.
+ *
+ * @warning The function works with the supposition that the minions working on this
+ *  tensor is numbered from 0 to activeMinions.
+ *
+ * @param[in] elementSize The number of bytes of each element in the matrix.
+ *  It is required to be a power of 2 and smaller than 64 (1, 2, 4, 8, usually).
+ * @param[in] numElems The number of elements in the tensor that is divided.
+ * @param[out] offset The starting offset for the minion.
+ * @param[out] maxRead The number of consecutive elements the minion is assigned.
+ * @param[in] minionId The id of the minion that calls the function.
+ * @param[in] activeMinions The number of minions that is working on the tensor.
+ */
+inline __attribute__((always_inline)) void getGlobalPartition(unsigned int elementSize, unsigned int numElems,
+                                                              unsigned int& offset, unsigned int& maxRead,
+                                                              unsigned int minionId, unsigned int activeMinions,
+                                                              void* addr) {
+
+  // Ensure that all the minions have a least one element to do
+  if (unlikely(activeMinions > numElems)) {
+    activeMinions = numElems;
+
+    // When there is an excess of minions make redundant the ones for which there is no work
+    if (unlikely(minionId >= activeMinions)) {
+      offset = 0;
+      maxRead = 0;
+      return;
+    }
+  }
+
+  // Each minion will process a number of consecutive elements (a region)
+  unsigned int regionSize = numElems / activeMinions;
+
+  // After covering with "activeMinions" regions, each region containing "regionSize"
+  // numElems, there is still a remainder.
+  unsigned int elemsRemainder = numElems % activeMinions;
+
+  // The remainder of elements is done by adding one element to each minion whose
+  // id is greater or equal than firstMinionDoingOneExtra. For example, if the
+  // remainder is 3 elements and the number of active minions is 4, then minions 1,
+  // 2 and 3 should do an extra element.
+  unsigned int firstMinionDoingOneExtra = activeMinions - elemsRemainder;
+
+  if (minionId < firstMinionDoingOneExtra) {
+    maxRead = regionSize;
+    offset = regionSize * minionId;
+  } else {
+    maxRead = regionSize + 1;
+    offset = regionSize * firstMinionDoingOneExtra + maxRead * (minionId - firstMinionDoingOneExtra);
+  }
+
+  if (unlikely(offset >= numElems)) {
+    // Do nothing when offset is beyond numElems minus one
+    maxRead = 0;
+  } else {
+    // Clip maxRead so that offset plus maxRead does not got beyond numElems minus one
+    maxRead = std::min(maxRead, numElems - offset);
+  }
+}
+
+/**
  * @brief Given a tensor, it divides it in cachelines for the minions.
  *
  * It gives to each minion an offset to start and how many elements to work on.
