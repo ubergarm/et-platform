@@ -22,7 +22,6 @@
 #include "Writer.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 
@@ -144,7 +143,9 @@ inline void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* out2T, 
     y = coord[2] * strides[1] - ssize_t(pads[1]);
 
     bool first = true;
-    max_value = 0;
+    // When the MaxPool window includes only padding pixels then for that
+    // window by convention we return 0  /(offset for quantized types).
+    max_value = outT->getType().isQuantizedType() ? static_cast<srcType>(outT->getOffset()) : 0;
     int64_t argmaxNHWC = 0;
 
     for (size_t fx = 0; fx < kernels[0]; fx++) {
