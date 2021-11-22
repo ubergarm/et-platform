@@ -193,6 +193,11 @@ int32_t LibTensor::getOffset() const {
 size_t LibTensor::getElementSize() const {
   return type_.getElementSize();
 }
+
+bool LibTensor::getUntouchable() const {
+  return untouch_;
+}
+
 // end LibTensor class
 
 } // end namespace dnn_lib

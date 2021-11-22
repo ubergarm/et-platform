@@ -263,6 +263,8 @@ public:
   int32_t getOffset() const;
 
   size_t getElementSize() const;
+
+  bool getUntouchable() const;
 };
 
 } // namespace dnn_lib

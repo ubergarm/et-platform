@@ -21,7 +21,8 @@ size_t implSel::Copy(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*
       (((uintptr_t)inTensors[0]->getAddress() & 0x3F) == 0) and
       ((inTensors[0]->getType().getSizeInBytes() & 0x3F) == 0) and
       (((uintptr_t)outTensors[0]->getAddress() & 0x3F) == 0) and
-      ((outTensors[0]->getType().getSizeInBytes() & 0x3F) == 0)) {
+      ((outTensors[0]->getType().getSizeInBytes() & 0x3F) == 0) and
+      ((outTensors[0]->getUntouchable() == false) || (outTensors[0]->size() == outTensors[0]->actualSize()))) {
     return 1;
   } else {
     return 0;
