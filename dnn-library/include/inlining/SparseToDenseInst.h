@@ -160,7 +160,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   unsigned int batchPitchBytes = srcPitch[0] * Type::getElementSize(elK);
   // @TODO srcpitch It is a cnst pointer!!!!. Re-do in other way
   // it is not allowed modify tensor properties. It needs a cpy of it.
-  size_t cpySrcPitch[srcDimNum] = {0,};
+  size_t cpySrcPitch[srcDimNum];
   for (size_t i = 0; i < srcDimNum; i++)
     cpySrcPitch[i] = srcPitch[i];
   //srcPitch[0] = 0;
