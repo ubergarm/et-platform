@@ -267,12 +267,11 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                        : [ weightAddr ] "+&r"(weightAddr), [ actAddr ] "+&r"(actAddr), [ dist ] "+&r"(dist),
                          [ sum ] "+&r"(sum), [ ox ] "+&r"(ox), [ oy ] "+&r"(oy), [ fy ] "+&r"(fy), [ fx ] "+&r"(fx)
                        : [ weightPitch1 ] "r"(weightPitch[1] * 2), [ weightPitch2 ] "r"(weightPitch[2] * 2),
-                         [ gatherValues ] "r"(gatherValues), [ actPitch1 ] "r"(actPitch[1] * 2),
-                         [ actPitch1 ] "r"(actPitch[1] * dilation[0] * 2),
-                         [ actPitch2 ] "r"(actPitch[2] * dilation[1] * 2), [ actIndex2 ] "r"(actIndex[2]),
-                         [ kernels0 ] "r"(kernels[0]), [ kernels1 ] "r"(kernels[1]), [ inCperG ] "r"(inCperG),
-                         [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y), [ dilation0 ] "r"(dilation[0]),
-                         [ dilation1 ] "r"(dilation[1])
+                         [ gatherValues ] "r"(gatherValues), [ actPitch1 ] "r"(actPitch[1] * dilation[0] * 2),
+                         [ actIndex1 ] "r"(actIndex[1]), [ actPitch2 ] "r"(actPitch[2] * dilation[1] * 2),
+                         [ actIndex2 ] "r"(actIndex[2]), [ kernels0 ] "r"(kernels[0]), [ kernels1 ] "r"(kernels[1]),
+                         [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y),
+                         [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
                        : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
   return;
 }
