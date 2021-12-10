@@ -87,61 +87,71 @@ namespace inlining {
    with some special cases into account:
     a) if y == 0 => result is 1
     b) if x == 0 => result i 0
-    c) if x < 0, NaN if y is not integer
+    c) if x < 0 (excluding -inf), NaN if y is not integer.
  */
 
+/* fclass, bit 1 is negative (it does not include -inf)*/
+#define NEG_MASK (1 << 1)
+
 #define EB_Pow_FLOAT_COMPUTE                                                                                           \
-  (                                                                       \
-       "fmv.w.x %[out], x0\n" /* out=0 (all lanes)*/                      \
-       "maskand m7, m0, m0\n" /* save initial mask for later */           \
-       /* m0&=(x!=0) =>  disable lanes where x==0 (case b)*/              \
-       "feqm.ps m1, %[x], %[out]\n"                                       \
-       "masknot m1, m1\n" /* m1= (x != 0) */                              \
-       "maskand m0, m0, m1\n" /* m0 = initial mask with 0's where x==0*/  \
-                                                                          \
-       /* m2 = 1 if y is integer (for case c)*/                           \
-       "fround.ps ft0, %[y]\n"                                            \
-       "feqm.ps m2, ft0, %[y]\n"                                          \
-       /* m3 = 1 if round(y) is odd (for case c)*/                        \
-       "fcvt.pw.ps ft0, ft0\n"                                            \
-       "fandi.pi ft0, ft0, 1\n"                                           \
-       "fsetm.pi m3, ft0\n"                                               \
-       /* m4 = x <0 */                                                    \
-       "fltm.ps m4, %[x], %[out]\n"                                       \
-                                                                          \
-       /* save m0 in m1 */                                                \
-       "maskand m1, m0, m0\n"                                             \
-       /* set m0 to 0 in lanes where y==0*/                               \
-       "feqm.ps m0, %[y], %[out]\n"                                       \
-       "masknot m0, m0\n"                                                 \
-       /* compute y = y*log(abs(x)) */                                    \
-       /* if y was 0, because of the mask, the result will still be 0*/   \
-       "fsgnjx.ps %[x], %[x], %[x]\n" /* x = abs(x) */                    \
-       "flog.ps %[x], %[x]\n" /*x=log(abs(x)*/                            \
-       "fmul.ps %[y], %[y], %[x]\n" /* y = y*log(abs(x)) */               \
-                                                                          \
-       /* compute out = exp(y) */                                         \
-       "maskand m0, m1, m1\n" /*restore saved mask*/                      \
-       "fexp.ps %[out], %[y]\n"                                           \
-                                                                          \
-       /* at this point:                                                  \
-          if x==0 => out=0                                                \
-          if y==0 => out=1                                                \
-          we still need to treat case c                                   \
-       */                                                                 \
-       /* set out=-out for x<0, y=integer, y%2==1*/                       \
-       "maskand m0, m2, m4\n" /*x negative, y integer*/                   \
-       "maskand m0, m0, m3\n"  /*x negative, y integer, y odd*/           \
-       "fsgnjn.ps %[out], %[out], %[out]\n" /*change the sign*/           \
-                                                                          \
-       /* set out=NaN for x<0, y=not integer */                           \
-       "masknot m2, m2\n"                                                 \
-       "maskand m0, m2, m4\n"                                             \
-       "fbcx.ps %[out], %[nan]\n"                                         \
-       /* and restore the mask for the store*/                            \
-       "maskand m0, m7, m7\n"                                             \
-       : [out] "=&f" (out), [x] "+&f" (in1), [y] "+&f" (in2)              \
-       : [nan] "r" ( 0x7f800001)  : "ft0")
+  ("fmv.w.x %[out], x0\n"                                   /* out=0 (all lanes)*/                                     \
+   "maskand m7, m0, m0\n" /* save initial mask for later */ /* m0&=(x!=0) =>  disable lanes where x==0 (case b)*/      \
+   "feqm.ps m1, %[x], %[out]\n"                             /*m1= (x==0)*/                                             \
+   "feqm.ps m2, %[y], %[out]\n"                             /*m2= (y==0)*/                                             \
+   "masknot m2, m2\n"                                       /*m2= (y!=0)*/                                             \
+   "maskand m1, m1, m2\n"                                   /* m1 = (x==0, y!=0) */                                    \
+   "masknot m1, m1 \n"                                                                                                 \
+   "maskand m0, m0, m1\n" /* m0 =  mask with 0's where x==0, y!=0*/                                                    \
+                                                                                                                       \
+   /* m2 = 1 if y is integer (for case c)*/                                                                            \
+   "fround.ps ft0, %[y]\n"                                                                                             \
+   "feqm.ps m2, ft0, %[y]\n" /* m3 = 1 if round(y) is odd (for case c) need to exclude inf*/                           \
+   "fcvt.pw.ps ft0, ft0\n"                                                                                             \
+   "fandi.pi ft0, ft0, 1\n"                                                                                            \
+   "fsetm.pi m3, ft0\n" /* exclude inf */                                                                              \
+   "fbcx.ps ft2, %[inf]\n"                                                                                             \
+   "feqm.ps m6, %[y], ft2\n"                                                                                           \
+   "masknot m6, m6 \n"                                                                                                 \
+   "maskand m3, m3, m6\n"                                                                                              \
+                                                                                                                       \
+   /* m4 = x <0 , excluding -inf and denormals*/                                                                       \
+   "fclass.ps ft1, %[x]\n"                                                                                             \
+   "fbcx.ps ft2, %[neg_m]\n"                                                                                           \
+   "fand.pi ft3, ft1, ft2\n"                                                                                           \
+   "fsetm.pi m4, ft3\n"                                                                                                \
+                                                                                                                       \
+   /* m5 = x < 0 (all, used to set sign)  */                                                                           \
+   "fltm.ps m5, %[x], %[out]\n"                                                                                        \
+                                                                                                                       \
+   /* save m0 in m1 */                                                                                                 \
+   "maskand m1, m0, m0\n" /* set m0 to 0 in lanes where y==0*/                                                         \
+   "feqm.ps m0, %[y], %[out]\n"                                                                                        \
+   "masknot m0, m0\n" /* compute y = y*log(abs(x)) */ /* if y was 0, because of the mask, the result will still be 0*/ \
+   "fsgnjx.ps %[x], %[x], %[x]\n"                     /* x = abs(x) */                                                 \
+   "flog.ps %[x], %[x]\n"                             /*x=log(abs(x)*/                                                 \
+   "fmul.ps %[y], %[y], %[x]\n"                       /* y = y*log(abs(x)) */                                          \
+                                                                                                                       \
+   /* compute out = exp(y) */                                                                                          \
+   "maskand m0, m1, m1\n" /*restore saved mask*/                                                                       \
+   "fexp.ps %[out], %[y]\n"                                                                                            \
+                                                                                                                       \
+   /* at this point:                                                                                                   \
+      if x==0 => out=0                                                                                                 \
+      if y==0 => out=1                                                                                                 \
+      we still need to treat case c                                                                                    \
+   */                                                                                                                  \
+   "maskand m0, m2, m5\n"               /*x negative, y integer*/                                                      \
+   "maskand m0, m0, m3\n"               /*x negative, y integer, y odd*/                                               \
+   "fsgnjn.ps %[out], %[out], %[out]\n" /*change the sign*/                                                            \
+                                                                                                                       \
+   /* set out=NaN for x<0, y=not integer */                                                                            \
+   "masknot m2, m2\n"                                                                                                  \
+   "maskand m0, m2, m4\n"                                                                                              \
+   "fbcx.ps %[out], %[nan]\n" /* and restore the mask for the store*/                                                  \
+   "maskand m0, m7, m7\n"                                                                                              \
+   : [out] "=&f"(out), [x] "+&f"(in1), [y] "+&f"(in2)                                                                  \
+   : [nan] "r"(NAN), [neg_m] "r"(NEG_MASK), [inf] "r"(INFINITY)                                                        \
+   : "ft0", "ft1", "ft2", "ft3")
 
 #define EB_Pow_INDEX_COMPUTE ("invalid")
 
