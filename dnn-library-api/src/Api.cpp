@@ -857,14 +857,14 @@ void initInstrConfigTable() {
     {},                             // impl versions
     implSel::defaultSel<1>,         // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched,
        operandState::untouched}}},
     {0x0}, // evict available mask
-    {0x0}  // global store mask
+    {0x1}  // global store mask
   };
   instrConfigTable.push_back(instConfigInt);
 
@@ -998,9 +998,9 @@ void initInstrConfigTable() {
     {},                     // impl versions
     implSel::defaultSel<1>, // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean, operandState::clean, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
@@ -1222,9 +1222,9 @@ void initInstrConfigTable() {
     {},                     // impl versions
     implSel::defaultSel<1>, // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
