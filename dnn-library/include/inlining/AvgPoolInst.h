@@ -208,7 +208,7 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
   auto inH = inT->getHandle<dstType>();
   auto outH = outT->getHandle<dstType>();
 
-  float filterArea = kernels[0] * kernels[1];
+  float rawFilterArea = kernels[0] * kernels[1];
 
   // For each input in the batch:
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -221,7 +221,7 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
         for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
 
           float sum = 0;
-          float filterOut = 0;
+          float filterArea = rawFilterArea;
           for (size_t fx = 0; fx < kernels[0]; fx++) {
             for (size_t fy = 0; fy < kernels[1]; fy++) {
               ssize_t ox = x + fx;
@@ -231,7 +231,7 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
               if (ox < 0 || oy < 0 || ox >= ssize_t(inT->dims()[1]) ||
                   oy >= ssize_t(inT->dims()[2])) {
                 if (!countIncludePads) {
-                  filterOut++;
+                  filterArea--;
                 }
                 continue;
               }
@@ -249,16 +249,21 @@ inline  typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Flo
             }
           }
 
-          float invFilterArea = 0.0;
-          fpReciprocalSingleElement(filterArea - filterOut, invFilterArea);
+          float outValue;
+          if (filterArea == 0.f) {
+            outValue = 0.f;
+          } else {
+            float invFilter;
+            fpReciprocalSingleElement(filterArea, invFilter); 
+            outValue = sum * invFilter;
+          }
+
           if (dstElK == Float16Ty) {
             uint16_t dst = 0;
-            convertFp32ToFp16((sum * invFilterArea), dst);
+            convertFp32ToFp16(outValue, dst);
             outH.at(std::array<size_t,4>{n,ax,ay,z}) = dst;
           } else {
-            outH.at(std::array<size_t, 4>{n,ax,ay,z}) = quantize<dstType>((sum * invFilterArea),
-                          outH.getScale(),
-                          outH.getOffset());
+            outH.at(std::array<size_t, 4>{n,ax,ay,z}) = quantize<dstType>(outValue, outH.getScale(), outH.getOffset());
           }
         } // W
       }   // H
@@ -294,7 +299,7 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
   auto inH = inT->getHandle<dstType>();
   auto outH = outT->getHandle<dstType>();
 
-  float filterArea = kernels[0] * kernels[1];
+  float rawFilterArea = kernels[0] * kernels[1];
 
   // For each input in the batch:
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -307,7 +312,7 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
         for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
 
           float sum = 0;
-          float filterOut = 0;
+          float filterArea = rawFilterArea;
           for (size_t fx = 0; fx < kernels[0]; fx++) {
             for (size_t fy = 0; fy < kernels[1]; fy++) {
               ssize_t ox = x + fx;
@@ -317,16 +322,24 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
               if (ox < 0 || oy < 0 || ox >= ssize_t(inT->dims()[1]) ||
                   oy >= ssize_t(inT->dims()[2])) {
                 if (!countIncludePads) {
-                  filterOut++;
+                  filterArea--;
                 }
                 continue;
               }
               sum += inH.at(std::array<size_t, 4>{n, static_cast<dim_t>(ox), static_cast<dim_t>(oy), z});
             }
           }
-          float invFilterArea = 0.0;
-          fpReciprocalSingleElement(filterArea - filterOut, invFilterArea);
-          outH.at(std::array<size_t, 4>{n,ax,ay,z}) = (sum * invFilterArea);
+
+          float outValue;
+          if (filterArea == 0.f) {
+            outValue = 0.f;
+          } else {
+            float invFilter;
+            fpReciprocalSingleElement(filterArea, invFilter); 
+            outValue = sum * invFilter;
+          }
+
+          outH.at(std::array<size_t, 4>{n,ax,ay,z}) = outValue;
   
         } // W
       }   // H
@@ -334,7 +347,7 @@ inline  typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Fl
   }       // N
 }
 
-  template <ElemKind dstElK, size_t N, size_t PN>
+template <ElemKind dstElK, size_t N, size_t PN>
 inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
                                       const std::array<uint32_t, N> &kernels,
                                       const std::array<uint32_t, N> &strides,
@@ -367,7 +380,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = inT->strides().data();
   
-  float filterArea = kernels[0] * kernels[1];
+  float rawFilterArea = kernels[0] * kernels[1];
 
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
@@ -394,10 +407,9 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   while (!done && (offsetOut < posMax)) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
     y = coord[2] * strides[1] - ssize_t(pads[1]);
-
     auto sum = tAInput[0];
     sum = 0;
-    float filterOut = 0;
+    float filterArea = rawFilterArea;
 
     for (size_t fx = 0; fx < kernels[0]; fx++) {
       for (size_t fy = 0; fy < kernels[1]; fy++) {
@@ -408,7 +420,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
         if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
             oy >= ssize_t(actIndex[2])) {
           if (!countIncludePads) {
-            filterOut++;
+            filterArea--;
           }
           continue;
         }
@@ -418,9 +430,15 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
       }
     }
 
-    float invFilter;
-    fpReciprocalSingleElement(filterArea - filterOut, invFilter);
-    tOutput[offsetOut] = sum * invFilter;
+    float outValue;
+    if (filterArea == 0.f) {
+      outValue = 0.f;
+    } else {
+      float invFilter;
+      fpReciprocalSingleElement(filterArea, invFilter); 
+      outValue = sum * invFilter;
+    }
+    tOutput[offsetOut] = outValue;
 
     done = getOffsets(4, coord, offsetOut, dstIndex, dstPitch);
   }
