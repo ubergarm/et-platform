@@ -369,7 +369,7 @@ inline void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT,
   // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
   Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
   // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
-  const Addresser<dstElK> tAInput(src, inT->getScale(), outT->getOffset());
+  const Addresser<dstElK> tAInput(src, inT->getScale(), inT->getOffset());
  
   // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
