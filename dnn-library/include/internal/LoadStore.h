@@ -25,7 +25,7 @@ enum class RoundingMode {
   Invalid1,
   Invalid2,
   Dynamic,
-  LikeStdRoundAndCast = NearestTiesMax,
+  LikeStdRoundAndCast = NearestTiesEven,
   LikeCast = TowardsZero
 };
 
