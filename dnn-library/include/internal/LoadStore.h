@@ -364,7 +364,6 @@ inline void doQuantize(float& destination, float source, float scaleReciprocal, 
   } else {
     convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(destination, destination);
   }
-  asm __volatile__("csrwi validation3,0");
   if constexpr (clip8bits && hasSign) {
     __asm__ __volatile__("fsat8.pi %0, %0\n" : "+f"(destination));
   }
