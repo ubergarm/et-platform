@@ -9,8 +9,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef _EMBEDDING_BAG_INST_H_
-#define _EMBEDDING_BAG_INST_H_
+#ifndef _EMBEDDING_BAG_ROWWISE_OFFESTS_INST_H_
+#define _EMBEDDING_BAG_ROWWISE_OFFESTS_INST_H_
 
 #include <assert.h>
 #include <cmath>
@@ -143,3 +143,5 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
 
 } // inlining
 } // dnn_lib
+
+#endif // _EMBEDDING_BAG_ROWWISE_OFFESTS_INST_H_
