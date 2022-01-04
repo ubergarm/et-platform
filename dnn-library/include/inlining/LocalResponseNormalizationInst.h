@@ -98,8 +98,8 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
     size_t dim = actIndex[3];
     size_t pitch = actPitch[3];
 
-    size_t startCoord = (c > halfWindowSize) ? (c - halfWindowSize) : 0;
-    size_t endCoord = std::min(c + halfWindowSize, dim);
+    size_t startCoord = (c >= halfWindowSize) ? (c - halfWindowSize) : 0;
+    size_t endCoord = std::min(c + halfWindowSize, dim - 1);
 
     size_t startAddr = offsetIn + (startCoord - c) * pitch;
     size_t endAddr = offsetIn + (endCoord - c) * pitch;
@@ -107,7 +107,7 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
     auto squareSum = tAInput[offsetIn];
     squareSum = 0.0;
 
-    for (size_t srcAddr = startAddr; srcAddr < endAddr; srcAddr += pitch) {
+    for (size_t srcAddr = startAddr; srcAddr <= endAddr; srcAddr += pitch) {
       auto val = tAInput[srcAddr];
       squareSum += val * val;
     }
@@ -131,7 +131,7 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
 }
 
 /* Reduce a vector by means of the addition */
-inline void reduceAdd(float value, float& result) {
+static inline __attribute__((always_inline)) void reduceAdd(float value, float& result) {
   // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
   // | h3 |  h2   | h1 |     h0      | l3 |  l2   | l1 |     l0      | value                               |
   // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
@@ -247,13 +247,15 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
     unsigned int end = std::min(c + halfWindowSize, (long unsigned int)actIndex[3] - 1);
     unsigned int registers = (end - start + 1)/8;
     unsigned int mod = (end - start + 1) - 8*registers;
+
     uintptr_t srcAddr =
       reinterpret_cast<uintptr_t>(activations) + (offsetIn + (start - c) * actPitch[3]) * bytesPerElement;
 
-    float value, squareSum;
+    float value, squareSum, squareSumTail;
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n"
                          "fxor.pi %[squareSum], %[squareSum], %[squareSum]\n"
-                         : [ squareSum ] "=f"(squareSum));
+                         "fxor.pi %[squareSumTail], %[squareSumTail], %[squareSumTail]\n"
+                         : [ squareSum ] "=f"(squareSum), [ squareSumTail ] "=f"(squareSumTail));
 
     constexpr uint32_t pitch = 8 * bytesPerElement;
     for (uint64_t i = 0; i < registers; ++i, srcAddr += pitch) {
@@ -264,19 +266,21 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
                            : [ value ] "f"(value));
     }
 
+    reduceAdd(squareSum, squareSum);
+
     if (mod > 0) {
       uint64_t mask = (1 << mod) - 1;
       __asm__ __volatile__("mov.m.x m0, %[mask], 0x0\n" : : [ mask ] "r"(mask));
       load<bytesPerElement, srcAligned>(srcAddr, srcConf, srcIndices, value);
       convert<elK, FloatTy>(value);
-      __asm__ __volatile__("fmadd.ps %[squareSum], %[value], %[value], %[squareSum]\n"
-                           : [ squareSum ] "+f"(squareSum)
+      __asm__ __volatile__("fmadd.ps %[squareSumTail], %[value], %[value], %[squareSumTail]\n"
+                           : [ squareSumTail ] "+f"(squareSumTail)
                            : [ value ] "f"(value));
     }
 
-    reduceAdd(squareSum, squareSum);
+    reduceAdd(squareSumTail, squareSumTail);
 
-    float scale = k + normedAlpha * squareSum;
+    float scale = k + normedAlpha * (squareSum + squareSumTail);
 
     // Load current element and convert to float if needed
     srcAddr = reinterpret_cast<uintptr_t>(activations) + offsetIn * bytesPerElement;
@@ -299,6 +303,8 @@ inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
     store<bytesPerElement, dstAligned2>(dstAddr2, dstConf2, dstIndices2, scale);
 
     // Move to next element
+    // FIXME: untouchable dest and scale padding is touched in some dimensoins. --src-dims="1,39,3,2"
+    // see SW-10757. for now ImplSelector selects scalar implementation in touchable padding cases.
     done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, offsetOut2, actIndex, actPitch, dstPitch, dstPitch2);
   }
 
