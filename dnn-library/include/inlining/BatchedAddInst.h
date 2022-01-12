@@ -37,8 +37,6 @@ inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
                                          LibTensor* in2T, uint64_t flags,
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
-//  using batchType = typename elemKind2elemTy<batchElK>::type;
-//  using sliceType = typename elemKind2elemTy<sliceElK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -46,7 +44,6 @@ inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
 
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
-  /* maintain compatibility through the new Iface Libtensor */
   void* dstT = outT->getRawDataPointer<void>();
   void* batchT = in1T->getRawDataPointer<void>();
   void* sliceT = in2T->getRawDataPointer<void>();
@@ -55,17 +52,21 @@ inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
   const Addresser<batchElK> tBatch(batchT, in1T->getScale(), in1T->getOffset());
   const Addresser<sliceElK> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
   
-  // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *batchPitch = (unsigned int *)pbatchPitches;
   const dim_t *batchPitch = in1T->strides().data();
+  const dim_t* slicePitch = in2T->strides().data();
 
   unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
   
   unsigned int numElemsDst =
       dstPitch[0] * dstIndex[0];
+
+  unsigned int eSlicePitch[pbatchDimNum];
+  eSlicePitch[0] = 0;
+  for (unsigned int i = 1; i < pbatchDimNum; i++) {
+    eSlicePitch[i] = slicePitch[i - 1];
+  }
 
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
@@ -82,9 +83,11 @@ inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
 
 
   uint64_t offsetIn = 0;
+  uint64_t offsetIn2 = 0;
   uint64_t offsetOut = 0;
   for (unsigned int j = 0; j < k; j++) {
     offsetIn += batchPitch[j] * coord[j];
+    offsetIn2 += eSlicePitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
@@ -94,10 +97,10 @@ inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
   Operator<Addresser<batchElK>, Addresser<sliceElK>, Addresser<dstElK>, Add> op;
 
   while (!done && (offsetOut < posMax)) {
-    uint64_t offsetIn2 = offsetIn - coord[0]*batchPitch[0];
     op.doOp(tOutput, tBatch, tSlice, offsetOut, offsetIn, offsetIn2);
-    done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, dstIndex, dstPitch, batchPitch);
+    done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, offsetIn2, dstIndex, dstPitch, batchPitch, eSlicePitch);
   }
+
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
