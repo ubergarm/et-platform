@@ -15,6 +15,7 @@
 #include "dnnLibraryApi/LibApi.h"
 
 // STD
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstring>
@@ -45,13 +46,8 @@ struct instrConfigInt {
 };
 
 // The instruction table contains all the instructions available in the DNN Library
-static std::vector<instrConfigInt> instrConfigTable;
-static bool tableInitialized = false;
-
-// This function initializes the table with all the contents
-void initInstrConfigTable() {
-  // ET_adaptiveavgpool
-  instrConfigInt instConfigInt{
+static const std::vector<instrConfigInt> instrConfigTable = {
+  {
     "AdaptiveAvgPool",      // name
     1,                      // # outs
     1,                      // # ins
@@ -67,11 +63,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_allocactivation
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -87,11 +82,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_argmax
-  instConfigInt = instrConfigInt{
+  {
     "ArgMax",                                         // name
     1,                                                // # outs
     1,                                                // # ins
@@ -107,11 +101,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_avgpool
-  instConfigInt = instrConfigInt{
+  {
     "AvgPool", // name
     1,         // # outs
     1,         // # ins
@@ -128,11 +121,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_avgpool
-  instConfigInt = instrConfigInt{
+  {
     "AvgPool", // name
     1,         // # outs
     1,         // # ins
@@ -149,11 +141,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_batchedadd
-  instConfigInt = instrConfigInt{
+  {
     "BatchedAdd",           // name
     1,                      // # outs
     2,                      // # ins
@@ -169,11 +160,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_batchedreduceadd
-  instConfigInt = instrConfigInt{
+  {
     "BatchedReduceAdd",     // name
     1,                      // # outs
     1,                      // # ins
@@ -189,11 +179,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_batchedreducemin
-  instConfigInt = instrConfigInt{
+  {
     "BatchedReduceMin",     // name
     1,                      // # outs
     1,                      // # ins
@@ -209,11 +198,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_batchonehot
-  instConfigInt = instrConfigInt{
+  {
     "BatchOneHot",          // name
     1,                      // # outs
     3,                      // # ins
@@ -229,11 +217,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_convertto
-  instConfigInt = instrConfigInt{
+  {
     "ConvertTo",            // name
     1,                      // # outs
     1,                      // # ins
@@ -249,11 +236,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_int8converter
-  instConfigInt = instrConfigInt{
+  {
     "Int8Converter",        // name
     1,                      // # outs
     1,                      // # ins
@@ -269,11 +255,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_channelwisequantizedconvolution
-  instConfigInt = instrConfigInt{
+  {
     "ChannelWiseQuantizedConvolution", // name
     1,                                 // # outs
     7,                                 // # ins
@@ -293,11 +278,10 @@ void initInstrConfigTable() {
        operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_channelwisequantizedconvolution3d
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -313,11 +297,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_convolution
-  instConfigInt = instrConfigInt{
+  {
     "Convolution", // name
     1,             // # outs
     3,             // # ins
@@ -334,11 +317,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_convolution3d
-  instConfigInt = instrConfigInt{
+  {
     "Convolution3D",                                                                                 // name
     1,                                                                                               // # outs
     3,                                                                                               // # ins
@@ -354,11 +336,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_convtranspose
-  instConfigInt = instrConfigInt{
+  {
     "ConvTranspose", // name
     1,               // # outs
     3,               // # ins
@@ -375,11 +356,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_copy
-  instConfigInt = instrConfigInt{
+  {
     "Copy",         // name
     1,              // # outs
     1,              // # ins
@@ -395,11 +375,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::dirty, operandState::untouched}}},
     {0x1, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_crossentropyloss
-  instConfigInt = instrConfigInt{
+  {
     "CrossEntropyLoss",     // name
     1,                      // # outs
     2,                      // # ins
@@ -415,11 +394,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_cumsum
-  instConfigInt = instrConfigInt{
+  {
     "CumSum",                                             // name
     1,                                                    // # outs
     1,                                                    // # ins
@@ -435,11 +413,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_deallocactivation
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -455,11 +432,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_debugprint
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -475,11 +451,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_dequantize
-  instConfigInt = instrConfigInt{
+  {
     "Dequantize",           // name
     1,                      // # outs
     1,                      // # ins
@@ -495,11 +470,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementadd
-  instConfigInt = instrConfigInt{
+  {
     "ElementAdd",           // name
     1,                      // # outs
     2,                      // # ins
@@ -515,11 +489,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementand
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -535,11 +508,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementcmpeq
-  instConfigInt = instrConfigInt{
+  {
     "ElementCmpEQ",        // name
     1,                     // # outs
     2,                     // # ins
@@ -558,11 +530,10 @@ void initInstrConfigTable() {
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementcmplte
-  instConfigInt = instrConfigInt{
+  {
     "ElementCmpLTE",        // name
     1,                      // # outs
     2,                      // # ins
@@ -581,11 +552,10 @@ void initInstrConfigTable() {
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementcmplt
-  instConfigInt = instrConfigInt{
+  {
     "ElementCmpLT",        // name
     1,                     // # outs
     2,                     // # ins
@@ -604,11 +574,10 @@ void initInstrConfigTable() {
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementdiv
-  instConfigInt = instrConfigInt{
+  {
     "ElementDiv",           // name
     1,                      // # outs
     2,                      // # ins
@@ -624,11 +593,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementexp
-  instConfigInt = instrConfigInt{
+  {
     "ElementExp",           // name
     1,                      // # outs
     1,                      // # ins
@@ -644,11 +612,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementisnan
-  instConfigInt = instrConfigInt{
+  {
     "ElementIsNaN",         // name
     1,                      // # outs
     1,                      // # ins
@@ -664,11 +631,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementlog
-  instConfigInt = instrConfigInt{
+  {
     "ElementLog",           // name
     1,                      // # outs
     1,                      // # ins
@@ -684,11 +650,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementmax
-  instConfigInt = instrConfigInt{
+  {
     "ElementMax",           // name
     1,                      // # outs
     2,                      // # ins
@@ -704,11 +669,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementmin
-  instConfigInt = instrConfigInt{
+  {
     "ElementMin",           // name
     1,                      // # outs
     2,                      // # ins
@@ -724,11 +688,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementmul
-  instConfigInt = instrConfigInt{
+  {
     "ElementMul",           // name
     1,                      // # outs
     2,                      // # ins
@@ -744,11 +707,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementor
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -764,11 +726,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementpow
-  instConfigInt = instrConfigInt{
+  {
     "ElementPow",           // name
     1,                      // # outs
     2,                      // # ins
@@ -784,11 +745,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementselect
-  instConfigInt = instrConfigInt{
+  {
     "ElementSelect",        // name
     1,                      // # outs
     3,                      // # ins
@@ -804,11 +764,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementsub
-  instConfigInt = instrConfigInt{
+  {
     "ElementSub",           // name
     1,                      // # outs
     2,                      // # ins
@@ -824,11 +783,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_elementxor
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -844,11 +802,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_embeddingbag
-  instConfigInt = instrConfigInt{
+  {
     "EmbeddingBag",                 // name
     1,                              // # outs
     4,                              // # ins
@@ -865,11 +822,10 @@ void initInstrConfigTable() {
        operandState::untouched}}},
     {0x0}, // evict available mask
     {0x1}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_embeddingbagbyterowwiseoffsets
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -885,11 +841,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_emptyoperator
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -905,11 +860,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_maxsplat
-  instConfigInt = instrConfigInt{
+  {
     "MaxSplat",              // name
     1,                       // # outs
     1,                       // # ins
@@ -925,11 +879,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_extracttensor
-  instConfigInt = instrConfigInt{
+  {
     "ExtractTensor",           // name
     1,                         // # outs
     1,                         // # ins
@@ -945,11 +898,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_flip
-  instConfigInt = instrConfigInt{
+  {
     "Flip",                 // name
     1,                      // # outs
     1,                      // # ins
@@ -965,11 +917,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_flushL3
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -985,11 +936,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_fullyconnected
-  instConfigInt = instrConfigInt{
+  {
     "FullyConnected",       // name
     1,                      // # outs
     3,                      // # ins
@@ -1005,11 +955,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x1}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_fusedrowwisequantizedsparselengthsweightedsum
-  instConfigInt = instrConfigInt{
+  {
     "FusedRowwiseQuantizedSparseLengthsWeightedSum", // name
     1,                                               // # outs
     4,                                               // # ins
@@ -1026,11 +975,10 @@ void initInstrConfigTable() {
        operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_fusedrowwisequantizedsparselengthssum
-  instConfigInt = instrConfigInt{
+  {
     "FusedRowwiseQuantizedSparseLengthsSum", // name
     1,                                       // # outs
     3,                                       // # ins
@@ -1046,11 +994,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_gather
-  instConfigInt = instrConfigInt{
+  {
     "Gather",                    // name
     1,                           // # outs
     2,                           // # ins
@@ -1066,11 +1013,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x1}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_gatherranges
-  instConfigInt = instrConfigInt{
+  {
     "GatherRanges",         // name
     2,                      // # outs
     2,                      // # ins
@@ -1086,11 +1032,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_inserttensor
-  instConfigInt = instrConfigInt{
+  {
     "InsertTensor",                                                         // name
     1,                                                                      // # outs
     1,                                                                      // # ins
@@ -1106,11 +1051,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
     {0x1, 0x1}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_intlookuptable
-  instConfigInt = instrConfigInt{
+  {
     "IntLookupTable",       // name
     1,                      // # outs
     2,                      // # ins
@@ -1126,11 +1070,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_lengthsrangefill
-  instConfigInt = instrConfigInt{
+  {
     "LengthsRangeFill",     // name
     1,                      // # outs
     1,                      // # ins
@@ -1146,11 +1089,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_lengthssum
-  instConfigInt = instrConfigInt{
+  {
     "LengthsSum",           // name
     1,                      // # outs
     2,                      // # ins
@@ -1166,11 +1108,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_lengthstoranges
-  instConfigInt = instrConfigInt{
+  {
     "LengthsToRanges",      // name
     1,                      // # outs
     1,                      // # ins
@@ -1186,11 +1127,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_localresponsenormalization
-  instConfigInt = instrConfigInt{
+  {
     "LocalResponseNormalization",                                                                     // name
     2,                                                                                                // # outs
     1,                                                                                                // # ins
@@ -1209,11 +1149,10 @@ void initInstrConfigTable() {
       {operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_matmul
-  instConfigInt = instrConfigInt{
+  {
     "MatMul",               // name
     1,                      // # outs
     2,                      // # ins
@@ -1229,11 +1168,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x1}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_maxpool
-  instConfigInt = instrConfigInt{
+  {
     "MaxPool",                                                                                        // name
     1,                                                                                                // # outs
     1,                                                                                                // # ins
@@ -1249,11 +1187,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_maxpoolwithargmax
-  instConfigInt = instrConfigInt{
+  {
     "MaxPoolWithArgMax",                                                                              // name
     2,                                                                                                // # outs
     1,                                                                                                // # ins
@@ -1269,11 +1206,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_modulo
-  instConfigInt = instrConfigInt{
+  {
     "Modulo",                                                     // name
     1,                                                            // # outs
     1,                                                            // # ins
@@ -1289,11 +1225,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_nonmaxsuppression
-  instConfigInt = instrConfigInt{
+  {
     "NonMaxSuppression", // name
     2,                   // # outs
     2,                   // # ins
@@ -1310,11 +1245,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_quantizationprofile
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -1330,11 +1264,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_quantize
-  instConfigInt = instrConfigInt{
+  {
     "Quantize",             // name
     1,                      // # outs
     1,                      // # ins
@@ -1350,11 +1283,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_rescalequantized
-  instConfigInt = instrConfigInt{
+  {
     "RescaleQuantized",     // name
     1,                      // # outs
     1,                      // # ins
@@ -1370,11 +1302,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_resizebilinear
-  instConfigInt = instrConfigInt{
+  {
     "ResizeBilinear",           // name
     1,                          // # outs
     1,                          // # ins
@@ -1390,11 +1321,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_resizenearest
-  instConfigInt = instrConfigInt{
+  {
     "ResizeNearest",            // name
     1,                          // # outs
     1,                          // # ins
@@ -1410,11 +1340,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_rowwisequantizedfullyconnected
-  instConfigInt = instrConfigInt{
+  {
     "RowwiseQuantizedFullyConnected",        // name
     1,                                       // # outs
     5,                                       // # ins
@@ -1439,11 +1368,10 @@ void initInstrConfigTable() {
        operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_rowwisequantizedsparselengthsweightedsum
-  instConfigInt = instrConfigInt{
+  {
     "RowwiseQuantizedSparseLengthsWeightedSum",        // name
     1,                                                 // # outs
     6,                                                 // # ins
@@ -1468,11 +1396,10 @@ void initInstrConfigTable() {
        operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_scatterdata
-  instConfigInt = instrConfigInt{
+  {
     "ScatterData",          // name
     1,                      // # outs
     2,                      // # ins
@@ -1488,11 +1415,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_sigmoid
-  instConfigInt = instrConfigInt{
+  {
     "Sigmoid",              // name
     1,                      // # outs
     1,                      // # ins
@@ -1508,11 +1434,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_softmax
-  instConfigInt = instrConfigInt{
+  {
     "SoftMax",        // name
     1,                // # outs
     1,                // # ins
@@ -1528,11 +1453,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_spacetodepth
-  instConfigInt = instrConfigInt{
+  {
     "SpaceToDepth",              // name
     1,                           // # outs
     1,                           // # ins
@@ -1548,11 +1472,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_sparselengthssum
-  instConfigInt = instrConfigInt{
+  {
     "SparseLengthsSum",     // name
     1,                      // # outs
     3,                      // # ins
@@ -1568,11 +1491,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_sparselengthsweightedsum
-  instConfigInt = instrConfigInt{
+  {
     "SparseLengthsWeightedSum",        // name
     1,                                 // # outs
     4,                                 // # ins
@@ -1593,11 +1515,10 @@ void initInstrConfigTable() {
        operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_sparsetodense
-  instConfigInt = instrConfigInt{
+  {
     "SparseToDense",        // name
     1,                      // # outs
     2,                      // # ins
@@ -1613,11 +1534,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_sparsetodensemask
-  instConfigInt = instrConfigInt{
+  {
     "SparseToDenseMask",    // name
     1,                      // # outs
     4,                      // # ins
@@ -1634,11 +1554,10 @@ void initInstrConfigTable() {
        operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_splat
-  instConfigInt = instrConfigInt{
+  {
     "Splat",                 // name
     1,                       // # outs
     0,                       // # ins
@@ -1654,11 +1573,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched}}},
     {0x1}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_sync
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -1674,11 +1592,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_syncopy
-  instConfigInt = instrConfigInt{
+  {
     "Syncopy",                    // name
     1,                            // # outs
     1,                            // # ins
@@ -1694,11 +1611,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_tanh
-  instConfigInt = instrConfigInt{
+  {
     "Tanh",                 // name
     1,                      // # outs
     1,                      // # ins
@@ -1714,11 +1630,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_tensorview
-  instConfigInt = instrConfigInt{
+  {
     "TensorView",              // name
     1,                         // # outs
     1,                         // # ins
@@ -1734,11 +1649,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_topk
-  instConfigInt = instrConfigInt{
+  {
     "TopK",                 // name
     2,                      // # outs
     1,                      // # ins
@@ -1754,11 +1668,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_touch
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -1774,11 +1687,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_traceevent
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -1794,11 +1706,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_transpose
-  instConfigInt = instrConfigInt{
+  {
     "Transpose",               // name
     1,                         // # outs
     1,                         // # ins
@@ -1814,11 +1725,10 @@ void initInstrConfigTable() {
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_inhosttransform
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -1834,11 +1744,10 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-  instrConfigTable.push_back(instConfigInt);
+  },
 
   // ET_outhosttransform
-  instConfigInt = instrConfigInt{
+  {
     "notImplemented", // name
     0,                // # outs
     0,                // # ins
@@ -1854,8 +1763,8 @@ void initInstrConfigTable() {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  };
-}
+  },
+};
 
 operandState instrConfig::getOperandStateL1(size_t implIdx, size_t operand) {
   assert(operand < (nrOutputTensors + nrInputTensors));
@@ -1932,8 +1841,6 @@ uint64_t instrConfig::getDstGlobalStore(size_t implIdx) {
   return dstGlobalStore[implIdx];
 }
 
-//////////////
-
 bool caseInsCharCompare(char a, char b) {
   return (std::toupper(a) == std::toupper(b));
 }
@@ -1943,18 +1850,12 @@ bool caseInsCompare(const std::string& s1, const std::string& s2) {
 }
 
 bool getInstrConfig(const std::string& operatorName, instrConfigInt& instConfig) {
-  // Initializes the table for the first access
-  if (!tableInitialized) {
-    initInstrConfigTable();
-    tableInitialized = true;
-  }
-
   // Linear access through all elements
-  for (auto it = instrConfigTable.begin(); it != instrConfigTable.end(); ++it) {
-    if (caseInsCompare(it->name, operatorName)) {
-      instConfig = *it;
-      return true;
-    }
+  auto it = std::find_if(instrConfigTable.begin(), instrConfigTable.end(),
+                         [&](auto& e) { return caseInsCompare(e.name, operatorName); });
+  if (it != instrConfigTable.end()) {
+    instConfig = *it;
+    return true;
   }
   return false;
 }
