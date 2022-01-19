@@ -128,10 +128,8 @@ size_t implSel::SoftMax(std::vector<LibTensor*>& outTensors, std::vector<LibTens
 }
 
 size_t implSel::LocalResponseNormalization(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
-  // FIXME: [SW-10757] at the moment vectorized does not respect untouchable padding.
-  auto dstHasUntouchablePadding =
-    std::any_of(outTensors.begin(), outTensors.end(), [](auto tensor) { return tensor->getUntouchable(); });
-  return dstHasUntouchablePadding ? 0 : 1;
+  // FIXME: [SW-10889] Vectorized impl may end up in  Write-coherency-errors/ numerical erros on some dimensions.
+  return 0;
 }
 
 size_t implSel::SparseLengthsWeightedSum(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
