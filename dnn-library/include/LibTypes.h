@@ -169,36 +169,75 @@ using type = typename std::conditional<
       return false;
   }
 
-template<ElemKind srcElemKindTy>
-class MultiplyAccumulator {
-private:
+  template<size_t depth> struct IntTypeByDepth { };
+  template<> struct IntTypeByDepth<8> { using type = int8_t; };
+  template<> struct IntTypeByDepth<16> { using type = int16_t; };
+  template<> struct IntTypeByDepth<32> { using type = int32_t; };
+  template<> struct IntTypeByDepth<64> { using type = int64_t; };
 
-  // \brief returns accumulator element kind for \p elemTy element kind
-  static constexpr ElemKind getElemKind() {
-    static_assert(srcElemKindTy == ElemKind::Int8QTy or srcElemKindTy == ElemKind::Int16QTy or srcElemKindTy == ElemKind::Float16Ty or srcElemKindTy == ElemKind::FloatTy );
-    dnn_lib::ElemKind result = srcElemKindTy;
-    switch (srcElemKindTy) {
-      case ElemKind::Int8QTy:
-        result = Int32ITy;
-        break;
-      case ElemKind::Int16QTy:
-        result = Int64ITy;
-        break;
-      case ElemKind::FloatTy:
-      case ElemKind::Float16Ty:
-        result = FloatTy;
-        break;
-      default:
-        result = srcElemKindTy;
-        break;
+  template<ElemKind elemKindTy, ElemKind biasElemType>
+  class AccumulatingQuantizedOpTypes {
+  private:
+    static_assert(
+      (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) or
+      (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) or
+      (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) or
+      (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy));
+
+    // \brief returns element (source or destination) bit depth
+    static constexpr size_t getElemDepth() {
+      size_t result = 8;
+      if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) {
+        result = 8;
+      } else if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) {
+        result = 8;
+      } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) {
+        result = 16;
+      } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy) {
+        result = 16;
+      }
+      return result;
     }
-    return result;
-  }
+    
+    // \brief returns accumulator bit depth
+    static constexpr size_t getAccumulatorDepth() {
+      size_t result = 8;
+      if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) {
+        result = 32;
+      } else if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) {
+        result = 32;
+      } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) {
+        result = 64;
+      } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy) {
+        result = 64;
+      }
+      return result;
+    }
 
-public:
-  static constexpr ElemKind elemKind = getElemKind();
-  using type = typename elemKind2elemTy<elemKind>::type;
-};
+    // \brief returns bias bit depth
+    static constexpr size_t getBiasDepth() {
+      size_t result = 8;
+      if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) {
+        result = 8;
+      } else if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) {
+        result = 32;
+      } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) {
+        result = 16;
+      } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy) {
+        result = 32;
+      }
+      return result;
+    }
+
+    static constexpr size_t elemDepth = getElemDepth();
+    static constexpr size_t accumulatorDepth = getAccumulatorDepth();
+    static constexpr size_t biasDepth = getBiasDepth();
+
+  public:    
+    using elemType = typename IntTypeByDepth<elemDepth>::type;
+    using accumulatorType = typename IntTypeByDepth<accumulatorDepth>::type;
+    using biasType = typename IntTypeByDepth<biasDepth>::type;
+  };
 
 }
 
