@@ -25,7 +25,6 @@
 #include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 
-
 #include "utils.h" // From include/internal path
 #include "LibTypes.h"
 #include "LibTensor.h"
@@ -162,7 +161,6 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                          [ kernels1 ] "r"(kernels[1]), [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x),
                          [ y ] "r"(y), [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
                        : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
-  return;
 }
 
 /**
@@ -273,7 +271,6 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                          [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y),
                          [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
                        : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
-  return;
 }
 
 /**
@@ -332,7 +329,6 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
         }
       }
     }
-  return; //TODO return error.
 }
 
 /**
@@ -379,28 +375,18 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT->dest in1T->activations in2T-> weight in3T->bias */
-
   void *dstMatrix   = outT->getRawDataPointer<void>();
   void *activations = in1T->getRawDataPointer<void>();
   void *weights     = in2T->getRawDataPointer<void>();
   void* bias        = in3T->getRawDataPointer<void>();
 
   Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());  
-  // float *tBias = (float *)bias;
   const Addresser<biasElK> tBias(bias, in3T->getScale(), in3T->getOffset());
-  
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t *actIndex = in1T->dims().data();
 
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t *actPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)weightPitches;
   const dim_t *weightPitch = in2T->strides().data();
 
   float scale[] = { in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
@@ -421,11 +407,6 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   unsigned int inCperG = actIndex[3] / group;
   unsigned int outCperG = dstIndex[3] / group;
 
-  // unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
-  //                              1};
-
-  // unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
-  //                              outCperG};
   dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
                                1};
 
