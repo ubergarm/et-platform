@@ -169,7 +169,37 @@ using type = typename std::conditional<
       return false;
   }
 
+template<ElemKind srcElemKindTy>
+class MultiplyAccumulator {
+private:
 
-  
+  // \brief returns accumulator element kind for \p elemTy element kind
+  static constexpr ElemKind getElemKind() {
+    static_assert(srcElemKindTy == ElemKind::Int8QTy or srcElemKindTy == ElemKind::Int16QTy or srcElemKindTy == ElemKind::Float16Ty or srcElemKindTy == ElemKind::FloatTy );
+    dnn_lib::ElemKind result = srcElemKindTy;
+    switch (srcElemKindTy) {
+      case ElemKind::Int8QTy:
+        result = Int32ITy;
+        break;
+      case ElemKind::Int16QTy:
+        result = Int64ITy;
+        break;
+      case ElemKind::FloatTy:
+      case ElemKind::Float16Ty:
+        result = FloatTy;
+        break;
+      default:
+        result = srcElemKindTy;
+        break;
+    }
+    return result;
+  }
+
+public:
+  static constexpr ElemKind elemKind = getElemKind();
+  using type = typename elemKind2elemTy<elemKind>::type;
+};
+
 }
+
 #endif //LIB_TYPES_H
