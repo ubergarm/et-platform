@@ -66,6 +66,41 @@ enum ElemKind : unsigned char {
   BoolTy,
 };
 
+template<ElemKind elK>
+struct elemKind2elemTy {
+using type = typename std::conditional<
+  elK == ElemKind::FloatTy, float,
+  typename std::conditional<
+    elK == ElemKind::Float16Ty, uint16_t,
+    typename std::conditional<
+      elK == ElemKind::BFloat16Ty, uint16_t,
+      typename std::conditional<
+        elK == ElemKind::Int8QTy, int8_t,
+        typename std::conditional<
+          elK == ElemKind::UInt8QTy, uint8_t,
+          typename std::conditional<
+            elK == ElemKind::Int16QTy, int16_t,
+            typename std::conditional<
+              elK == ElemKind::Int32QTy, int32_t,
+              typename std::conditional<
+                elK == ElemKind::Int32ITy, int32_t,
+                typename std::conditional<
+                  elK == ElemKind::Int64ITy, int64_t,
+                  typename std::conditional<
+                    elK == ElemKind::UInt8FusedQTy, uint8_t,
+                    typename std::conditional<
+                      elK == ElemKind::UInt8FusedFP16QTy, uint8_t,
+                      typename std::conditional<elK == ElemKind::UInt4FusedFP16QTy, uint8_t,
+                                                typename std::conditional<elK == ElemKind::BoolTy, bool,
+                                                                          void // void is the default value, if no
+                                                                               // elKind matches
+                                                                          >::type>::type>::type>::type>::type>::
+                type>::type>::type>::type>::type>::type>::type>::type;
+
+//@TODO static_assert(!std::is_same<type, void>::value);
+};
+
+
 // enum class PrecisionMode {
 //  //TODO: Get same enumerate as Jitter
 //  PM_FP_32   = 0,   // fp32
@@ -102,7 +137,7 @@ enum ElemKind : unsigned char {
   template <bool V, typename T, typename F>
   using conditional_t = typename conditional_<V>::template apply<T, F>;
   
-  /*@brief returns is \p elk is a quantized ElemKind.
+  /*@brief returns whether \p elk is a quantized ElemKind.
    */
   inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
     if (elk == dnn_lib::ElemKind::Int8QTy ||
