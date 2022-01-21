@@ -29,7 +29,7 @@ enum class RoundingMode {
   LikeCast = TowardsZero
 };
 
-template <RoundingMode mode = RoundingMode::Dynamic, bool canBeSignallingNaN = false>
+template <RoundingMode mode = RoundingMode::Dynamic, bool careAboutNonFinite = false, bool careAboutSignallingNaN = false>
 inline void convertFloatToInt32(float source, float& destination) {
 
   static_assert(mode != RoundingMode::Invalid1 and mode != RoundingMode::Invalid2);
@@ -72,24 +72,28 @@ inline void convertFloatToInt32(float source, float& destination) {
   // Note that this behaviour may be optionally dropped if something like a
   // "fast math" mode is provided in the future by dnnLibrary.
 
-  float mask, bit, temp;
-  __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
-                       "fsrli.pi %[bit], %[mask], 9\n"
-                       : [ mask ] "=&f"(mask), [ bit ] "=f"(bit)
-                       : [ source ] "f"(source));
+  float bit;
 
-  if constexpr (canBeSignallingNaN) {
-    __asm__ __volatile__("fsrli.pi %[temp], %[mask], 8\n"
-                         "for.pi %[bit], %[temp], %[bit]\n"
-                         : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
-                         : [ mask ] "f"(mask));
+  if constexpr (careAboutNonFinite) {
+    float temp, mask;
+    __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
+                        "fsrli.pi %[bit], %[mask], 9\n"
+                        : [ mask ] "=&f"(mask), [ bit ] "=f"(bit)
+                        : [ source ] "f"(source));
+
+    if constexpr (careAboutSignallingNaN) {
+      __asm__ __volatile__("fsrli.pi %[temp], %[mask], 8\n"
+                          "for.pi %[bit], %[temp], %[bit]\n"
+                          : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
+                          : [ mask ] "f"(mask));
+    }
+
+    __asm__ __volatile__("fsrli.pi %[temp], %[mask], 7\n"
+                        "for.pi %[bit], %[temp], %[bit]\n"
+                        "fandi.pi %[bit], %[bit], 1\n"
+                        : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
+                        : [ mask ] "f"(mask));
   }
-
-  __asm__ __volatile__("fsrli.pi %[temp], %[mask], 7\n"
-                       "for.pi %[bit], %[temp], %[bit]\n"
-                       "fandi.pi %[bit], %[bit], 1\n"
-                       : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
-                       : [ mask ] "f"(mask));
 
   if constexpr (mode == RoundingMode::NearestTiesEven) {
     __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rne\n"
@@ -117,9 +121,11 @@ inline void convertFloatToInt32(float source, float& destination) {
                          : [ source ] "f"(source));
   }
 
-  __asm__ __volatile__("fadd.pi %[destination], %[destination], %[bit]\n"
-                       : [ destination ] "+f"(destination)
-                       : [ bit ] "f"(bit));
+  if constexpr (careAboutNonFinite) {
+    __asm__ __volatile__("fadd.pi %[destination], %[destination], %[bit]\n"
+                        : [ destination ] "+f"(destination)
+                        : [ bit ] "f"(bit));
+  }
 }
 
 constexpr uint64_t fg32b_conf = 0x398A418820;
@@ -352,24 +358,41 @@ inline void multiplyAdd(float& destination, float source, float scale, float off
                        : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
 }
 
-// hasSign: determines if converting using signed/unsigned instructions
-// clip8bits: saturate result to 8 bits
-// fastconvert: just use fcvt.. do not try to match x86 treatment of inf, snan...
-template <bool hasSign = false, bool clip8bits = false, bool fastConvert = true>
-inline void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
-  // destination = source * scaleRcp + offset;
-  multiplyAdd(destination, source, scaleReciprocal, offset);
-  if constexpr (fastConvert) {
-    __asm__ __volatile__("fcvt.pw.ps %0, %0\n" : "+f"(destination));
-  } else {
-    convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(destination, destination);
-  }
-  if constexpr (clip8bits && hasSign) {
-    __asm__ __volatile__("fsat8.pi %0, %0\n" : "+f"(destination));
-  }
-  if constexpr (clip8bits && !hasSign) {
+template<int64_t minValue, int64_t maxValue>
+inline void clip(float & destination, float & source) {
+  if constexpr (minValue == 0 and maxValue == 255) {
     __asm__("fsatu8.pi %0, %0\n" : "+f"(destination));
+  } else if constexpr (minValue == -127 and maxValue == 128) {
+    __asm__ ("fsat8.pi %0, %0\n" : "+f"(destination));
   }
+  else  {
+    float tmp;
+    __asm__ ("fbci.pi %[tmp], %[minValue]\n"
+            "fmax.pi %[destination], %[source], %[tmp]\n"
+            "fbci.pi %[tmp], %[maxValue]\n"
+            "fmin.pi %[destination], %[destination], %[tmp]\n"
+            : [destination] "=f"(destination), [tmp]"=&f"(tmp)
+            : [ source ] "f"(source), [minValue] "i" (minValue & 0xfffff), [maxValue] "i" (maxValue & 0xfffff));
+  }
+}
+
+template <ElemKind dstElK>
+inline void clip(float & destination, float & source) {
+  if constexpr (dstElK  == Int8QTy) {
+    clip<-127, 128>(destination, source);    
+  } else if constexpr (dstElK  == UInt8QTy) {
+    clip<0, 255>(destination, source);    
+  } else if constexpr (dstElK  == Int16QTy) {
+    clip<-32767, 32768>(destination, source);
+  }
+}
+
+template <ElemKind dstElK, bool careAboutNonFinite = false, bool canAboutSignallingNaN = false>
+inline void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
+  static_assert(isQuantizedElemKind(dstElK));
+  multiplyAdd(destination, source, scaleReciprocal, offset);  
+  convertFloatToInt32<RoundingMode::LikeStdRoundAndCast, careAboutNonFinite, canAboutSignallingNaN>(destination, destination);
+  clip<dstElK>(destination, destination);    
 }
 
 template <ElemKind srcElK, ElemKind dstElK, bool matchx86 = false>
@@ -408,6 +431,9 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
   convert<FloatTy, dstElK>(destination, destinationHigh, destination, destinationHigh, srcScale, srcOffset,            \
                            dstScaleReciprocal, dstOffset);
 
+  constexpr bool careAboutNonFinite = true;
+  constexpr bool  canAboutSignallingNaN = true;
+
   if constexpr (srcElK == dstElK) {
     constexpr size_t bytesPerElement = Type::getElementSize(srcElK);
     copy<bytesPerElement>(source, sourceHigh, destination, destinationHigh);
@@ -418,13 +444,13 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
             : [ destination ] "=f"(destination)
             : [ source ] "f"(source), [ bits ] "i"(16));
   } else if constexpr (srcElK == FloatTy and dstElK == Int8QTy) {
-    doQuantize<true, true, matchx86>(destination, source, dstScaleReciprocal, dstOffset);
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8QTy) {
-    doQuantize<false, true, matchx86>(destination, source, dstScaleReciprocal, dstOffset);
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int16QTy) {
-    // TODO: from FloatTy to Int16QTy probably not required
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
-    doQuantize<false, false, matchx86>(destination, source, dstScaleReciprocal, dstOffset);
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
     convertFloatToInt32<RoundingMode::LikeCast>(source, destination);
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
@@ -505,12 +531,16 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
       : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedQTy) {
     // TODO: from FloatTy to UInt8FusedQTy probably not required
+    assert(false);
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedFP16QTy) {
     // TODO: from FloatTy to UInt8FusedFP16QTy probably not required
+    assert(false);    
   } else if constexpr (srcElK == FloatTy and dstElK == UInt4FusedFP16QTy) {
     // TODO: from FloatTy to UInt4FusedFP16QTy probably not required
+    assert(false);    
   } else if constexpr (srcElK == FloatTy and dstElK == UInt4FusedQTy) {
     // TODO: from FloatTy to UInt4FusedQTy probably not required
+    assert(false);    
   } else if constexpr (srcElK == FloatTy and dstElK == BoolTy) {
     float mask;
     __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
