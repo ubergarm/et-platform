@@ -12,8 +12,8 @@
 #ifndef LIB_TYPES_H
 #define LIB_TYPES_H
 
-#include <stdint.h>
 #include <array>
+#include <stdint.h>
 
 #define INLINE_ATTR __attribute__((always_inline)) inline
 
@@ -30,7 +30,7 @@ using sdim_t = int32_t;
 using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
- 
+
 /// An enum representing the type used by the elements of a tensor. The types of
 /// Handles for these tensors should match the element kind.
 enum ElemKind : unsigned char {
@@ -66,6 +66,39 @@ enum ElemKind : unsigned char {
   BoolTy,
 };
 
+template <ElemKind elK> struct elemKind2elemTy {
+  using type = typename std::conditional<
+    elK == ElemKind::FloatTy, float,
+    typename std::conditional<
+      elK == ElemKind::Float16Ty, uint16_t,
+      typename std::conditional<
+        elK == ElemKind::BFloat16Ty, uint16_t,
+        typename std::conditional<
+          elK == ElemKind::Int8QTy, int8_t,
+          typename std::conditional<
+            elK == ElemKind::UInt8QTy, uint8_t,
+            typename std::conditional<
+              elK == ElemKind::Int16QTy, int16_t,
+              typename std::conditional<
+                elK == ElemKind::Int32QTy, int32_t,
+                typename std::conditional<
+                  elK == ElemKind::Int32ITy, int32_t,
+                  typename std::conditional<
+                    elK == ElemKind::Int64ITy, int64_t,
+                    typename std::conditional<
+                      elK == ElemKind::UInt8FusedQTy, uint8_t,
+                      typename std::conditional<
+                        elK == ElemKind::UInt8FusedFP16QTy, uint8_t,
+                        typename std::conditional<elK == ElemKind::UInt4FusedFP16QTy, uint8_t,
+                                                  typename std::conditional<elK == ElemKind::BoolTy, bool,
+                                                                            void // void is the default value, if no
+                                                                                 // elKind matches
+                                                                            >::type>::type>::type>::type>::type>::
+                  type>::type>::type>::type>::type>::type>::type>::type;
+
+  //@TODO static_assert(!std::is_same<type, void>::value);
+};
+
 // enum class PrecisionMode {
 //  //TODO: Get same enumerate as Jitter
 //  PM_FP_32   = 0,   // fp32
@@ -91,50 +124,106 @@ enum ElemKind : unsigned char {
 //   return 2;
 // }
 
-  template <bool>
-  struct conditional_;
-  template<>
-  struct conditional_<false> {
-    template <typename, typename T>
-    using apply = T;
-  };
+template <bool> struct conditional_;
+template <> struct conditional_<false> { template <typename, typename T> using apply = T; };
 
-  template <bool V, typename T, typename F>
-  using conditional_t = typename conditional_<V>::template apply<T, F>;
-  
-  /*@brief returns is \p elk is a quantized ElemKind.
-   */
-  inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
-    if (elk == dnn_lib::ElemKind::Int8QTy ||
-        elk == dnn_lib::ElemKind::UInt8QTy ||
-        elk == dnn_lib::ElemKind::Int16QTy ||
-        elk == dnn_lib::ElemKind::Int32QTy ||
-        elk == dnn_lib::ElemKind::UInt8FusedQTy ||
-        elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
-        elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
-      return true;
-    else
-      return false;
-  }
+template <bool V, typename T, typename F> using conditional_t = typename conditional_<V>::template apply<T, F>;
 
-  /*@brief returns whether \p elk is an "index" ElemKind.
-   */
-  inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
-    return elk == dnn_lib::ElemKind::Int32ITy or elk == dnn_lib::ElemKind::Int64ITy;
-  }
-
-  /*@brief returns wheter \p elk is a fused quantized ElemKind.
-   */
-  inline bool isFusedQuantizedElemKind(ElemKind elk) {
-    if (elk == dnn_lib::ElemKind::UInt8FusedQTy ||
-        elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
-        elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
-      return true;
-    else
-      return false;
-  }
-
-
-  
+/*@brief returns whether \p elk is a quantized ElemKind.
+ */
+inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
+  if (elk == dnn_lib::ElemKind::Int8QTy || elk == dnn_lib::ElemKind::UInt8QTy || elk == dnn_lib::ElemKind::Int16QTy ||
+      elk == dnn_lib::ElemKind::Int32QTy || elk == dnn_lib::ElemKind::UInt8FusedQTy ||
+      elk == dnn_lib::ElemKind::UInt8FusedFP16QTy || elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
+    return true;
+  else
+    return false;
 }
-#endif //LIB_TYPES_H
+
+/*@brief returns whether \p elk is an "index" ElemKind.
+ */
+inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
+  return elk == dnn_lib::ElemKind::Int32ITy or elk == dnn_lib::ElemKind::Int64ITy;
+}
+
+/*@brief returns wheter \p elk is a fused quantized ElemKind.
+ */
+inline bool isFusedQuantizedElemKind(ElemKind elk) {
+  if (elk == dnn_lib::ElemKind::UInt8FusedQTy || elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
+      elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
+    return true;
+  else
+    return false;
+}
+
+template <size_t depth> struct IntTypeByDepth {};
+template <> struct IntTypeByDepth<8> { using type = int8_t; };
+template <> struct IntTypeByDepth<16> { using type = int16_t; };
+template <> struct IntTypeByDepth<32> { using type = int32_t; };
+template <> struct IntTypeByDepth<64> { using type = int64_t; };
+
+template <ElemKind elemKindTy, ElemKind biasElemType> class AccumulatingQuantizedOpTypes {
+private:
+  static_assert((elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) or
+                (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) or
+                (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) or
+                (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy));
+
+  // \brief returns element (source or destination) bit depth
+  static constexpr size_t getElemDepth() {
+    size_t result = 8;
+    if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) {
+      result = 8;
+    } else if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) {
+      result = 8;
+    } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) {
+      result = 16;
+    } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy) {
+      result = 16;
+    }
+    return result;
+  }
+
+  // \brief returns accumulator bit depth
+  static constexpr size_t getAccumulatorDepth() {
+    size_t result = 8;
+    if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) {
+      result = 32;
+    } else if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) {
+      result = 32;
+    } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) {
+      result = 64;
+    } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy) {
+      result = 64;
+    }
+    return result;
+  }
+
+  // \brief returns bias bit depth
+  static constexpr size_t getBiasDepth() {
+    size_t result = 8;
+    if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int8QTy) {
+      result = 8;
+    } else if constexpr (elemKindTy == ElemKind::Int8QTy and biasElemType == ElemKind::Int32QTy) {
+      result = 32;
+    } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int16QTy) {
+      result = 16;
+    } else if constexpr (elemKindTy == ElemKind::Int16QTy and biasElemType == ElemKind::Int32QTy) {
+      result = 32;
+    }
+    return result;
+  }
+
+  static constexpr size_t elemDepth = getElemDepth();
+  static constexpr size_t accumulatorDepth = getAccumulatorDepth();
+  static constexpr size_t biasDepth = getBiasDepth();
+
+public:
+  using elemType = typename IntTypeByDepth<elemDepth>::type;
+  using accumulatorType = typename IntTypeByDepth<accumulatorDepth>::type;
+  using biasType = typename IntTypeByDepth<biasDepth>::type;
+};
+
+} // namespace dnn_lib
+
+#endif // LIB_TYPES_H

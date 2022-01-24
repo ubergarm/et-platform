@@ -18,20 +18,18 @@
 #include <limits>
 #include <string.h>
 
-#include "Float16.h"
-#include "Writer.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
+#include "Float16.h"
 #include "Operator.h" // From include/internal path
-#include "utils.h" // From include/internal path
+#include "Writer.h"   // From include/internal path
+#include "utils.h"    // From include/internal path
 
-
-#include "utils.h" // From include/internal path
-#include "LibTypes.h"
-#include "LibTensor.h"
-#include "LibUtils.h"
 #include "LibCommon.h"
-
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "LibUtils.h"
+#include "utils.h" // From include/internal path
 
 namespace dnn_lib {
 
@@ -40,19 +38,19 @@ namespace inlining {
 /**
  * @brief Computes one element in the convolution.
  *
- * This consists on the vectorized implementation for the products of 
- * convolutionInst, which works computing the product of the elements 
- * in the filter with the activations in groups of up to 8 elements and 
+ * This consists on the vectorized implementation for the products of
+ * convolutionInst, which works computing the product of the elements
+ * in the filter with the activations in groups of up to 8 elements and
  * sums them together at the end.
- * 
+ *
  * @tparam src1Type The type of the elements in the src1 matrix, which in this funcion is
  *  is imposed to be float.
  * @tparam src2Type The type of the elements in the src2 matrix.
  * @tparam dstType The type of the elements in the dst matrix.
  * @param[in] activations Matrix of activations for the convolution.
  * @param[in] weights Matrix of weights for the convolution.
- * @param[in] coord The vector of coordinates to the initial position in the 
- *  activations. coord[0] corresponds to the batch and coord[3] corresponds 
+ * @param[in] coord The vector of coordinates to the initial position in the
+ *  activations. coord[0] corresponds to the batch and coord[3] corresponds
  *  to the group where we are.
  * @param[in] actPitch Vector of pitches of the activations matrix.
  * @param[in] weightPitch Vector of pitches of the weights matrix.
@@ -60,25 +58,21 @@ namespace inlining {
  * @param[in] kernels Dimensions of the filters or kernels.
  * @param[in] inCperG Elements in a group.
  * @param[out] sum The result of applying the filter in the given position.
- * @param[in] mask The int32_t that determines which lanes should be active when 
+ * @param[in] mask The int32_t that determines which lanes should be active when
  *  we can't take 8 elements at the same time.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <ElemKind dstElK, size_t N, size_t KN,
-          typename std::enable_if<dstElK == FloatTy, std::size_t>::type = 0>
-inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                           const dim_t *actPitch, const dim_t *weightPitch,
-                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
-                           unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   const std::array<uint32_t, KN> dilation) {
+template <ElemKind dstElK, size_t N, size_t KN, typename std::enable_if<dstElK == FloatTy, std::size_t>::type = 0>
+inline void convolutionOp(void* activations, void* weights, unsigned int* coord, const dim_t* actPitch,
+                          const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
+                          unsigned int inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
+                          const float* scale, const int32_t* offset, const std::array<uint32_t, KN> dilation) {
   int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
-  unsigned int *actAddr = (unsigned int *) activations;
-  unsigned int *weightAddr = (unsigned int *) weights;
-  actAddr += coord[0] * actPitch[0] + x * actPitch[1] + y * actPitch[2] +
-            coord[3] * inCperG;
+  unsigned int* actAddr = (unsigned int*)activations;
+  unsigned int* weightAddr = (unsigned int*)weights;
+  actAddr += coord[0] * actPitch[0] + x * actPitch[1] + y * actPitch[2] + coord[3] * inCperG;
   weightAddr += d * weightPitch[0];
   __asm__ __volatile__("mov.m.x  m0, zero, 0xff\n" // m0 to ones
                        "mov.m.x  m1, %[mask], 0\n" // m1 the auxiliar mask
@@ -162,7 +156,6 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                          [ kernels1 ] "r"(kernels[1]), [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x),
                          [ y ] "r"(y), [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
                        : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
-  return;
 }
 
 /**
@@ -170,23 +163,19 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  *
  * @overload
  */
-template <ElemKind dstElK, size_t N, size_t KN,
-          typename std::enable_if<dstElK == Float16Ty, std::size_t>::type = 0>
-inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                           const dim_t *actPitch, const dim_t *weightPitch,
-                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
-                           unsigned int inCperG, float16 &sum, int32_t mask, ssize_t x,
-                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   const std::array<uint32_t, KN> &dilation) {
+template <ElemKind dstElK, size_t N, size_t KN, typename std::enable_if<dstElK == Float16Ty, std::size_t>::type = 0>
+inline void convolutionOp(void* activations, void* weights, unsigned int* coord, const dim_t* actPitch,
+                          const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
+                          unsigned int inCperG, float16& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
+                          const float* scale, const int32_t* offset, const std::array<uint32_t, KN>& dilation) {
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
-  uint16_t *actAddr = (uint16_t *) activations;
-  uint16_t *weightAddr = (uint16_t *) weights;
-  actAddr += coord[0] * actPitch[0] + x * actPitch[1] + y * actPitch[2] +
-            coord[3] * inCperG;
+  uint16_t* actAddr = (uint16_t*)activations;
+  uint16_t* weightAddr = (uint16_t*)weights;
+  actAddr += coord[0] * actPitch[0] + x * actPitch[1] + y * actPitch[2] + coord[3] * inCperG;
   weightAddr += d * weightPitch[0];
-  unsigned int gatherValues[8] = { 0, 2, 4, 6, 8, 10, 12, 14 };
+  unsigned int gatherValues[8] = {0, 2, 4, 6, 8, 10, 12, 14};
   __asm__ __volatile__("mov.m.x  m0, zero, 0xff\n" // m0 to ones
                        "mov.m.x  m1, %[mask], 0\n" // m1 the auxiliar mask
                        "flw.ps f16, 0x0(%[gatherValues])\n"
@@ -273,24 +262,23 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
                          [ inCperG ] "r"(inCperG), [ mask ] "r"(mask), [ x ] "r"(x), [ y ] "r"(y),
                          [ dilation0 ] "r"(dilation[0]), [ dilation1 ] "r"(dilation[1])
                        : "memory", "f0", "f1", "f2", "f31", "t0", "t1");
-  return;
 }
 
 /**
  * @brief Computes one element in the convolution.
  *
- * This consists on the non-vectorized implementation for the products of 
+ * This consists on the non-vectorized implementation for the products of
  * convolutionInst, which is the same as in the threaded version, but works
- * for all the non supported types in the vectorized version of this same 
+ * for all the non supported types in the vectorized version of this same
  * function.
- * 
+ *
  * @tparam src1Type The type of the elements in the src1 matrix.
  * @tparam src2Type The type of the elements in the src2 matrix.
  * @tparam dstType The type of the elements in the dst matrix.
  * @param[in] activations Matrix of activations for the convolution.
  * @param[in] weights Matrix of weights for the convolution.
- * @param[in] coord The vector of coordinates to the initial position in the 
- *  activations. coord[0] corresponds to the batch and coord[3] corresponds 
+ * @param[in] coord The vector of coordinates to the initial position in the
+ *  activations. coord[0] corresponds to the batch and coord[3] corresponds
  *  to the group where we are.
  * @param[in] actPitch Vector of pitches of the activations matrix.
  * @param[in] weightPitch Vector of pitches of the weights matrix.
@@ -301,38 +289,143 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] mask It has no relevance in this function.
  * @param[in] x, y, d Coordinates where our minions should start reading.
  */
-template <ElemKind dstElK, size_t N, size_t KN,
-            typename std::enable_if<dstElK != FloatTy, std::size_t>::type = 0>
-inline void convolutionOp (void *activations, void *weights, unsigned int *coord,
-                           const dim_t *actPitch, const dim_t *weightPitch,
-                           const dim_t *actIndex, const std::array<uint32_t, N> &kernels,
-                           unsigned int inCperG, float &sum, int32_t mask, ssize_t x,
-                           ssize_t y, ssize_t d, const float *scale, const int32_t *offset,
-			   const std::array<uint32_t, KN> &dilation) {
+template <ElemKind dstElK, size_t N, size_t KN, typename std::enable_if<dstElK != FloatTy, std::size_t>::type = 0>
+inline void convolutionOp(void* activations, void* weights, unsigned int* coord, const dim_t* actPitch,
+                          const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
+                          unsigned int inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
+                          const float* scale, const int32_t* offset, const std::array<uint32_t, KN>& dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
-  for (size_t fx = 0; fx < kernels[0]; fx++) {  //for all x coordinates in kernel
-      for (size_t fy = 0; fy < kernels[1]; fy++) {//for all y coordinates in kernel
-        ssize_t ox = x + fx * dilation[0];
-        ssize_t oy = y + fy * dilation[1];
+  for (size_t fx = 0; fx < kernels[0]; fx++) {   // for all x coordinates in kernel
+    for (size_t fy = 0; fy < kernels[1]; fy++) { // for all y coordinates in kernel
+      ssize_t ox = x + fx * dilation[0];
+      ssize_t oy = y + fy * dilation[1];
 
-        // Ignore index access below zero (this is due to padding).
-        if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) ||
-            oy >= ssize_t(actIndex[2])) {
-          continue;
-        }
-        for (size_t fd = 0; fd < inCperG; fd++) { //for all depth coordinates
-          auto op1 = tWInput[d * weightPitch[0] + fx * weightPitch[1] +
-                             fy * weightPitch[2] + fd];
-          auto op2 =
-              tAInput[coord[0] * actPitch[0] + (size_t)ox * actPitch[1] +
-                      (size_t)oy * actPitch[2] + coord[3] * inCperG + fd];
-          sum += op1 * op2;
-        }
+      // Ignore index access below zero (this is due to padding).
+      if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) || oy >= ssize_t(actIndex[2])) {
+        continue;
+      }
+      for (size_t fd = 0; fd < inCperG; fd++) { // for all depth coordinates
+        auto op1 = tWInput[d * weightPitch[0] + fx * weightPitch[1] + fy * weightPitch[2] + fd];
+        auto op2 = tAInput[coord[0] * actPitch[0] + (size_t)ox * actPitch[1] + (size_t)oy * actPitch[2] +
+                           coord[3] * inCperG + fd];
+        sum += op1 * op2;
       }
     }
-  return; //TODO return error.
+  }
+}
+
+/**
+ * @brief Computes one element in the convolution.
+ *
+ * This consists on the non-vectorized implementation for the products of
+ * convolutionInst, which is the same as in the threaded version, but works
+ * for all the non supported types in the vectorized version of this same
+ * function.
+ *
+ * @tparam src1Type The type of the elements in the src1 matrix.
+ * @tparam src2Type The type of the elements in the src2 matrix.
+ * @tparam dstType The type of the elements in the dst matrix.
+ * @param[in] activations Matrix of activations for the convolution.
+ * @param[in] weights Matrix of weights for the convolution.
+ * @param[in] coord The vector of coordinates to the initial position in the
+ *  activations. coord[0] corresponds to the batch and coord[3] corresponds
+ *  to the group where we are.
+ * @param[in] actPitch Vector of pitches of the activations matrix.
+ * @param[in] weightPitch Vector of pitches of the weights matrix.
+ * @param[in] actIndex Vector of the size of each dimensions of the activations.
+ * @param[in] kernels Dimensions of the filters or kernels.
+ * @param[in] inCperG Elements in a group.
+ * @param[out] sum The result of applying the filter in the given position.
+ * @param[in] mask It has no relevance in this function.
+ * @param[in] x, y, d Coordinates where our minions should start reading.
+ */
+template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t KN>
+inline void quantConvolutionOp(void* activations, void* weights, void* bias, void* output, size_t offsetOut,
+                               unsigned int* coord, const dim_t* actPitch, const dim_t* weightPitch,
+                               const dim_t* actIndex, const std::array<uint32_t, N>& kernels, unsigned int inCperG,
+                               int32_t mask, ssize_t x, ssize_t y, ssize_t d, const float* scale, const int32_t* offset,
+                               const std::array<uint32_t, KN>& dilation) {
+
+  using ElemType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::elemType;
+  using AccumulatorType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::accumulatorType;
+  using BiasType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::biasType;
+
+  const float& inScale = scale[0];
+  const float& filterScale = scale[1];
+  const float& biasScale = scale[2];
+  const float& outScale = scale[3];
+
+  const int32_t& inOffset = offset[0];
+  const int32_t& filterOffset = offset[1];
+  const int32_t& biasOffset = offset[2];
+  const int32_t& outOffset = offset[3];
+
+  // Compute matMulScale and matMulScaleRec
+  //
+  // float<8> matMulScale = broadcast<8>(inScale) * broadcast<8>(filterScale)
+  // float<8> matMulScaleRec = rec(matMulScale)
+  float matMulScale, matMulScaleRec;
+  float tmp, tmp2;
+  __asm__ __volatile__("fbcx.ps %[tmp], %[inScale]\n"
+                       "fbcx.ps %[tmp2], %[filterScale]\n"
+                       "fmul.ps %[matMulScale], %[tmp], %[tmp2]\n"
+                       "frcp.ps %[matMulScaleRec], %[matMulScale]\n"
+                       : [ matMulScale ] "=f"(matMulScale), [ tmp ] "=&f"(tmp), [ tmp2 ] "=f"(tmp2),
+                         [ matMulScaleRec ] "=f"(matMulScaleRec)
+                       : [ inScale ] "r"(inScale), [ filterScale ] "r"(filterScale));
+
+  // Compute output quantization parameters, including matMulScale premultiply:
+  //
+  // float<8> outQuantScaleRec = rec(broadcast<8>(outScale)) * matMulScale
+  // float<8> outQuantOffset = convert<float>(broadcast<8>(outOffset))
+  float outQuantScaleRec, outQuantOffset;
+  setupQuantize(outQuantScaleRec, outQuantOffset, outScale, outOffset);
+  __asm__ __volatile__("fmul.ps %[outQuantScaleRec], %[outQuantScaleRec], %[matMulScale]\n"
+                       : [ outQuantScaleRec ] "+f"(outQuantScaleRec)
+                       : [ matMulScale ] "f"(matMulScale));
+
+  // Compute B
+  //
+  const BiasType& biasValue = static_cast<BiasType*>(bias)[d];
+  float Bfloat = (float(biasValue) - biasOffset) * biasScale * matMulScaleRec;
+  convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(Bfloat, Bfloat);
+  int64_t Bint64;
+  __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(Bint64) : [ tmp ] "f"(Bfloat));
+  AccumulatorType B = static_cast<AccumulatorType>(Bint64);
+
+  // Scalar code for weighted sum
+  //
+  AccumulatorType sum = 0;
+  for (size_t fx = 0; fx < kernels[0]; fx++) {   // for all x coordinates in kernel
+    for (size_t fy = 0; fy < kernels[1]; fy++) { // for all y coordinates in kernel
+      ssize_t ox = x + fx * dilation[0];
+      ssize_t oy = y + fy * dilation[1];
+
+      // Ignore index access below zero (this is due to padding).
+      if (ox < 0 || oy < 0 || ox >= ssize_t(actIndex[1]) || oy >= ssize_t(actIndex[2])) {
+        continue;
+      }
+      for (size_t fd = 0; fd < inCperG; fd++) { // for all depth coordinates
+        size_t index1 = d * weightPitch[0] + fx * weightPitch[1] + fy * weightPitch[2] + fd;
+        size_t index2 =
+          coord[0] * actPitch[0] + (size_t)ox * actPitch[1] + (size_t)oy * actPitch[2] + coord[3] * inCperG + fd;
+        AccumulatorType F = static_cast<ElemType*>(weights)[index1];
+        AccumulatorType I = static_cast<ElemType*>(activations)[index2];
+        sum += (F - filterOffset) * (I - inOffset);
+      }
+    }
+  }
+
+  // ElemTy & result = quantize(float(sum + B))
+  //
+  ElemType& result = static_cast<ElemType*>(output)[offsetOut];
+  tmp = float(sum + B);
+  doQuantize<dstElK>(tmp, tmp, outQuantScaleRec, outQuantOffset);
+  int64_t first;
+  __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(first) : [ tmp ] "f"(tmp));
+  result = first;
 }
 
 /**
@@ -341,15 +434,15 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * This convolution admits the division of the chanel into gropus and the use of stride
  * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
  * This is the threaded and vectorized version for the convolution.
- * 
- * @tparam src1Type Type of the elements of the src1 tensor involved in the 
+ *
+ * @tparam src1Type Type of the elements of the src1 tensor involved in the
  *  convolution (except for the bias)
- * @tparam src2Type Type of the elements of the src2 tensor involved in the 
+ * @tparam src2Type Type of the elements of the src2 tensor involved in the
  *  convolution (except for the bias)
- * @tparam dstType Type of the elements of the dst tensor involved in the 
+ * @tparam dstType Type of the elements of the dst tensor involved in the
  *  convolution (except for the bias)
  * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
- * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix 
+ * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix
  *  (with batch and chanel).
  * @param[in] dstMatrixPitches Vector of pitches of the dstMatrix.
  * @param[in] weights Matrix with the weights for the convolution.
@@ -362,75 +455,53 @@ inline void convolutionOp (void *activations, void *weights, unsigned int *coord
  * @param[in] group The number of groups in which we divide the chanel.
  * @param[in] scale The scale for the quantization.
  * @param[in] offset The offset for the quantization.
- * @param[in] flags Controls the active shires and the type of evict that 
+ * @param[in] flags Controls the active shires and the type of evict that
  *  should be done at the end of the function.
  */
 template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN, size_t FN>
-inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                                  const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
-                                  const std::array<uint32_t, PN>& pads, unsigned int group,
-                                  const std::array<uint32_t, KN>& dilation, const size_t fusedActivation,
-                                  const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
-                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  using dstType = typename elemKind2elemTy<dstElK>::type;
+inline void convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                     const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                                     const std::array<uint32_t, PN>& pads, unsigned int group,
+                                     const std::array<uint32_t, KN>& dilation, const size_t fusedActivation,
+                                     const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
+                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
+  if (minionId >= activeMinions)
+    return;
 
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT->dest in1T->activations in2T-> weight in3T->bias */
+  void* output = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
+  void* bias = in3T->getRawDataPointer<void>();
 
-  void *dstMatrix   = outT->getRawDataPointer<void>();
-  void *activations = in1T->getRawDataPointer<void>();
-  void *weights     = in2T->getRawDataPointer<void>();
-  void* bias        = in3T->getRawDataPointer<void>();
+  const dim_t* dstIndex = outT->dims().data();
+  const dim_t* actIndex = in1T->dims().data();
 
-  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());  
-  // float *tBias = (float *)bias;
-  const Addresser<biasElK> tBias(bias, in3T->getScale(), in3T->getOffset());
-  
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = in1T->dims().data();
+  const dim_t* dstPitch = outT->strides().data();
+  const dim_t* actPitch = in1T->strides().data();
+  const dim_t* weightPitch = in2T->strides().data();
 
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const dim_t *weightPitch = in2T->strides().data();
+  float scale[] = {in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
+  int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
 
-  float scale[] = { in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
-  int32_t offset[] = { in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
-  
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<dstType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstMatrix);
+  using ElemType = typename elemKind2elemTy<dstElK>::type;
+  size_t typeSize = getsize<ElemType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, output);
   if (maxRead == 0)
     return;
 
-  assert(actIndex[3] % group == 0 &&
-         "Input channels must be divisible by group.");
-  assert(dstIndex[3] % group == 0 &&
-         "Output channels must be divisible by group.");
+  assert(actIndex[3] % group == 0 && "Input channels must be divisible by group.");
+  assert(dstIndex[3] % group == 0 && "Output channels must be divisible by group.");
   unsigned int inCperG = actIndex[3] / group;
   unsigned int outCperG = dstIndex[3] / group;
 
-  // unsigned int eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
-  //                              1};
+  dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG, 1};
 
-  // unsigned int eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
-  //                              outCperG};
-  dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG,
-                               1};
-
-  dim_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group,
-                               outCperG};
+  dim_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group, outCperG};
 
   unsigned int coord[5], k;
   getNonPaddingCoordinates(coord, initialAddr, 5, eDstPitch, eDstIndex, k);
@@ -445,7 +516,118 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   unsigned int posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y, d;
-  int32_t mask = (1 << (((inCperG - 1) & 0x7)  + 1)) - 1;
+  int32_t mask = (1 << (((inCperG - 1) & 0x7) + 1)) - 1;
+
+  while ((offsetOut < posMax) && !done) {
+    x = coord[1] * strides[0] - ssize_t(pads[0]);
+    y = coord[2] * strides[1] - ssize_t(pads[1]);
+    d = coord[3] * outCperG + coord[4];
+
+    quantConvolutionOp<dstElK, biasElK, N, KN>(activations, weights, bias, output, offsetOut, coord, actPitch,
+                                               weightPitch, actIndex, kernels, inCperG, mask, x, y, d, scale, offset,
+                                               dilation);
+
+    done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);
+  }
+  if (!DO_EVICTS)
+    return;
+  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  if (clperminion > 0)
+    evict_va_multi(DO_EVICTS, (uintptr_t)output + typeSize * initialAddr, clperminion);
+}
+
+/**
+ * @brief Performs the convolution operation between the activation, weights and bias.
+ *
+ * This convolution admits the division of the chanel into gropus and the use of stride
+ * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
+ * This is the threaded and vectorized version for the convolution.
+ *
+ * @tparam src1Type Type of the elements of the src1 tensor involved in the
+ *  convolution (except for the bias)
+ * @tparam src2Type Type of the elements of the src2 tensor involved in the
+ *  convolution (except for the bias)
+ * @tparam dstType Type of the elements of the dst tensor involved in the
+ *  convolution (except for the bias)
+ * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
+ * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix
+ *  (with batch and chanel).
+ * @param[in] dstMatrixPitches Vector of pitches of the dstMatrix.
+ * @param[in] weights Matrix with the weights for the convolution.
+ * @param[in] weightDims Vector of dimensions of the weights. Unused.
+ * @param[in] weightPitches Vector of pitches of the weights.
+ * @param[in] bias Floats vector of biases (one for each chanel in a group).
+ * @param[in] pkernels Vector of dimensions of the kernek that is applied.
+ * @param[in] pstrides Vector with the strides for both dimensions.
+ * @param[in] ppads Vector with the padding for both dimensions.
+ * @param[in] group The number of groups in which we divide the chanel.
+ * @param[in] scale The scale for the quantization.
+ * @param[in] offset The offset for the quantization.
+ * @param[in] flags Controls the active shires and the type of evict that
+ *  should be done at the end of the function.
+ */
+template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN, size_t FN>
+inline void convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                        const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                                        const std::array<uint32_t, PN>& pads, unsigned int group,
+                                        const std::array<uint32_t, KN>& dilation, const size_t fusedActivation,
+                                        const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
+
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
+  void* bias = in3T->getRawDataPointer<void>();
+
+  Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
+  const Addresser<biasElK> tBias(bias, in3T->getScale(), in3T->getOffset());
+  const dim_t* dstIndex = outT->dims().data();
+  const dim_t* actIndex = in1T->dims().data();
+
+  const dim_t* dstPitch = outT->strides().data();
+  const dim_t* actPitch = in1T->strides().data();
+  const dim_t* weightPitch = in2T->strides().data();
+
+  float scale[] = {in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
+  int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
+
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int initialAddr, maxRead;
+  size_t typeSize = getsize<dstType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
+  if (maxRead == 0)
+    return;
+
+  assert(actIndex[3] % group == 0 && "Input channels must be divisible by group.");
+  assert(dstIndex[3] % group == 0 && "Output channels must be divisible by group.");
+  unsigned int inCperG = actIndex[3] / group;
+  unsigned int outCperG = dstIndex[3] / group;
+
+  dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG, 1};
+
+  dim_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group, outCperG};
+
+  unsigned int coord[5], k;
+  getNonPaddingCoordinates(coord, initialAddr, 5, eDstPitch, eDstIndex, k);
+
+  unsigned int offsetOut = 0;
+  for (unsigned int i = 0; i < k; i++) {
+    offsetOut += coord[i] * eDstPitch[i];
+  }
+  if (offsetOut >= numElemsDst)
+    return;
+
+  unsigned int posMax = initialAddr + maxRead;
+  bool done = false;
+  ssize_t x, y, d;
+  int32_t mask = (1 << (((inCperG - 1) & 0x7) + 1)) - 1;
 
   while ((offsetOut < posMax) && !done) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
@@ -453,9 +635,8 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
     d = coord[3] * outCperG + coord[4];
 
     auto sum = tBias[d];
-    convolutionOp <dstElK> (activations, weights, coord, actPitch, weightPitch,
-          actIndex, kernels, inCperG, sum, mask, x, y, d,
-          scale, offset, dilation);
+    convolutionOp<dstElK>(activations, weights, coord, actPitch, weightPitch, actIndex, kernels, inCperG, sum, mask, x,
+                          y, d, scale, offset, dilation);
     tOutput[offsetOut] = sum;
 
     done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);
@@ -463,7 +644,57 @@ inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  if (clperminion > 0)
+    evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize * initialAddr, clperminion);
+}
+
+/**
+ * @brief Performs the convolution operation between the activation, weights and bias.
+ *
+ * This convolution admits the division of the chanel into gropus and the use of stride
+ * in the two dimensions of the matrix and padding to avoid loosing size of the tensor.
+ * This is the threaded and vectorized version for the convolution.
+ *
+ * @tparam src1Type Type of the elements of the src1 tensor involved in the
+ *  convolution (except for the bias)
+ * @tparam src2Type Type of the elements of the src2 tensor involved in the
+ *  convolution (except for the bias)
+ * @tparam dstType Type of the elements of the dst tensor involved in the
+ *  convolution (except for the bias)
+ * @param[out] dstMatrix Matrix in wich we save the result of the convolution.
+ * @param[in] dstMatrixDims Vector of dimensions of the dstMatrix
+ *  (with batch and chanel).
+ * @param[in] dstMatrixPitches Vector of pitches of the dstMatrix.
+ * @param[in] weights Matrix with the weights for the convolution.
+ * @param[in] weightDims Vector of dimensions of the weights. Unused.
+ * @param[in] weightPitches Vector of pitches of the weights.
+ * @param[in] bias Floats vector of biases (one for each chanel in a group).
+ * @param[in] pkernels Vector of dimensions of the kernek that is applied.
+ * @param[in] pstrides Vector with the strides for both dimensions.
+ * @param[in] ppads Vector with the padding for both dimensions.
+ * @param[in] group The number of groups in which we divide the chanel.
+ * @param[in] scale The scale for the quantization.
+ * @param[in] offset The offset for the quantization.
+ * @param[in] flags Controls the active shires and the type of evict that
+ *  should be done at the end of the function.
+ */
+template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t KN, size_t FN>
+inline void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                  const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                                  const std::array<uint32_t, PN>& pads, unsigned int group,
+                                  const std::array<uint32_t, KN>& dilation, const size_t fusedActivation,
+                                  const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
+                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  if constexpr (dnn_lib::isQuantizedElemKind(dstElK) and dstElK != Int16QTy) {
+    convolutionInstQuantized<dstElK, biasElK, N, PN, KN, FN>(outT, in1T, in2T, in3T, kernels, strides, pads, group,
+                                                             dilation, fusedActivation, fusedActivationArgs, flags,
+                                                             minionOffset, assignedMinions);
+  } else {
+    convolutionInstNonQuantized<dstElK, biasElK, N, PN, KN, FN>(outT, in1T, in2T, in3T, kernels, strides, pads, group,
+                                                                dilation, fusedActivation, fusedActivationArgs, flags,
+                                                                minionOffset, assignedMinions);
+  }
 }
 
 } // namespace inlining
