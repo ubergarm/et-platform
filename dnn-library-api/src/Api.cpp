@@ -153,13 +153,13 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {},                     // impl versions
     implSel::defaultSel<1>, // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean}}},
+    {{{operandState::untouched, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
-    {0x0}  // global store mask
+    {0x1}  // global store mask
   },
 
   // ET_batchedreducemin
