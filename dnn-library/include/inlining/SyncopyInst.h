@@ -21,6 +21,7 @@
 #include <etsoc/isa/barriers.h>
 #include <etsoc/isa/tensors.h>
 #include <etsoc/isa/utils.h>
+
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 

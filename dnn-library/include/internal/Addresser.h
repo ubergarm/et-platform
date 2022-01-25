@@ -69,6 +69,8 @@ public:
   ONLY_FOR((U != FloatTy) && (U != Float16Ty) && (U != BFloat16Ty) && (U != Int8QTy) && (U != UInt8QTy) &&
            (U != Int16QTy) && (U != Int32QTy))
   T& operator[](const size_t index) {
+    // Sanity: only Writer knows about globalStore.
+    static_assert(!globalStore, "globalStore not supported for this type in Addresser");
     return ptr_[index];
   }
 

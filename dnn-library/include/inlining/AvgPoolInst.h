@@ -12,18 +12,19 @@
 #ifndef _AVG_POOL_INST_H_
 #define _AVG_POOL_INST_H_
 
+#include "Addresser.h" // From include/internal path
+#include "Float16.h"
+#include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "LibUtils.h"
+#include "Writer.h" // From include/internal path
+#include "utils.h"  // From include/internal path
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "Addresser.h" // From include/internal path
-#include "Float16.h"
-#include "utils.h"    // From include/internal path
-#include "LibCommon.h"
-#include "LibTensor.h"
-#include "LibTypes.h"
-#include "LibUtils.h"
 
 namespace dnn_lib {
 

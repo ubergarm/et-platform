@@ -75,7 +75,7 @@ public:
     return *this;
   }
 
-#undef ONLY_FOR
+#undef WHEN
 };
 
 } // namespace dnn_lib
