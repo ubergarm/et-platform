@@ -18,83 +18,58 @@
 #include <limits>
 #include <string.h>
 
-#include "Float16.h"
-#include "Writer.h" // From include/internal path
 #include "Addresser.h" // From include/internal path
 #include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
-#include "utils.h" // From include/internal path
+#include "Float16.h"
 #include "LibTensor.h"
+#include "Operator.h" // From include/internal path
+#include "Writer.h"   // From include/internal path
+#include "utils.h"    // From include/internal path
 
 namespace dnn_lib {
 
 namespace inlining {
 
-
-  template <ElemKind elK, size_t N, size_t PN>
-inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
-                                    LibTensor* in2T, LibTensor* in3T,
-                                    const std::array<uint32_t, N> &kernels,
-                                    const std::array<uint32_t, N> &strides,
-                                    const std::array<uint32_t, PN> &pads,
-                                    unsigned int group,
-                                    uint64_t flags,
+template <ElemKind elK, size_t N, size_t PN>
+inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                    const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                                    const std::array<uint32_t, PN>& pads, unsigned int group, uint64_t flags,
                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  
+
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */
-  /* outT->dest in1T->activations in2T-> weight in3T->bias */
+  if (minionId >= activeMinions)
+    return;
 
-  void *dstMatrix = outT->getRawDataPointer<void>();
-  void *activations = in1T->getRawDataPointer<void>();
-  void *weights = in2T->getRawDataPointer<void>();
-  
-  // Addresser<elK> tOutput(dstMatrix, scale[3], offset[3]);
+  void* dstMatrix = outT->getRawDataPointer<void>();
+  void* activations = in1T->getRawDataPointer<void>();
+  void* weights = in2T->getRawDataPointer<void>();
+
   Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(activations, scale[0], offset[0]);
   const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
-  // const Addresser<elK> tWInput(weights, scale[1], offset[1]);
   const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
-  // float *tBias = (float *)bias;
   float* tBias = in3T->getRawDataPointer<float>();
- 
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
-  const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
-  const dim_t *actIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
-  const dim_t *actPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)weightPitches;
-  const dim_t *weightPitch = in2T->strides().data();
-  
+
+  const dim_t* dstIndex = outT->dims().data();
+  const dim_t* actIndex = in1T->dims().data();
+  const dim_t* dstPitch = outT->strides().data();
+  const dim_t* actPitch = in1T->strides().data();
+  const dim_t* weightPitch = in2T->strides().data();
+
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
-  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
-                        minionId, activeMinions, dstMatrix);
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
-  assert(actIndex[4] % group == 0 &&
-         "Input channels must be divisible by group.");
-  assert(dstIndex[4] % group == 0 &&
-         "Output channels must be divisible by group.");
+  assert(actIndex[4] % group == 0 && "Input channels must be divisible by group.");
+  assert(dstIndex[4] % group == 0 && "Output channels must be divisible by group.");
   unsigned int inCperG = actIndex[4] / group;
   unsigned int outCperG = dstIndex[4] / group;
 
-  // unsigned int eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2],
-  //                              dstPitch[3], outCperG,    1};
-  // unsigned int eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2],
-  //                              dstIndex[3], group,       outCperG};
-  size_t eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2],
-                               dstPitch[3], outCperG,    1};
-  size_t eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2],
-                               dstIndex[3], group,       outCperG};
+  size_t eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2], dstPitch[3], outCperG, 1};
+  size_t eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2], dstIndex[3], group, outCperG};
 
   unsigned int coord[6] = {0, 0, 0, 0, 0, 0};
   unsigned int k = 0;
@@ -112,8 +87,8 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   ssize_t x, y, z, d;
   while (!done && (offsetOut < posMax)) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
-    y = coord[2] * strides[1] - ssize_t(pads[1]);
-    z = coord[3] * strides[2] - ssize_t(pads[2]);
+    y = coord[2] * strides[1] - ssize_t(pads[2]);
+    z = coord[3] * strides[2] - ssize_t(pads[4]);
     d = coord[4] * outCperG + coord[5];
 
     auto sum = tAInput[0];
@@ -127,17 +102,15 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
           ssize_t oz = z + fz;
 
           // Ignore index access below zero (this is due to padding).
-          if (ox < 0 || oy < 0 || oz < 0 || ox >= ssize_t(actIndex[1]) ||
-              oy >= ssize_t(actIndex[2]) || oz >= ssize_t(actIndex[3])) {
+          if (ox < 0 || oy < 0 || oz < 0 || ox >= ssize_t(actIndex[1]) || oy >= ssize_t(actIndex[2]) ||
+              oz >= ssize_t(actIndex[3])) {
             continue;
           }
           for (size_t fd = 0; fd < inCperG; fd++) {
-            auto op1 = tWInput[d * weightPitch[0] + fx * weightPitch[1] +
-                               fy * weightPitch[2] + fz * weightPitch[3] + fd];
-            auto op2 =
-                tAInput[coord[0] * actPitch[0] + (size_t)ox * actPitch[1] +
-                        (size_t)oy * actPitch[2] + (size_t)oz * actPitch[3] +
-                        coord[4] * inCperG + fd];
+            auto op1 =
+              tWInput[d * weightPitch[0] + fx * weightPitch[1] + fy * weightPitch[2] + fz * weightPitch[3] + fd];
+            auto op2 = tAInput[coord[0] * actPitch[0] + (size_t)ox * actPitch[1] + (size_t)oy * actPitch[2] +
+                               (size_t)oz * actPitch[3] + coord[4] * inCperG + fd];
             sum += op1 * op2;
           }
         }
@@ -151,7 +124,8 @@ inline void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T,
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
-  if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
+  if (clperminion > 0)
+    evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize * initialAddr, clperminion);
 }
 
 } // namespace inlining
