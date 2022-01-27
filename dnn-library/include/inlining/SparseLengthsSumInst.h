@@ -13,7 +13,6 @@
 #define _SPARSE_LENGTHS_SUM_INST_H
 
 #include "LibTypes.h"
-
 #include "SparseLengthsWeightedSumInst.h"
 
 namespace dnn_lib {

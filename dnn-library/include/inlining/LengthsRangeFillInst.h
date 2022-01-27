@@ -13,7 +13,6 @@
 #define _LENGTHS_RANGE_FILL_H_
 
 #include <assert.h>
-
 #include "utils.h"
 #include "LibTypes.h"
 #include "LibTensor.h"

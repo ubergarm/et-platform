@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <cmath>
 #include <math.h>
-
 #include "utils.h"
 #include "LibTypes.h"
 #include "LibTensor.h"

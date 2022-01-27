@@ -19,10 +19,6 @@
 #include <string.h>
 
 #include "Float16.h"
-#include "Writer.h" // From include/internal path
-#include "Addresser.h" // From include/internal path
-#include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 

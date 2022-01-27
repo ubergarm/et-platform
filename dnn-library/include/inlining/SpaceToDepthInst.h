@@ -18,7 +18,6 @@
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-
 #include "utils.h" // From include/internal path
 #include "LibTypes.h"
 #include "LibTensor.h"

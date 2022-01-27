@@ -131,7 +131,7 @@ template <bool V, typename T, typename F> using conditional_t = typename conditi
 
 /*@brief returns whether \p elk is a quantized ElemKind.
  */
-inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
+INLINE_ATTR constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
   if (elk == dnn_lib::ElemKind::Int8QTy || elk == dnn_lib::ElemKind::UInt8QTy || elk == dnn_lib::ElemKind::Int16QTy ||
       elk == dnn_lib::ElemKind::Int32QTy || elk == dnn_lib::ElemKind::UInt8FusedQTy ||
       elk == dnn_lib::ElemKind::UInt8FusedFP16QTy || elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
@@ -142,13 +142,13 @@ inline constexpr bool isQuantizedElemKind(dnn_lib::ElemKind elk) {
 
 /*@brief returns whether \p elk is an "index" ElemKind.
  */
-inline constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
+INLINE_ATTR constexpr bool isIndexElemKind(dnn_lib::ElemKind elk) {
   return elk == dnn_lib::ElemKind::Int32ITy or elk == dnn_lib::ElemKind::Int64ITy;
 }
 
 /*@brief returns wheter \p elk is a fused quantized ElemKind.
  */
-inline bool isFusedQuantizedElemKind(ElemKind elk) {
+INLINE_ATTR bool isFusedQuantizedElemKind(ElemKind elk) {
   if (elk == dnn_lib::ElemKind::UInt8FusedQTy || elk == dnn_lib::ElemKind::UInt8FusedFP16QTy ||
       elk == dnn_lib::ElemKind::UInt4FusedFP16QTy)
     return true;

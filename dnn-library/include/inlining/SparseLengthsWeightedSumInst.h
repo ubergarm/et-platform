@@ -14,7 +14,6 @@
 
 #include <limits>
 #include <assert.h>
-
 #include "utils.h"
 #include "LibTypes.h"
 #include "LibTensor.h"

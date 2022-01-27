@@ -16,7 +16,6 @@
 #include <assert.h>
 #include <queue>
 #include <utility>
-
 #include "utils.h"
 #include "LibTypes.h"
 #include "LibTensor.h"
