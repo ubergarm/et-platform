@@ -12,19 +12,16 @@
 #ifndef _BATCHED_REDUCE_ADD_INST_H_
 #define _BATCHED_REDUCE_ADD_INST_H_
 
+#include "Addresser.h"
+#include "Float16.h"
+#include "LibTensor.h"
+#include "Operator.h" // From include/internal path
+#include "utils.h"    // From include/internal path
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-
-#include "Float16.h"
-#include "Writer.h" // From include/internal path
-#include "Addresser.h" // From include/internal path
-#include "Converter.h" // From include/internal path
-#include "Operator.h" // From include/internal path
-#include "utils.h" // From include/internal path
-#include "LibTensor.h"
 
 namespace dnn_lib {
 

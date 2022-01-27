@@ -12,19 +12,15 @@
 #ifndef _CONVOLUTION_3D_INST_H_
 #define _CONVOLUTION_3D_INST_H_
 
+#include "Addresser.h" // From include/internal path
+#include "Float16.h"
+#include "LibTensor.h"
+#include "utils.h" // From include/internal path
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-
-#include "Addresser.h" // From include/internal path
-#include "Converter.h" // From include/internal path
-#include "Float16.h"
-#include "LibTensor.h"
-#include "Operator.h" // From include/internal path
-#include "Writer.h"   // From include/internal path
-#include "utils.h"    // From include/internal path
 
 namespace dnn_lib {
 

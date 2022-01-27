@@ -17,7 +17,6 @@
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-
 #include "Float16.h"
 #include "utils.h"
 #include "LibTensor.h"

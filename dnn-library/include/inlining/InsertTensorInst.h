@@ -17,13 +17,9 @@
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-
 #include "Addresser.h" // From include/internal path
-#include "Converter.h" // From include/internal path
 #include "Float16.h"
 #include "LibTensor.h"
-#include "Operator.h" // From include/internal path
-#include "Writer.h"   // From include/internal path
 #include "utils.h"    // From include/internal path
 
 namespace dnn_lib {
