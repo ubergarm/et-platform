@@ -29,7 +29,7 @@ enum class RoundingMode {
   LikeCast = TowardsZero
 };
 
-template <RoundingMode mode = RoundingMode::Dynamic, bool careAboutNonFinite = false,
+template <RoundingMode mode = RoundingMode::Dynamic, bool careAboutNonFinite = true,
           bool careAboutSignallingNaN = false>
 inline void convertFloatToInt32(float source, float& destination) {
 
