@@ -534,6 +534,7 @@ INLINE_ATTR void convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibT
 
     done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);
   }
+
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
