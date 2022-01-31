@@ -18,7 +18,6 @@
 #include <limits>
 #include <string.h>
 #include "Float16.h"
-#include "Operator.h" // From include/internal path
 #include "utils.h" // From include/internal path
 #include "LibTensor.h"
 

@@ -238,8 +238,7 @@ inline void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh,
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
-  static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
+inline void storeLocal(uintptr_t dst, uint64_t conf, float indices, float op0) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fsc32b.ps %[op0], %[conf](%[dst])\n"
@@ -267,16 +266,53 @@ inline void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
   }
 }
 
-template <size_t bytesPerElement, bool aligned = false>
+template <size_t bytesPerElement, [[maybe_unused]] bool aligned = false>
+inline void storeGlobal(uintptr_t dst, uint64_t conf, float indices, float op0) {
+  // TODO [SW-11008] aligned global stores are not optimized on this implementation.
+  if constexpr (bytesPerElement == 1) {
+    __asm__ __volatile__("fscbg.ps %[op0], %[indices](%[dst])\n"
+                         : [ dstMem ] "=m"(*(char(*)[8])dst)
+                         : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+  } else if constexpr (bytesPerElement == 2) {
+    __asm__ __volatile__("fschg.ps %[op0], %[indices](%[dst])\n"
+                         : [ dstMem ] "=m"(*(char(*)[16])dst)
+                         : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+  } else if constexpr (bytesPerElement == 4) {
+    __asm__ __volatile__("fswg.ps %[op0], (%[dst])\n"
+                         : [ dstMem ] "=m"(*(char(*)[32])dst)
+                         : [ op0 ] "f"(op0), [ dst ] "r"(dst));
+  }
+}
+
+template <size_t bytesPerElement, bool aligned = false, bool globalStore = false>
+inline void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
+  static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
+  if constexpr (globalStore) {
+    storeGlobal<bytesPerElement, aligned>(dst, conf, indices, op0);
+  } else {
+    storeLocal<bytesPerElement, aligned>(dst, conf, indices, op0);
+  }
+}
+
+template <size_t bytesPerElement, bool aligned = false, bool globalStore = false>
 inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh, float op0, float op0High) {
   if constexpr (bytesPerElement == 8) {
-    __asm__ __volatile__("fscw.ps %[op0], %[indices](%[dst])\n"
-                         "fscw.ps %[op0High], %[indicesHigh](%[dst])\n"
-                         : [ dstMem ] "=m"(*(char(*)[64])dst)
-                         : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices),
-                           [ indicesHigh ] "f"(indicesHigh), [ dst ] "r"(dst));
+    if constexpr (globalStore) {
+      // TODO [SW-11008] aligned global stores are not optimized on this implementation.
+      __asm__ __volatile__("fscwg.ps %[op0], %[indices](%[dst])\n"
+                           "fscwg.ps %[op0High], %[indicesHigh](%[dst])\n"
+                           : [ dstMem ] "=m"(*(char(*)[64])dst)
+                           : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices),
+                             [ indicesHigh ] "f"(indicesHigh), [ dst ] "r"(dst));
+    } else {
+      __asm__ __volatile__("fscw.ps %[op0], %[indices](%[dst])\n"
+                           "fscw.ps %[op0High], %[indicesHigh](%[dst])\n"
+                           : [ dstMem ] "=m"(*(char(*)[64])dst)
+                           : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices),
+                             [ indicesHigh ] "f"(indicesHigh), [ dst ] "r"(dst));
+    }
   } else {
-    store<bytesPerElement, aligned>(dst, conf, indices, op0);
+    store<bytesPerElement, aligned, globalStore>(dst, conf, indices, op0);
   }
 }
 
