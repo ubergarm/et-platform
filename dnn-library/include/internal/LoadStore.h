@@ -266,7 +266,7 @@ inline void storeLocal(uintptr_t dst, uint64_t conf, float indices, float op0) {
   }
 }
 
-template <size_t bytesPerElement, [[maybe_unused]] bool aligned = false>
+template <size_t bytesPerElement, bool aligned = false>
 inline void storeGlobal(uintptr_t dst, uint64_t conf, float indices, float op0) {
   // TODO [SW-11008] aligned global stores are not optimized on this implementation.
   if constexpr (bytesPerElement == 1) {
