@@ -410,12 +410,10 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
 
   sum += B;
 
-  float tmpLow;
-  float [[maybe_unused]] tmpHigh;
-  float [[maybe_unused]] discarded;
-  float [[maybe_unused]] ignored;
+  float tmpLow, discarded, ignored;
   static_assert(sizeof(sum) == 8 or sizeof(sum) == 4);
   if constexpr (sizeof(sum) == 8) {
+    float tmpHigh;
     __asm__ __volatile__("fbcx.ps %[tmpLow], %[low]\n"
                          "fbcx.ps %[tmpHigh], %[high]\n"
                          : [ tmpLow ] "=&f"(tmpLow), [ tmpHigh ] "=f"(tmpHigh)
