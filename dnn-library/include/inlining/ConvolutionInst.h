@@ -382,7 +382,7 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
   // Compute B
   //
   const BiasType& biasValue = static_cast<BiasType*>(bias)[d];
-  float Bfloat = (static_cast<float>(biasValue) - biasOffset) * biasScale * matMulScaleRec;
+  float Bfloat = (static_cast<float>(biasValue) - static_cast<float>(biasOffset)) * biasScale * matMulScaleRec;
   convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(Bfloat, Bfloat);
   int64_t Bint64;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(Bint64) : [ tmp ] "f"(Bfloat));
