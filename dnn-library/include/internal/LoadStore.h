@@ -129,6 +129,8 @@ inline void convertFloatToInt32(float source, float& destination) {
                          : [ destination ] "+f"(destination)
                          : [ bit ] "f"(bit));
   }
+
+  (void)bit;
 }
 
 constexpr uint64_t fg32b_conf = 0x398A418820;

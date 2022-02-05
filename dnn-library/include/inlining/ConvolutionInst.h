@@ -59,6 +59,10 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                unsigned int inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N> dilation) {
+
+  (void)offset;
+  (void)scale;
+
   int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -157,6 +161,9 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                unsigned int inCperG, float16& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N>& dilation) {
+  (void)offset;
+  (void)scale;
+
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -375,7 +382,7 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
   // Compute B
   //
   const BiasType& biasValue = static_cast<BiasType*>(bias)[d];
-  float Bfloat = (float(biasValue) - biasOffset) * biasScale * matMulScaleRec;
+  float Bfloat = (static_cast<float>(biasValue) - biasOffset) * biasScale * matMulScaleRec;
   convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(Bfloat, Bfloat);
   int64_t Bint64;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(Bint64) : [ tmp ] "f"(Bfloat));
