@@ -683,7 +683,8 @@ INLINE_ATTR void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTens
                                        const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  if constexpr (dnn_lib::isQuantizedElemKind(dstElK)) {
+  // SW-1110: enable the quantized code path for Int16QTy when the ticket is resolved
+  if constexpr (dnn_lib::isQuantizedElemKind(dstElK) and dstElK != Int16QTy) {
     convolutionInstQuantized<dstElK, biasElK, N, PN, FN>(outT, in1T, in2T, in3T, kernels, strides, pads, group,
                                                          dilation, fusedActivation, fusedActivationArgs, flags,
                                                          minionOffset, assignedMinions);
