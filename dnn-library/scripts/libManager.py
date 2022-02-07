@@ -512,7 +512,7 @@ class LibManagerSheet:
         contents = []
         startMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_BEGIN')
         endMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_END')
-        fname = os.path.join (hostswdir, 'dnnLibrary/include/LibApi.h');
+        fname = os.path.join (hostswdir, 'dnnLibraryApi/include/dnnLibraryApi/LibApi.h');
         startFound = False
         endFound = False
         with open(fname) as f:
@@ -727,7 +727,7 @@ namespace dnn_lib {
         return LibManagerSheet.memberTypeMap[m]
 
     def checkImplSel(self, hostswdir):
-        fname = os.path.join ( hostswdir, 'dnnLibrary/include/LibApiImplSel.h');
+        fname = os.path.join ( hostswdir, 'dnnLibraryApi/src/LibApiImplSel.h');
         
         # read file contents and get the existing implementation selectors
         regexp = re.compile(r'^\s*static\s+size_t\s+([^\(]+)\s*\(')
