@@ -287,7 +287,7 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     1,                                                                                               // # outs
     3,                                                                                               // # ins
     {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbGroup}, // members
-    1,                      // template param mask
+    9,                      // template param mask
     {},                     // impl versions
     implSel::defaultSel<1>, // custom impl selector
     // L1 states per impl
