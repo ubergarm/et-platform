@@ -1,6 +1,6 @@
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/isb/prog/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/home/abel/work/repo2/sw-platform/host-software/dnnLibrary/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
@@ -489,7 +489,7 @@ extern template void fwdLibConvolutionInst<Int16QTy, Int32QTy>(
  *  Convolution3D implementations
  ****************************************************************************/
 // declarations
-template <ElemKind out0Type>
+template <ElemKind out0Type, ElemKind in2Type>
 void fwdLibConvolution3DInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
                              const std::array<uint32_t, default_kernels_size>& Kernels,
                              const std::array<uint32_t, default_kernels_size>& Strides,
@@ -497,42 +497,36 @@ void fwdLibConvolution3DInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, Li
                              const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibConvolution3DInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-                                                      const std::array<uint32_t, default_kernels_size>& Kernels,
-                                                      const std::array<uint32_t, default_kernels_size>& Strides,
-                                                      const std::array<uint32_t, default_pads_size>& Pads,
-                                                      const uint32_t Group, const uint64_t flags,
-                                                      const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolution3DInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-                                                        const std::array<uint32_t, default_kernels_size>& Kernels,
-                                                        const std::array<uint32_t, default_kernels_size>& Strides,
-                                                        const std::array<uint32_t, default_pads_size>& Pads,
-                                                        const uint32_t Group, const uint64_t flags,
-                                                        const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolution3DInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-                                                      const std::array<uint32_t, default_kernels_size>& Kernels,
-                                                      const std::array<uint32_t, default_kernels_size>& Strides,
-                                                      const std::array<uint32_t, default_pads_size>& Pads,
-                                                      const uint32_t Group, const uint64_t flags,
-                                                      const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolution3DInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-                                                       const std::array<uint32_t, default_kernels_size>& Kernels,
-                                                       const std::array<uint32_t, default_kernels_size>& Strides,
-                                                       const std::array<uint32_t, default_pads_size>& Pads,
-                                                       const uint32_t Group, const uint64_t flags,
-                                                       const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolution3DInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-                                                       const std::array<uint32_t, default_kernels_size>& Kernels,
-                                                       const std::array<uint32_t, default_kernels_size>& Strides,
-                                                       const std::array<uint32_t, default_pads_size>& Pads,
-                                                       const uint32_t Group, const uint64_t flags,
-                                                       const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibConvolution3DInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
-                                                       const std::array<uint32_t, default_kernels_size>& Kernels,
-                                                       const std::array<uint32_t, default_kernels_size>& Strides,
-                                                       const std::array<uint32_t, default_pads_size>& Pads,
-                                                       const uint32_t Group, const uint64_t flags,
-                                                       const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibConvolution3DInst<FloatTy, FloatTy>(
+  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
+  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
+  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group, const uint64_t flags,
+  const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibConvolution3DInst<Float16Ty, Float16Ty>(
+  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
+  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
+  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group, const uint64_t flags,
+  const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibConvolution3DInst<Int8QTy, Int8QTy>(
+  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
+  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
+  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group, const uint64_t flags,
+  const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibConvolution3DInst<Int8QTy, Int32QTy>(
+  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
+  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
+  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group, const uint64_t flags,
+  const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibConvolution3DInst<Int16QTy, Int16QTy>(
+  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
+  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
+  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group, const uint64_t flags,
+  const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibConvolution3DInst<Int16QTy, Int32QTy>(
+  LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2,
+  const std::array<uint32_t, default_kernels_size>& Kernels, const std::array<uint32_t, default_kernels_size>& Strides,
+  const std::array<uint32_t, default_pads_size>& Pads, const uint32_t Group, const uint64_t flags,
+  const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
  *  ConvTranspose implementations
@@ -880,20 +874,6 @@ void fwdLibElementExpInst(LibTensor* out0, LibTensor* in0, const uint64_t flags,
 extern template void fwdLibElementExpInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
                                                    const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibElementExpInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
-                                                     const uint32_t minionOffset, const uint32_t assignedMinions);
-
-/****************************************************************************
- *  ElementErf implementations
- ****************************************************************************/
-// declarations
-template <ElemKind in0Type>
-void fwdLibElementErfInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0,
-                          const uint32_t assignedMinions = 0);
-
-// extern template declarations
-extern template void fwdLibElementErfInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
-                                                   const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibElementErfInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
                                                      const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************

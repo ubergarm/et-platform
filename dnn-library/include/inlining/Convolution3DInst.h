@@ -64,6 +64,8 @@ INLINE_ATTR void quantConvolution3DOp(void* activations, void* weights, void* bi
   using AccumulatorType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::accumulatorType;
   using BiasType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::biasType;
 
+  ElemType& result = static_cast<ElemType*>(output)[offsetOut];
+
   // Compute matMulScale and matMulScaleRec
   //
   // float<8> matMulScale = broadcast<8>(inScale) * broadcast<8>(filterScale)
@@ -91,7 +93,7 @@ INLINE_ATTR void quantConvolution3DOp(void* activations, void* weights, void* bi
   // Compute B
   //
   const BiasType& biasValue = static_cast<BiasType*>(bias)[d];
-  float Bfloat = (float(biasValue) - biasOffset) * biasScale * matMulScaleRec;
+  float Bfloat = (static_cast<float>(biasValue) - static_cast<float>(biasOffset)) * biasScale * matMulScaleRec;
   convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(Bfloat, Bfloat);
   int64_t Bint64;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(Bint64) : [ tmp ] "f"(Bfloat));
@@ -127,15 +129,29 @@ INLINE_ATTR void quantConvolution3DOp(void* activations, void* weights, void* bi
 
   // ElemTy & result = quantize(float(sum + B))
   //
-  ElemType& result = static_cast<ElemType*>(output)[offsetOut];
-  tmp = float(sum + B);
+  sum += B;
+
+  float tmpLow, discarded, ignored;
+  static_assert(sizeof(sum) == 8 or sizeof(sum) == 4);
+  if constexpr (sizeof(sum) == 8) {
+    float tmpHigh;
+    __asm__ __volatile__("fbcx.ps %[tmpLow], %[low]\n"
+                         "fbcx.ps %[tmpHigh], %[high]\n"
+                         : [ tmpLow ] "=&f"(tmpLow), [ tmpHigh ] "=f"(tmpHigh)
+                         : [ low ] "r"(sum), [ high ] "r"(sum >> 32));
+    convert<Int64ITy, FloatTy>(tmpLow, tmpHigh, tmp, discarded, ignored, ignored, ignored, ignored);
+  } else {
+    __asm__ __volatile__("fbcx.ps %[tmpLow], %[low]\n" : [ tmpLow ] "=&f"(tmpLow) : [ low ] "r"(sum));
+    convert<Int32ITy, FloatTy>(tmpLow, ignored, tmp, discarded, ignored, ignored, ignored, ignored);
+  }
+
   doQuantize<dstElK>(tmp, tmp, outQuantScaleRec, outQuantOffset);
   int64_t first;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(first) : [ tmp ] "f"(tmp));
   result = first;
 }
 
-template <ElemKind elK, size_t N, size_t PN>
+template <ElemKind elK, ElemKind biasElK, size_t N, size_t PN>
 INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                                             const std::array<uint32_t, N>& kernels,
                                             const std::array<uint32_t, N>& strides,
@@ -151,7 +167,7 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
   void* output = outT->getRawDataPointer<void>();
   void* activations = in1T->getRawDataPointer<void>();
   void* weights = in2T->getRawDataPointer<void>();
-  float* bias = in3T->getRawDataPointer<float>();
+  void* bias = in3T->getRawDataPointer<void>();
 
   const float inScale = in1T->getScale();
   const float filterScale = in2T->getScale();
@@ -205,10 +221,7 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
     z = coord[3] * strides[2] - ssize_t(pads[4]);
     d = coord[4] * outCperG + coord[5];
 
-    constexpr ElemKind dstElK = elK;
-    constexpr ElemKind biasElK = elK;
-
-    quantConvolution3DOp<dstElK, biasElK, N>(
+    quantConvolution3DOp<elK, biasElK, N>(
       activations, weights, bias, output, offsetOut, coord, actPitch, weightPitch, actIndex, kernels, inCperG, mask, x,
       y, z, d, inScale, filterScale, biasScale, outScale, inOffset, filterOffset, biasOffset, outOffset);
 
@@ -321,15 +334,15 @@ INLINE_ATTR void convolution3DNonQuantizedInst(LibTensor* outT, LibTensor* in1T,
     evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize * initialAddr, clperminion);
 }
 
-template <ElemKind elK, size_t N, size_t PN>
+template <ElemKind elK, ElemKind biasElK, size_t N, size_t PN>
 INLINE_ATTR void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                                          const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
                                          const std::array<uint32_t, PN>& pads, unsigned int group, uint64_t flags,
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if constexpr (dnn_lib::isQuantizedElemKind(elK)) {
-    convolution3DQuantizedInst<elK, N, PN>(outT, in1T, in2T, in3T, kernels, strides, pads, group, flags, minionOffset,
-                                           assignedMinions);
+    convolution3DQuantizedInst<elK, biasElK, N, PN>(outT, in1T, in2T, in3T, kernels, strides, pads, group, flags, minionOffset,
+                                                    assignedMinions);
   } else {
     convolution3DNonQuantizedInst<elK, N, PN>(outT, in1T, in2T, in3T, kernels, strides, pads, group, flags,
                                               minionOffset, assignedMinions);
