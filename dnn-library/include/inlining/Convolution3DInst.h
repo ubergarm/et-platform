@@ -251,11 +251,12 @@ INLINE_ATTR void convolution3DNonQuantizedInst(LibTensor* outT, LibTensor* in1T,
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = in1T->getRawDataPointer<void>();
   void* weights = in2T->getRawDataPointer<void>();
+  void* bias = in3T->getRawDataPointer<void>();  
 
   Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
   const Addresser<elK> tWInput(weights, in2T->getScale(), in2T->getOffset());
-  float* tBias = in3T->getRawDataPointer<float>();
+  const Addresser<elK> tBias(bias, in3T->getScale(), in3T->getOffset());
 
   const dim_t* dstIndex = outT->dims().data();
   const dim_t* actIndex = in1T->dims().data();
