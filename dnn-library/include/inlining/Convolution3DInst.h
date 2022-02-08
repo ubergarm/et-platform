@@ -221,9 +221,9 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
     z = coord[3] * strides[2] - ssize_t(pads[4]);
     d = coord[4] * outCperG + coord[5];
 
-    quantConvolution3DOp<elK, biasElK, N>(
-      activations, weights, bias, output, offsetOut, coord, actPitch, weightPitch, actIndex, kernels, inCperG, mask, x,
-      y, z, d, inScale, filterScale, biasScale, outScale, inOffset, filterOffset, biasOffset, outOffset);
+    quantConvolution3DOp<elK, biasElK, N>(activations, weights, bias, output, offsetOut, coord, actPitch, weightPitch,
+                                          actIndex, kernels, inCperG, mask, x, y, z, d, inScale, filterScale, biasScale,
+                                          outScale, inOffset, filterOffset, biasOffset, outOffset);
 
     done = getOffsets(6, coord, offsetOut, eDstIndex, eDstPitch);
   }
@@ -251,7 +251,7 @@ INLINE_ATTR void convolution3DNonQuantizedInst(LibTensor* outT, LibTensor* in1T,
   void* dstMatrix = outT->getRawDataPointer<void>();
   void* activations = in1T->getRawDataPointer<void>();
   void* weights = in2T->getRawDataPointer<void>();
-  void* bias = in3T->getRawDataPointer<void>();  
+  void* bias = in3T->getRawDataPointer<void>();
 
   Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());
@@ -342,8 +342,8 @@ INLINE_ATTR void fwdLibConvolution3DInst(LibTensor* outT, LibTensor* in1T, LibTe
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if constexpr (dnn_lib::isQuantizedElemKind(elK)) {
-    convolution3DQuantizedInst<elK, biasElK, N, PN>(outT, in1T, in2T, in3T, kernels, strides, pads, group, flags, minionOffset,
-                                                    assignedMinions);
+    convolution3DQuantizedInst<elK, biasElK, N, PN>(outT, in1T, in2T, in3T, kernels, strides, pads, group, flags,
+                                                    minionOffset, assignedMinions);
   } else {
     convolution3DNonQuantizedInst<elK, N, PN>(outT, in1T, in2T, in3T, kernels, strides, pads, group, flags,
                                               minionOffset, assignedMinions);
