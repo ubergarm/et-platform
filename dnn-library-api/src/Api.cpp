@@ -878,7 +878,7 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x1, 0x1}, // evict available mask
+    {0x1, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
   },
 
