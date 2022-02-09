@@ -13,6 +13,8 @@
 #define _LOADSTORE_H_
 
 #include "LibTensor.h"
+#include "LibTypes.h"
+#include <limits>
 
 namespace dnn_lib {
 
@@ -127,6 +129,8 @@ inline void convertFloatToInt32(float source, float& destination) {
                          : [ destination ] "+f"(destination)
                          : [ bit ] "f"(bit));
   }
+
+  (void)bit;
 }
 
 constexpr uint64_t fg32b_conf = 0x398A418820;
@@ -395,30 +399,31 @@ inline void multiplyAdd(float& destination, float source, float scale, float off
                        : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
 }
 
-template <int64_t minValue, int64_t maxValue> inline void clip(float& destination, float& source) {
-  if constexpr (minValue == 0 and maxValue == 255) {
-    __asm__("fsatu8.pi %0, %0\n" : "+f"(destination));
-  } else if constexpr (minValue == -127 and maxValue == 128) {
-    __asm__("fsat8.pi %0, %0\n" : "+f"(destination));
+template <ssize_t minValue, ssize_t maxValue> inline void clip(float& destination, float& source) {
+  if constexpr (minValue == std::numeric_limits<uint8_t>::min() and maxValue == std::numeric_limits<uint8_t>::max()) {
+    __asm__ __volatile__("fsatu8.pi %0, %0\n" : "+f"(destination));
+  } else if constexpr (minValue == std::numeric_limits<int8_t>::min() and
+                       maxValue == std::numeric_limits<int8_t>::max()) {
+    __asm__ __volatile__("fsat8.pi %0, %0\n" : "+f"(destination));
   } else {
     float tmp;
-    __asm__("fbci.pi %[tmp], %[minValue]\n"
-            "fmax.pi %[destination], %[source], %[tmp]\n"
-            "fbci.pi %[tmp], %[maxValue]\n"
-            "fmin.pi %[destination], %[destination], %[tmp]\n"
-            : [ destination ] "=f"(destination), [ tmp ] "=&f"(tmp)
-            : [ source ] "f"(source), [ minValue ] "i"(minValue & 0xfffff), [ maxValue ] "i"(maxValue & 0xfffff));
+    __asm__ __volatile__("fbci.pi %[tmp], %[minValue]\n"
+                         "fmax.pi %[destination], %[source], %[tmp]\n"
+                         "fbci.pi %[tmp], %[maxValue]\n"
+                         "fmin.pi %[destination], %[destination], %[tmp]\n"
+                         : [ destination ] "=f"(destination), [ tmp ] "=&f"(tmp)
+                         : [ source ] "f"(source), [ minValue ] "i"(minValue & 0xfffff),
+                           [ maxValue ] "i"(maxValue & 0xfffff));
   }
 }
 
+template <typename T> inline void clip(float& destination, float& source) {
+  clip<std::numeric_limits<T>::min(), std::numeric_limits<T>::max()>(destination, source);
+}
+
 template <ElemKind dstElK> inline void clip(float& destination, float& source) {
-  if constexpr (dstElK == Int8QTy) {
-    clip<-127, 128>(destination, source);
-  } else if constexpr (dstElK == UInt8QTy) {
-    clip<0, 255>(destination, source);
-  } else if constexpr (dstElK == Int16QTy) {
-    clip<-32767, 32768>(destination, source);
-  }
+  using type = typename elemKind2elemTy<dstElK>::type;
+  clip<type>(destination, source);
 }
 
 template <ElemKind dstElK, bool careAboutNonFinite = false, bool canAboutSignallingNaN = false>
@@ -473,11 +478,13 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
     constexpr size_t bytesPerElement = Type::getElementSize(srcElK);
     copy<bytesPerElement>(source, sourceHigh, destination, destinationHigh);
   } else if constexpr (srcElK == FloatTy and dstElK == Float16Ty) {
-    __asm__("fcvt.f16.ps %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source));
+    __asm__ __volatile__("fcvt.f16.ps %[destination], %[source]\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source));
   } else if constexpr (srcElK == FloatTy and dstElK == BFloat16Ty) {
-    __asm__("fsrli.pi %[destination], %[source], %[bits]\n"
-            : [ destination ] "=f"(destination)
-            : [ source ] "f"(source), [ bits ] "i"(16));
+    __asm__ __volatile__("fsrli.pi %[destination], %[source], %[bits]\n"
+                         : [ destination ] "=f"(destination)
+                         : [ source ] "f"(source), [ bits ] "i"(16));
   } else if constexpr (srcElK == FloatTy and dstElK == Int8QTy) {
     doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8QTy) {

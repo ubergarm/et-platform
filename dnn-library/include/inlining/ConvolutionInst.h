@@ -12,19 +12,18 @@
 #ifndef _CONVOLUTION_INST_H_
 #define _CONVOLUTION_INST_H_
 
-#include <assert.h>
-#include <cmath>
-#include <fenv.h>
-#include <limits>
-#include <string.h>
 #include "Addresser.h" // From include/internal path
 #include "Float16.h"
-#include "utils.h"    // From include/internal path
 #include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
 #include "LibUtils.h"
 #include "utils.h" // From include/internal path
+#include <assert.h>
+#include <cmath>
+#include <fenv.h>
+#include <limits>
+#include <string.h>
 
 namespace dnn_lib {
 
@@ -60,6 +59,10 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                unsigned int inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N> dilation) {
+
+  (void)offset;
+  (void)scale;
+
   int64_t dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -158,6 +161,9 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                unsigned int inCperG, float16& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N>& dilation) {
+  (void)offset;
+  (void)scale;
+
   int dist;
   ssize_t fx, fy, ox, oy;
   fx = fy = 0;
@@ -376,7 +382,7 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
   // Compute B
   //
   const BiasType& biasValue = static_cast<BiasType*>(bias)[d];
-  float Bfloat = (float(biasValue) - biasOffset) * biasScale * matMulScaleRec;
+  float Bfloat = (static_cast<float>(biasValue) - static_cast<float>(biasOffset)) * biasScale * matMulScaleRec;
   convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(Bfloat, Bfloat);
   int64_t Bint64;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(Bint64) : [ tmp ] "f"(Bfloat));
@@ -408,7 +414,23 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
   // ElemTy & result = quantize(float(sum + B))
   //
   ElemType& result = static_cast<ElemType*>(output)[offsetOut];
-  tmp = float(sum + B);
+
+  sum += B;
+
+  float tmpLow, discarded, ignored;
+  static_assert(sizeof(sum) == 8 or sizeof(sum) == 4);
+  if constexpr (sizeof(sum) == 8) {
+    float tmpHigh;
+    __asm__ __volatile__("fbcx.ps %[tmpLow], %[low]\n"
+                         "fbcx.ps %[tmpHigh], %[high]\n"
+                         : [ tmpLow ] "=&f"(tmpLow), [ tmpHigh ] "=f"(tmpHigh)
+                         : [ low ] "r"(sum), [ high ] "r"(sum >> 32));
+    convert<Int64ITy, FloatTy>(tmpLow, tmpHigh, tmp, discarded, ignored, ignored, ignored, ignored);
+  } else {
+    __asm__ __volatile__("fbcx.ps %[tmpLow], %[low]\n" : [ tmpLow ] "=&f"(tmpLow) : [ low ] "r"(sum));
+    convert<Int32ITy, FloatTy>(tmpLow, ignored, tmp, discarded, ignored, ignored, ignored, ignored);
+  }
+
   doQuantize<dstElK>(tmp, tmp, outQuantScaleRec, outQuantOffset);
   int64_t first;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(first) : [ tmp ] "f"(tmp));
@@ -512,6 +534,7 @@ INLINE_ATTR void convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibT
 
     done = getOffsets(5, coord, offsetOut, eDstIndex, eDstPitch);
   }
+
   if (!DO_EVICTS)
     return;
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
@@ -666,6 +689,7 @@ INLINE_ATTR void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTens
                                        const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
+  // SW-1110: enable the quantized code path for Int16QTy when the ticket is resolved
   if constexpr (dnn_lib::isQuantizedElemKind(dstElK) and dstElK != Int16QTy) {
     convolutionInstQuantized<dstElK, biasElK, N, PN, FN>(outT, in1T, in2T, in3T, kernels, strides, pads, group,
                                                          dilation, fusedActivation, fusedActivationArgs, flags,

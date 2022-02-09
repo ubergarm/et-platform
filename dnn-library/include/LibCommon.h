@@ -181,7 +181,7 @@ inline __attribute__((always_inline))
 DestTy quantize(float input, float scale, int32_t offset) {
   float invertedScale;
   fpReciprocalSingleElement(scale, invertedScale);
-  float result = input * invertedScale + offset;
+  float result = input * invertedScale + static_cast<float>(offset);
   return clip<int32_t, DestTy>((int32_t)nearbyintf/* round */(result));
 }
 
@@ -189,7 +189,7 @@ DestTy quantize(float input, float scale, int32_t offset) {
 template <class SrcTy>
 inline __attribute__((always_inline))
 float dequantize(SrcTy input, float scale, int32_t offset) {
-  return scale * ((int32_t)input - offset);
+  return scale * static_cast<float>(static_cast<int32_t>(input) - offset);
 }
 
 /// Converts a quantized value (type eTy) to floating point based on the
