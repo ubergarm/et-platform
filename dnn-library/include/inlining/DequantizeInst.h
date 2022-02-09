@@ -29,8 +29,8 @@ namespace inlining {
 /// Dequantize integer tensor. Scale and Offset are based
 /// on the source tensor type.
 template <ElemKind dstElK, ElemKind srcElK>
-inline void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0,
+                                      const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
 

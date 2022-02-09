@@ -28,9 +28,8 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind outelK, ElemKind inelK>
-inline void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim, 
-                 uint64_t flags, const uint32_t minionOffset = 0,
-                 const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim, uint64_t flags,
+                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

@@ -25,11 +25,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-
 template <ElemKind elK>
-inline void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT,
-                                       uint64_t flags,
-                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;

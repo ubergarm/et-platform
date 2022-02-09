@@ -26,8 +26,8 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK, bool aligned>
-inline void maxSplatOp(const uintptr_t dst, const uintptr_t src, const dim_t valid, const float splatVal,
-                       const float* scale, const int32_t* offset) {
+INLINE_ATTR void maxSplatOp(const uintptr_t dst, const uintptr_t src, const dim_t valid, const float splatVal,
+                            const float* scale, const int32_t* offset) {
   // Enables only the valid elements
   if (valid < 8) {
     uint8_t mask = ((1 << valid) - 1);
@@ -98,8 +98,8 @@ inline void maxSplatOp(const uintptr_t dst, const uintptr_t src, const dim_t val
 
 // Generic version is vectorized and threaded
 template <ElemKind elK>
-inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, const float splatVal, uint64_t flags,
-                               const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, const float splatVal, uint64_t flags,
+                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -117,8 +117,8 @@ inline void fwdLibMaxSplatInst(LibTensor* outT, LibTensor* inT, const float spla
 }
 
 template <ElemKind elK>
-inline void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT, const float splatVal, uint64_t flags,
-                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibMaxSplatInstAligned32Bytes(LibTensor* outT, LibTensor* inT, const float splatVal, uint64_t flags,
+                                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;

@@ -25,9 +25,8 @@ namespace dnn_lib {
 
 namespace inlining {
 
-
-template <typename srcType, typename std::enable_if< (sizeof(srcType) <=4), int>::type = 0>
-void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t *gatherValues){
+template <typename srcType, typename std::enable_if<(sizeof(srcType) <= 4), int>::type = 0>
+INLINE_ATTR void transposeOp(uintptr_t dst, uintptr_t src, int32_t* scatterValues, int32_t* gatherValues) {
   __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        ".if %[size] == 4\n"
                        "    fgw.ps  f0, f31(%[src]) \n"
@@ -53,18 +52,16 @@ void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues, int32_t 
                        : "f0", "f31", "memory");
 }
 
-template <typename srcType, typename std::enable_if< (sizeof(srcType) > 4), int>::type = 0 >
-void transposeOp (uintptr_t dst, uintptr_t src, int32_t *scatterValues,  int32_t *gatherValues){
+template <typename srcType, typename std::enable_if<(sizeof(srcType) > 4), int>::type = 0>
+INLINE_ATTR void transposeOp(uintptr_t dst, uintptr_t src, int32_t* scatterValues, int32_t* gatherValues) {
   //FIXME: TODO: implement
 }
 
-
-
   // Vectorized version is the generic
-  template <ElemKind elK, size_t N>
-inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
-                                          const std::array<uint32_t, N> &shuffle, uint64_t flags,
-                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+template <ElemKind elK, size_t N>
+INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& shuffle,
+                                     uint64_t flags, const uint32_t minionOffset = 0,
+                                     const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -170,9 +167,8 @@ inline void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT,
                                       clperminion);
 }
 
-
-template <typename srcType, typename std::enable_if< (sizeof(srcType) <=4), int>::type = 0 >
-void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
+template <typename srcType, typename std::enable_if<(sizeof(srcType) <= 4), int>::type = 0>
+INLINE_ATTR void transposeOpAligned32Bytes(uintptr_t dst, uintptr_t src, int32_t* gatherValues) {
   constexpr size_t size = sizeof(srcType);
   constexpr auto g32_conf = size == 2 ? fg32h_conf : fg32b_conf;
   
@@ -198,18 +194,16 @@ void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherVal
                        : "f0", "f31", "t0", "memory"
                        );
 }
-  
-template <typename srcType, typename std::enable_if< (sizeof(srcType) > 4), int>::type = 0>
-  void transposeOpAligned32Bytes (uintptr_t dst, uintptr_t src, int32_t *gatherValues){
+
+template <typename srcType, typename std::enable_if<(sizeof(srcType) > 4), int>::type = 0>
+INLINE_ATTR void transposeOpAligned32Bytes(uintptr_t dst, uintptr_t src, int32_t* gatherValues) {
   //FIXME: not implemented
 }
 
-
-
-  template <ElemKind elK, size_t N>
-inline void fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT,
-                                              const std::array<uint32_t, N> &shuffle, uint64_t flags,
-                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+template <ElemKind elK, size_t N>
+INLINE_ATTR void
+fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& shuffle,
+                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;  
 
   unsigned int minionId = get_minion_id() - minionOffset;

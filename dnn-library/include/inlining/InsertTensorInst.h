@@ -26,11 +26,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-  template <ElemKind elK>
-inline __attribute__((always_inline))
-  void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const dim_array_t offsets,
-                            unsigned int count, unsigned int axis,
-                            uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+template <ElemKind elK>
+INLINE_ATTR void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const dim_array_t offsets, unsigned int count,
+                                        unsigned int axis, uint64_t flags, const uint32_t minionOffset = 0,
+                                        const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   if (get_minion_id() != minionOffset) return;
   /* maintain compatibility through the new Iface Libtensor */
@@ -91,15 +90,11 @@ inline __attribute__((always_inline))
     if (addr2wr > 0)
       fence_evict_va(0, DO_EVICTS, addr2wr, 0);
   }
-
 }
 
-
 template <typename srcType>
-inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
-                      const unsigned int& addrIn, const int32_t& typeSize,
-                      std::pair<int, int> lanes, int32_t *gatherValues, uint64_t flags) 
-{
+INLINE_ATTR void insertRow(uint8_t* dst, uint8_t* src, const unsigned int& addrOut, const unsigned int& addrIn,
+                           const int32_t& typeSize, std::pair<int, int> lanes, int32_t* gatherValues, uint64_t flags) {
   uint8_t *dst8 = (uint8_t *) dst + addrOut * typeSize;
   uint8_t *src8 = (uint8_t *) src + addrIn * typeSize;
   float scratch;
@@ -176,13 +171,9 @@ inline void insertRow(uint8_t *dst, uint8_t *src, const unsigned int& addrOut,
 }
 
 template <ElemKind elK>
-inline __attribute__((always_inline))
-void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
-                                    const dim_array_t &coord,
-                                    unsigned int count,
-                                    unsigned int axis, uint64_t flags,
-                                    const uint32_t minionOffset = 0,
-                                    const  uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT, const dim_array_t& coord,
+                                                unsigned int count, unsigned int axis, uint64_t flags,
+                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;

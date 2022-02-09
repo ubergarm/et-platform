@@ -29,12 +29,12 @@ namespace dnn_lib {
 namespace inlining {
 
 /**
- * @brief Rearranges blocks of spatial data, into depth. More specifically, 
- * this op outputs a copy of the input tensor where values from the height 
- * and width dimensions are moved to the depth dimension. The attr 
+ * @brief Rearranges blocks of spatial data, into depth. More specifically,
+ * this op outputs a copy of the input tensor where values from the height
+ * and width dimensions are moved to the depth dimension. The attr
  * block_size indicates the input block size.
  *
- * Only support for FloatTy Float16Ty Int8QTy Int64ITy  
+ * Only support for FloatTy Float16Ty Int8QTy Int64ITy
  * BoolTy and Fused kinds not supported
  * Following InstGen.cpp Interpreter.cpp and isOpSupported at ETSOC.cpp specification.
  *
@@ -44,12 +44,10 @@ namespace inlining {
  * @param[in] blockSize the input block size
  * @param[flags] flags Gives the information of the Active Shires and the
  * type of evict required.
- */ 
+ */
 template <ElemKind elKind>
-inline void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, 
-           const uint32_t blockSize, uint64_t flags, 
-           const uint32_t minionOffset = 0,
-           const uint32_t assignedMinions = 0) { 
+INLINE_ATTR void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, const uint32_t blockSize, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

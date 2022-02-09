@@ -121,7 +121,6 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
   // This implementation uses globalStores. no evict code needed.
 }
 
-// specialization for Int8QTy
 template <>
 INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags,
                                                      const uint32_t minionOffset, const uint32_t assignedMinions) {

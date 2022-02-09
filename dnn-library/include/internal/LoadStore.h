@@ -33,7 +33,7 @@ enum class RoundingMode {
 
 template <RoundingMode mode = RoundingMode::Dynamic, bool careAboutNonFinite = true,
           bool careAboutSignallingNaN = false>
-inline void convertFloatToInt32(float source, float& destination) {
+INLINE_ATTR void convertFloatToInt32(float source, float& destination) {
 
   static_assert(mode != RoundingMode::Invalid1 and mode != RoundingMode::Invalid2);
 
@@ -153,7 +153,7 @@ constexpr uint64_t getGatherScatterConfig(size_t bytesPerElement) {
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void setupGatherScatterConfig(uint64_t& conf, float& indices) {
+INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, float& indices) {
 
   if constexpr (aligned) {
     __asm__ __volatile__("li %[conf], %[confImm]\n"
@@ -171,7 +171,7 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices) {
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indicesHigh) {
+INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indicesHigh) {
 
   if constexpr (bytesPerElement == 8) {
     static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
@@ -192,8 +192,8 @@ constexpr bool isSameConfig() {
 }
 
 template <size_t srcBytesPerElement, size_t dstBytesPerElement, bool alignedSrc = false, bool alignedDst = false>
-inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indicesHigh, uint64_t& dstConf,
-                                     float& dstIndices, float& dstIndicesHigh) {
+INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indicesHigh, uint64_t& dstConf,
+                                          float& dstIndices, float& dstIndicesHigh) {
   setupGatherScatterConfig<srcBytesPerElement, alignedSrc>(conf, indices, indicesHigh);
   if constexpr (not isSameConfig<srcBytesPerElement, dstBytesPerElement, alignedSrc, alignedDst>()) {
     setupGatherScatterConfig<dstBytesPerElement, alignedDst>(dstConf, dstIndices, dstIndicesHigh);
@@ -201,7 +201,7 @@ inline void setupGatherScatterConfig(uint64_t& conf, float& indices, float& indi
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void load(uintptr_t src, uint64_t conf, const float& indices, float& op0) {
+INLINE_ATTR void load(uintptr_t src, uint64_t conf, const float& indices, float& op0) {
   static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
@@ -229,7 +229,7 @@ inline void load(uintptr_t src, uint64_t conf, const float& indices, float& op0)
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh, float& op0, float& op0High) {
+INLINE_ATTR void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh, float& op0, float& op0High) {
   if constexpr (bytesPerElement == 8) {
     __asm__ __volatile__("fgw.ps %[op0], %[indices](%[src])\n"
                          "fgw.ps %[op0High], %[indicesHigh](%[src])\n"
@@ -242,7 +242,7 @@ inline void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh,
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void storeLocal(uintptr_t dst, uint64_t conf, float indices, float op0) {
+INLINE_ATTR void storeLocal(uintptr_t dst, uint64_t conf, float indices, float op0) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fsc32b.ps %[op0], %[conf](%[dst])\n"
@@ -271,7 +271,7 @@ inline void storeLocal(uintptr_t dst, uint64_t conf, float indices, float op0) {
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-inline void storeGlobal(uintptr_t dst, uint64_t conf, float indices, float op0) {
+INLINE_ATTR void storeGlobal(uintptr_t dst, uint64_t conf, float indices, float op0) {
   // TODO [SW-11008] aligned global stores are not optimized on this implementation.
   if constexpr (bytesPerElement == 1) {
     __asm__ __volatile__("fscbg.ps %[op0], %[indices](%[dst])\n"
@@ -289,7 +289,7 @@ inline void storeGlobal(uintptr_t dst, uint64_t conf, float indices, float op0) 
 }
 
 template <size_t bytesPerElement, bool aligned = false, bool globalStore = false>
-inline void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
+INLINE_ATTR void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
   static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (globalStore) {
     storeGlobal<bytesPerElement, aligned>(dst, conf, indices, op0);
@@ -299,7 +299,7 @@ inline void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
 }
 
 template <size_t bytesPerElement, bool aligned = false, bool globalStore = false>
-inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh, float op0, float op0High) {
+INLINE_ATTR void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh, float op0, float op0High) {
   if constexpr (bytesPerElement == 8) {
     if constexpr (globalStore) {
       // TODO [SW-11008] aligned global stores are not optimized on this implementation.
@@ -320,32 +320,32 @@ inline void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh
   }
 }
 
-template <size_t bytesPerElement> inline void copy(float source, float& destination) {
+template <size_t bytesPerElement> INLINE_ATTR void copy(float source, float& destination) {
   __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n"
                        : [ destination ] "=f"(destination)
                        : [ source ] "f"(source));
 }
 
 template <size_t bytesPerElement>
-inline void copy(float source, float sourceHigh, float& destination, float& destinationHigh) {
+INLINE_ATTR void copy(float source, float sourceHigh, float& destination, float& destinationHigh) {
   copy<bytesPerElement>(source, destination);
   if constexpr (bytesPerElement > 4) {
     copy<bytesPerElement>(sourceHigh, destinationHigh);
   }
 }
 
-template <ElemKind elK> inline void zero(float& destination) {
+template <ElemKind elK> INLINE_ATTR void zero(float& destination) {
   __asm__ __volatile__("fbci.pi %[destination], 0\n" : [ destination ] "=f"(destination));
 }
 
-template <ElemKind elK> inline void zero(float& destination, float& destinationHigh) {
+template <ElemKind elK> INLINE_ATTR void zero(float& destination, float& destinationHigh) {
   zero<elK>(destination);
   if constexpr (Type::getElementSize(elK) > 4) {
     zero<elK>(destinationHigh);
   }
 }
 
-inline void setupDequantize(float& scale, float& offset, float scaleScalar, int32_t offsetScalar) {
+INLINE_ATTR void setupDequantize(float& scale, float& offset, float scaleScalar, int32_t offsetScalar) {
   __asm__ __volatile__("fbcx.ps %[offset], %[offsetScalar]\n"
                        "fbcx.ps %[scale], %[scaleScalar]\n"
                        : [ offset ] "=&f"(offset), [ scale ] "=&f"(scale)
@@ -360,7 +360,7 @@ source: packed int32 register with source
 scale:  packed float register with the broadcasted scale value
 offset: packed int32 register with the broadcasted offset
 */
-inline void doDequantizeInt32(float& destination, float source, float scale, float offset) {
+INLINE_ATTR void doDequantizeInt32(float& destination, float source, float scale, float offset) {
   __asm__ __volatile__("fsub.pi %[destination], %[source], %[offset]\n"
                        "fcvt.ps.pw %[destination], %[destination]\n"
                        "fmul.ps %[destination], %[destination], %[scale]\n"
@@ -376,7 +376,7 @@ source: packed uint32 register with source
 scale:  packed float register with the broadcasted scale value
 offset: packed uint32 register with the broadcasted offset
 */
-inline void doDequantizeUInt32(float& destination, float source, float scale, float offset) {
+INLINE_ATTR void doDequantizeUInt32(float& destination, float source, float scale, float offset) {
   __asm__ __volatile__("fsub.pi %[destination], %[source], %[offset]\n"
                        "fcvt.ps.pwu %[destination], %[destination]\n"
                        "fmul.ps %[destination], %[destination], %[scale]\n"
@@ -384,7 +384,7 @@ inline void doDequantizeUInt32(float& destination, float source, float scale, fl
                        : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
 }
 
-inline void setupQuantize(float& scaleReciprocal, float& offset, float scaleScalar, int32_t offsetScalar) {
+INLINE_ATTR void setupQuantize(float& scaleReciprocal, float& offset, float scaleScalar, int32_t offsetScalar) {
   __asm__ __volatile__("fbcx.ps %[scaleReciprocal], %[scaleScalar]\n"
                        "frcp.ps %[scaleReciprocal], %[scaleReciprocal]\n"
                        "fbcx.ps %[offset], %[offsetScalar]\n"
@@ -393,18 +393,17 @@ inline void setupQuantize(float& scaleReciprocal, float& offset, float scaleScal
                        : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
 }
 
-inline void multiplyAdd(float& destination, float source, float scale, float offset) {
+INLINE_ATTR void multiplyAdd(float& destination, float source, float scale, float offset) {
   __asm__ __volatile__("fmadd.ps %[destination], %[source], %[scale], %[offset]\n"
                        : [ destination ] "=f"(destination)
                        : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
 }
 
-template <ssize_t minValue, ssize_t maxValue> inline void clip(float& destination, float& source) {
-  if constexpr (minValue == std::numeric_limits<uint8_t>::min() and maxValue == std::numeric_limits<uint8_t>::max()) {
-    __asm__ __volatile__("fsatu8.pi %0, %0\n" : "+f"(destination));
-  } else if constexpr (minValue == std::numeric_limits<int8_t>::min() and
-                       maxValue == std::numeric_limits<int8_t>::max()) {
-    __asm__ __volatile__("fsat8.pi %0, %0\n" : "+f"(destination));
+template <int64_t minValue, int64_t maxValue> INLINE_ATTR void clip(float& destination, float& source) {
+  if constexpr (minValue == 0 and maxValue == 255) {
+    __asm__("fsatu8.pi %0, %0\n" : "+f"(destination));
+  } else if constexpr (minValue == -127 and maxValue == 128) {
+    __asm__("fsat8.pi %0, %0\n" : "+f"(destination));
   } else {
     float tmp;
     __asm__ __volatile__("fbci.pi %[tmp], %[minValue]\n"
@@ -417,17 +416,18 @@ template <ssize_t minValue, ssize_t maxValue> inline void clip(float& destinatio
   }
 }
 
-template <typename T> inline void clip(float& destination, float& source) {
-  clip<std::numeric_limits<T>::min(), std::numeric_limits<T>::max()>(destination, source);
-}
-
-template <ElemKind dstElK> inline void clip(float& destination, float& source) {
-  using type = typename elemKind2elemTy<dstElK>::type;
-  clip<type>(destination, source);
+template <ElemKind dstElK> INLINE_ATTR void clip(float& destination, float& source) {
+  if constexpr (dstElK == Int8QTy) {
+    clip<-127, 128>(destination, source);
+  } else if constexpr (dstElK == UInt8QTy) {
+    clip<0, 255>(destination, source);
+  } else if constexpr (dstElK == Int16QTy) {
+    clip<-32767, 32768>(destination, source);
+  }
 }
 
 template <ElemKind dstElK, bool careAboutNonFinite = false, bool canAboutSignallingNaN = false>
-inline void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
+INLINE_ATTR void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
   static_assert(isQuantizedElemKind(dstElK));
   multiplyAdd(destination, source, scaleReciprocal, offset);
   convertFloatToInt32<RoundingMode::LikeStdRoundAndCast, careAboutNonFinite, canAboutSignallingNaN>(destination,
@@ -436,8 +436,9 @@ inline void doQuantize(float& destination, float source, float scaleReciprocal, 
 }
 
 template <ElemKind srcElK, ElemKind dstElK, bool matchx86 = false>
-inline void convert(float source, float sourceHigh, float& destination, float& destinationHigh, const float& srcScale,
-                    const float& srcOffset, const float& dstScaleReciprocal, const float& dstOffset) {
+INLINE_ATTR void convert(float source, float sourceHigh, float& destination, float& destinationHigh,
+                         const float& srcScale, const float& srcOffset, const float& dstScaleReciprocal,
+                         const float& dstOffset) {
 
   /*
   # The following python code was used for generating a skeleton for this funcion
@@ -986,7 +987,7 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
 }
 
 template <ElemKind srcElK, ElemKind dstElK>
-inline void convert(float source, float sourceHigh, float& destination, float& destinationHigh) {
+INLINE_ATTR void convert(float source, float sourceHigh, float& destination, float& destinationHigh) {
   static_assert(not isQuantizedElemKind(srcElK) and not isQuantizedElemKind(dstElK),
                 "Quantized types are not supported by this simplified convert");
   float srcScale = 0, srcOffset = 0, dstScaleReciprocal = 0, dstOffset = 0;
@@ -994,26 +995,26 @@ inline void convert(float source, float sourceHigh, float& destination, float& d
                           dstOffset);
 }
 
-template <ElemKind srcElK, ElemKind dstElK> inline void convert(float& destination, float& destinationHigh) {
+template <ElemKind srcElK, ElemKind dstElK> INLINE_ATTR void convert(float& destination, float& destinationHigh) {
   if constexpr (srcElK != dstElK) {
     convert<srcElK, dstElK>(destination, destinationHigh, destination, destinationHigh);
   }
 }
 
-template <ElemKind srcElK, ElemKind dstElK> inline void convert(float& destination) {
+template <ElemKind srcElK, ElemKind dstElK> INLINE_ATTR void convert(float& destination) {
   if constexpr (srcElK != dstElK) {
     float destinationHigh = 0;
     convert<srcElK, dstElK>(destination, destinationHigh, destination, destinationHigh);
   }
 }
 
-inline void saturateInt8(float source, float& destination) {
+INLINE_ATTR void saturateInt8(float source, float& destination) {
   __asm__ __volatile__("fsat8.pi %[destination], %[source]\n"
                        : [ destination ] "=f"(destination)
                        : [ source ] "f"(source));
 }
 
-inline void saturateUInt8(float source, float& destination) {
+INLINE_ATTR void saturateUInt8(float source, float& destination) {
   __asm__ __volatile__("fsatu8.pi %[destination], %[source]\n"
                        : [ destination ] "=f"(destination)
                        : [ source ] "f"(source));

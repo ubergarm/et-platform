@@ -30,9 +30,9 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elKind>
-inline typename std::enable_if_t<(isQuantizedElemKind(elKind)||(elKind==Float16Ty)), void> 
-fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
+  INLINE_ATTR fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   
@@ -115,11 +115,11 @@ fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
 #undef START_IND
 #undef END_IND
 }
- 
+
 template <ElemKind elKind>
-inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void> 
-fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) { 
+typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
+  INLINE_ATTR fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   assert(inT->getElementType() == outT->getElementType());
 
@@ -177,7 +177,7 @@ fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
   outT->evict(DO_EVICTS);
 
 #undef START_IND
-#undef END_IND 
+#undef END_IND
 }
 
 } // inlining

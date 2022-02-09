@@ -26,12 +26,10 @@ namespace dnn_lib {
 
 namespace inlining {
 
-
 template <ElemKind elK>
-inline void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT,
-                                    LibTensor* in1T, LibTensor* in2T,
-                                    uint64_t flags,
-                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT, LibTensor* in1T, LibTensor* in2T,
+                                         uint64_t flags, const uint32_t minionOffset = 0,
+                                         const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;

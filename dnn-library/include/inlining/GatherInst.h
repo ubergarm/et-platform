@@ -40,9 +40,8 @@ namespace inlining {
 // index values for the i-th dimension of the source tensor tInput.
 
 template <ElemKind srcElK, ElemKind indexElK>
-inline void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,                                     
-                             unsigned int batchedDims, uint64_t flags,
-                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, unsigned int batchedDims,
+                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   //  using indexType = typename elemKind2elemTy<indexElK>::type;
   

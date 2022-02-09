@@ -52,7 +52,7 @@ namespace inlining {
  *  type of evict required.
  */
 template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, size_t FN>
-inline void fwdLibChannelWiseQuantizedConvolution3DInst(
+INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
   LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
   LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
   const std::array<uint32_t, PN>& pads, const uint32_t group, const std::array<uint32_t, KN>& dilation,
@@ -162,7 +162,7 @@ inline void fwdLibChannelWiseQuantizedConvolution3DInst(
 }
 
 template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, size_t FN>
-inline void fwdLibChannelWiseQuantizedConvolutionInst(
+INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
   LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
   LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
   const std::array<uint32_t, PN>& pads, const uint32_t group, const std::array<uint32_t, KN>& dilation,

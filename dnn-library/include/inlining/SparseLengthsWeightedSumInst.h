@@ -24,10 +24,11 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elKind, ElemKind idxKind>
-inline typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind==Float16Ty)), void>
-fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                   LibTensor* in3T, LibTensor* in4T, 
-                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
+
+fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+                                   uint64_t flags, const uint32_t minionOffset = 0,
+                                   const uint32_t assignedMinions = 0) {
   if (get_minion_id() != minionOffset) return;
 
   assert(in1T->getElementType() == outT->getElementType());
@@ -110,13 +111,12 @@ fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   outT->evict(DO_EVICTS);
 }
 
-
 template <ElemKind elKind, ElemKind idxKind>
-inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
-                                  (elKind != Float16Ty) && (elKind != BoolTy)), void>
-fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                   LibTensor* in3T, LibTensor* in4T,
-                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR
+  typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
+  fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                     LibTensor* in4T, uint64_t flags, const uint32_t minionOffset = 0,
+                                     const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -167,10 +167,10 @@ fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
 }
 
 template <ElemKind elKind, ElemKind idxKind>
-inline typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
-fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                           LibTensor* in3T, LibTensor* in4T, uint64_t flags,
-                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
+fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                           LibTensor* in4T, uint64_t flags, const uint32_t minionOffset = 0,
+                                           const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -263,13 +263,12 @@ fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, Lib
   outT->evict(DO_EVICTS, first, count);
 }
 
-
 template <ElemKind elKind, ElemKind idxKind>
-inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
-                                  (elKind != Float16Ty) && (elKind != BoolTy)), void>
-fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                           LibTensor* in3T, LibTensor* in4T, uint64_t flags,
-                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR
+  typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
+  fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                             LibTensor* in4T, uint64_t flags, const uint32_t minionOffset = 0,
+                                             const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;

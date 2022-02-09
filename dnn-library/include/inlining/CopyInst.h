@@ -36,9 +36,7 @@ namespace inlining {
  * @param[in] dst Pointer to destination buffer to copy to
  * @param[in] bytes Number of bytes to copy
  */
-inline void copyBytes(uint8_t * src,
-                      uint8_t * dst,
-                      size_t bytes) {
+INLINE_ATTR void copyBytes(uint8_t* src, uint8_t* dst, size_t bytes) {
   float  scratch[4];
   size_t scratch2;
 
@@ -132,10 +130,8 @@ inline void copyBytes(uint8_t * src,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <ElemKind elK>
-inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT,
-                                   uint64_t flags,
-                                   const uint32_t minionOffset = 0,
-                                   const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0,
+                                const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -244,10 +240,8 @@ inline void fwdLibCopyInst(LibTensor* outT, LibTensor* inT,
  * @param[in] assignedMinions Amount of minions avaliable.
  */
 template <ElemKind elK>
-inline void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT,
-                                     uint64_t flags,
-                                     const uint32_t minionOffset = 0,
-                                     const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;

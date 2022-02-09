@@ -30,8 +30,8 @@ namespace inlining {
 // Single-thread version with small optimisations. Useful when the padding
 // hypothesis are not met.
 template <ElemKind elK>
-inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
-                               uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0,
+                                   const uint32_t assignedMinions = 0) {
 
   static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
   assert(inT->getElementType() == elK and outT->getElementType() == elK);
@@ -83,16 +83,14 @@ inline void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT,
   }
 }
 
-
-
 // Vectorized version: same hypothesis than SoftMaxInstThreaded1.
 // Possible source types: fp16, fp32 (and output of the same type).
 // TODO: use templates for each srcType for a speed up (the only
 // difference is in the GATHER_FLOAT and SCATTER_FLOAT functions).
 
 template <ElemKind elK>
-inline void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   const size_t cll = CACHE_LINE_BYTES / outT->getElementSize();
   const size_t numDims = outT->ndims();

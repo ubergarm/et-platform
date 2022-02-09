@@ -29,8 +29,8 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind dstElK, ElemKind srcElK, typename opType>
-inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
-                                    uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   using srcType = typename elemKind2elemTy<srcElK>::type;
@@ -68,8 +68,8 @@ inline void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT,
 }
 
 template <ElemKind dstElK, ElemKind srcElK, typename opType>
-inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
@@ -125,8 +125,9 @@ inline void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT, uin
 }
 
 template <ElemKind dstElK, ElemKind srcElK, typename opType>
-inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                                   const uint32_t minionOffset = 0,
+                                                   const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
 
@@ -245,7 +246,6 @@ inline void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* inT, u
   unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
-
 
   ////////////////////////////////////////////////////////////////////////////////
   // instances for particular instructions calling the above functions

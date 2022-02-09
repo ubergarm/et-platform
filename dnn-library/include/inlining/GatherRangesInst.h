@@ -33,10 +33,9 @@ namespace inlining {
 // of batches of the source tensor that will be copied.
 
 template <ElemKind srcElK, ElemKind indexElK>
-inline void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T,
-                                   LibTensor* in1T, LibTensor* in2T,
-                                   uint64_t flags,
-                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T,
+                                        uint64_t flags, const uint32_t minionOffset = 0,
+                                        const uint32_t assignedMinions = 0) {
 
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using indexType = typename elemKind2elemTy<indexElK>::type;

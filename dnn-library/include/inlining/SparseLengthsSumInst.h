@@ -31,11 +31,9 @@ namespace inlining {
  *  change the shape of the individual blocks
  */
 template <ElemKind elKind, ElemKind idxKind>
-  inline typename std::enable_if_t<(isQuantizedElemKind(elKind) || elKind == Float16Ty), void>
-fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices,
-        LibTensor* length, uint64_t flags, 
-        const uint32_t minionOffset = 0, 
-        const uint32_t assignedMinions = 0) {
+INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || elKind == Float16Ty), void>
+fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices, LibTensor* length, uint64_t flags,
+                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -97,17 +95,13 @@ fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices,
   }
 
   outT->evict(DO_EVICTS);
-
 }
 
-
 template <ElemKind elKind, ElemKind idxKind>
-inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
-                                  (elKind != Float16Ty) && (elKind != BoolTy)), void>
-fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, 
-        LibTensor* indices, LibTensor* length, 
-        uint64_t flags, const uint32_t minionOffset = 0, 
-        const uint32_t assignedMinions = 0) {
+INLINE_ATTR
+  typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
+  fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices, LibTensor* length, uint64_t flags,
+                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

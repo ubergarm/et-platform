@@ -26,9 +26,7 @@ namespace dnn_lib {
 
 namespace inlining {
 
-inline __attribute__((always_inline))
-  unsigned int minTview(uint8_t &type, unsigned int a, unsigned int b,
-                        unsigned int c) {
+INLINE_ATTR unsigned int minTview(uint8_t& type, unsigned int a, unsigned int b, unsigned int c) {
   type = 0;
   if(b < a) {
     type = 1;
@@ -42,9 +40,8 @@ inline __attribute__((always_inline))
 }
 
 template <typename srcType>
-inline __attribute__((always_inline)) void
-gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
-                   int32_t *gatherValues) {
+INLINE_ATTR __attribute__((always_inline)) void gatherScatterTView(uint8_t* src8, uint8_t* dst8, const uint32_t& mask,
+                                                                   int32_t* gatherValues) {
   float d0,d1;
   if (sizeof(srcType) == 2) {
     __asm__ __volatile__
@@ -78,13 +75,10 @@ gatherScatterTView(uint8_t *src8, uint8_t *dst8, const uint32_t &mask,
   return;
 }
 
-
-
   // just one generic and vectorized version
 template <ElemKind elK>
-inline void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT,
-                                           const dim_array_t & coord, uint64_t flags,
-                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim_array_t& coord, uint64_t flags,
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
