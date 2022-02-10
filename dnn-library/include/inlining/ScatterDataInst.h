@@ -146,7 +146,7 @@ INLINE_ATTR void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTens
     }
   }
 
-  for (unsigned int i = 0; i < indicesIndex[0]; i++) {
+  for (i = 0; i < indicesIndex[0]; i++) {
     unsigned int dstDataIdx = 0;
     for (unsigned int j = 0; j < indicesIndex[1]; j++) {
       dstDataIdx *= dstIndex[j];

@@ -36,7 +36,7 @@ public:
 
   // Float16 => converts to float
   ONLY_FOR(U == Float16Ty)
-  const float operator[](const size_t index) const {
+  float operator[](const size_t index) const {
     float f;
     dnn_lib::convertFp16ToFp32(ptr_[index], f);
     return f;
@@ -44,13 +44,13 @@ public:
 
   // Integer quantized types: converts to float
   ONLY_FOR(U == Int8QTy || U == UInt8QTy || U == Int16QTy || U == Int32QTy)
-  const float operator[](const size_t index) const {
+  float operator[](const size_t index) const {
     return dnn_lib::dequantize<T>(ptr_[index], scale_, offset_);
   }
 
   // none of the above cases (Float, index types...) read directly from ptr
   ONLY_FOR(U != Float16Ty && U != Int8QTy && U != UInt8QTy && U != Int16QTy && U != Int32QTy)
-  const T operator[](const size_t index) const {
+  T operator[](const size_t index) const {
     return ptr_[index];
   }
 

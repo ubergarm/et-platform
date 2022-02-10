@@ -227,7 +227,7 @@ fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, Lib
 
       size_t aux = idxH.at(std::array<size_t,1>{k});
       float wei = 1.0;
-      float res = 0.0;
+      res = 0.0;
       if(elKind == Float16Ty) { 
   float dst = 0.0;
   if (in2T != nullptr) {

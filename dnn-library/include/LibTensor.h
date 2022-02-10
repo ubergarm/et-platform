@@ -168,7 +168,7 @@ struct Type final {
 
   /* brief returns true if \p other has same shape.
    */
-  const bool hasSameShape(const Type other) const {
+  bool hasSameShape(const Type other) const {
     if (numSizes_ != other.getNumDims()) return false;
     const dim_array_t& other_sizes = other.getSizes();
     const dim_array_t& other_strides = other.getStrides();
@@ -216,7 +216,7 @@ struct Type final {
 
   /*@brief return the number of elements in the tensor.
    */
-  const dim_t size() const {
+  dim_t size() const {
     dim_t acum = 1;
     for(auto i: sizes_) acum*=i;
     return acum;
@@ -416,11 +416,13 @@ class LibTensor final {
 
   /*@brief returns the element type of the tensor.
    */
-  const ElemKind getElementType() const { return type_.getElementType(); }
+  ElemKind getElementType() const {
+    return type_.getElementType();
+  }
 
   /*@brief returns if padding positions are untouchable.
    */
-  const bool getUntouchable() const {
+  bool getUntouchable() const {
     return untouch_;
   }
 
@@ -481,7 +483,9 @@ class LibTensor final {
 
   /*@brief Get number of dimensions the tensor has
    */
-  const dim_t ndims() const { return type_.numSizes_; }
+  dim_t ndims() const {
+    return type_.numSizes_;
+  }
 
   /*@brief returns the dimensions (padded with 1 until max_tensor_dimensions)
    */
@@ -493,7 +497,7 @@ class LibTensor final {
 
   /*@brief returns strides as if there were no padding
    */
-  const dim_array_t stridesNoPadding() const {
+  dim_array_t stridesNoPadding() const {
     dim_array_t v;
     v[ndims()-1] = 1;
     for (int64_t i = ndims()-2; i >=0; i--){

@@ -231,10 +231,9 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
   setupGatherScatterConfig<bytesPerElement, dstAligned>(dstConf, dstIndices);
 
   // Setup scather config for scale destination tensor
-  constexpr bool dstAligned2 = false;
   uint64_t dstConf2;
   float dstIndices2;
-  setupGatherScatterConfig<bytesPerElement, dstAligned2>(dstConf2, dstIndices2);
+  setupGatherScatterConfig<bytesPerElement, dstAligned>(dstConf2, dstIndices2);
 
   unsigned int posMax = maxRead + initialAddr;
   bool done = false;
@@ -290,15 +289,13 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
 
     // Convert to elK and store
     convert<FloatTy, elK>(output);
-    constexpr bool dstAligned = false;
     uintptr_t dstAddr = reinterpret_cast<uintptr_t>(dstMatrix) + offsetOut * bytesPerElement;
     store<bytesPerElement, dstAligned>(dstAddr, dstConf, dstIndices, output);
 
     // Convert scale to elK and store
     convert<FloatTy, elK>(scale);
-    constexpr bool dstAligned2 = false;
     uintptr_t dstAddr2 = reinterpret_cast<uintptr_t>(dst2Matrix) + offsetOut2 * bytesPerElement;
-    store<bytesPerElement, dstAligned2>(dstAddr2, dstConf2, dstIndices2, scale);
+    store<bytesPerElement, dstAligned>(dstAddr2, dstConf2, dstIndices2, scale);
 
     // Move to next element
     // FIXME: untouchable dest and scale padding is touched in some dimensoins. --src-dims="1,39,3,2"
