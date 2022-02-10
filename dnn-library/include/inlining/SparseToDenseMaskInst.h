@@ -31,9 +31,9 @@ namespace inlining {
 // (2) The dimensions of the pdefault tensor are the ones of a batch of the data tensor.
 
 template <ElemKind elK, size_t N>
-inline void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                                        LibTensor* in4T, const std::array<size_t, N> mask, uint64_t flags,
-                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                             LibTensor* in4T, const std::array<size_t, N> mask, uint64_t flags,
+                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;

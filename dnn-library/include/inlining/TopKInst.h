@@ -24,8 +24,8 @@
 
 namespace dnn_lib {
 namespace inlining {
-  
-inline void swap(void *vals, void *inds, int i, int j) {
+
+INLINE_ATTR void swap(void* vals, void* inds, int i, int j) {
   float *fVals = (float *)vals;
   long long *lInds = (long long *)inds;
 
@@ -37,7 +37,7 @@ inline void swap(void *vals, void *inds, int i, int j) {
   lInds[j] = tind;
 }
 
-inline int partition(void *vals, void *inds, int low, int high) {
+INLINE_ATTR int partition(void* vals, void* inds, int low, int high) {
   float *fVals = (float *)vals;
   long long *lInds = (long long *)inds;
 
@@ -59,7 +59,7 @@ inline int partition(void *vals, void *inds, int low, int high) {
   dnn_lib::inlining::swap(vals, inds, i + 1, high);
   return (i + 1);
 }
-  
+
 static void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
   if (low < high) {
     int pidx = dnn_lib::inlining::partition(vals, inds, low, high);
@@ -72,20 +72,19 @@ static void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
 
 /// \brief Whether the values stored in a and b match.
 
-inline bool same(size_t count, unsigned int a[],  unsigned int b[]) {
+INLINE_ATTR bool same(size_t count, unsigned int a[], unsigned int b[]) {
   for (size_t index = 0; index < count; ++index) {
     if (a[index] != b[index]) {
       return false;
     }
   }
   return true;
-}  
-  
+}
+
 template <ElemKind elK>
-inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
-                                       LibTensor* inT, unsigned int k,
-                                       uint64_t flags,
-                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, LibTensor* inT, unsigned int k,
+                                            uint64_t flags, const uint32_t minionOffset = 0,
+                                            const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -184,10 +183,9 @@ inline void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T,
 
 // ONLY FOR K = 1, 2, 3, 4
 template <ElemKind elK>
-inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
-                                      LibTensor* inT, unsigned int k,
-                                      uint64_t flags,
-                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, LibTensor* inT, unsigned int k,
+                                           uint64_t flags, const uint32_t minionOffset = 0,
+                                           const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -384,9 +382,9 @@ inline void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T,
 
 // ONLY FOR K = 5, 6, 7, 8
 template <ElemKind elK>
-inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
-                                      unsigned int k, uint64_t flags,
-                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTensor* inT, unsigned int k,
+                                           uint64_t flags, const uint32_t minionOffset = 0,
+                                           const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -598,12 +596,9 @@ inline void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTens
   }
 }
 
-
 template <ElemKind elK>
-inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T,
-                           LibTensor* inT, const uint32_t k,
-                           uint64_t flags,
-                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T, LibTensor* inT, const uint32_t k, uint64_t flags,
+                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   // TODO : For (k < 4) the specialized version is not working, needs to be fixed. 
   if ((k > 8) or (k < 4))
@@ -614,7 +609,6 @@ inline void fwdLibTopKInst(LibTensor* outT, LibTensor* out2T,
     fwdLibTopKInstThreaded_k4<elK>(outT, out2T, inT, k, flags, minionOffset, assignedMinions);
 }
 
-  
 } // namespace inlining
 
 } // namespace dnn_lib

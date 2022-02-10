@@ -38,8 +38,8 @@ namespace inlining {
  * @param[in] inT LibTensor pointer to the input matrix.
  */
 template <ElemKind elK>
-inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT,
-                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
   
   if (get_minion_id() != minionOffset) return;
@@ -107,9 +107,8 @@ inline void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT,
  *  should be done at the end of the function.
  */
 template <ElemKind elK>
-inline void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
-                                           uint64_t flags,
-                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT, uint64_t flags,
+                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;

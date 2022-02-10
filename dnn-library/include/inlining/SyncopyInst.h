@@ -48,10 +48,8 @@ namespace inlining {
  */
 
 template <ElemKind elK>
-inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
-                              unsigned int off,
-                              const uint64_t flags, const uint32_t minionOffset = 0,
-                              const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, const uint64_t flags,
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   uint32_t hart = get_hart_id();
@@ -147,7 +145,6 @@ inline void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT,
                 activeMinions,     // Number of active minions
                 (((1 << activeMinions)-1) << 16),     // Mask of active thread0 minions
                 0);                // Mask of active thread1 minions
-
 }
 
 } // namespace dnn_lib

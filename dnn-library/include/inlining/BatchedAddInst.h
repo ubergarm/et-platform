@@ -29,12 +29,9 @@ namespace dnn_lib {
 
 namespace inlining {
 
-
-
 template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
-inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
-                                         LibTensor* in2T, uint64_t flags,
-                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
   
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -106,11 +103,8 @@ inline void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
-
-
-inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
-                                              LibTensor* in2T, uint64_t flags,
-                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -198,11 +192,9 @@ inline void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T,
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
 }
 
-
 template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
-inline void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T,
-                                   LibTensor* in2T,
-                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibBatchedAddInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   if ( dstElK == Int8QTy && batchElK == Int8QTy && sliceElK == Int32QTy)
     inlining::fwdLibBatchedAddInsti8i32(outT, in1T, in2T, flags, minionOffset, assignedMinions);
   else

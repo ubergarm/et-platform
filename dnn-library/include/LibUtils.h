@@ -27,8 +27,8 @@ template <size_t ndims = max_tensor_dimensions, size_t first = 0> struct dims_lo
 
   // loop with strides from 1 tensor
   template <typename func_t, size_t N>
-  static inline void run(const std::array<dim_t, N>& dims, const std::array<dim_t, N>& strides, func_t fnc,
-                         dim_t base = 0) {
+  static INLINE_ATTR void run(const std::array<dim_t, N>& dims, const std::array<dim_t, N>& strides, func_t fnc,
+                              dim_t base = 0) {
     static_assert(N <= ndims);
     for (dim_t i = 0; i < dims[first]; i++)
       dims_loop<ndims, first + 1>::run(dims, strides, fnc, base + strides[first] * i);
@@ -81,9 +81,10 @@ template <size_t ndims = max_tensor_dimensions, size_t first = 0> struct dims_lo
 #else
   // loop with strides from 2 tensors with initial and end coordinates
   template <typename func_t, size_t N, size_t ST1, size_t ST2>
-  static inline void run(const std::array<dim_t, N>& dims, const std::array<dim_t, ST1>& strides1,
-                         const std::array<dim_t, ST2>& strides2, const std::array<dim_t, N>& start, const dim_t end,
-                         func_t fnc, dim_t base1 = 0, dim_t base2 = 0, bool firstStep = true, bool lastStep = false) {
+  static INLINE_ATTR void run(const std::array<dim_t, N>& dims, const std::array<dim_t, ST1>& strides1,
+                              const std::array<dim_t, ST2>& strides2, const std::array<dim_t, N>& start,
+                              const dim_t end, func_t fnc, dim_t base1 = 0, dim_t base2 = 0, bool firstStep = true,
+                              bool lastStep = false) {
 
     dim_t ini = firstStep ? start[first] : 0;
 
@@ -100,14 +101,14 @@ template <size_t last_dim> struct dims_loop<last_dim, last_dim> {
 
   // loop with strides from 1 tensor
   template <typename func_t, size_t N>
-  static inline void run(const std::array<dim_t, N>&, const std::array<dim_t, N>&, func_t fnc, dim_t base = 0) {
+  static INLINE_ATTR void run(const std::array<dim_t, N>&, const std::array<dim_t, N>&, func_t fnc, dim_t base = 0) {
     fnc(base);
   }
 
   // loop with strides from 2 tensors
   template <typename func_t, size_t N, size_t ST1, size_t ST2>
-  static inline void run(const std::array<dim_t, N>&, const std::array<dim_t, ST1>&, const std::array<dim_t, ST2>&,
-                         func_t fnc, dim_t base1 = 0, dim_t base2 = 0) {
+  static INLINE_ATTR void run(const std::array<dim_t, N>&, const std::array<dim_t, ST1>&, const std::array<dim_t, ST2>&,
+                              func_t fnc, dim_t base1 = 0, dim_t base2 = 0) {
     fnc(base1, base2);
   }
 
@@ -123,9 +124,10 @@ template <size_t last_dim> struct dims_loop<last_dim, last_dim> {
 #else
   // loop with strides from 2 tensors with initial and end coordinates
   template <typename func_t, size_t N, size_t ST1, size_t ST2>
-  static inline void run(const std::array<dim_t, N>& dims, const std::array<dim_t, ST1>& strides1,
-                         const std::array<dim_t, ST2>& strides2, const std::array<dim_t, N>& start, const dim_t end,
-                         func_t fnc, dim_t base1 = 0, dim_t base2 = 0, bool first_step = true, bool last_step = false) {
+  static INLINE_ATTR void run(const std::array<dim_t, N>& dims, const std::array<dim_t, ST1>& strides1,
+                              const std::array<dim_t, ST2>& strides2, const std::array<dim_t, N>& start,
+                              const dim_t end, func_t fnc, dim_t base1 = 0, dim_t base2 = 0, bool first_step = true,
+                              bool last_step = false) {
     fnc(base1, base2);
   }
 #endif

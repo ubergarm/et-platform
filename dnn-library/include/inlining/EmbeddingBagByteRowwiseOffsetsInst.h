@@ -47,24 +47,21 @@ namespace inlining {
  *  type of evict required.
  */
 template <ElemKind elKind, ElemKind accumKind>
-inline typename std::enable_if_t<(elKind == Float16Ty), void>
-fwdLibEmbeddingBagByteRowwiseOffsetsInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-           LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-           uint64_t flags) {
+INLINE_ATTR typename std::enable_if_t<(elKind == Float16Ty), void>
+fwdLibEmbeddingBagByteRowwiseOffsetsInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                         LibTensor* in4T, bool hasEndOffset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0) //if (minionId != minionOffset)
     return;
 
   assert(((accumKind == Float16Ty)||(accumKind == FloatTy)));
-
 }
 
 template <ElemKind elKind, ElemKind accumKind>
-inline typename std::enable_if_t<(elKind == FloatTy), void>
-fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T, 
-           LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-           uint64_t flags) {
+INLINE_ATTR typename std::enable_if_t<(elKind == FloatTy), void>
+  NN fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+                            bool hasEndOffset, uint64_t flags) {
 
   unsigned int minionId = get_minion_id();
   if (minionId != 0) //if (minionId != minionOffset)
@@ -139,7 +136,6 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor *in1T, LibTensor* in2T,
     }
   }
 }
-
 
 } // inlining
 } // dnn_lib

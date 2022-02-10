@@ -95,43 +95,59 @@ public:
     uint32_t uint32;
     float fp;
   } data_;
-  
-  inline float16(uint16_t data) {
+
+  inline __attribute__((always_inline)) float16(uint16_t data) {
     data_.uint32 = static_cast<uint32_t>(data);
   }
 
-  inline float16(float data) { data_.fp = data; }
+  inline __attribute__((always_inline)) float16(float data) {
+    data_.fp = data;
+  }
 
-  inline float16() { data_.fp = 0.0; }
+  inline __attribute__((always_inline)) float16() {
+    data_.fp = 0.0;
+  }
 
-  inline float16 &operator=(const float16 & val) {
+  inline __attribute__((always_inline)) float16& operator=(const float16& val) {
     data_ = val.data_;
     return *this;
   }
 
-  inline float16 &operator=(float val) {
+  inline __attribute__((always_inline)) float16& operator=(float val) {
     data_.fp = val;
     return *this;
   }
 
   /// Comparisons.
-  inline bool operator<(const float16 &b) const { return this->data_.fp < b.data_.fp; }
-  inline bool operator>(const float16 &b) const { return this->data_.fp > b.data_.fp; }
-  inline bool operator==(const float16 &b) const { return this->data_ .fp == b.data_.fp; }
-  inline bool operator<=(const float16 &b) const { return this->data_.fp <= b.data_.fp; }
-  inline bool operator>=(const float16 &b) const { return this->data_.fp >= b.data_.fp; }
+  inline __attribute__((always_inline)) bool operator<(const float16& b) const {
+    return this->data_.fp < b.data_.fp;
+  }
+  inline __attribute__((always_inline)) bool operator>(const float16& b) const {
+    return this->data_.fp > b.data_.fp;
+  }
+  inline __attribute__((always_inline)) bool operator==(const float16& b) const {
+    return this->data_.fp == b.data_.fp;
+  }
+  inline __attribute__((always_inline)) bool operator<=(const float16& b) const {
+    return this->data_.fp <= b.data_.fp;
+  }
+  inline __attribute__((always_inline)) bool operator>=(const float16& b) const {
+    return this->data_.fp >= b.data_.fp;
+  }
 
   /// Cast operators.
 
-  inline operator float() const { return fp32_to_fp16_value(); }
+  inline __attribute__((always_inline)) operator float() const {
+    return fp32_to_fp16_value();
+  }
 
-  inline float16 fp32_to_fp16_value() const {
+  inline __attribute__((always_inline)) float16 fp32_to_fp16_value() const {
     float16 ret;
     dnn_lib::convertFp32ToFp16(data_.fp, ret.data_.fp);
     return ret;
   }
 
-  inline float fp16_to_fp32_value() const {
+  inline __attribute__((always_inline)) float fp16_to_fp32_value() const {
     float dst = 0.0;
     dnn_lib::convertFp16ToFp32(data_.fp, dst);
     return dst;

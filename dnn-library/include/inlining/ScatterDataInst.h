@@ -75,8 +75,8 @@ class WriteSliceToDst<ptrT, 0> {
 };
 
 template <ElemKind elK>
-inline void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                  uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
+                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;
@@ -188,7 +188,6 @@ inline void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
   }
 }
 
- 
 // template <typename ElemTy>
 // void BoundInterpreterFunction::fwdScatterDataInstCopyImpl() {
 //   Tensor *dataT = getTensor(I->getData());

@@ -639,8 +639,7 @@ bool isEven(int val) {
   return ((val % 2) == 0);
 }
 
-inline
-float getPow(float base, float exp) {
+inline __attribute__((always_inline)) float getPow(float base, float exp) {
   float dst_tmp, inverted;
   if (base == 0)
     return (exp==0);

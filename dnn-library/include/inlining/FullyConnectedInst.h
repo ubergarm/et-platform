@@ -57,18 +57,10 @@ struct accumulatorType {
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <ElemKind srcElK,
-          typename std::enable_if<srcElK == Int64ITy, std::size_t>::type = 0>
-inline void matmulStep (int64_t *sum,
-                        const Addresser<srcElK> &tAInput,
-                        void * tAInputPtr,
-                        const Addresser<srcElK> &tWInput,
-                        void * tWInputPtr,
-                        size_t aCols,
-                        size_t actOffset,
-                        size_t weightOffset,
-                        size_t weightPitch,
-                        size_t elems) {
+template <ElemKind srcElK, typename std::enable_if<srcElK == Int64ITy, std::size_t>::type = 0>
+INLINE_ATTR void matmulStep(int64_t* sum, const Addresser<srcElK>& tAInput, void* tAInputPtr,
+                            const Addresser<srcElK>& tWInput, void* tWInputPtr, size_t aCols, size_t actOffset,
+                            size_t weightOffset, size_t weightPitch, size_t elems) {
   // For all the accumulations
   for (size_t aCol = 0; aCol < aCols; aCol++) {
     // Gets input value
@@ -100,18 +92,10 @@ inline void matmulStep (int64_t *sum,
  * @param[in] weightPitch Pitch of one row of the weight tensor.
  * @param[in] elems Number of elements in a row to compute.
  */
-template <ElemKind srcElK,
-          typename std::enable_if<srcElK == Int32ITy, std::size_t>::type = 0>
-inline void matmulStep (int32_t *sum,
-                        const Addresser<srcElK> &tAInput,
-                        void * tAInputPtr,
-                        const Addresser<srcElK> &tWInput,
-                        void * tWInputPtr,
-                        size_t aCols,
-                        size_t actOffset,
-                        size_t weightOffset,
-                        size_t weightPitch,
-                        size_t elems) {
+template <ElemKind srcElK, typename std::enable_if<srcElK == Int32ITy, std::size_t>::type = 0>
+INLINE_ATTR void matmulStep(int32_t* sum, const Addresser<srcElK>& tAInput, void* tAInputPtr,
+                            const Addresser<srcElK>& tWInput, void* tWInputPtr, size_t aCols, size_t actOffset,
+                            size_t weightOffset, size_t weightPitch, size_t elems) {
   // For all the accumulations
   for (size_t aCol = 0; aCol < aCols; aCol++) {
     // Gets input value
@@ -144,16 +128,9 @@ inline void matmulStep (int32_t *sum,
  * @param[in] elems Number of elements in a row to compute.
  */
 template <ElemKind srcElK>
-inline void matmulStep (float *sum,
-                        const Addresser<srcElK> &tAInput,
-                        void * tAInputPtr,
-                        const Addresser<srcElK> &tWInput,
-                        void * tWInputPtr,
-                        size_t aCols,
-                        size_t actOffset,
-                        size_t weightOffset,
-                        size_t weightPitch,
-                        size_t elems) {
+INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* tAInputPtr,
+                            const Addresser<srcElK>& tWInput, void* tWInputPtr, size_t aCols, size_t actOffset,
+                            size_t weightOffset, size_t weightPitch, size_t elems) {
 
   // Float version
   if (srcElK == FloatTy) {
@@ -352,11 +329,10 @@ inline void matmulStep (float *sum,
  *  should be done at the end of the function.
  */
 template <ElemKind dstElK, ElemKind src3ElK>
-inline void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T,
-                                     LibTensor* in2T, LibTensor* in3T,
-                                     uint64_t flags,
-                                     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  
+INLINE_ATTR void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                                          uint64_t flags, const uint32_t minionOffset = 0,
+                                          const uint32_t assignedMinions = 0) {
+
   using dstType  = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<dstElK>::type;
 

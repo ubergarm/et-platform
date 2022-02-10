@@ -29,10 +29,10 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
-          LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize,
-          float alpha, float beta, float k, uint64_t flags,
-          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+                                                      unsigned int halfWindowSize, float alpha, float beta, float k,
+                                                      uint64_t flags, const uint32_t minionOffset = 0,
+                                                      const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
@@ -128,7 +128,7 @@ inline void fwdLibLocalResponseNormalizationInst(LibTensor* out1T,
 }
 
 /* Reduce a vector by means of the addition */
-static inline __attribute__((always_inline)) void reduceAdd(float value, float& result) {
+static INLINE_ATTR void reduceAdd(float value, float& result) {
   // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
   // | h3 |  h2   | h1 |     h0      | l3 |  l2   | l1 |     l0      | value                               |
   // +----+-------+----+-------------+----+-------+----+-------------+-------------------------------------+
@@ -160,10 +160,11 @@ static inline __attribute__((always_inline)) void reduceAdd(float value, float& 
 }
 
 template <ElemKind elK>
-inline void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T,
-                  LibTensor* out2T, LibTensor* inT, unsigned int halfWindowSize, float alpha,
-                  float beta, float k, uint64_t flags,
-                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T, LibTensor* out2T, LibTensor* inT,
+                                                                unsigned int halfWindowSize, float alpha, float beta,
+                                                                float k, uint64_t flags,
+                                                                const uint32_t minionOffset = 0,
+                                                                const uint32_t assignedMinions = 0) {
 
   using type = typename elemKind2elemTy<elK>::type;
   constexpr size_t bytesPerElement = getsize<type>();

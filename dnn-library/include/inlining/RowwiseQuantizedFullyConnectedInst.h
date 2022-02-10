@@ -24,11 +24,11 @@
 namespace dnn_lib {
 
 namespace inlining {
-  
-inline void fwdLibRowwiseQuantizedFullyConnectedInst(
-     LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-     LibTensor* in3T, LibTensor* in4T, LibTensor* in5T, uint64_t flags,
-     const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                                          LibTensor* in3T, LibTensor* in4T, LibTensor* in5T,
+                                                          uint64_t flags, const uint32_t minionOffset = 0,
+                                                          const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
@@ -206,10 +206,11 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInst(
 #undef MATMUL_ITERATION
 }
 
-inline void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
-           LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-           LibTensor* in4T, LibTensor* in5T, uint64_t flags,
-           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTensor* outT, LibTensor* in1T,
+                                                                        LibTensor* in2T, LibTensor* in3T,
+                                                                        LibTensor* in4T, LibTensor* in5T,
+                                                                        uint64_t flags, const uint32_t minionOffset = 0,
+                                                                        const uint32_t assignedMinions = 0) {
   assert(outT->getElementType() == Int8QTy &&
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
@@ -360,7 +361,7 @@ inline void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(
 
 #undef MATMUL_ITERATION
 }
-  
+
 } // namespace inlining
 
 } // namespace dnn_lib

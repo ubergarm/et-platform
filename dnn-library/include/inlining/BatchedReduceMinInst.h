@@ -38,10 +38,9 @@ namespace inlining {
  *  type of evict required.
  */
 template <ElemKind elKind, size_t N>
-inline typename std::enable_if_t<(isQuantizedElemKind(elKind)||(elKind==Float16Ty)), void>
-fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT,
-         const std::array<uint32_t, N> &axes, 
-         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
+fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& axes, uint64_t flags,
+                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   
@@ -104,11 +103,10 @@ fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT,
 }
 
 template <ElemKind elKind, size_t N>
-inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
-          (elKind != Float16Ty) && (elKind != BoolTy)), void>
-fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT, 
-         const std::array<uint32_t, N> &axes, 
-         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR
+  typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
+  fwdLibBatchedReduceMinInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& axes, uint64_t flags,
+                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

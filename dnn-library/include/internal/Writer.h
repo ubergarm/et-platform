@@ -25,7 +25,7 @@ private:
   const int32_t offset_;
   T* const ptr_;
 
-  inline static void write(T* ptr, T value) {
+  inline __attribute__((always_inline)) static void write(T* ptr, T value) {
     constexpr size_t bytesPerElement = Type::getElementSize(elK);
     static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4);
     if constexpr (globalStore) {
@@ -55,7 +55,7 @@ public:
 #define WHEN(cond) template <ElemKind U = elK, typename std::enable_if<cond, size_t>::type = 0>
 
   WHEN(U == Float16Ty)
-  inline Writer& operator=(float value) {
+  inline __attribute__((always_inline)) Writer& operator=(float value) {
     uint16_t v;
     dnn_lib::convertFp32ToFp16(value, v);
     write(ptr_, v);
@@ -63,14 +63,14 @@ public:
   }
 
   WHEN(isQuantizedElemKind(U))
-  inline Writer& operator=(float value) {
+  inline __attribute__((always_inline)) Writer& operator=(float value) {
     T quantizedValue = dnn_lib::quantize<T>(value, scale_, offset_);
     write(ptr_, quantizedValue);
     return *this;
   }
 
   WHEN(U != Float16Ty and not isQuantizedElemKind(U))
-  inline Writer& operator=(T value) {
+  inline __attribute__((always_inline)) Writer& operator=(T value) {
     write(ptr_, value);
     return *this;
   }

@@ -25,32 +25,29 @@
 
 namespace dnn_lib {
 
-template <typename T, typename U>
-inline T bitwise_copy(const U &x)
-{
-    static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value, "pseudo_cast can't handle types which are not trivially copyable");
-    static_assert(sizeof(T) == sizeof(U), "pseudo_cast can't handle types with different size");
+template <typename T, typename U> inline __attribute__((always_inline)) T bitwise_copy(const U& x) {
+  static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value,
+                "pseudo_cast can't handle types which are not trivially copyable");
+  static_assert(sizeof(T) == sizeof(U), "pseudo_cast can't handle types with different size");
 
-    T to;
+  T to;
+  memcpy(&to, &x, sizeof(T));
+  return to;
+}
+
+template <typename T, typename U> inline __attribute__((always_inline)) T bitwise_lsb_copy(const U& x) {
+  static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value,
+                "pseudo_cast can't handle types which are not trivially copyable");
+
+  T to;
+  if (sizeof(U) >= sizeof(T))
     memcpy(&to, &x, sizeof(T));
-    return to;
+  else {
+    to = 0;
+    memcpy(&to, &x, sizeof(U));
+  }
+  return to;
 }
-
-template <typename T, typename U>
-inline T bitwise_lsb_copy(const U &x)
-{
-    static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value, "pseudo_cast can't handle types which are not trivially copyable");
-
-    T to;
-    if (sizeof(U) >= sizeof(T))
-      memcpy(&to, &x, sizeof(T));
-    else {
-      to = 0;
-      memcpy(&to, &x, sizeof(U));
-    }
-    return to;
-}
-
 
 inline __attribute__((always_inline)) void
 fpReciprocalSingleElement(float val, float &recval) {
@@ -214,7 +211,7 @@ int8_t quantizeValInt8(float val, float scale, int32_t offset) {
 /*@brief newDims filled with currDims values and expanded dimensions =1
  *until max tensor dimension is reached.
  */
-inline void expandDimsToMax(dim_t* newDims, dim_t* currDims, unsigned int numDims) {
+inline __attribute__((always_inline)) void expandDimsToMax(dim_t* newDims, dim_t* currDims, unsigned int numDims) {
 
   for (unsigned int i = 0; i< max_tensor_dimensions; i++) {
     if (i< numDims)
@@ -228,7 +225,8 @@ inline void expandDimsToMax(dim_t* newDims, dim_t* currDims, unsigned int numDim
  *It works up to max_tensor_dimensions=6
  */
 template <typename ElemTy>
-inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, const dim_array_t &newDims, unsigned int axis) {
+inline __attribute__((always_inline)) void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy> destH,
+                                                    const dim_array_t& newDims, unsigned int axis) {
 
   dim_array_t indicesDest = {0,};
   dim_array_t indicesSrc = {0,};
@@ -255,7 +253,6 @@ inline void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy>  destH, const dim_array
         
               destH.at(indicesDest) = srcH.at(indicesSrc);
             }
- 
 }
 
 /**

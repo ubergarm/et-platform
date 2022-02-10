@@ -26,8 +26,8 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-inline void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis,
-                           uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags,
+                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -37,7 +37,6 @@ inline void fwdLibFlipInst(LibTensor* outT, LibTensor* inT, unsigned int axis,
   auto destH = outT->getHandle<ElemTy>();
   
   loopAxis(srcH, destH, inT->dims(), axis);
-
 }
 
 }//namespace inlining

@@ -40,10 +40,9 @@ namespace inlining {
  *  type of evict required.
  */
 template <ElemKind elKind>
-inline typename std::enable_if_t<(isQuantizedElemKind(elKind)
-          ||(elKind==Float16Ty)), void>
-fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
-     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
+fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, uint64_t flags,
+                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -104,11 +103,10 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse,
 }
 
 template <ElemKind elKind>
-inline typename std::enable_if_t<(!isQuantizedElemKind(elKind) && 
-          (elKind!=Float16Ty) &&
-          (elKind!=BoolTy)), void>
-fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
-     uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR
+  typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
+  fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, uint64_t flags,
+                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -142,7 +140,6 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse,
   }
   outT->evict(DO_EVICTS);
 }
-
 }
 }
 
