@@ -196,10 +196,22 @@ target_compile_options(dnn_lib
         -Wall
         $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
 )
+
+
+# Even w/o treating all warnings as arrors, there are some warnings we don't
+# allow at this compilation stage. This list wil grow as categories are cleaned up.
+target_compile_options(dnn_lib
+    PRIVATE
+        -Werror=shadow 
+        -Werror=ignored-qualifiers 
+        -Werror=div-by-zero
+)
+
 target_link_libraries(dnn_lib
     PRIVATE
         et-common-libs::cm-umode
 )
+
 set_target_properties(dnn_lib PROPERTIES
     PUBLIC_HEADER "${LIB_DNN_PUBLIC_HEADERS}"
 )

@@ -462,9 +462,9 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
     }
   }
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-
   int32_t gather_values[] = {0, 4, 8, 12, 0, 4, 8, 12};
   int32_t gather_indices[] = {0, 8, 16, 24, 4, 12, 20, 28};
+
   __asm__ __volatile__("flw.ps  f31, %[gather_values]\n"
                        "fgw.ps f0, f31(%[tmpValues])\n"
                        "faddi.pi f31, f31, 0x10\n" // New gather = {16, 20, 24,
@@ -484,7 +484,6 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
                          [ tmpInd ] "r"(tmpInd),
                          [tmpIndMem] "m" (*(const long long(*)[9]) tmpInd)
                        : "f31", "f0", "f1", "f2", "f3");
-
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
 #define TopKIteration1(_mask, _swizz)     \
@@ -576,7 +575,6 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
   }
 
   if (rowMinionId == 0) {
-    int32_t gather_indices[] = {0, 8, 16, 24, 4, 12, 20, 28};
     float tmpT[8];
     __asm__ __volatile__("flw.ps  f31, %[gather_indices]\n"
                          "fscw.ps f2, f31(%[indT])\n"
