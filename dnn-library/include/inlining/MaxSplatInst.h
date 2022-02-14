@@ -26,8 +26,8 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK, bool aligned>
-INLINE_ATTR void maxSplatOp(const uintptr_t dst, const uintptr_t src, const dim_t valid, const float splatVal,
-                            const float* scale, const int32_t* offset) {
+__attribute__((noinline)) void maxSplatOp(const uintptr_t dst, const uintptr_t src, const dim_t valid,
+                                          const float splatVal, const float* scale, const int32_t* offset) {
   // Enables only the valid elements
   if (valid < 8) {
     uint8_t mask = ((1 << valid) - 1);
@@ -67,6 +67,7 @@ INLINE_ATTR void maxSplatOp(const uintptr_t dst, const uintptr_t src, const dim_
                          "fmul.ps %[op0], %[op0], %[scale] \n"
                          : [ op0 ] "+&f"(op0), [ scale ] "=&f"(scale_v), [ offset ] "=&f"(offset_v)
                          : [ scale_s ] "r"(bitwise_copy<uint32_t>(scale[0])), [ offset_s ] "r"(offset[0]));
+
   } else if constexpr (elK == Float16Ty) {
     __asm__ __volatile__("fcvt.ps.f16 %[op0], %[op0]\n" : [ op0 ] "+f"(op0) :);
   } else if constexpr (elK == BFloat16Ty) {
