@@ -22,6 +22,10 @@ parameters:
     description: NEURALIZER branch to track
     type: string
     default_value: "origin/master"
+  DNN_LIBRARY_API_BRANCH:
+    description: DNN LIBRARY API branch to track
+    type: string
+    default_value: "origin/master"
 
 stages:
   CLANG_CHECK:
@@ -29,7 +33,7 @@ stages:
       - job: sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-clang-tests
         parameters:
           BRANCH: "${SW_PLATFORM_BRANCH}"
-          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH},host-software/dnnLibraryApi:${DNN_LIBRARY_API_BRANCH}"
     exec_before: [r"JOB_.*"]
     exec_after: ['DSL_JOB']
 
@@ -38,7 +42,7 @@ stages:
       - job: sw-platform/glow-integration/glow-checkin-top-level
         parameters:
           BRANCH: "${SW_PLATFORM_BRANCH}"
-          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH},host-software/dnnLibraryApi:${DNN_LIBRARY_API_BRANCH}"
     exec_after: ['CLANG_CHECK']
 
   DNN_LIB_CI:
@@ -46,7 +50,7 @@ stages:
       - job: sw-platform/host-sw-integration/pipelines/dnn-lib-checkin-top-level
         parameters:
           BRANCH: "${SW_PLATFORM_BRANCH}"
-          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH},host-software/dnnLibraryApi:${DNN_LIBRARY_API_BRANCH}"
     exec_after: ['CLANG_CHECK']
 
   GLOW_FRONTEND_CI:
@@ -54,7 +58,7 @@ stages:
       - job: sw-platform/glow-integration/pipelines/glow-test-plan/frontend-etrt-devfw-sysemu
         parameters:
           BRANCH: "${SW_PLATFORM_BRANCH}"
-          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH}"
+          COMPONENT_COMMITS: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${BRANCH},host-software/dnnLibraryApi:${DNN_LIBRARY_API_BRANCH}"
           REPO_SSH_URL: "git@gitlab.esperanto.ai:software/sw-platform.git"
           REPO_NAME: "sw-platform"
           TIMEOUT: "12"
