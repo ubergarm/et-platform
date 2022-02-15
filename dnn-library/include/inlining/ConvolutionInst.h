@@ -50,8 +50,7 @@ namespace inlining {
 /// \param[in] kernels Dimensions of the filters or kernels.
 /// \param[in] inCperG Elements in a group.
 /// \param[out] sum The result of applying the filter in the given position.
-/// \param[in] mask The int32_t that determines which lanes should be active when
-///  we can't take 8 elements at the same time.
+/// \param[in] mask Which lanes should be active
 /// \param[in] x, y, d Coordinates where our minions should start reading.
 
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK == FloatTy, std::size_t>::type = 0>
@@ -340,6 +339,10 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
                                     const dim_t* actIndex, const std::array<uint32_t, N>& kernels, unsigned int inCperG,
                                     int32_t mask, ssize_t x, ssize_t y, ssize_t d, const float* scale,
                                     const int32_t* offset, const std::array<uint32_t, N>& dilation) {
+
+  // This code assumes the vector mask is 1 because it is not vectorized
+  assert(mask == 1);
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1\n");
 
   using ElemType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::elemType;
   using AccumulatorType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::accumulatorType;
