@@ -47,6 +47,9 @@ struct instrConfigInt {
 
 // The instruction table contains all the instructions available in the DNN Library
 static const std::vector<instrConfigInt> instrConfigTable = {
+  // INSTR_CONFIG_TABLE_BEGIN
+
+  // ET_adaptiveavgpool
   {
     "AdaptiveAvgPool",      // name
     1,                      // # outs
@@ -1498,6 +1501,7 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {0x0}, // evict available mask
     {0x0}  // global store mask
   },
+  // INSTR_CONFIG_TABLE_END
 };
 
 operandState instrConfig::getOperandStateL1(size_t implIdx, size_t operand) {
