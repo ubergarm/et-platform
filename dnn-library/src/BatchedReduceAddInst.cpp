@@ -24,4 +24,4 @@ template void fwdLibBatchedReduceAddInst<Int64ITy>(LibTensor* out0, LibTensor* i
 template void fwdLibBatchedReduceAddInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 #endif
 template void fwdLibBatchedReduceAddInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-} // dnn_lib
+} // namespace dnn_lib
