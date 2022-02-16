@@ -20,17 +20,17 @@
 #include <string.h>
 
 #include "Float16.h"
-#include "utils.h" // From include/internal path
-#include "LibTypes.h"
-#include "LibTensor.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "utils.h" // From include/internal path
 
 namespace dnn_lib {
 
 namespace inlining {
 
 /**
- * @brief 
+ * @brief
  *
  * @tparam Elemkind the kind of the element which hast to be resolved.
  * @tparam Elemkind the kind of the element which hast to be resolved.
@@ -59,7 +59,8 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
   const size_t fusedActivation, const std::array<float, FN>& fusedActivationArgs, const uint64_t flags,
   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  if (get_minion_id() != minionOffset) return;
+  if (get_minion_id() != minionOffset)
+    return;
 
   assert(dstElK == Int8QTy);
   assert(dataT->getElementType() == filterT->getElementType());
@@ -69,8 +70,8 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
 
   /* ob #samples, oh height, ow witdh, oc #channels*/
   /* data and output channel must be divisible by group. */
-  assert((dataT->dims()[4] % group)==0);
-  assert((outT->dims()[4] % group)==0);
+  assert((dataT->dims()[4] % group) == 0);
+  assert((outT->dims()[4] % group) == 0);
 
   size_t inCperG = (dataT->dims()[4] / group);
   size_t outCperG = (outT->dims()[4] / group);
@@ -100,62 +101,62 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
       // for each output channel in the group
       for (size_t d = (g * outCperG); d < ((g + 1) * outCperG); d++) {
 
-  //Get channel wise quantization params.
-  int32_t filterOffset = foH.at(std::array<size_t,1>{d});
-  float filterScale = fsH.at(std::array<size_t,1>{d});
-  int32_t biasOffset = boH.at(std::array<size_t,1>{d});
-  float biasScale = bsH.at(std::array<size_t,1>{d});
-  float matMulScale = (inScale * filterScale);
-  float invMatMulScale = 0.0;
-  fpReciprocalSingleElement(matMulScale, invMatMulScale);
+        // Get channel wise quantization params.
+        int32_t filterOffset = foH.at(std::array<size_t, 1>{d});
+        float filterScale = fsH.at(std::array<size_t, 1>{d});
+        int32_t biasOffset = boH.at(std::array<size_t, 1>{d});
+        float biasScale = bsH.at(std::array<size_t, 1>{d});
+        float matMulScale = (inScale * filterScale);
+        float invMatMulScale = 0.0;
+        fpReciprocalSingleElement(matMulScale, invMatMulScale);
 
-  // For each convolution 'jump' in the input tensor:
-  ssize_t t = -ssize_t(pads[0]); //near
-  for (size_t at = 0; at < outT->dims()[1]; t += strides[0], at++) {
-    ssize_t x = -ssize_t(pads[2]); //top
-    for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
-      ssize_t y = -ssize_t(pads[4]); //left
-      for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
+        // For each convolution 'jump' in the input tensor:
+        ssize_t t = -ssize_t(pads[0]); // near
+        for (size_t at = 0; at < outT->dims()[1]; t += strides[0], at++) {
+          ssize_t x = -ssize_t(pads[2]); // top
+          for (size_t ax = 0; ax < outT->dims()[2]; x += strides[1], ax++) {
+            ssize_t y = -ssize_t(pads[4]); // left
+            for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
 
-        //For each element in the convolution-filter:
-        int32_t sum = 0;
-        for (size_t ft = 0; ft < kernels[0]; ft++) {
-    for (size_t fx = 0; fx < kernels[1]; fx++) { 
-      for (size_t fy = 0; fy < kernels[2]; fy++) {
-        ssize_t ot = t + ft;
-        ssize_t ox = x + fx;
-        ssize_t oy = y + fy;
+              // For each element in the convolution-filter:
+              int32_t sum = 0;
+              for (size_t ft = 0; ft < kernels[0]; ft++) {
+                for (size_t fx = 0; fx < kernels[1]; fx++) {
+                  for (size_t fy = 0; fy < kernels[2]; fy++) {
+                    ssize_t ot = t + ft;
+                    ssize_t ox = x + fx;
+                    ssize_t oy = y + fy;
 
-        //Ignore index access below zero (this is due to padding).
-        if (ot < 0 || ox < 0 || oy < 0 || ot >= ssize_t(dataT->dims()[1]) ||
-      ox >= ssize_t(dataT->dims()[2]) || oy >= ssize_t(dataT->dims()[3])) {
-          continue;
-        }
+                    // Ignore index access below zero (this is due to padding).
+                    if (ot < 0 || ox < 0 || oy < 0 || ot >= ssize_t(dataT->dims()[1]) ||
+                        ox >= ssize_t(dataT->dims()[2]) || oy >= ssize_t(dataT->dims()[3])) {
+                      continue;
+                    }
 
-        //Accumulate along the filter depth
-        for (size_t fd = 0; fd < inCperG; fd++) {
-          biasType F = filterH.at(std::array<size_t, 5>{d, ft, fx ,fy, fd});
-          biasType I = dataH.at(std::array<size_t, 5>{n, size_t(ot), size_t(ox),
-          size_t(oy), (g * inCperG + fd)});
+                    // Accumulate along the filter depth
+                    for (size_t fd = 0; fd < inCperG; fd++) {
+                      biasType F = filterH.at(std::array<size_t, 5>{d, ft, fx, fy, fd});
+                      biasType I =
+                        dataH.at(std::array<size_t, 5>{n, size_t(ot), size_t(ox), size_t(oy), (g * inCperG + fd)});
 
-          //We represent the element multiplication with offset as (value-offset).
-          sum += (F - filterOffset) * (I - inOffset);
-        }
-      }
-    }
-        }
+                      // We represent the element multiplication with offset as (value-offset).
+                      sum += (F - filterOffset) * (I - inOffset);
+                    }
+                  }
+                }
+              }
 
-        // Scale the bias to match the scale of the matrix mulitplication.
-        sum += nearbyintf(static_cast<float>(biasH.at(std::array<size_t, 1>{d}) - biasOffset) *
-        (invMatMulScale * biasScale));
+              // Scale the bias to match the scale of the matrix mulitplication.
+              sum += nearbyintf(static_cast<float>(biasH.at(std::array<size_t, 1>{d}) - biasOffset) *
+                                (invMatMulScale * biasScale));
 
-        //Scale the result back to the expected destination scale.
-        outH.at(std::array<size_t,5>{n, at, ax, ay, d}) = 
-    quantize<elkType>(sum * matMulScale, outT->getScale(), outT->getOffset());
+              // Scale the result back to the expected destination scale.
+              outH.at(std::array<size_t, 5>{n, at, ax, ay, d}) =
+                quantize<elkType>(sum * matMulScale, outT->getScale(), outT->getOffset());
 
-      } // W
-    }   // H
-  }     // T
+            } // W
+          }   // H
+        }     // T
       }       // C
     }         // G
   }           // N
@@ -169,7 +170,8 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
   const size_t fusedActivation, const std::array<float, FN>& fusedActivationArgs, const uint64_t flags,
   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  if (get_minion_id() != minionOffset) return;
+  if (get_minion_id() != minionOffset)
+    return;
 
   assert(dstElK == Int8QTy);
   assert(dataT->getElementType() == filterT->getElementType());
@@ -179,8 +181,8 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
 
   /* ob #samples, oh height, ow witdh, oc #channels*/
   /* data and output channel must be divisible by group. */
-  assert((dataT->dims()[3] % group)==0);
-  assert((outT->dims()[3] % group)==0);
+  assert((dataT->dims()[3] % group) == 0);
+  assert((outT->dims()[3] % group) == 0);
 
   if (dataT->ndims() == 5) {
     fwdLibChannelWiseQuantizedConvolution3DInst<dstElK, src2ElK>(
@@ -205,7 +207,6 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
   auto boH = boT->getHandle<int32_t>();
 
   outH.zero();
- 
 
   float inScale = dataH.getScale();
   int32_t inOffset = dataH.getOffset();
@@ -220,59 +221,59 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
       // for each output channel in the group
       for (size_t d = (g * outCperG); d < ((g + 1) * outCperG); d++) {
 
-  //Get channel wise quantization params.
-  int32_t filterOffset = foH.at(std::array<size_t,1>{d});
-  float filterScale = fsH.at(std::array<size_t,1>{d});
-  int32_t biasOffset = boH.at(std::array<size_t,1>{d});
-  float biasScale = bsH.at(std::array<size_t,1>{d});
-  float matMulScale = (inScale * filterScale);
-  float invMatMulScale = 0.0;
-  fpReciprocalSingleElement(matMulScale, invMatMulScale);
+        // Get channel wise quantization params.
+        int32_t filterOffset = foH.at(std::array<size_t, 1>{d});
+        float filterScale = fsH.at(std::array<size_t, 1>{d});
+        int32_t biasOffset = boH.at(std::array<size_t, 1>{d});
+        float biasScale = bsH.at(std::array<size_t, 1>{d});
+        float matMulScale = (inScale * filterScale);
+        float invMatMulScale = 0.0;
+        fpReciprocalSingleElement(matMulScale, invMatMulScale);
 
-  // For each convolution 'jump' in the input tensor:
-  ssize_t x = -ssize_t(pads[0]);
-  for (size_t ax = 0; ax < outT->dims()[1]; x += strides[0], ax++) {
-    ssize_t y = -ssize_t(pads[1]);
-    for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
+        // For each convolution 'jump' in the input tensor:
+        ssize_t x = -ssize_t(pads[0]);
+        for (size_t ax = 0; ax < outT->dims()[1]; x += strides[0], ax++) {
+          ssize_t y = -ssize_t(pads[1]);
+          for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
 
-      //For each element in the convolution filter:
-      int32_t sum = 0;
-      for (size_t fx = 0; fx < kernels[0]; fx++) {
-        for (size_t fy = 0; fy < kernels[1]; fy++) {
-    ssize_t ox = x + fx * dilation[0];
-    ssize_t oy = y + fy * dilation[1];
-    
-    //Ignore index access below zero (this is due to padding)
-    if (ox < 0 || oy < 0 || ox >= ssize_t(dataT->dims()[1]) ||
-        oy >= ssize_t(dataT->dims()[2])) {
-      continue;
-    }
+            // For each element in the convolution filter:
+            int32_t sum = 0;
+            for (size_t fx = 0; fx < kernels[0]; fx++) {
+              for (size_t fy = 0; fy < kernels[1]; fy++) {
+                ssize_t ox = x + fx * dilation[0];
+                ssize_t oy = y + fy * dilation[1];
 
-    //Accumulate along the filter depth.
+                // Ignore index access below zero (this is due to padding)
+                if (ox < 0 || oy < 0 || ox >= ssize_t(dataT->dims()[1]) || oy >= ssize_t(dataT->dims()[2])) {
+                  continue;
+                }
 
-    for (size_t fd = 0; fd < inCperG; fd++) {
-      biasType F = filterH.at(std::array<size_t,4>{d, fx, fy, fd});
-      biasType I = dataH.at(std::array<size_t,4>{n, static_cast<size_t>(ox), static_cast<size_t>(oy), (g * inCperG + fd)});
-      //We represent the element multiplication with offset as (value - offset)
-      sum += (F - filterOffset) * ( I - inOffset);
-    }
-        }
-      }
-      
-      // Scale the bias to match the scale of the matrix multiplication.
-      sum += nearbyintf(static_cast<float>(biasH.at(std::array<size_t,1>{d}) - biasOffset) *
-            (invMatMulScale * biasScale));
+                // Accumulate along the filter depth.
 
-      // Scale the bias to match the scale of the matrix mulitplication.
-      outH.at(std::array<size_t,4>{n, ax, ay, d}) = 
-        quantize<elkType>(sum * matMulScale, outT->getScale(), outT->getOffset());
+                for (size_t fd = 0; fd < inCperG; fd++) {
+                  biasType F = filterH.at(std::array<size_t, 4>{d, fx, fy, fd});
+                  biasType I = dataH.at(
+                    std::array<size_t, 4>{n, static_cast<size_t>(ox), static_cast<size_t>(oy), (g * inCperG + fd)});
+                  // We represent the element multiplication with offset as (value - offset)
+                  sum += (F - filterOffset) * (I - inOffset);
+                }
+              }
+            }
 
-    } // W
-  }   // H
+            // Scale the bias to match the scale of the matrix multiplication.
+            sum += nearbyintf(static_cast<float>(biasH.at(std::array<size_t, 1>{d}) - biasOffset) *
+                              (invMatMulScale * biasScale));
+
+            // Scale the bias to match the scale of the matrix mulitplication.
+            outH.at(std::array<size_t, 4>{n, ax, ay, d}) =
+              quantize<elkType>(sum * matMulScale, outT->getScale(), outT->getOffset());
+
+          } // W
+        }   // H
       }     // C
     }       // G
   }         // N
 }
-}
-}
+} // namespace inlining
+} // namespace dnn_lib
 #endif

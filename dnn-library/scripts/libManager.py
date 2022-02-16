@@ -286,7 +286,7 @@ class LibManagerSheet:
         self.__implSel = []
         
         # generate table for header file
-        table = [ self.tableEntry(i) for i in self.__enum ] 
+        table = [ self.tableEntry(i) for i in self.__enum ]
         tableStr = self.formatTable(table)
        
         # check for entries in the header file that have not been used
@@ -337,7 +337,7 @@ class LibManagerSheet:
                      "name" : conf["Operator"],
                      "nrOutputTensors": conf["nrOutTensors"],
                      "nrInputTensors": conf["nrInTensors"],
-                     "members": "{%s}" % ", ".join(members),
+                     "members": "{%s}" % ", ".join(["instrMembers::" + member for member in members]),
                      "template": template,
                      "versions":  "{%s}" % ", ".join(versions),
                      "implSel": implSel,
@@ -345,6 +345,7 @@ class LibManagerSheet:
                      "stateL2": "{{%s}}" % cacheState["L2"],
                      "stateCB": "{{%s}}" % cacheState["CB"],
                      "evictMask": "{%s}" % cacheState["evictMask"],
+                     "dstGlobalStore": "{%s}" % cacheState["dstGlobalStore"]
             }
 
         else:
@@ -360,8 +361,8 @@ class LibManagerSheet:
                     "stateL1": "{{operandState::untouched}}",
                     "stateL2": "{{operandState::untouched}}",
                     "stateCB": "{{operandState::untouched}}",
-                    "evictMask": "{0}"
-                    
+                    "evictMask": "{0}",
+                    "dstGlobalStore": "{0}"
             }
 
     def getCacheStateSheetName(self, name):
@@ -397,12 +398,14 @@ class LibManagerSheet:
             # fill with invalid values
             invState = [ "untouched" for i in range(nrOut + nrIn)]
             invEvict = [ 0 for i in range(nrOut + nrIn)]
+            dstGlobalStore = [ 0 for i in range(nrOut + nrIn)]
              
             for impl in versions:
                 data[impl] = { "L1": invState,
                                "L2": invState,
                                "CB": invState,
-                               "evictAv": invEvict };
+                               "evictAv": invEvict,
+                               "dstGlobalStore" : dstGlobalStore };
             self.writeCacheState(op, sheetName, data, nrOut, nrIn)
             
         else:
@@ -423,6 +426,13 @@ class LibManagerSheet:
 
         formatted["evictMask"] = ", ".join(mask)
 
+        mask = []
+        for impl in versions:
+            m = functools.reduce( lambda a,b : int(b)| (a << 1), reversed( data[impl]["dstGlobalStore"]), 0)
+            mask.append("0x%x" %m)
+
+        formatted["dstGlobalStore"] = ", ".join(mask)
+
         return formatted
 
 
@@ -436,22 +446,23 @@ class LibManagerSheet:
         for i,impl in enumerate(data):
             # fill header
             fill = LibManagerSheet.headerFill if i % 2 == 1 else LibManagerSheet.headerFill2
-            ws.cell(1, 2 + i*4, impl).fill = fill
-            ws.merge_cells('%s1:%s1' % ( get_column_letter(2 +i*4),
-                                         get_column_letter(5 + i *4)) )
-            ws.cell(1, 2 + i*4).alignment = Alignment(horizontal="center", vertical="center")
+            ws.cell(1, 2 + i*5, impl).fill = fill
+            ws.merge_cells('%s1:%s1' % ( get_column_letter(2 +i*5),
+                                         get_column_letter(5 + i *5)) )
+            ws.cell(1, 2 + i*5).alignment = Alignment(horizontal="center", vertical="center")
 
 
             for j, f in enumerate(data[impl]):
-                ws.cell(2, 2 + i*4 + j, f).fill = fill
-                ws.cell(2, 2 + i*4 + j, f).alignment = Alignment(horizontal="center")
+                ws.cell(2, 2 + i*5 + j, f).fill = fill
+                ws.cell(2, 2 + i*5 + j, f).alignment = Alignment(horizontal="center")
             
             # fill data
             for op in range(nrOut+ nrIn):
-                ws.cell(3 + op, 2 + i*4, data[impl]["L1"][op])
-                ws.cell(3 + op, 3 + i*4, data[impl]["L2"][op])
-                ws.cell(3 + op, 4 + i*4, data[impl]["CB"][op])
-                ws.cell(3 + op, 5 + i*4, data[impl]["evictAv"][op])
+                ws.cell(3 + op, 2 + i*5, data[impl]["L1"][op])
+                ws.cell(3 + op, 3 + i*5, data[impl]["L2"][op])
+                ws.cell(3 + op, 4 + i*5, data[impl]["CB"][op])
+                ws.cell(3 + op, 5 + i*5, data[impl]["evictAv"][op])
+                ws.cell(3 + op, 6 + i*5, data[impl]["dstGlobalStore"][op])
 
         # add first column
         for i in range(nrOut):
@@ -468,20 +479,21 @@ class LibManagerSheet:
         data = {}
         for i, impl in enumerate(versions):
             # check version data is available
-            v = ws.cell(1, 2+i*4).value
+            v = ws.cell(1, 2+i*5).value
             if v != impl:
                 raise Exception("in %s sheet %s, cell %d,%d => expecting %s but %s found instead" %
-                                (self.__cacheStateFile, sheet, 1, 2+i*4, impl, v ))
+                                (self.__cacheStateFile, sheet, 1, 2+i*5, impl, v ))
             data[impl] = {}
-            for j,field in enumerate(["L1", "L2", "CB", "evictAv"]):
-                f = ws.cell(2, 2 + i*4 + j).value
+            for j,field in enumerate(["L1", "L2", "CB", "evictAv", "dstGlobalStore"]):
+                f = ws.cell(2, 2 + i*5 + j).value
                 if f != field:
                     raise Exception("in %s sheet %s, cell %d,%d => expecting %s but %s found instead" %
-                                    (self.__cacheStateFile, sheet, 2, 2+i*4 + j, field, f ))
+                                    (self.__cacheStateFile, sheet, 2, 2+i*5 + j, field, f ))
                 data[impl][field] = []
                 for op in range(nrOut + nrIn):
-                    data[impl][field].append(ws.cell(3 +op, 2+ i*4+j).value)
+                    data[impl][field].append(ws.cell(3 +op, 2+ i*5+j).value)
             data[impl]["evictAv"] = [ int(v) for v in data[impl]["evictAv"] ]
+            data[impl]["dstGlobalStore"] = [ int(v) for v in data[impl]["dstGlobalStore"] ]
 
         return data
     
@@ -489,7 +501,7 @@ class LibManagerSheet:
     def formatTable(self, table):
         s = Template('''\
     // $enum
-    instrConfig {
+    instrConfigInt {
       "$name", // name
       $nrOutputTensors, // # outs
       $nrInputTensors,  // # ins
@@ -503,7 +515,8 @@ class LibManagerSheet:
       $stateL2,
       // CB states per impl
       $stateCB,
-      $evictMask // evict available mask
+      $evictMask, // evict available mask
+      $dstGlobalStore  // global store mask
     }''')
         entries = [ s.substitute(e) for e in table]        
         return ",\n".join(entries)
@@ -512,7 +525,7 @@ class LibManagerSheet:
         contents = []
         startMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_BEGIN')
         endMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_END')
-        fname = os.path.join (hostswdir, 'dnnLibraryApi/include/dnnLibraryApi/LibApi.h');
+        fname = os.path.join (hostswdir, 'dnnLibraryApi/src/Api.cpp');
         startFound = False
         endFound = False
         with open(fname) as f:
@@ -757,9 +770,9 @@ static size_t %s(std::vector<LibTensor*> &outTensors, std::vector<LibTensor*> &i
 if __name__ == "__main__":
     # parse command line options
     parser = argparse.ArgumentParser("Create libApi tables")
-    parser.add_argument("--swplatform-root", help="sw-platform root dir", required = True) 
-    parser.add_argument("--excel", help="Excel file to use", required = True)
-    parser.add_argument("--cacheState", help="Excel file to use with the cache state", required = True)
+    parser.add_argument("--swplatform-root", help="sw-platform root dir", required = False, default="../../../")
+    parser.add_argument("--excel", help="Excel file to use", required = False, default="libManager.xlsx")
+    parser.add_argument("--cacheState", help="Excel file to use with the cache state", required = False, default="cacheState.xlsx")
     args = parser.parse_args()
     sys.path.append(os.path.join (args.swplatform_root, 'scripts/testing/operatorTests/'))
     from instructionGenParser import InstructionGenParser
