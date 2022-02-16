@@ -500,8 +500,9 @@ class LibManagerSheet:
        
     def formatTable(self, table):
         s = Template('''\
+
     // $enum
-    instrConfigInt {
+    {
       "$name", // name
       $nrOutputTensors, // # outs
       $nrInputTensors,  // # ins
