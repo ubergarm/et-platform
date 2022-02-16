@@ -23,9 +23,6 @@ pipeline {
     booleanParam(name: 'CHECK_ON_TOP_OF_MASTER', defaultValue: 'true', description: 'when true this executes checks that ensures Merge Request has merged origin/master with their MR at the time the MR was submiteted')
     booleanParam(name: 'CANCEL_OUTDATED_MR_CI', defaultValue: 'true', description: 'Whether to, if the pipeline has been triggered by a MR, cancel the previous pipeline (if it is still running) that was triggered by the same MR.')
     string(name: 'SW_PLATFORM_BRANCH', defaultValue: 'origin/develop/ml-compiler', description: 'SW-Platform branch to track')
-    string(name: 'GLOW_BRANCH', defaultValue: 'origin/esperanto/master', description: 'ESPERANTO GLOW branch to track')
-    string(name: 'NEURALIZER_BRANCH', defaultValue: 'origin/master', description: 'NEURALIZER branch to track')
-    string(name: 'DNNLIB_BRANCH', defaultValue: 'origin/master', description: 'dnnLibrary branch to track')
     string(name: 'INPUT_TAGS', defaultValue: '', description: 'Parameter to receive tags from parent pipelines')
   }
   agent {
@@ -137,13 +134,13 @@ pipeline {
         stage('CLANG_CHECK') {
           steps {
             script {
-              if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-clang-tests \'{  "COMPONENT_COMMITS":"' + "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}" + '" }\'') != 0) {
+              if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-clang-tests \'{  "COMPONENT_COMMITS":"' + "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}" + '" }\'') != 0) {
                 build job:
                   'sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-clang-tests',
                   propagate: true,
                   parameters: [
                     string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
-                    string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"),
+                    string(name: 'COMPONENT_COMMITS', value: "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}"),
                     booleanParam(name: "FORCE_CHILD_RETRIGGER", value: "${FORCE_CHILD_RETRIGGER}"),
                     string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
                   ]
@@ -159,7 +156,7 @@ pipeline {
             stage('CODE_QUALITY') {
               steps {
                 script {
-                  if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" sw-platform/code-analysis/dnnLibraryApi-sonarqube \'{  "COMPONENT_COMMITS":"' + "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}" + '" }\'') != 0) {
+                  if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" sw-platform/code-analysis/dnnLibraryApi-sonarqube \'{  "COMPONENT_COMMITS":"' + "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}" + '" }\'') != 0) {
                     build job:
                       'sw-platform/code-analysis/dnnLibraryApi-sonarqube',
                       propagate: true,
@@ -168,7 +165,7 @@ pipeline {
                         string(name: 'GITLAB_SOURCE_BRANCH', value: "${env.gitlabSourceBranch}"),
                         string(name: 'GITLAB_TARGET_BRANCH', value: "${env.gitlabTargetBranch}"),
                         string(name: 'GITLAB_MR_ID', value: "${env.gitlabMergeRequestIid}"),
-                        string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"),
+                        string(name: 'COMPONENT_COMMITS', value: "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}"),
                         booleanParam(name: "FORCE_CHILD_RETRIGGER", value: "${FORCE_CHILD_RETRIGGER}"),
                         string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
                       ]
@@ -182,13 +179,13 @@ pipeline {
             stage('DNN_LIB_CI') {
               steps {
                 script {
-                  if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" sw-platform/host-sw-integration/pipelines/dnn-lib-checkin-top-level \'{  "COMPONENT_COMMITS":"' + "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}" + '" }\'') != 0) {
+                  if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" sw-platform/host-sw-integration/pipelines/dnn-lib-checkin-top-level \'{  "COMPONENT_COMMITS":"' + "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}" + '" }\'') != 0) {
                     build job:
                       'sw-platform/host-sw-integration/pipelines/dnn-lib-checkin-top-level',
                       propagate: true,
                       parameters: [
                         string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
-                        string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"),
+                        string(name: 'COMPONENT_COMMITS', value: "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}"),
                         booleanParam(name: "FORCE_CHILD_RETRIGGER", value: "${FORCE_CHILD_RETRIGGER}"),
                         string(name: 'INPUT_TAGS', value: "${env.PIPELINE_TAGS}")
                       ]
@@ -202,13 +199,13 @@ pipeline {
             stage('GLOW_FRONTEND_CI') {
               steps {
                 script {
-                  if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" --repo_ssh_url "' + 'git@gitlab.esperanto.ai:software/sw-platform.git' + '" sw-platform/glow-integration/pipelines/glow-test-plan/frontend-etrt-devfw-sysemu \'{  "COMPONENT_COMMITS":"' + "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}" + '" }\'') != 0) {
+                  if ( ( (env.FORCE_CHILD_RETRIGGER != null) && sh(returnStatus: true, script: "${FORCE_CHILD_RETRIGGER}") == 0) || sh(returnStatus: true, script: './ci/ci-tools/scripts/jenkins_scripts.py job_passed_for_branch --branch "' + "${SW_PLATFORM_BRANCH}" + '" --repo_ssh_url "' + 'git@gitlab.esperanto.ai:software/sw-platform.git' + '" sw-platform/glow-integration/pipelines/glow-test-plan/frontend-etrt-devfw-sysemu \'{  "COMPONENT_COMMITS":"' + "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}" + '" }\'') != 0) {
                     build job:
                       'sw-platform/glow-integration/pipelines/glow-test-plan/frontend-etrt-devfw-sysemu',
                       propagate: true,
                       parameters: [
                         string(name: 'BRANCH', value: "${SW_PLATFORM_BRANCH}"),
-                        string(name: 'COMPONENT_COMMITS', value: "host-software/glow:${GLOW_BRANCH},host-software/neuralizer:${NEURALIZER_BRANCH},host-software/dnnLibrary:${DNNLIB_BRANCH},host-software/dnnLibraryApi:${BRANCH}"),
+                        string(name: 'COMPONENT_COMMITS', value: "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}"),
                         string(name: 'REPO_SSH_URL', value: 'git@gitlab.esperanto.ai:software/sw-platform.git'),
                         string(name: 'REPO_NAME', value: 'sw-platform'),
                         string(name: 'TIMEOUT', value: '12'),
