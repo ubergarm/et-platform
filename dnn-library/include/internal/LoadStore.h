@@ -416,14 +416,13 @@ template <int64_t minValue, int64_t maxValue> INLINE_ATTR void clip(float& desti
   }
 }
 
+template <typename T> INLINE_ATTR void clip(float& destination, float& source) {
+  clip<std::numeric_limits<T>::min(), std::numeric_limits<T>::max()>(destination, source);
+}
+
 template <ElemKind dstElK> INLINE_ATTR void clip(float& destination, float& source) {
-  if constexpr (dstElK == Int8QTy) {
-    clip<-127, 128>(destination, source);
-  } else if constexpr (dstElK == UInt8QTy) {
-    clip<0, 255>(destination, source);
-  } else if constexpr (dstElK == Int16QTy) {
-    clip<-32767, 32768>(destination, source);
-  }
+  using type = typename elemKind2elemTy<dstElK>::type;
+  clip<type>(destination, source);
 }
 
 template <ElemKind dstElK, bool careAboutNonFinite = false, bool canAboutSignallingNaN = false>
