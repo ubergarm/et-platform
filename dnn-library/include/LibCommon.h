@@ -23,6 +23,8 @@
 
 #include "LibTensor.h"
 
+#include <etsoc/isa/tensors.h>
+
 namespace dnn_lib {
 
 template <typename T, typename U> inline __attribute__((always_inline)) T bitwise_copy(const U& x) {
@@ -49,34 +51,38 @@ template <typename T, typename U> inline __attribute__((always_inline)) T bitwis
   return to;
 }
 
-inline __attribute__((always_inline)) void
-fpReciprocalSingleElement(float val, float &recval) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "frcp.ps %[recval], %[val] \n"
-                       : [ recval ] "=f"(recval)
-                       : [ val ] "f"(val));
+template <bool setMask = true>
+inline __attribute__((always_inline)) void fpReciprocalSingleElement(float val, float& recval) {
+  if constexpr (setMask) {
+    mask_set(0, 0x1);
+  }
+  __asm__ __volatile__("frcp.ps %[recval], %[val] \n" : [ recval ] "=f"(recval) : [ val ] "f"(val));
 }
 
-inline __attribute__((always_inline)) void
-fpPowSingleElement(float val1, float val2, float &res) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "flog.ps %[res], %[val1] \n"
+template <bool setMask = true>
+inline __attribute__((always_inline)) void fpPowSingleElement(float val1, float val2, float& res) {
+  if constexpr (setMask) {
+    mask_set(0, 0x1);
+  }
+  __asm__ __volatile__("flog.ps %[res], %[val1] \n"
                        "fmul.s %[res], %[res], %[val2] \n"
                        "fexp.ps %[res], %[res] \n"
                        : [ res ] "=&f"(res)
                        : [ val1 ] "f"(val1), [ val2 ] "f"(val2));
 }
 
-inline __attribute__((always_inline))
-void fpLog2SingleElement(float val, float &res) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "flog.ps %[res], %[val] \n"
-                       : [ res ] "=f"(res)
-                       : [ val ] "f"(val));
+template <bool setMask = true> inline __attribute__((always_inline)) void fpLog2SingleElement(float val, float& res) {
+  if constexpr (setMask) {
+    mask_set(0, 0x1);
+  }
+  __asm__ __volatile__("flog.ps %[res], %[val] \n" : [ res ] "=f"(res) : [ val ] "f"(val));
 }
 
-inline __attribute__((always_inline))
-void fpAddSingleElement(float val1, float val2, float &res) {
+template <bool setMask = true>
+inline __attribute__((always_inline)) void fpAddSingleElement(float val1, float val2, float& res) {
+  if constexpr (setMask) {
+    mask_set(0, 0x1);
+  }
   __asm__ __volatile__("fadd.s %[res], %[val1], %[val2] \n"
                        : [ res ] "=f"(res)
                        : [ val1 ] "f"(val1), [ val2 ] "f"(val2));
@@ -153,12 +159,9 @@ void storeFp16(uint16_t *storeAddr, float val32) {
   storeFp16ToMemory(storeAddr, val32);
 }
 
-inline __attribute__((always_inline))
-void getReciprocal(float val, float &recval) {
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "frcp.ps %[recval], %[val] \n"
-                       : [ recval ] "=f"(recval)
-                       : [ val ] "f"(val));
+// TODO: avoid redundant APIs
+template <bool setMask = true> inline __attribute__((always_inline)) void getReciprocal(float val, float& recval) {
+  fpReciprocalSingleElement<setMask>(val, recval);
 }
 
 /// \returns the value \p in as clipped to the range of \p DestTy.

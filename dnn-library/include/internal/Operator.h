@@ -37,8 +37,9 @@
            "fcvt.pw.ps f0, f0 \n"
 
 namespace dnn_lib {
-  
-template <typename src1Type, typename src2Type, typename dstType, typename opType> class Operator {
+
+template <typename src1Type, typename src2Type, typename dstType, typename opType, bool setMaskForScalar = false>
+class Operator {
 public:
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<
@@ -735,7 +736,7 @@ public:
     int32_t tmp2 = (int32_t)src2[s2];
     int32_t tmp1 = (int32_t)src1[s1];
     int32_t res;
-    getReciprocal(float(tmp2), inverted_op);
+    getReciprocal<setMaskForScalar>(float(tmp2), inverted_op);
     tmp_res = float(tmp1) * inverted_op;
     res = (int32_t)tmp_res;
     dst[d] = (int64_t)res;
@@ -746,7 +747,7 @@ public:
                                     std::size_t>::type = 0>
   INLINE_ATTR void doOp(D& dst, const S1& src1, const S2& src2, uint64_t& d, uint64_t& s1, uint64_t& s2) {
     float inverted_op;
-    getReciprocal(src2[s2], inverted_op);
+    getReciprocal<setMaskForScalar>(src2[s2], inverted_op);
     dst[d] = src1[s1] * inverted_op;
   }
 
@@ -1798,17 +1799,17 @@ public:
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementLog>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float op;
-    convertFp16ToFp32(src.raw(s), op);
+    convertFp16ToFp32<setMaskForScalar>(src.raw(s), op);
     fpLog2SingleElement(op, op);
-    convertFp32ToFp16(op * M_1_LOG2E, dst.raw(d));
+    convertFp32ToFp16<setMaskForScalar>(op * M_1_LOG2E, dst.raw(d));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementLog>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float op;
-    convertFp16ToFp32(src.at(p), op);
+    convertFp16ToFp32<setMaskForScalar>(src.at(p), op);
     fpLog2SingleElement(op, op);
-    convertFp32ToFp16(op * M_1_LOG2E, dst.at(p));
+    convertFp32ToFp16<setMaskForScalar>(op * M_1_LOG2E, dst.at(p));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementLog>::value, std::size_t>::type = 0>
@@ -1847,19 +1848,19 @@ public:
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementExp>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float res;
-    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), res);
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), res);
     res *= static_cast<float>(M_LOG2E);
     __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
-    convertFp32ToFp16(res, dst.raw(d));
+    convertFp32ToFp16<setMaskForScalar>(res, dst.raw(d));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementExp>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float res;
-    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), res);
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), res);
     res *= static_cast<float>(M_LOG2E);
     __asm__ __volatile__ ("fexp.ps %0, %0\n" : "+&f" (res) );
-    convertFp32ToFp16(res, dst.at(p));
+    convertFp32ToFp16<setMaskForScalar>(res, dst.at(p));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementExp>::value, std::size_t>::type = 0>
@@ -1909,17 +1910,17 @@ public:
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float res;
-    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), res);
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), res);
     res = erfImpl(res);
-    convertFp32ToFp16(res, dst.raw(d));
+    convertFp32ToFp16<setMaskForScalar>(res, dst.raw(d));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float res;
-    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), res);
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), res);
     res = erfImpl(res);
-    convertFp32ToFp16(res, dst.at(p));
+    convertFp32ToFp16<setMaskForScalar>(res, dst.at(p));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
@@ -1941,28 +1942,28 @@ public:
   template <typename U = opType, typename std::enable_if<std::is_same<U, Tanh>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float op1;
-    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), op1);
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), op1);
     op1 = getTanh(op1);
-    convertFp32ToFp16(op1, dst.raw(d));
+    convertFp32ToFp16<setMaskForScalar>(op1, dst.raw(d));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Tanh>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float op1;
-    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), op1);
-    op1 = getTanh(op1);
-    convertFp32ToFp16(op1, dst.at(p));
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), op1);
+    op1 = getTanh<setMaskForScalar>(op1);
+    convertFp32ToFp16<setMaskForScalar>(op1, dst.at(p));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Tanh>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, uint64_t& d, uint64_t& s) {
-    float op1 = getTanh(src.raw(s));
+    float op1 = getTanh<setMaskForScalar>(src.raw(s));
     dst.raw(d) = op1;
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Tanh>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, dim_array_t& p) {
-    float op1 = getTanh(src.at(p));
+    float op1 = getTanh<setMaskForScalar>(src.at(p));
     dst.at(p) = op1;
   }
 
@@ -1971,14 +1972,14 @@ public:
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementIsNaN>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<bool>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float op;
-    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), op);
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), op);
     dst.raw(d) = isnanf(op) ? true : false;
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementIsNaN>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<bool>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float op;
-    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), op);
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), op);
     dst.at(p) = isnanf(op) ? true : false;
   }
 
@@ -1996,27 +1997,27 @@ public:
   template <typename U = opType, typename std::enable_if<std::is_same<U, Sigmoid>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float op;
-    convertFp16ToFp32(static_cast<uint16_t>(src.raw(s)), op);
-    fpReciprocalSingleElement(getExp(-op) + 1.0, op);
-    convertFp32ToFp16(op, dst.raw(d));
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), op);
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-op) + 1.0, op);
+    convertFp32ToFp16<setMaskForScalar>(op, dst.raw(d));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Sigmoid>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float op;
-    convertFp16ToFp32(static_cast<uint16_t>(src.at(p)), op);
-    fpReciprocalSingleElement(getExp(-op) + 1.0, op);
-    convertFp32ToFp16(op, dst.at(p));
+    convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), op);
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-op) + 1.0, op);
+    convertFp32ToFp16<setMaskForScalar>(op, dst.at(p));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Sigmoid>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, uint64_t& d, uint64_t& s) {
-    fpReciprocalSingleElement(getExp(-(src.raw(s))) + 1.0, dst.raw(d));
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-(src.raw(s))) + 1.0, dst.raw(d));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Sigmoid>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, dim_array_t& p) {
-    fpReciprocalSingleElement(getExp(-(src.at(p))) + 1.0, dst.at(p));
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-(src.at(p))) + 1.0, dst.at(p));
   }
 };
 
