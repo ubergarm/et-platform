@@ -68,6 +68,25 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {0x0}  // global store mask
   },
 
+  // ET_allocactivation
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
+  },
+
   // ET_argmax
   {
     "ArgMax",                                         // name
@@ -85,26 +104,6 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  },
-
-  // ET_avgpool
-  {
-    "AvgPool", // name
-    1,         // # outs
-    1,         // # ins
-    {instrMembers::mbKernels, instrMembers::mbStrides, instrMembers::mbPads, instrMembers::mbLayout,
-     instrMembers::mbCountIncludePads}, // members
-    1,                                  // template param mask
-    {"Threaded"},                       // impl versions
-    implSel::AvgPool,                   // custom impl selector
-    // L1 states per impl
-    {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
-    // L2 states per impl
-    {{{operandState::dirty, operandState::clean}, {operandState::dirty, operandState::clean}}},
-    // CB states per impl
-    {{{operandState::untouched, operandState::untouched}, {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0}, // evict available mask
-    {0x0, 0x0}  // global store mask
   },
 
   // ET_avgpool
@@ -378,6 +377,44 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
+  },
+
+  // ET_deallocactivation
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
+  },
+
+  // ET_debugprint
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
   },
 
   // ET_dequantize
@@ -711,6 +748,25 @@ static const std::vector<instrConfigInt> instrConfigTable = {
        operandState::untouched}}},
     {0x0}, // evict available mask
     {0x1}  // global store mask
+  },
+
+  // ET_emptyoperator
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
   },
 
   // ET_maxsplat
@@ -1388,6 +1444,25 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {0x0}  // global store mask
   },
 
+  // ET_sync
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
+  },
+
   // ET_syncopy
   {
     "Syncopy",                    // name
@@ -1464,6 +1539,44 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {0x0}  // global store mask
   },
 
+  // ET_touch
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
+  },
+
+  // ET_traceevent
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
+  },
+
   // ET_transpose
   {
     "Transpose",               // name
@@ -1483,6 +1596,45 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {0x0, 0x0}  // global store mask
   },
 
+  // ET_inhosttransform
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
+  },
+
+  // ET_outhosttransform
+  {
+    "notImplemented", // name
+    0,                // # outs
+    0,                // # ins
+    {},               // members
+    0,                // template param mask
+    {},               // impl versions
+    nullptr,          // custom impl selector
+    // L1 states per impl
+    {{operandState::untouched}},
+    // L2 states per impl
+    {{operandState::untouched}},
+    // CB states per impl
+    {{operandState::untouched}},
+    {0}, // evict available mask
+    {0}  // global store mask
+  },
+  // INSTR_CONFIG_TABLE_END
+
   // notImplemented placeholder.
   {
     "notImplemented", // name
@@ -1501,7 +1653,6 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {0x0}, // evict available mask
     {0x0}  // global store mask
   },
-  // INSTR_CONFIG_TABLE_END
 };
 
 operandState instrConfig::getOperandStateL1(size_t implIdx, size_t operand) {
