@@ -570,61 +570,57 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset1,
   return true;
 }
 
-inline __attribute__((always_inline))
-float getExp(float val) {
+template <bool setMask = true> inline __attribute__((always_inline)) float getExp(float val) {
   float ret;
   if (val == 0) {
     return 1;
   } else if (val > 0) {
-    dnn_lib::fpPowSingleElement(M_E, val, ret);
+    dnn_lib::fpPowSingleElement<setMask>(M_E, val, ret);
     return ret;
   } else { // val<0
-    dnn_lib::fpPowSingleElement(M_E, -val, ret);
-    dnn_lib::fpReciprocalSingleElement(ret, ret);
+    dnn_lib::fpPowSingleElement<setMask>(M_E, -val, ret);
+    dnn_lib::fpReciprocalSingleElement<setMask>(ret, ret);
     return ret;
   }
 }
 
-inline __attribute__((always_inline))
-float getSinh(float val) {
+template <bool setMask = true> inline __attribute__((always_inline)) float getSinh(float val) {
   float op1, op2;
   if (val == 0) {
     op1 = op2 = 1;
   } else if (val > 0) {
-    dnn_lib::fpPowSingleElement(M_E, val, op1);
-    dnn_lib::fpReciprocalSingleElement(op1, op2);
+    dnn_lib::fpPowSingleElement<setMask>(M_E, val, op1);
+    dnn_lib::fpReciprocalSingleElement<setMask>(op1, op2);
   } else { // val<0
-    dnn_lib::fpPowSingleElement(M_E, -val, op2);
-    dnn_lib::fpReciprocalSingleElement(op2, op1);
+    dnn_lib::fpPowSingleElement<setMask>(M_E, -val, op2);
+    dnn_lib::fpReciprocalSingleElement<setMask>(op2, op1);
   }
   return 0.5 * (op1 - op2);
 }
 
-inline __attribute__((always_inline))
-float getCosh(float val) {
+template <bool setMask = true> inline __attribute__((always_inline)) float getCosh(float val) {
   float op1, op2;
   if (val == 0) {
     op1 = op2 = 1;
   } else if (val > 0) {
-    dnn_lib::fpPowSingleElement(M_E, val, op1);
-    dnn_lib::fpReciprocalSingleElement(op1, op2);
+    dnn_lib::fpPowSingleElement<setMask>(M_E, val, op1);
+    dnn_lib::fpReciprocalSingleElement<setMask>(op1, op2);
   } else { // val<0
-    dnn_lib::fpPowSingleElement(M_E, val, op2);
-    dnn_lib::fpReciprocalSingleElement(op2, op1);
+    dnn_lib::fpPowSingleElement<setMask>(M_E, val, op2);
+    dnn_lib::fpReciprocalSingleElement<setMask>(op2, op1);
   }
   return 0.5 * (op1 + op2);
 }
 
-inline __attribute__((always_inline))
-float getTanh(float val) {
+template <bool setMask = true> inline __attribute__((always_inline)) float getTanh(float val) {
   if (val > 10) {
     return 1;
   } else if (val < -10) {
     return -1;
   } else {
     float e2x, denom;
-    dnn_lib::fpPowSingleElement(M_E, 2*val, e2x);
-    dnn_lib::fpReciprocalSingleElement(e2x+1, denom);
+    dnn_lib::fpPowSingleElement<setMask>(M_E, 2 * val, e2x);
+    dnn_lib::fpReciprocalSingleElement<setMask>(e2x + 1, denom);
     return (denom * (e2x-1));
   }
 }
@@ -639,7 +635,7 @@ bool isEven(int val) {
   return ((val % 2) == 0);
 }
 
-inline __attribute__((always_inline)) float getPow(float base, float exp) {
+template <bool setMask = true> inline __attribute__((always_inline)) float getPow(float base, float exp) {
   float dst_tmp, inverted;
   if (base == 0)
     return (exp==0);
@@ -649,18 +645,18 @@ inline __attribute__((always_inline)) float getPow(float base, float exp) {
     return 1;
   else if (exp > 0) {
     if (base < 0) {
-      dnn_lib::fpPowSingleElement(-base, exp, dst_tmp);
+      dnn_lib::fpPowSingleElement<setMask>(-base, exp, dst_tmp);
       if (isEven((int)exp))
         return dst_tmp;
       else
         return -dst_tmp;
     } else {
-      dnn_lib::fpPowSingleElement(base, exp, dst_tmp);
+      dnn_lib::fpPowSingleElement<setMask>(base, exp, dst_tmp);
       return dst_tmp;
     }
   } else if (exp < 0) {
-    dnn_lib::fpPowSingleElement(base, -exp, inverted);
-    dnn_lib::fpReciprocalSingleElement(inverted, dst_tmp);
+    dnn_lib::fpPowSingleElement<setMask>(base, -exp, inverted);
+    dnn_lib::fpReciprocalSingleElement<setMask>(inverted, dst_tmp);
     return dst_tmp;
   } else {
     return 0;

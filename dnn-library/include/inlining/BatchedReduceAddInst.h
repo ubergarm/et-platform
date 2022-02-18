@@ -23,13 +23,6 @@
 #include <string.h>
 #include <utility>
 
-#include "Addresser.h"
-#include "Float16.h"
-#include "LibTensor.h"
-#include "Operator.h"
-#include "Writer.h"
-#include "utils.h"
-
 // Accumulates all of the layers in the batch and produce a tensor
 // that has the same dimensions as the input tensor without the first dimension;
 
