@@ -128,6 +128,7 @@ add_library(dnn_lib STATIC
     src/ElementCmpLTEInst.cpp
     src/ElementCmpLTInst.cpp
     src/ElementDivInst.cpp
+    src/ElementErfInst.cpp
     src/ElementLogInst.cpp
     src/ElementMaxInst.cpp
     src/ElementMinInst.cpp
