@@ -863,6 +863,20 @@ extern template void fwdLibElementDivInst<Int64ITy>(LibTensor* out0, LibTensor* 
                                                     const uint32_t assignedMinions);
 
 /****************************************************************************
+ *  ElementErf implementations
+ ****************************************************************************/
+// declarations
+template <ElemKind in0Type>
+void fwdLibElementErfInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0,
+                          const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibElementErfInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
+                                                   const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementErfInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
+                                                     const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
  *  ElementExp implementations
  ****************************************************************************/
 // declarations
