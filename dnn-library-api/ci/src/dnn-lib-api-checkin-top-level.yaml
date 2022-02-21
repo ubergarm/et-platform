@@ -18,7 +18,7 @@ parameters:
 stages:
   CLANG_CHECK:
     cmds:
-      - job: sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-clang-tests
+      - job: sw-platform/host-sw-integration/pipelines/dnn-lib-api/dnn-lib-api-clang-tests
         parameters:
           BRANCH: "${SW_PLATFORM_BRANCH}"
           COMPONENT_COMMITS: "host-software/dnnLibraryApi:${BRANCH}, ${COMPONENT_COMMITS}"
