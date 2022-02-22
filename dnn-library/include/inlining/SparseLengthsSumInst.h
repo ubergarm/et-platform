@@ -33,7 +33,7 @@ namespace inlining {
 template <ElemKind elKind, ElemKind idxKind>
 INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || elKind == Float16Ty), void>
 fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices, LibTensor* length, uint64_t flags,
-                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                           const uint32_t minionOffset = 0, [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -101,7 +101,7 @@ template <ElemKind elKind, ElemKind idxKind>
 INLINE_ATTR
   typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
   fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices, LibTensor* length, uint64_t flags,
-                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                             const uint32_t minionOffset = 0, [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

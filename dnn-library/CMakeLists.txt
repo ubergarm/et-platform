@@ -22,8 +22,6 @@ find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 
 
 file(GLOB LIB_DNN_PUBLIC_HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Fully-macro-defs.S
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/AutoGenInstan.def
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Float16.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/GenInstances.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Operators.h
@@ -107,78 +105,7 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
 )
 
 add_library(dnn_lib STATIC
-    src/AdaptiveAvgPoolInst.cpp
-    src/ArgMaxInst.cpp
-    src/AvgPoolInst.cpp
-    src/BatchedAddInst.cpp
-    src/BatchedReduceAddInst.cpp
-    src/BatchedReduceMinInst.cpp
-    src/BatchOneHotInst.cpp
-    src/ChannelWiseQuantizedConvolutionInst.cpp
-    src/ConvertToInst.cpp
-    src/Convolution3DInst.cpp
-    src/ConvolutionInst.cpp
-    src/ConvTransposeInst.cpp
-    src/CopyInst.cpp
-    src/CrossEntropyLossInst.cpp
-    src/CumSumInst.cpp
-    src/DequantizeInst.cpp
-    src/ElementAddInst.cpp
-    src/ElementCmpEQInst.cpp
-    src/ElementCmpLTEInst.cpp
-    src/ElementCmpLTInst.cpp
-    src/ElementDivInst.cpp
-    src/ElementErfInst.cpp
-    src/ElementLogInst.cpp
-    src/ElementMaxInst.cpp
-    src/ElementMinInst.cpp
-    src/ElementMulInst.cpp
-    src/ElementPowInst.cpp
-    src/ElementSubInst.cpp
-    src/Int8ConverterInst.cpp
-    src/ElementExpInst.cpp
-    src/ElementIsNaNInst.cpp
-    src/ElementSelectInst.cpp
-    src/EmbeddingBagInst.cpp
-#   src/EmbeddingBagByteRowwiseOffsetsInst.cpp
-    src/ExtractTensorInst.cpp
-    src/FlipInst.cpp
-    src/FullyConnectedInst.cpp
-    src/FusedRowwiseQuantizedSparseLengthsSumInst.cpp
-    src/FusedRowwiseQuantizedSparseLengthsWeightedSumInst.cpp
-    src/GatherInst.cpp
-    src/GatherRangesInst.cpp
-    src/InsertTensorInst.cpp
-    src/IntLookupTableInst.cpp
-    src/LengthsRangeFillInst.cpp
-    src/LengthsSumInst.cpp
-    src/LengthsToRangesInst.cpp
-    src/LocalResponseNormalizationInst.cpp
-    src/MatMulInst.cpp
-    src/MaxSplatInst.cpp
-    src/MaxPoolInst.cpp
-    src/ModuloInst.cpp
-    src/NonMaxSuppressionInst.cpp
-    src/QuantizeInst.cpp
-    src/RescaleQuantizedInst.cpp
-    src/ResizeBilinearInst.cpp
-    src/ResizeNearestInst.cpp
-    src/RowwiseQuantizedFullyConnectedInst.cpp
-    src/RowwiseQuantizedSparseLengthsWeightedSumInst.cpp
-    src/ScatterDataInst.cpp
-    src/SigmoidInst.cpp
-    src/SoftMaxInst.cpp
-    src/SpaceToDepthInst.cpp
-    src/SparseLengthsWeightedSumInst.cpp
-    src/SparseToDenseInst.cpp
-    src/SparseToDenseMaskInst.cpp
-    src/SplatInst.cpp
-    src/SyncopyInst.cpp
-    src/TanhInst.cpp
-    src/TensorViewInst.cpp
-    src/TopKInst.cpp
-    src/TransposeInst.cpp
-    src/Float16.cpp
+    src/LibNodes.cpp
     src/libc_stub/stdlib.c
     src/libc_stub/string.c
 )
