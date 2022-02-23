@@ -46,7 +46,6 @@ namespace inlining {
 /// \param[in] actIndex Array of the size of each dimensions of the activations.
 /// \param[in] kernels Sime of the kernel (array of N elements)
 /// \param[in] inCperG Elements in a group of channel from the source tensor.
-/// \param[in] mask It has no relevance in this function.
 /// \param[in] x, y, z, d Coordinates where our minions should start reading.
 /// \param[in] scale Array of tensor scales
 /// \param[in] offset Array of tensor offsets
@@ -55,7 +54,7 @@ template <ElemKind dstElK, ElemKind biasElK, size_t N>
 INLINE_ATTR void quantConvolution3DOp(void* activations, void* weights, void* bias, void* output, size_t offsetOut,
                                       unsigned int* coord, const dim_t* actPitch, const dim_t* weightPitch,
                                       const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
-                                      unsigned int inCperG, int32_t mask, ssize_t x, ssize_t y, ssize_t z, ssize_t d,
+                                      unsigned int inCperG, ssize_t x, ssize_t y, ssize_t z, ssize_t d,
                                       const float& inScale, const float& filterScale, const float& biasScale,
                                       const float& outScale, const int32_t& inOffset, const int32_t& filterOffset,
                                       const int32_t& biasOffset, const int32_t& outOffset) {
@@ -214,7 +213,7 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
   unsigned int posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y, z, d;
-  int32_t mask = (1 << (((inCperG - 1) & 0x7) + 1)) - 1;
+
   while (!done && (offsetOut < posMax)) {
     x = coord[1] * strides[0] - ssize_t(pads[0]);
     y = coord[2] * strides[1] - ssize_t(pads[2]);
@@ -222,7 +221,7 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
     d = coord[4] * outCperG + coord[5];
 
     quantConvolution3DOp<elK, biasElK, N>(activations, weights, bias, output, offsetOut, coord, actPitch, weightPitch,
-                                          actIndex, kernels, inCperG, mask, x, y, z, d, inScale, filterScale, biasScale,
+                                          actIndex, kernels, inCperG, x, y, z, d, inScale, filterScale, biasScale,
                                           outScale, inOffset, filterOffset, biasOffset, outOffset);
 
     done = getOffsets(6, coord, offsetOut, eDstIndex, eDstPitch);

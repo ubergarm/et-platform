@@ -55,9 +55,10 @@ template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, siz
 INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
   LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
   LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
-  const std::array<uint32_t, PN>& pads, const uint32_t group, const std::array<uint32_t, KN>& dilation,
-  const size_t fusedActivation, const std::array<float, FN>& fusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  const std::array<uint32_t, PN>& pads, const uint32_t group, [[maybe_unused]] const std::array<uint32_t, KN>& dilation,
+  [[maybe_unused]] const size_t fusedActivation, [[maybe_unused]] const std::array<float, FN>& fusedActivationArgs,
+  [[maybe_unused]] const uint64_t flags, const uint32_t minionOffset = 0,
+  [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset)
     return;
@@ -166,9 +167,10 @@ template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, siz
 INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
   LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
   LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
-  const std::array<uint32_t, PN>& pads, const uint32_t group, const std::array<uint32_t, KN>& dilation,
-  const size_t fusedActivation, const std::array<float, FN>& fusedActivationArgs, const uint64_t flags,
-  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  const std::array<uint32_t, PN>& pads, const uint32_t group, [[maybe_unused]] const std::array<uint32_t, KN>& dilation,
+  [[maybe_unused]] const size_t fusedActivation, [[maybe_unused]] const std::array<float, FN>& fusedActivationArgs,
+  [[maybe_unused]] const uint64_t flags, [[maybe_unused]] const uint32_t minionOffset = 0,
+  [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset)
     return;

@@ -28,7 +28,7 @@ INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind ==
 
 fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
                                    uint64_t flags, const uint32_t minionOffset = 0,
-                                   const uint32_t assignedMinions = 0) {
+                                   [[maybe_unused]] const uint32_t assignedMinions = 0) {
   if (get_minion_id() != minionOffset) return;
 
   assert(in1T->getElementType() == outT->getElementType());
@@ -116,7 +116,7 @@ INLINE_ATTR
   typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
   fwdLibSparseLengthsWeightedSumInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                                      LibTensor* in4T, uint64_t flags, const uint32_t minionOffset = 0,
-                                     const uint32_t assignedMinions = 0) {
+                                     [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

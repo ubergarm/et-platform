@@ -27,9 +27,8 @@ namespace dnn_lib {
 
 namespace inlining {
 
-
 template <ElemKind elK>
-void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
+void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags,
                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 

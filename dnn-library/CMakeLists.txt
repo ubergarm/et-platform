@@ -206,6 +206,10 @@ target_compile_options(dnn_lib
         -Werror=shadow 
         -Werror=ignored-qualifiers 
         -Werror=div-by-zero
+        -Werror=unused-but-set-parameter
+        -Werror=unused-but-set-variable
+        -Werror=unused-parameter
+        -Werror=unused-variable
 )
 
 target_link_libraries(dnn_lib

@@ -46,8 +46,9 @@ namespace inlining {
  * type of evict required.
  */
 template <ElemKind elKind>
-INLINE_ATTR void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, const uint32_t blockSize, uint64_t flags,
-                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, const uint32_t blockSize,
+                                        [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+                                        [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

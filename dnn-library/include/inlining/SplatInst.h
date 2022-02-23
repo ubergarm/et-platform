@@ -25,8 +25,10 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK, bool aligned>
-INLINE_ATTR void splatOp(const uintptr_t dst, const uintptr_t src, const dim_t valid, const float splatVal,
-                         const float scale, const int32_t offset) {
+INLINE_ATTR void splatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t src, const dim_t valid,
+                         const float splatVal, [[maybe_unused]] const float scale,
+                         [[maybe_unused]] const int32_t offset) {
+
   // Enable only the valid elements
   if (valid < 8) {
     uint8_t mask = ((1 << valid) - 1);

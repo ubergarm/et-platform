@@ -47,8 +47,8 @@ struct accumulatorType {
 template <ElemKind elK>
 inline __attribute((always_inline)) void fusedRowwiseQuantizedSparseLengthsWeightedSumVect(
   uintptr_t minionCurrIndex, uintptr_t currSegmentLength, uint8_t* tAInput, int64_t* indices, uintptr_t dataRowPitch,
-  uintptr_t dataRowSize, uintptr_t dataRowOffset, uintptr_t dstElemSize, uintptr_t fusedElemSize, ElemKind fusedElK,
-  uint8_t* tWInput, uint8_t* dst_ptr, bool destAligned, const bool Weighted = true) {
+  uintptr_t dataRowSize, uintptr_t dataRowOffset, uintptr_t fusedElemSize, ElemKind fusedElK, uint8_t* tWInput,
+  uint8_t* dst_ptr, bool destAligned, const bool Weighted = true) {
 
   const bool float32Dst = elK == FloatTy;
   const bool float16Dst = elK == Float16Ty;
@@ -685,8 +685,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       for (int k = 0; k < (dstRowTailVRegs - 1); k++) {
         fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices, dataPitches[0], dataRowSize,
-          minionCurrRowGroup * CACHE_LINE_BYTES + k * 8, dstElemSize, fusedElemSize, fusedElK, tWInput, dst_ptr,
-          destAligned, Weighted);
+          minionCurrRowGroup * CACHE_LINE_BYTES + k * 8, fusedElemSize, fusedElK, tWInput, dst_ptr, destAligned,
+          Weighted);
         dst_ptr += 8 * dstElemSize;
       }
 
@@ -699,8 +699,8 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
       fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
         minionCurrIndex, currSegmentLength, tAInput, indices, dataPitches[0], dataRowSize,
-        minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8, dstElemSize, fusedElemSize, fusedElK,
-        tWInput, dst_ptr, destAligned, Weighted);
+        minionCurrRowGroup * CACHE_LINE_BYTES + (dstRowTailVRegs - 1) * 8, fusedElemSize, fusedElK, tWInput, dst_ptr,
+        destAligned, Weighted);
 
       minionCurrIndex += currSegmentLength;
 

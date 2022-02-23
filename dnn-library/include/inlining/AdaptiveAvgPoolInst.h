@@ -32,7 +32,8 @@ namespace inlining {
 template <ElemKind elKind>
 typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
   INLINE_ATTR fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                                        const uint32_t minionOffset = 0,
+                                        [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   
@@ -119,7 +120,8 @@ typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty))
 template <ElemKind elKind>
 typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
   INLINE_ATTR fwdLibAdaptiveAvgPoolInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
-                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                                        const uint32_t minionOffset = 0,
+                                        [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   assert(inT->getElementType() == outT->getElementType());
 

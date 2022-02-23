@@ -199,7 +199,7 @@ INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* ou
 template <ElemKind out0Type, ElemKind in0Type, size_t N, size_t PN>
 INLINE_ATTR void fwdLibMaxPoolInst(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, N>& kernels,
                                    const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
-                                   uint32_t layout, uint64_t flags, const uint32_t minionOffset = 0,
+                                   [[maybe_unused]] uint32_t layout, uint64_t flags, const uint32_t minionOffset = 0,
                                    const uint32_t assignedMinions = 0) {
   maxPoolImplThreaded<out0Type, in0Type>(false, out0, nullptr, in0, kernels, strides, pads, flags, minionOffset,
                                          assignedMinions);

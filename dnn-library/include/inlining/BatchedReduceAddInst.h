@@ -56,10 +56,9 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
   unsigned int pbatchDimNum = static_cast<unsigned int>(inT->ndims());
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
-  size_t typeSize = getsize<srcType>();
 
   // requesting a globalPartition since we use globalStores
-  getGlobalPartition(typeSize, numElemsDst, /*out*/ initialAddr, /*out*/ maxRead, minionId, activeMinions, dstT);
+  getGlobalPartition(numElemsDst, /*out*/ initialAddr, /*out*/ maxRead, minionId, activeMinions);
 
   if (maxRead == 0) {
     return;
@@ -98,7 +97,6 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
     offsetIn += batchPitch[axis];
 
     for (size_t i = 1; i < batchIndex[axis]; i++) {
-      uint64_t offsetSum = 0;
       // using std::as_const to use the read [] overload
       sum[0] = std::as_const<Addresser<elK>>(sum)[0] + tBatch[offsetIn];
 
@@ -125,8 +123,6 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
     return;
   }
 
-  void *dstT = outT->getRawDataPointer<void>();
-  
   int8_t *tOutput = outT->getRawDataPointer<int8_t>();
   int8_t *tBatch = inT->getRawDataPointer<int8_t>();
   
@@ -141,7 +137,7 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   // requesting a globalPartition sice we use globalStores
-  getGlobalPartition(sizeof(int8_t), numElemsDst, /*out*/ initialAddr, /*out*/ maxRead, minionId, activeMinions, dstT);
+  getGlobalPartition(numElemsDst, /*out*/ initialAddr, /*out*/ maxRead, minionId, activeMinions);
 
   if (maxRead == 0) {
     return;

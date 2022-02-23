@@ -28,7 +28,8 @@ namespace inlining {
 template <ElemKind dstElK, ElemKind indicesElK>
 INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
   LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, LibTensor* offsetsT, LibTensor* weightsT, LibTensor* indicesT,
-  LibTensor* lengthsT, uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  LibTensor* lengthsT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+  [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using indxType = typename elemKind2elemTy<indicesElK>::type;

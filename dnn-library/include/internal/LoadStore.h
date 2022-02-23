@@ -201,7 +201,7 @@ INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, float& indices, float&
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-INLINE_ATTR void load(uintptr_t src, uint64_t conf, const float& indices, float& op0) {
+INLINE_ATTR void load(uintptr_t src, [[maybe_unused]] uint64_t conf, const float& indices, float& op0) {
   static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
@@ -229,7 +229,8 @@ INLINE_ATTR void load(uintptr_t src, uint64_t conf, const float& indices, float&
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-INLINE_ATTR void load(uintptr_t src, uint64_t conf, float indices, float indicesHigh, float& op0, float& op0High) {
+INLINE_ATTR void load(uintptr_t src, [[maybe_unused]] uint64_t conf, float indices, [[maybe_unused]] float indicesHigh,
+                      float& op0, float& op0High) {
   if constexpr (bytesPerElement == 8) {
     __asm__ __volatile__("fgw.ps %[op0], %[indices](%[src])\n"
                          "fgw.ps %[op0High], %[indicesHigh](%[src])\n"
@@ -242,7 +243,7 @@ INLINE_ATTR void load(uintptr_t src, uint64_t conf, float indices, float indices
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-INLINE_ATTR void storeLocal(uintptr_t dst, uint64_t conf, float indices, float op0) {
+INLINE_ATTR void storeLocal(uintptr_t dst, [[maybe_unused]] uint64_t conf, [[maybe_unused]] float indices, float op0) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fsc32b.ps %[op0], %[conf](%[dst])\n"
@@ -271,7 +272,7 @@ INLINE_ATTR void storeLocal(uintptr_t dst, uint64_t conf, float indices, float o
 }
 
 template <size_t bytesPerElement, bool aligned = false>
-INLINE_ATTR void storeGlobal(uintptr_t dst, uint64_t conf, float indices, float op0) {
+INLINE_ATTR void storeGlobal(uintptr_t dst, [[maybe_unused]] uint64_t conf, float indices, float op0) {
   // TODO [SW-11008] aligned global stores are not optimized on this implementation.
   if constexpr (bytesPerElement == 1) {
     __asm__ __volatile__("fscbg.ps %[op0], %[indices](%[dst])\n"
@@ -299,7 +300,8 @@ INLINE_ATTR void store(uintptr_t dst, uint64_t conf, float indices, float op0) {
 }
 
 template <size_t bytesPerElement, bool aligned = false, bool globalStore = false>
-INLINE_ATTR void store(uintptr_t dst, uint64_t conf, float indices, float indicesHigh, float op0, float op0High) {
+INLINE_ATTR void store(uintptr_t dst, [[maybe_unused]] uint64_t conf, float indices, [[maybe_unused]] float indicesHigh,
+                       float op0, [[maybe_unused]] float op0High) {
   if constexpr (bytesPerElement == 8) {
     if constexpr (globalStore) {
       // TODO [SW-11008] aligned global stores are not optimized on this implementation.
@@ -327,7 +329,7 @@ template <size_t bytesPerElement> INLINE_ATTR void copy(float source, float& des
 }
 
 template <size_t bytesPerElement>
-INLINE_ATTR void copy(float source, float sourceHigh, float& destination, float& destinationHigh) {
+INLINE_ATTR void copy(float source, [[maybe_unused]] float sourceHigh, float& destination, float& destinationHigh) {
   copy<bytesPerElement>(source, destination);
   if constexpr (bytesPerElement > 4) {
     copy<bytesPerElement>(sourceHigh, destinationHigh);
@@ -435,7 +437,7 @@ INLINE_ATTR void doQuantize(float& destination, float source, float scaleRecipro
 }
 
 template <ElemKind srcElK, ElemKind dstElK, bool matchx86 = false>
-INLINE_ATTR void convert(float source, float sourceHigh, float& destination, float& destinationHigh,
+INLINE_ATTR void convert(float source, [[maybe_unused]] float sourceHigh, float& destination, float& destinationHigh,
                          const float& srcScale, const float& srcOffset, const float& dstScaleReciprocal,
                          const float& dstOffset) {
 
@@ -471,8 +473,8 @@ INLINE_ATTR void convert(float source, float sourceHigh, float& destination, flo
   convert<FloatTy, dstElK>(destination, destinationHigh, destination, destinationHigh, srcScale, srcOffset,            \
                            dstScaleReciprocal, dstOffset);
 
-  constexpr bool careAboutNonFinite = true;
-  constexpr bool canAboutSignallingNaN = true;
+  [[maybe_unused]] constexpr bool careAboutNonFinite = true;
+  [[maybe_unused]] constexpr bool canAboutSignallingNaN = true;
 
   if constexpr (srcElK == dstElK) {
     constexpr size_t bytesPerElement = Type::getElementSize(srcElK);

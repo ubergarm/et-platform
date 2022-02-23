@@ -164,18 +164,15 @@ inline __attribute__((always_inline)) void getNonPaddingCoordinates(unsigned int
  * @warning The function works with the supposition that the minions working on this
  *  tensor is numbered from 0 to activeMinions.
  *
- * @param[in] elementSize The number of bytes of each element in the matrix.
- *  It is required to be a power of 2 and smaller than 64 (1, 2, 4, 8, usually).
  * @param[in] numElems The number of elements in the tensor that is divided.
  * @param[out] offset The starting offset for the minion.
  * @param[out] maxRead The number of consecutive elements the minion is assigned.
  * @param[in] minionId The id of the minion that calls the function.
  * @param[in] activeMinions The number of minions that is working on the tensor.
  */
-inline __attribute__((always_inline)) void getGlobalPartition(unsigned int elementSize, unsigned int numElems,
-                                                              unsigned int& offset, unsigned int& maxRead,
-                                                              unsigned int minionId, unsigned int activeMinions,
-                                                              void* addr) {
+inline __attribute__((always_inline)) void getGlobalPartition(unsigned int numElems, unsigned int& offset,
+                                                              unsigned int& maxRead, unsigned int minionId,
+                                                              unsigned int activeMinions) {
 
   // Ensure that all the minions have a least one element to do
   if (unlikely(activeMinions > numElems)) {

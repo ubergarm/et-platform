@@ -62,21 +62,20 @@ class WriteSliceToDst {
 template <typename ptrT>
 class WriteSliceToDst<ptrT, 0> {
   public:
-  static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions],
-        const ptrT* tSlices, ptrT* tOutput,
-        unsigned int maxDim,
-        unsigned int& sliceAddr, unsigned int& dstAddr) 
-  {
-    for (unsigned int k=0; k < sliceSteps[0].nCopy; k++) {
-      auto val = tSlices[(sliceAddr + k)];
-      tOutput[(dstAddr + k)] = val;
+    static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions], const ptrT* tSlices,
+                                  ptrT* tOutput, [[maybe_unused]] unsigned int maxDim, unsigned int& sliceAddr,
+                                  unsigned int& dstAddr) {
+      for (unsigned int k = 0; k < sliceSteps[0].nCopy; k++) {
+        auto val = tSlices[(sliceAddr + k)];
+        tOutput[(dstAddr + k)] = val;
+      }
     }
-  }
 };
 
 template <ElemKind elK>
-INLINE_ATTR void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
-                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                       [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+                                       [[maybe_unused]] const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   if (get_minion_id() != minionOffset) return;

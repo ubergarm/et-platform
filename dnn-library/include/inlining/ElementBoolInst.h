@@ -43,10 +43,9 @@ namespace inlining {
  * @param[in] in2T pointer to second source LibTensor
  */
 template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
-INLINE_ATTR void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
-                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
-  //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
+INLINE_ATTR void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
+                                       [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+                                       [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   
