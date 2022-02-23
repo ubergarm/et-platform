@@ -572,10 +572,10 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getEx
   if (val == 0) {
     return 1;
   } else if (val > 0) {
-    dnn_lib::fpPowSingleElement<setMask>(M_E, val, ret);
+    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(M_E), val, ret);
     return ret;
   } else { // val<0
-    dnn_lib::fpPowSingleElement<setMask>(M_E, -val, ret);
+    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(M_E), -val, ret);
     dnn_lib::fpReciprocalSingleElement<setMask>(ret, ret);
     return ret;
   }
@@ -616,7 +616,7 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getTa
     return -1;
   } else {
     float e2x, denom;
-    dnn_lib::fpPowSingleElement<setMask>(M_E, 2 * val, e2x);
+    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(M_E), 2 * val, e2x);
     dnn_lib::fpReciprocalSingleElement<setMask>(e2x + 1, denom);
     return (denom * (e2x-1));
   }
@@ -768,5 +768,5 @@ unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
 //   return true;
 // }
 
-}  // namespace dnn_lib
+} // namespace dnn_lib
 #endif /* UTILS_H */

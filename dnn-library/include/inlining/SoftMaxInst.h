@@ -34,7 +34,7 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
                                    const uint32_t minionOffset = 0,
                                    [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
-  static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
+  static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty, "Unsupported elK type.");
   assert(inT->getElementType() == elK and outT->getElementType() == elK);
   assert(inT->ndims() == 2 and outT->ndims() == 2);
   assert(inT->dims().data()[0] == outT->dims().data()[0] and inT->dims().data()[1] == outT->dims().data()[1]);
@@ -69,7 +69,12 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
     for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       float e = getExp(float(tInput[i]) - max);
       sum += e;
-      tOutput[j] = e;
+      if(elK == BFloat16Ty) {
+	tOutput[j] = static_cast<srcType>(e);
+      }
+      else {
+	tOutput[j] = static_cast<float>(e);
+      }
     }
 
     float inverseSum;
@@ -78,7 +83,12 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
     // Normalize the output.
     for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       auto in = acumInt[j];
-      in = in * inverseSum;
+      if(elK == BFloat16Ty) {
+	in = static_cast<srcType>(in * inverseSum);
+      }
+      else {
+	in = static_cast<float>(in * inverseSum);
+      }
       tOutput[j] = in;
     }
   }
@@ -147,7 +157,7 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
   unsigned int extraLanes = srcIndex[1] - 8*numRegs;
   bool floatType = (typeSize == 4); // 1 if fp32 and 0 if fp16.
   int32_t registerSize = 8*typeSize;
-  float log2e = M_LOG2E;
+  float log2e = static_cast<float>(M_LOG2E);
 
 #define GATHER_FLOAT(_addr)                                                                                            \
   "beq %[floatType], zero, 16f \n"                                                                                     \

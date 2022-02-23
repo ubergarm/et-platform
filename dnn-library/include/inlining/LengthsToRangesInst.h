@@ -128,10 +128,11 @@ void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT, [[maybe_unused]]
      : "f0", "f1", "f2", "f3", "f4", "f5", "f31"
    );
 
+  static_assert(elK == Int32ITy, "Unsupported elK type.");
   for (size_t i = initialAddr; i < posMax; i++) {
     float length = lengths[i];
-    tOutput[i * dstPitch[0]] = offset;
-    tOutput[i * dstPitch[0] + 1] = length;
+    tOutput[i * dstPitch[0]] = static_cast<srcType>(offset);
+    tOutput[i * dstPitch[0] + 1] = static_cast<srcType>(length);
     offset += length;
   }
 

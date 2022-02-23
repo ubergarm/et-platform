@@ -235,7 +235,7 @@ fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, Lib
     wei = dst;
   }
   convertFp16ToFp32(static_cast<uint16_t>(in.offset()), dst);
-  aux += dst * wei;
+  aux += static_cast<size_t>(dst * wei);
   convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t,1>{k})), dst);
   res += dst;
       }
@@ -245,7 +245,7 @@ fwdLibSparseLengthsWeightedSumInstThreaded(LibTensor* outT, LibTensor* in1T, Lib
     wei = dequantize<elkType>(weightH.at(std::array<size_t,1>{k}), in2T->getScale(), in2T->getOffset());
   }
   inoffset = dequantize<elkType>(in.offset(), in1T->getScale(), in1T->getOffset());
-  aux += inoffset * wei;
+  aux += static_cast<size_t>(inoffset * wei);
   res += dequantize<elkType>(dataH.at(std::array<size_t,1>{aux}), in1T->getScale(), in1T->getOffset()); 
       }
     }
@@ -323,14 +323,14 @@ INLINE_ATTR
     for (size_t k = segment_begin; k < segment_end; k++) {
       size_t aux = idxH.at(std::array<size_t,1>{k});
       if (in2T != nullptr) {
-  aux += (in.offset()  * weightH.at(std::array<size_t,1>{k}));      
+        aux += static_cast<size_t>(in.offset() * weightH.at(std::array<size_t, 1>{k}));
       }
       else {
-  aux += in.offset();
+        aux += in.offset();
       }
       res += dataH.at(std::array<size_t,1>{aux});
     }
-    outH.at(std::array<size_t,1>{out.offset()}) = res;
+    outH.at(std::array<size_t, 1>{out.offset()}) = static_cast<elkType>(res);
   }
 
   outT->evict(DO_EVICTS, first, count);

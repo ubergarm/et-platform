@@ -137,9 +137,9 @@ INLINE_ATTR void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T, L
 
     srcType value;
     if (defaultVal) {
-      value = tDefVInput[offsetDef];
+      value = static_cast<srcType>(tDefVInput[offsetDef]);
     } else {
-      value = tAInput[j * dataPitch[0] + offsetIn];
+      value = static_cast<srcType>(tAInput[j * dataPitch[0] + offsetIn]);
     }
     tOutput[offsetOut] = value;
 

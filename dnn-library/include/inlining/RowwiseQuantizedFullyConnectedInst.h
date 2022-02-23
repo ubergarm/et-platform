@@ -101,7 +101,8 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
     float invMatMulScale;
     fpReciprocalSingleElement(matMulScale, invMatMulScale);
     // int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
-    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale);
+    int32_t sum = static_cast<int32_t>(
+      nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale));
     int32_t woffset = tOffset[coordOut[1]];
 
     uintptr_t actAddr = (uintptr_t)tAInput + typeSize*offsetAIn;
@@ -184,8 +185,8 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
 
     // tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
     //   float(sum) * (matMulScale * invDstScale) + dstoffset));
-    tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
-           float(sum) * (matMulScale * invDstScale) + outT->getOffset()));
+    tOutput[offsetOut] = clip<int32_t, int8_t>(
+      static_cast<int32_t>(nearbyintf(float(sum) * (matMulScale * invDstScale) + outT->getOffset())));
 
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {
@@ -280,7 +281,8 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTenso
     float invMatMulScale;
     fpReciprocalSingleElement(matMulScale, invMatMulScale);
     // int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
-    int32_t sum = nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale);
+    int32_t sum = static_cast<int32_t>(
+      nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale));
     int32_t woffset = tOffset[coordOut[1]];
 
     uintptr_t actAddr = (uintptr_t)tAInput + typeSize*offsetAIn;
@@ -341,8 +343,8 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTenso
 
     // tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
     //   float(sum) * (matMulScale * invDstScale) + dstoffset));
-    tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
-           float(sum) * (matMulScale * invDstScale) + outT->getOffset()));
+    tOutput[offsetOut] = clip<int32_t, int8_t>(
+      static_cast<int32_t>(nearbyintf(float(sum) * (matMulScale * invDstScale) + outT->getOffset())));
 
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {

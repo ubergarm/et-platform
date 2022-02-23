@@ -34,7 +34,6 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
                                                                       LibTensor* in2T,
                                                                       uint64_t flags,
                                                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -83,13 +82,18 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
   }
 
   unsigned int level = 0;
-  for (unsigned int k = 1; k < activeMinions; k *= 2)
+  for (unsigned int k = 1; k < activeMinions; k *= 2) {
     level++;
+  }
 
-  for (unsigned int i = 0; i < level; i++)
+  for (unsigned int i = 0; i < level; i++) {
     sum = tensor_reduce_float(sum, 0x0, 1, i, 0x3);
-  if (minionId == 0)
-    tOutput[0] = sum * M_1_LOG2E;
+  }
+
+  if (minionId == 0) {
+    static_assert((elK == FloatTy || elK == Float16Ty || elK == BFloat16Ty), "Unsupported elK type.");
+    tOutput[0] = (sum * M_1_LOG2E);
+  }
 }
 
 } // namespace inlining
