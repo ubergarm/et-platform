@@ -37,11 +37,9 @@ namespace inlining {
  *  type of evict required.
  */
 template <ElemKind elKind>
-inline void fwdLibLengthsRangeFillInst(LibTensor* outT, LibTensor* inT, 
-               uint64_t flags, 
-               const uint32_t minionOffset = 0,
-               const uint32_t assignedMinions = 0) {
-    
+inline void fwdLibLengthsRangeFillInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0,
+                                       [[maybe_unused]] const uint32_t assignedMinions = 0) {
+
   if (get_minion_id() != minionOffset) return;
 
   assert(inT->getElementType() == outT->getElementType());
@@ -64,7 +62,6 @@ inline void fwdLibLengthsRangeFillInst(LibTensor* outT, LibTensor* inT,
   
   outT->evict(DO_EVICTS);
 }
-
 }
 }
 #endif

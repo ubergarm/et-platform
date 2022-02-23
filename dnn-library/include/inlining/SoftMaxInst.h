@@ -30,8 +30,9 @@ namespace inlining {
 // Single-thread version with small optimisations. Useful when the padding
 // hypothesis are not met.
 template <ElemKind elK>
-INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0,
-                                   const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags,
+                                   const uint32_t minionOffset = 0,
+                                   [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
   assert(inT->getElementType() == elK and outT->getElementType() == elK);

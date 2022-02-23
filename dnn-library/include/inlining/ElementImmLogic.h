@@ -40,8 +40,9 @@ namespace inlining {
  * @param[in] imm.
  */
 template <typename srcType, typename opType>
-INLINE_ATTR void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_value, uint64_t flags,
-                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType imm_value,
+                                       [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+                                       [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
   

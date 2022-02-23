@@ -53,7 +53,8 @@ INLINE_ATTR void transposeOp(uintptr_t dst, uintptr_t src, int32_t* scatterValue
 }
 
 template <typename srcType, typename std::enable_if<(sizeof(srcType) > 4), int>::type = 0>
-INLINE_ATTR void transposeOp(uintptr_t dst, uintptr_t src, int32_t* scatterValues, int32_t* gatherValues) {
+INLINE_ATTR void transposeOp([[maybe_unused]] uintptr_t dst, [[maybe_unused]] uintptr_t src,
+                             [[maybe_unused]] int32_t* scatterValues, [[maybe_unused]] int32_t* gatherValues) {
   //FIXME: TODO: implement
 }
 
@@ -196,7 +197,8 @@ INLINE_ATTR void transposeOpAligned32Bytes(uintptr_t dst, uintptr_t src, int32_t
 }
 
 template <typename srcType, typename std::enable_if<(sizeof(srcType) > 4), int>::type = 0>
-INLINE_ATTR void transposeOpAligned32Bytes(uintptr_t dst, uintptr_t src, int32_t* gatherValues) {
+INLINE_ATTR void transposeOpAligned32Bytes([[maybe_unused]] uintptr_t dst, [[maybe_unused]] uintptr_t src,
+                                           [[maybe_unused]] int32_t* gatherValues) {
   //FIXME: not implemented
 }
 

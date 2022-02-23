@@ -286,8 +286,9 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK != FloatTy, std::size_t>::type = 0>
 INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* coord, const dim_t* actPitch,
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
-                               unsigned int inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
-                               const float* scale, const int32_t* offset, const std::array<uint32_t, N>& dilation) {
+                               unsigned int inCperG, float& sum, [[maybe_unused]] int32_t mask, ssize_t x, ssize_t y,
+                               ssize_t d, const float* scale, const int32_t* offset,
+                               const std::array<uint32_t, N>& dilation) {
 
   const Addresser<dstElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tWInput(weights, scale[1], offset[1]);
@@ -337,7 +338,7 @@ template <ElemKind dstElK, ElemKind biasElK, size_t N>
 INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias, void* output, size_t offsetOut,
                                     unsigned int* coord, const dim_t* actPitch, const dim_t* weightPitch,
                                     const dim_t* actIndex, const std::array<uint32_t, N>& kernels, unsigned int inCperG,
-                                    int32_t mask, ssize_t x, ssize_t y, ssize_t d, const float* scale,
+                                    [[maybe_unused]] int32_t mask, ssize_t x, ssize_t y, ssize_t d, const float* scale,
                                     const int32_t* offset, const std::array<uint32_t, N>& dilation) {
 
   // This code assumes the vector mask is 1 because it is not vectorized
@@ -467,13 +468,13 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
 ///  should be done at the end of the function.
 
 template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t FN>
-INLINE_ATTR void convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                                          const std::array<uint32_t, N>& kernels,
-                                          const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
-                                          unsigned int group, const std::array<uint32_t, N>& dilation,
-                                          const size_t fusedActivation,
-                                          const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
-                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void
+convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                         const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                         const std::array<uint32_t, PN>& pads, unsigned int group,
+                         const std::array<uint32_t, N>& dilation, [[maybe_unused]] const size_t fusedActivation,
+                         [[maybe_unused]] const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
+                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
@@ -574,13 +575,13 @@ INLINE_ATTR void convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibT
 ///  should be done at the end of the function.
 
 template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t FN>
-INLINE_ATTR void convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
-                                             const std::array<uint32_t, N>& kernels,
-                                             const std::array<uint32_t, N>& strides,
-                                             const std::array<uint32_t, PN>& pads, unsigned int group,
-                                             const std::array<uint32_t, N>& dilation, const size_t fusedActivation,
-                                             const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
-                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void
+convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
+                            const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                            const std::array<uint32_t, PN>& pads, unsigned int group,
+                            const std::array<uint32_t, N>& dilation, [[maybe_unused]] const size_t fusedActivation,
+                            [[maybe_unused]] const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
+                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
 

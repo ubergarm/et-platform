@@ -369,7 +369,8 @@ INLINE_ATTR void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibT
   unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
   unsigned int initialAddr, maxRead;
   size_t typeSize = sizeof(dstType);
-  getGlobalPartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
+
+  getGlobalPartition(numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
 

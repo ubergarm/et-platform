@@ -248,7 +248,8 @@ template <ElemKind srcElk>
 void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, LibTensor* boxesT, LibTensor* scoresT,
                                  const long long centerPointBox, const long long maxOutputBoxesPerClass,
                                  const float iouThreshold, const float scoreThreshold, const bool isTFVersion4,
-                                 uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                                 uint64_t flags, const uint32_t minionOffset = 0,
+                                 [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 

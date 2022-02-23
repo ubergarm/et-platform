@@ -48,16 +48,12 @@ namespace inlining {
  *  type of evict required.
  */
 template <ElemKind dstElK, size_t N, size_t PN, size_t KN>
-inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT, 
-            LibTensor* filterT, LibTensor* biasT,
-            const std::array<uint32_t, N> &kernels,
-            const std::array<uint32_t, N> &strides,
-            const std::array<uint32_t, PN> &pads,
-            const uint32_t group, 
-            const std::array<uint32_t, KN> &dilation,
-            const uint64_t flags, 
-            const uint32_t minionOffset = 0, 
-            const uint32_t assignedMinions = 0) {
+inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT,
+                                    const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+                                    const std::array<uint32_t, PN>& pads, const uint32_t group,
+                                    const std::array<uint32_t, KN>& dilation, [[maybe_unused]] const uint64_t flags,
+                                    const uint32_t minionOffset = 0,
+                                    [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
@@ -127,8 +123,6 @@ inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT,
       }
     }
   }
-
-
 }
 
 } // inlining

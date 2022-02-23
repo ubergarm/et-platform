@@ -48,8 +48,9 @@ namespace inlining {
  */
 
 template <ElemKind elK>
-INLINE_ATTR void fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, const uint64_t flags,
-                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+INLINE_ATTR void
+fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, [[maybe_unused]] const uint64_t flags,
+                  [[maybe_unused]] const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
   uint32_t hart = get_hart_id();

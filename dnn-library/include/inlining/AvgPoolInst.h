@@ -33,8 +33,9 @@ namespace inlining {
 template <ElemKind dstElK, size_t N, size_t PN>
 INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Float16Ty)), void>
 fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& kernels,
-                    const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads, uint64_t flags,
-                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                    const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
+                    [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+                    [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset)
     return;
@@ -111,8 +112,9 @@ fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, 
 template <ElemKind dstElK, size_t N, size_t PN>
 INLINE_ATTR typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Float16Ty)), void>
 fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& kernels,
-                    const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads, uint64_t flags,
-                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                    const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
+                    [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+                    [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset)
     return;
@@ -170,9 +172,9 @@ fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, 
 template <ElemKind dstElK, size_t N, size_t PN>
 INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(dstElK) || (dstElK == Float16Ty)), void>
 fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& kernels,
-                  const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads, uint32_t layout,
-                  const bool countIncludePads, uint64_t flags, const uint32_t minionOffset = 0,
-                  const uint32_t assignedMinions = 0) {
+                  const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
+                  [[maybe_unused]] uint32_t layout, const bool countIncludePads, uint64_t flags,
+                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (inT->ndims() == 5) {
     fwdLibAvgPool3DInst<dstElK, N, PN>(outT, inT, kernels, strides, pads, flags, minionOffset, assignedMinions);
@@ -258,9 +260,9 @@ fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>
 template <ElemKind dstElK, size_t N, size_t PN>
 INLINE_ATTR typename std::enable_if_t<(!isQuantizedElemKind(dstElK) && (dstElK != Float16Ty)), void>
 fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& kernels,
-                  const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads, uint32_t layout,
-                  const bool countIncludePads, uint64_t flags, const uint32_t minionOffset = 0,
-                  const uint32_t assignedMinions = 0) {
+                  const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
+                  [[maybe_unused]] uint32_t layout, const bool countIncludePads, uint64_t flags,
+                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset)
     return;
@@ -328,8 +330,9 @@ fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>
 template <ElemKind dstElK, size_t N, size_t PN>
 INLINE_ATTR void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& kernels,
                                            const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
-                                           uint32_t layout, const bool countIncludePads, uint64_t flags,
-                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+                                           [[maybe_unused]] uint32_t layout, const bool countIncludePads,
+                                           uint64_t flags, const uint32_t minionOffset = 0,
+                                           const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
