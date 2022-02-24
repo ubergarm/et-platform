@@ -58,9 +58,9 @@ struct accumulatorType {
  * @param[in] elems Number of elements in a row to compute.
  */
 template <ElemKind srcElK, typename std::enable_if<srcElK == Int64ITy, std::size_t>::type = 0>
-INLINE_ATTR void matmulStep(int64_t* sum, const Addresser<srcElK>& tAInput, void* tAInputPtr,
-                            const Addresser<srcElK>& tWInput, void* tWInputPtr, size_t aCols, size_t actOffset,
-                            size_t weightOffset, size_t weightPitch, size_t elems) {
+INLINE_ATTR void matmulStep(int64_t* sum, const Addresser<srcElK>& tAInput, [[maybe_unused]] void* tAInputPtr,
+                            const Addresser<srcElK>& tWInput, [[maybe_unused]] void* tWInputPtr, size_t aCols,
+                            size_t actOffset, size_t weightOffset, size_t weightPitch, size_t elems) {
   // For all the accumulations
   for (size_t aCol = 0; aCol < aCols; aCol++) {
     // Gets input value
@@ -93,9 +93,9 @@ INLINE_ATTR void matmulStep(int64_t* sum, const Addresser<srcElK>& tAInput, void
  * @param[in] elems Number of elements in a row to compute.
  */
 template <ElemKind srcElK, typename std::enable_if<srcElK == Int32ITy, std::size_t>::type = 0>
-INLINE_ATTR void matmulStep(int32_t* sum, const Addresser<srcElK>& tAInput, void* tAInputPtr,
-                            const Addresser<srcElK>& tWInput, void* tWInputPtr, size_t aCols, size_t actOffset,
-                            size_t weightOffset, size_t weightPitch, size_t elems) {
+INLINE_ATTR void matmulStep(int32_t* sum, const Addresser<srcElK>& tAInput, [[maybe_unused]] void* tAInputPtr,
+                            const Addresser<srcElK>& tWInput, [[maybe_unused]] void* tWInputPtr, size_t aCols,
+                            size_t actOffset, size_t weightOffset, size_t weightPitch, size_t elems) {
   // For all the accumulations
   for (size_t aCol = 0; aCol < aCols; aCol++) {
     // Gets input value

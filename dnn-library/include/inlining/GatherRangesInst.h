@@ -55,7 +55,7 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
   // const Addresser<srcElK> tInput(srcT, scale[0], offset[0]);
   const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
   // Addresser<indexElK> tRanges(prangesT, scale[1], offset[1]);
-  Addresser<indexElK> tRanges(prangesT, in2T->getScale(), in2T->getOffset());
+  const Addresser<indexElK> tRanges(prangesT, in2T->getScale(), in2T->getOffset());
   // Addresser<indexElK> tLengths(dst2T, scale[2], offset[2]);
   Addresser<indexElK> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
 

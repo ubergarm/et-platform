@@ -58,21 +58,24 @@ public:
   // WRITE
   ////////////////////////////////////////////////////////////////////////////////
 
+#define SUPPORT_WRITER(U)                                                                                              \
+  ((U == FloatTy) || (U == Float16Ty) || (U == BFloat16Ty) || (U == Int8QTy) || (U == UInt8QTy) || (U == Int16QTy) ||  \
+   (U == Int32QTy) || U == Int32ITy || U == Int64ITy)
   // quantized and float16: return a writer to write via float
-  ONLY_FOR((U == FloatTy) || (U == Float16Ty) || (U == BFloat16Ty) || (U == Int8QTy) || (U == UInt8QTy) ||
-           (U == Int16QTy) || (U == Int32QTy))
+  ONLY_FOR(SUPPORT_WRITER(U))
   Writer<elK, globalStore> operator[](const size_t index) {
     return Writer<elK, globalStore>(ptr_ + index, scale_, offset_);
   }
 
   // other types, direct write: return reference
-  ONLY_FOR((U != FloatTy) && (U != Float16Ty) && (U != BFloat16Ty) && (U != Int8QTy) && (U != UInt8QTy) &&
-           (U != Int16QTy) && (U != Int32QTy))
+  ONLY_FOR(!SUPPORT_WRITER(U))
   T& operator[](const size_t index) {
     // Sanity: only Writer knows about globalStore.
     static_assert(!globalStore, "globalStore not supported for this type in Addresser");
     return ptr_[index];
   }
+
+#undef SUPPORT_WRITER
 
   ////////////////////////////////////////////////////////////////////////////////
   // Access
