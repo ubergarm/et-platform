@@ -58,8 +58,8 @@ fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT, const std::array<flo
   assert(dataT->getElementType() == outT->getElementType());
 
   /* Scaling batch and channel not supported. */
-  assert(rszBlScale[0] == 1.0); 
-  assert(rszBlScale[3] == 1.0);
+  assert(rszBlScale[0] == 1.0f);
+  assert(rszBlScale[3] == 1.0f);
 
   using elkType = typename elemKind2elemTy<elKind>::type;
 
@@ -142,8 +142,8 @@ INLINE_ATTR
   assert(dataT->getElementType() == outT->getElementType());
 
   /* Scaling batch and channel not supported. */
-  assert(rszBlScale[0] == 1.0);
-  assert(rszBlScale[3] == 1.0);
+  assert(rszBlScale[0] == 1.0f);
+  assert(rszBlScale[3] == 1.0f);
 
   using elkType = typename elemKind2elemTy<elKind>::type;
 

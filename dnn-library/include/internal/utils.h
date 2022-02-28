@@ -27,7 +27,7 @@
 
 namespace dnn_lib {
 
-#define M_1_LOG2E float(1.0f / M_LOG2E)
+#define M_1_LOG2E float(1.0f / static_cast<float>(M_LOG2E))
 
 #define SET_MINUS_INFTY(_reg) "fbci.ps " #_reg ", 0xff800 \n" // _reg is vect
 
@@ -592,7 +592,7 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getSi
     dnn_lib::fpPowSingleElement<setMask>(M_E, -val, op2);
     dnn_lib::fpReciprocalSingleElement<setMask>(op2, op1);
   }
-  return 0.5 * (op1 - op2);
+  return 0.5f * (op1 - op2);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) float getCosh(float val) {
@@ -606,7 +606,7 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getCo
     dnn_lib::fpPowSingleElement<setMask>(M_E, val, op2);
     dnn_lib::fpReciprocalSingleElement<setMask>(op2, op1);
   }
-  return 0.5 * (op1 + op2);
+  return 0.5f * (op1 + op2);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) float getTanh(float val) {
