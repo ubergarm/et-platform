@@ -211,6 +211,7 @@ target_compile_options(dnn_lib
         -Werror=unused-parameter
         -Werror=unused-variable
         -Werror=float-conversion
+        -Werror=double-promotion
 )
 
 target_link_libraries(dnn_lib
