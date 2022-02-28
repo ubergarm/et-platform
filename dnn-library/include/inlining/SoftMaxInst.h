@@ -69,11 +69,10 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
     for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       float e = getExp(float(tInput[i]) - max);
       sum += e;
-      if(elK == BFloat16Ty) {
-	tOutput[j] = static_cast<srcType>(e);
-      }
-      else {
-	tOutput[j] = static_cast<float>(e);
+      if (elK == BFloat16Ty) {
+        tOutput[j] = static_cast<srcType>(e);
+      } else {
+        tOutput[j] = static_cast<float>(e);
       }
     }
 
@@ -83,11 +82,10 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
     // Normalize the output.
     for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       auto in = acumInt[j];
-      if(elK == BFloat16Ty) {
-	in = static_cast<srcType>(in * inverseSum);
-      }
-      else {
-	in = static_cast<float>(in * inverseSum);
+      if (elK == BFloat16Ty) {
+        in = static_cast<srcType>(in * inverseSum);
+      } else {
+        in = static_cast<float>(in * inverseSum);
       }
       tOutput[j] = in;
     }

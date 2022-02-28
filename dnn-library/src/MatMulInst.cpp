@@ -21,7 +21,6 @@ template void fwdLibMatMulInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTe
                                           const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibMatMulInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
                                         const uint32_t minionOffset, const uint32_t assignedMinions);
-
 template void fwdLibMatMulInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,
                                          const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibMatMulInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags,

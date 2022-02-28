@@ -17,11 +17,4 @@ namespace dnn_lib {
   ////////////////////////////////////////////////////////////////////////////////
 template void fwdLibCrossEntropyLossInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibCrossEntropyLossInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-// template void fwdLibCrossEntropyLossInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t
-// flags, const uint32_t minionOffset, const uint32_t assignedMinions); template void
-// fwdLibCrossEntropyLossInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const
-// uint32_t minionOffset, const uint32_t assignedMinions); template void fwdLibCrossEntropyLossInst<Int32ITy>(LibTensor*
-// out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t
-// assignedMinions); template void fwdLibCrossEntropyLossInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
-// const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // dnn_lib

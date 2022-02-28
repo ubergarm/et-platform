@@ -185,16 +185,14 @@ INLINE_ATTR
           auto hd = static_cast<float>(v00) + static_cast<float>(v10 - v00) * (ihf - ih);
           auto hw = static_cast<float>(v01) + static_cast<float>(v11 - v01) * (ihf - ih);
           float result = hd + (hw - hd) * (iwf - iw);
-	  //outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = result;
-	  if (elKind == BFloat16Ty || elKind == Float16Ty) {
-	    outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<float>(result); 
-	  }
-	  else if (elKind == Int64ITy) {
-	    outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<uint32_t>(result);
-	  }
-	  else {
-	    outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<elkType>(result);
-	  }
+          // outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = result;
+          if (elKind == BFloat16Ty || elKind == Float16Ty) {
+            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<float>(result);
+          } else if (elKind == Int64ITy) {
+            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<uint32_t>(result);
+          } else {
+            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<elkType>(result);
+          }
         }
       }
     }
