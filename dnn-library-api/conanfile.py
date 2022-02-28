@@ -1,19 +1,27 @@
-from conans import ConanFile, tools
-from conan.tools.cmake import CMake, CMakeToolchain
+from conan import ConanFile
+from conan.tools.cmake import CMake, CMakeToolchain,CMakeDeps
+from conans import tools
 from conans.errors import ConanInvalidConfiguration
 import os
-
+import re
 
 class DnnLibraryApiConan(ConanFile):
     name = "dnnLibraryApi"
     version = "0.1.0"
+    url = "https://gitlab.esperanto.ai/software/dnn-library-api.git"
     license = "Esperanto Technologies"
-    author = "Pau Farre <pau.farre@esperantotech.com>" # recipe author
-    url = "https://gitlab.esperanto.ai/software/dnn-library-api"
+
     description = "DnnLibrary Host API"
     topics = ("dnnLibraryApi", "dnnLibrary", "neuralizer")
-
     settings = "os", "arch", "compiler", "build_type"
+
+    scm = {
+        "type": "git",
+        "url": "git@gitlab.esperanto.ai:software/dnn-library-api.git",
+        "revision": "auto",
+    }
+    generators = "CMakeDeps"
+
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
@@ -25,12 +33,12 @@ class DnnLibraryApiConan(ConanFile):
         "enable_warnings_as_errors": False,
     }
 
-    generators = "cmake_find_package_multi"
-
     exports_sources = [ "CMakeLists.txt", "include/*", "src/*", "dnnLibraryApiConfig.cmake.in" ]
 
-    build_requires = "cmake-modules/[>=0.4.1 <1.0.0]"
-    python_requires = "conan-common/[>=0.1.0 <1.0.0]"
+    python_requires = "conan-common/[>=0.5.0 <1.0.0]"
+
+    def set_version(self):
+        self.version = self.python_requires["conan-common"].module.get_version_from_cmake_project(self, "dnnLibraryApi")       
 
     def configure(self):
         if self.options.shared:
@@ -47,23 +55,15 @@ class DnnLibraryApiConan(ConanFile):
         tc = CMakeToolchain(self)
         tc.variables["ENABLE_WARNINGS_AS_ERRORS"] = self.options.enable_warnings_as_errors
         tc.variables["CMAKE_INSTALL_LIBDIR"] = "lib"
-        tc.variables["CMAKE_MODULE_PATH"] = os.path.join(self.deps_cpp_info["cmake-modules"].rootpath, "cmake")
         tc.generate()
 
-    _cmake = None
-    def _configure_cmake(self):
-        if not self._cmake:
-            cmake = CMake(self)
-            cmake.configure()
-            self._cmake = cmake
-        return self._cmake
-
     def build(self):
-        cmake = self._configure_cmake()
+        cmake = CMake(self)
+        cmake.configure()
         cmake.build()
 
     def package(self):
-        cmake = self._configure_cmake()
+        cmake = CMake(self)
         cmake.install()
         tools.rmdir(os.path.join(self.package_folder, "lib", "cmake"))
 

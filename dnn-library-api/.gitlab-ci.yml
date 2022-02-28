@@ -2,7 +2,7 @@ check_formatting:
   image: ubuntu:bionic
   stage: build
   tags:
-    - docker
+    - k8s 
   before_script:
     - echo -e "\e[0Ksection_start:`date +%s`:install_system_deps_section[collapsed=true]\r\e[0KInstall system dependencies"
     - apt update
