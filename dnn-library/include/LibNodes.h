@@ -1,6 +1,6 @@
 // File automatically generated with:
-//  libManager.py
-//  cwd=/home/abel/work/repo2/sw-platform/host-software/dnnLibrary/scripts
+//  ./libManager.py
+//  cwd=/local/home/rafa/WorkSpace/sw-platform/host-software/dnnLibrary/scripts
 
 #ifndef LIBNODES_H_
 #define LIBNODES_H_
@@ -602,18 +602,6 @@ extern template void fwdLibCrossEntropyLossInst<FloatTy>(LibTensor* out0, LibTen
 extern template void fwdLibCrossEntropyLossInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
                                                            const uint64_t flags, const uint32_t minionOffset,
                                                            const uint32_t assignedMinions);
-extern template void fwdLibCrossEntropyLossInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
-                                                         const uint64_t flags, const uint32_t minionOffset,
-                                                         const uint32_t assignedMinions);
-extern template void fwdLibCrossEntropyLossInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
-                                                          const uint64_t flags, const uint32_t minionOffset,
-                                                          const uint32_t assignedMinions);
-extern template void fwdLibCrossEntropyLossInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
-                                                          const uint64_t flags, const uint32_t minionOffset,
-                                                          const uint32_t assignedMinions);
-extern template void fwdLibCrossEntropyLossInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1,
-                                                          const uint64_t flags, const uint32_t minionOffset,
-                                                          const uint32_t assignedMinions);
 
 /****************************************************************************
  *  CumSum implementations
@@ -1471,17 +1459,7 @@ void fwdLibLengthsToRangesInst(LibTensor* out0, LibTensor* in0, const uint64_t f
                                const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibLengthsToRangesInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
-                                                        const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsToRangesInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
-                                                          const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsToRangesInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
-                                                        const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsToRangesInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
-                                                         const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibLengthsToRangesInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
-                                                         const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibLengthsToRangesInst<Int16QTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags,
                                                          const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************

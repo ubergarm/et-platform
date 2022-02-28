@@ -168,7 +168,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
     }
 
     int resCoord = coord[srcDimNum - 1];
-    valuesT[valuesOffset] = tmpValues[resCoord];
+    valuesT[valuesOffset] = static_cast<srcType>(tmpValues[resCoord]);
     indT[indexOffset] = tmpInd[resCoord];
 
     /* overloading while sw-2400 and sw-2429 are WIP */   
@@ -186,8 +186,8 @@ template <ElemKind elK>
 INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, LibTensor* inT, unsigned int k,
                                            uint64_t flags, const uint32_t minionOffset = 0,
                                            const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-  
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
@@ -376,7 +376,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
                            [ gather_coord ] "m"( *(const int32_t(*)[8]) gather_coord)
                          : "f0", "f1", "f31", "memory");
     for (unsigned i = 0; i < k; i++)
-      valuesT[batch_offset * valuesPitch[batchDim] + i] = tmpT[i];
+      valuesT[batch_offset * valuesPitch[batchDim] + i] = static_cast<srcType>(tmpT[i]);
   }
 }
 
@@ -385,8 +385,8 @@ template <ElemKind elK>
 INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, LibTensor* inT, unsigned int k,
                                            uint64_t flags, const uint32_t minionOffset = 0,
                                            const uint32_t assignedMinions = 0) {
-  //  using srcType = typename elemKind2elemTy<elK>::type;
-  
+  using srcType = typename elemKind2elemTy<elK>::type;
+
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
@@ -590,7 +590,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
                            [ gather_values ] "r"(gather_values)
                          : "f0", "f1", "f2", "f3", "f31");
     for (unsigned i = 0; i < k; i++)
-      valuesT[batch_offset * valuesPitch[batchDim] + i] = tmpT[i];
+      valuesT[batch_offset * valuesPitch[batchDim] + i] = static_cast<srcType>(tmpT[i]);
   }
 }
 

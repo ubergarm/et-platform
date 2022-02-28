@@ -148,8 +148,8 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
               }
 
               // Scale the bias to match the scale of the matrix mulitplication.
-              sum += nearbyintf(static_cast<float>(biasH.at(std::array<size_t, 1>{d}) - biasOffset) *
-                                (invMatMulScale * biasScale));
+              sum += static_cast<int32_t>(nearbyintf(
+                static_cast<float>(biasH.at(std::array<size_t, 1>{d}) - biasOffset) * (invMatMulScale * biasScale)));
 
               // Scale the result back to the expected destination scale.
               outH.at(std::array<size_t, 5>{n, at, ax, ay, d}) =
@@ -263,8 +263,8 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
             }
 
             // Scale the bias to match the scale of the matrix multiplication.
-            sum += nearbyintf(static_cast<float>(biasH.at(std::array<size_t, 1>{d}) - biasOffset) *
-                              (invMatMulScale * biasScale));
+            sum += static_cast<int32_t>(nearbyintf(static_cast<float>(biasH.at(std::array<size_t, 1>{d}) - biasOffset) *
+                                                   (invMatMulScale * biasScale)));
 
             // Scale the bias to match the scale of the matrix mulitplication.
             outH.at(std::array<size_t, 4>{n, ax, ay, d}) =

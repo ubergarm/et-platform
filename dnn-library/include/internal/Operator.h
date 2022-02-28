@@ -1897,16 +1897,16 @@ public:
     res = (res < 0) ? -res : res;
 
     // t = 1.0 / (1, 0 +p *res) using reciprocal
-    float divisorRcp = (1.0 + p * res);
+    float divisorRcp = (1.0f + static_cast<float>(p * res));
     __asm__ __volatile__("frcp.ps %[divisorRcp], %[divisorRcp]\n" : [ divisorRcp ] "+f"(divisorRcp));
-    float t = 1.0 * divisorRcp;
+    float t = 1.0f * divisorRcp;
 
     float ex = -res * res;
     // e ^ ex
     ex *= static_cast<float>(M_LOG2E);
     __asm__ __volatile__("fexp.ps %0, %0\n" : "+f"(ex));
 
-    float y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * ex;
+    float y = 1.0f - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * ex;
     // restore sign
     return y * sign;
   }
@@ -2002,7 +2002,7 @@ public:
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float op;
     convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), op);
-    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-op) + 1.0, op);
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-op) + 1.0f, op);
     convertFp32ToFp16<setMaskForScalar>(op, dst.raw(d));
   }
 
@@ -2010,18 +2010,18 @@ public:
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float op;
     convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), op);
-    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-op) + 1.0, op);
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-op) + 1.0f, op);
     convertFp32ToFp16<setMaskForScalar>(op, dst.at(p));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Sigmoid>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, uint64_t& d, uint64_t& s) {
-    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-(src.raw(s))) + 1.0, dst.raw(d));
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-(src.raw(s))) + 1.0f, dst.raw(d));
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Sigmoid>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, dim_array_t& p) {
-    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-(src.at(p))) + 1.0, dst.at(p));
+    fpReciprocalSingleElement<setMaskForScalar>(getExp<setMaskForScalar>(-(src.at(p))) + 1.0f, dst.at(p));
   }
 };
 

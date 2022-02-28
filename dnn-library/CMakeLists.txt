@@ -210,6 +210,7 @@ target_compile_options(dnn_lib
         -Werror=unused-but-set-variable
         -Werror=unused-parameter
         -Werror=unused-variable
+        -Werror=float-conversion
 )
 
 target_link_libraries(dnn_lib

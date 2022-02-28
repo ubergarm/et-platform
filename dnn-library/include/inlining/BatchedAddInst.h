@@ -176,13 +176,13 @@ INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, Lib
     int32_t batchVal = tBatch[offsetIn];
     int32_t sliceVal = tSlice[offsetIn2];
 
-    int32_t B = nearbyintf(float(batchVal - in1T->getOffset()) *
-                           (in1T->getScale() * invLargeScale));
-    int32_t S = nearbyintf(float(sliceVal - in2T->getOffset()) *
-                           (in2T->getScale() * invLargeScale));
+    int32_t B =
+      static_cast<int32_t>(nearbyintf(float(batchVal - in1T->getOffset()) * (in1T->getScale() * invLargeScale)));
+    int32_t S =
+      static_cast<int32_t>(nearbyintf(float(sliceVal - in2T->getOffset()) * (in2T->getScale() * invLargeScale)));
     int32_t R = B + S;
-    tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(float(R) *
-                                                          (largeScale * invDstScale) + outT->getOffset()));
+    tOutput[offsetOut] = clip<int32_t, int8_t>(
+      static_cast<int32_t>(nearbyintf(float(R) * (largeScale * invDstScale) + outT->getOffset())));
 
     done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, offsetIn2, dstIndex, dstPitch, batchPitch, eSlicePitch);
   }

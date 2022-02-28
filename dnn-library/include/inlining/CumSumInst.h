@@ -70,7 +70,7 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
       if (elKind == Float16Ty) {
   float dst = 0;
   convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
-  accum += dst;
+  accum += static_cast<elkType>(dst);
       }
       else {
   accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
@@ -90,7 +90,7 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
       if (elKind == Float16Ty) {
   float dst = 0;
   convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
-  accum += dst;
+  accum += static_cast<elkType>(dst);
       }
       else {
   accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
