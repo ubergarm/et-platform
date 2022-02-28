@@ -1652,8 +1652,7 @@ static const std::vector<instrConfigInt> instrConfigTable = {
     {{operandState::untouched}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
-  },
-};
+  }};
 
 operandState instrConfig::getOperandStateL1(size_t implIdx, size_t operand) {
   assert(operand < (nrOutputTensors + nrInputTensors));
