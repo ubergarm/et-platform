@@ -286,7 +286,7 @@ class LibManagerSheet:
         self.__implSel = []
         
         # generate table for header file
-        table = [ self.tableEntry(i) for i in self.__enum ]
+        table = [ self.tableEntry(i) for i in self.__enum  ]
         tableStr = self.formatTable(table)
        
         # check for entries in the header file that have not been used
@@ -497,59 +497,62 @@ class LibManagerSheet:
 
         return data
     
+    def getIncHeader(self,fileName):
+      guard = re.sub(r'(?<!^)(?=[A-Z])', '_', fileName).replace(".","_").upper()
+      header = "#ifndef " + guard  + "\n" +  "#define " + guard +  "\n\n"
+      autogenMsg = "// clang-format off\n\n"
+      autogenMsg += "// File automatically generated with:\n//  %s\n//  cwd=%s\n\n" % (' '.join(sys.argv), os.getcwd())
+      autogenMsg += "// Manual changes will be detected by CI\n\n"
+      return header + autogenMsg
+
+    def getIncFooter(self,fileName):
+      guard = re.sub(r'(?<!^)(?=[A-Z])', '_', fileName).replace(".","_").upper()
+      footer = "\n#endif // " + guard  + "\n" 
+      return footer
+
+    def getCppHeader(self):
+      autogenMsg = "// clang-format off\n\n"
+      autogenMsg += "// File automatically generated with:\n//  %s\n//  cwd=%s\n\n" % (' '.join(sys.argv), os.getcwd())
+      autogenMsg += "// Manual changes will be detected by CI\n\n"
+      return autogenMsg
+
+    def getCppFooter(self):
+      return  "" 
        
     def formatTable(self, table):
         s = Template('''\
 
-    // $enum
-    {
-      "$name", // name
-      $nrOutputTensors, // # outs
-      $nrInputTensors,  // # ins
-      $members, // members
-      $template, // template param mask
-      $versions, // impl versions
-      $implSel, // custom impl selector
-      // L1 states per impl
-      $stateL1,
-      // L2 states per impl
-      $stateL2,
-      // CB states per impl
-      $stateCB,
-      $evictMask, // evict available mask
-      $dstGlobalStore  // global store mask
-    }''')
-        entries = [ s.substitute(e) for e in table]        
+  // $enum
+  {
+    "$name", // name
+    $nrOutputTensors, // # outs
+    $nrInputTensors,  // # ins
+    $members, // members
+    $template, // template param mask
+    $versions, // impl versions
+    $implSel, // custom impl selector
+    // L1 states per impl
+    $stateL1,
+    // L2 states per impl
+    $stateL2,
+    // CB states per impl
+    $stateCB,
+    $evictMask, // evict available mask
+    $dstGlobalStore  // global store mask
+  }''')
+        #discard notImplemented entries here. they have generated a warning.
+        entries = [ s.substitute(e) for e in table if e["name"] !="notImplemented"]        
         return ",\n".join(entries)
 
     def outputLibApi(self, hostswdir, tableStr):
-        contents = []
-        startMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_BEGIN')
-        endMark = re.compile(r'\s*// INSTR_CONFIG_TABLE_END')
-        fname = os.path.join (hostswdir, 'dnnLibraryApi/src/Api.cpp');
-        startFound = False
-        endFound = False
-        with open(fname) as f:
-            for line in f:
-                if startMark.match(line):
-                    startFound = True
-                    contents.append(line)
-                    contents.append(tableStr + "\n")
-                elif endMark.match(line):
-                    endFound = True
-                    contents.append(line)
-                elif not startFound or endFound:
-                    contents.append(line)
-
-        if not startFound:
-            raise Exception("did not find start of table in %s" % fname)
-
-        if not endFound:
-            raise Exception("did not find end of table in %s" % fname)
-
+        incName = "InstrTableGenerated.h"
+        fname = os.path.join (hostswdir, 'dnnLibraryApi/src/', incName);
         with open(fname, "w") as f:
-            f.writelines(contents)
-
+            f.writelines(self.getIncHeader(incName))
+            f.write("\nstatic const std::vector<InstrConfigInt> instrConfigTable = { %s \n}; "   % (tableStr))
+            f.writelines(self.getIncFooter(incName))
+ 
+    
     def genNonInline(self, hostswdir):
         fncs = {}
         for op in self.__enum:
@@ -585,9 +588,8 @@ class LibManagerSheet:
 
     def genLibNodes(self, hostswdir, fncs):
         #create libNodes.h
-        autogenMsg = "// File automatically generated with:\n//  %s\n//  cwd=%s\n" % (' '.join(sys.argv), os.getcwd())
-        
-        hFile = os.path.join ( hostswdir, 'dnnLibrary/include/LibNodes.h');
+        incFile = "LibNodes.h" 
+        hFile = os.path.join ( hostswdir, 'dnnLibrary/include', incFile);
         code = []
         for op in fncs:
             code+= [ "\n/****************************************************************************",
@@ -610,9 +612,9 @@ class LibManagerSheet:
 
         code = "\n".join(code)
         with open(hFile, "w") as f:
+            header = self.getIncHeader(incFile)
+            footer = self.getIncFooter(incFile)
             f.write("""%s
-#ifndef LIBNODES_H_
-#define LIBNODES_H_
 
 #include "LibTensor.h"
 #include "inlining.h"
@@ -627,48 +629,52 @@ static constexpr size_t default_dilation_size = 2;
 static constexpr size_t default_fusedActivationArgs = 10;
 %s
 } // namespace dnn_lib
+%s
+""" % (header, code,footer))
 
-#endif /* LIBNODES_H_ */
-""" % (autogenMsg, code))
-
+    # Create libNodes.cpp
     def genCppNodes(self, hostswdir, fncs):
-        for op in fncs:
+        cppFileName = "LibNodes.cpp"
+        cppFile = os.path.join(hostswdir, "dnnLibrary/src/", cppFileName )
+        with open(cppFile, "w") as f:
+          f.write("""%s
+#include "LibNodes.h"\n\n namespace dnn_lib { """ % self.getCppHeader())
+
+          for op in fncs:
             opname = fncs[op][0]['opname']
-            cppFile = os.path.join(hostswdir, "dnnLibrary/src/%sInst.cpp" % opname )
-            with open(cppFile, "w") as f:
-                f.write("""
-#include "LibNodes.h"
- 
-namespace dnn_lib {
+            f.write("""
+  // 
+  // Section: %s
+  //
+
   ////////////////////////////////////////////////////////////////////////////////
   // Forward call to corresponding dnn_lib::inlining implementations
   ////////////////////////////////////////////////////////////////////////////////
- """)
-                created = {}
-                for i in fncs[op]:
-                    fnc = "%s\n  void %s(%s)" % (i['templateDecl'], i['fname'], i['callDecl'])
-                    if fnc not in created:
-                        f.write("""
+ """ % opname)
+            created = {}
+            for i in fncs[op]:
+                fnc = "%s\n  void %s(%s)" % (i['templateDecl'], i['fname'], i['callDecl'])
+                if fnc not in created:
+                    f.write("""
   %s
   {
     dnn_lib::inlining::%s%s(%s);
   }
-"""
-                                % (fnc, i['fname'], i['templateFwd'], i['callInst']))
-                        created[fnc] = True
-                        f.write("""
+"""                             % (fnc, i['fname'], i['templateFwd'], i['callInst']))
+                    created[fnc] = True
+                    f.write("""
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
 """)
-                created = {}
-                for i in fncs[op]:
-                    decl = "template void %s%s(%s);\n" % (i['fname'], i['templateInst'], i['callDecl'])
-                    if fnc not in created and len(i['templateInst']) > 0:
-                        f.write(decl);
-                        created[decl] = True
-
-                f.write("} // dnn_lib\n")
+            created = {}
+            for i in fncs[op]:
+                decl = "template void %s%s(%s);\n" % (i['fname'], i['templateInst'], i['callDecl'])
+                if fnc not in created and len(i['templateInst']) > 0:
+                    f.write(decl);
+                    created[decl] = True
+        
+          f.write("} // dnn_lib \n%s" % self.getCppFooter())
 
 
         
