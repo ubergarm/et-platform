@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/local/home/pmunt/sw-platform-3/host-software/dnnLibrary/scripts
+//  cwd=/home/pmunt/sw-platform-3/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 

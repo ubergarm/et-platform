@@ -23,7 +23,6 @@ find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 
 file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Float16.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/GenInstances.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Operators.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/LibCommon.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/LibNodes.h
@@ -104,6 +103,24 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub/string.h
 )
 
+
+
+add_library(dnn_lib_host_generated_headers INTERFACE)
+add_library(dnnLibrary::dnn_lib_host_generated_headers ALIAS dnn_lib_host_generated_headers)
+
+target_include_directories(dnn_lib_host_generated_headers  
+       INTERFACE $<INSTALL_INTERFACE:include/dnn_lib/host_headers>)
+
+
+set_target_properties(dnn_lib_host_generated_headers PROPERTIES
+    PUBLIC_HEADER  ${CMAKE_CURRENT_SOURCE_DIR}/include/host_headers/InstrTableGenerated.h
+)
+
+# Note: 2nd dnn_lib is to force consumers to namespace it: include <dnn_lib/InstrTableGenerated.h>
+install (TARGETS dnn_lib_host_generated_headers
+         EXPORT dnnLibraryTargets
+         PUBLIC_HEADER DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR}/dnn_lib/host_headers/dnn_lib) 
+
 add_library(dnn_lib STATIC
     src/LibNodes.cpp
     src/libc_stub/stdlib.c
@@ -150,7 +167,7 @@ set_target_properties(dnn_lib PROPERTIES
     PUBLIC_HEADER "${LIB_DNN_PUBLIC_HEADERS}"
 )
 
-install(TARGETS dnn_lib
+install(TARGETS dnn_lib 
     EXPORT dnnLibraryTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -175,3 +192,10 @@ write_basic_package_version_file(
     VERSION ${CMAKE_PROJECT_VERSION}
     COMPATIBILITY SameMajorVersion
 )
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/dnnLibraryConfig.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/dnnLibraryConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/dnnLibrary
+)
+
