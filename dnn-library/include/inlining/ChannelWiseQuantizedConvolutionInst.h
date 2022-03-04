@@ -79,6 +79,7 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
 
   using elkType = typename elemKind2elemTy<dstElK>::type;
   using biasType = typename elemKind2elemTy<src2ElK>::type;
+  using AccumulatorType = typename AccumulatingQuantizedOpTypes<dstElK, src2ElK>::accumulatorType;
 
   auto outH = outT->getHandle<elkType>();
   auto dataH = dataT->getHandle<elkType>();
@@ -120,7 +121,7 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
             for (size_t ay = 0; ay < outT->dims()[3]; y += strides[2], ay++) {
 
               // For each element in the convolution-filter:
-              int32_t sum = 0;
+              AccumulatorType sum = 0;
               for (size_t ft = 0; ft < kernels[0]; ft++) {
                 for (size_t fx = 0; fx < kernels[1]; fx++) {
                   for (size_t fy = 0; fy < kernels[2]; fy++) {
@@ -164,7 +165,7 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
 }
 
 template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, size_t FN>
-INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
+INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution2DInst(
   LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
   LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
   const std::array<uint32_t, PN>& pads, const uint32_t group, [[maybe_unused]] const std::array<uint32_t, KN>& dilation,
@@ -186,18 +187,12 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
   assert((dataT->dims()[3] % group) == 0);
   assert((outT->dims()[3] % group) == 0);
 
-  if (dataT->ndims() == 5) {
-    fwdLibChannelWiseQuantizedConvolution3DInst<dstElK, src2ElK>(
-      outT, dataT, filterT, biasT, fsT, foT, bsT, boT, kernels, strides, pads, group, dilation, fusedActivation,
-      fusedActivationArgs, flags, minionOffset, assignedMinions);
-    return;
-  }
-
   size_t inCperG = (dataT->dims()[3] / group);
   size_t outCperG = (outT->dims()[3] / group);
 
   using elkType = typename elemKind2elemTy<dstElK>::type;
   using biasType = typename elemKind2elemTy<src2ElK>::type;
+  using AccumulatorType = typename AccumulatingQuantizedOpTypes<dstElK, src2ElK>::accumulatorType;
 
   auto outH = outT->getHandle<elkType>();
   auto dataH = dataT->getHandle<elkType>();
@@ -239,7 +234,7 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
           for (size_t ay = 0; ay < outT->dims()[2]; y += strides[1], ay++) {
 
             // For each element in the convolution filter:
-            int32_t sum = 0;
+            AccumulatorType sum = 0;
             for (size_t fx = 0; fx < kernels[0]; fx++) {
               for (size_t fy = 0; fy < kernels[1]; fy++) {
                 ssize_t ox = x + fx * dilation[0];
@@ -276,6 +271,27 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
     }       // G
   }         // N
 }
+
+template <ElemKind dstElK, ElemKind src2ElK, size_t N, size_t PN, size_t KN, size_t FN>
+INLINE_ATTR void fwdLibChannelWiseQuantizedConvolutionInst(
+  LibTensor* outT, LibTensor* dataT, LibTensor* filterT, LibTensor* biasT, LibTensor* fsT, LibTensor* foT,
+  LibTensor* bsT, LibTensor* boT, const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
+  const std::array<uint32_t, PN>& pads, const uint32_t group, const std::array<uint32_t, KN>& dilation,
+  const size_t fusedActivation, const std::array<float, FN>& fusedActivationArgs, const uint64_t flags,
+  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  if (dataT->ndims() == 5) {
+    fwdLibChannelWiseQuantizedConvolution3DInst<dstElK, src2ElK>(
+      outT, dataT, filterT, biasT, fsT, foT, bsT, boT, kernels, strides, pads, group, dilation, fusedActivation,
+      fusedActivationArgs, flags, minionOffset, assignedMinions);
+  } else {
+    fwdLibChannelWiseQuantizedConvolution2DInst<dstElK, src2ElK>(
+      outT, dataT, filterT, biasT, fsT, foT, bsT, boT, kernels, strides, pads, group, dilation, fusedActivation,
+      fusedActivationArgs, flags, minionOffset, assignedMinions);
+  }
+}
+
 } // namespace inlining
 } // namespace dnn_lib
+
 #endif
