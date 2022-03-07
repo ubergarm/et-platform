@@ -546,7 +546,7 @@ class LibManagerSheet:
 
     def outputLibApi(self, hostswdir, tableStr):
         incName = "InstrTableGenerated.h"
-        fname = os.path.join (hostswdir, 'dnnLibraryApi/src/', incName);
+        fname = os.path.join (hostswdir, 'dnnLibrary/include/host_headers', incName);
         with open(fname, "w") as f:
             f.writelines(self.getIncHeader(incName))
             f.write("\nstatic const std::vector<InstrConfigInt> instrConfigTable = { %s \n}; "   % (tableStr))
