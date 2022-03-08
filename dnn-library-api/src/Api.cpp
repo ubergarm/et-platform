@@ -25,7 +25,8 @@
 
 namespace dnn_lib {
 
-// Instruction properties. This is the internal implementation
+// Instruction properties. This is the internal implementation. This needs to match
+// dnn_lib::libManager.py automatically generated initialization.
 struct InstrConfigInt {
   using implStateVector = std::vector<std::vector<operandState>>;
   using selFnc = size_t (*)(std::vector<LibTensor*>&, std::vector<LibTensor*>&);
@@ -46,7 +47,7 @@ struct InstrConfigInt {
 };
 
 // The instruction table contains all the instructions available in the DNN Library
-#include "InstrTableGenerated.h"
+#include <dnn_lib/InstrTableGenerated.h>
 
 operandState instrConfig::getOperandStateL1(size_t implIdx, size_t operand) {
   assert(operand < (nrOutputTensors + nrInputTensors));

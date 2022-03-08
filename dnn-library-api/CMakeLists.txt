@@ -10,6 +10,8 @@ include(CMakePackageConfigHelpers)
 # dnnLibrary API library
 #---------------
 
+find_package(dnnLibrary REQUIRED)
+
 add_library(dnnLibraryApi
     include/dnnLibraryApi/LibApi.h
     include/dnnLibraryApi/LibTypes.h
@@ -20,11 +22,17 @@ add_library(dnnLibraryApi
 add_library(dnnLibraryApi::dnnLibraryApi ALIAS dnnLibraryApi)
 target_compile_features(dnnLibraryApi PUBLIC cxx_std_17)
 target_compile_options(dnnLibraryApi PRIVATE -Wall $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>)
+
+#dnnLibrary exports some generated header files through an interface library that dnnLibararyApi uses. 
+#target_include_directories is used insted of target_link_libraries to cut linking transitivity.
 target_include_directories(dnnLibraryApi
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE
+        $<TARGET_PROPERTY:dnnLibrary::dnn_lib_host_generated_headers,INTERFACE_INCLUDE_DIRECTORIES>
 )
+
 set_target_properties(dnnLibraryApi PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 #-------------------
