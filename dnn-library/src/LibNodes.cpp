@@ -2,7 +2,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/home/pmunt/sw-platform-3/host-software/dnnLibrary/scripts
+//  cwd=/home/abel/work/repo/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1731,20 +1731,20 @@ template void fwdLibSparseToDenseMaskInst<Int16QTy>(LibTensor* out0, LibTensor* 
   ////////////////////////////////////////////////////////////////////////////////
  
   template <ElemKind out0Type>
-  void fwdLibSplatInst(LibTensor* out0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  void fwdLibSplatInst(LibTensor* out0, const uint64_t ValueBits, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibSplatInst<out0Type>(out0, Value, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibSplatInst<out0Type>(out0, ValueBits, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////
   // Template specializations (declared with 'extern template' in LibNodes.h)
   ////////////////////////////////////////////////////////////////////////////////
-template void fwdLibSplatInst<FloatTy>(LibTensor* out0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibSplatInst<Float16Ty>(LibTensor* out0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibSplatInst<Int8QTy>(LibTensor* out0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibSplatInst<Int64ITy>(LibTensor* out0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibSplatInst<Int32ITy>(LibTensor* out0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-template void fwdLibSplatInst<Int16QTy>(LibTensor* out0, const float Value, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSplatInst<FloatTy>(LibTensor* out0, const uint64_t ValueBits, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSplatInst<Float16Ty>(LibTensor* out0, const uint64_t ValueBits, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSplatInst<Int8QTy>(LibTensor* out0, const uint64_t ValueBits, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSplatInst<Int64ITy>(LibTensor* out0, const uint64_t ValueBits, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSplatInst<Int32ITy>(LibTensor* out0, const uint64_t ValueBits, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibSplatInst<Int16QTy>(LibTensor* out0, const uint64_t ValueBits, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
   // 
   // Section: Syncopy

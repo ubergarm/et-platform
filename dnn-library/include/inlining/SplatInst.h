@@ -26,8 +26,8 @@ namespace inlining {
 
 template <ElemKind elK, bool aligned>
 INLINE_ATTR void splatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t src, const dim_t valid,
-                         const float splatVal, [[maybe_unused]] const float scale,
-                         [[maybe_unused]] const int32_t offset) {
+                         [[maybe_unused]] uint64_t conf, [[maybe_unused]] float indices,
+                         [[maybe_unused]] float indicesHigh, float op, [[maybe_unused]] float opHigh) {
 
   // Enable only the valid elements
   if (valid < 8) {
@@ -39,23 +39,23 @@ INLINE_ATTR void splatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t s
 
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
-  // TODO: move splatVal to template parameter known at build time
-  uint64_t splatValueScalar = bitwise_copy<uint32_t>(splatVal);
+  store<bytesPerElement, aligned>(dst, conf, indices, indicesHigh, op, opHigh);
+}
 
-  float splatValueVector;
-  [[maybe_unused]] float splatValueVectorHigh = 0.f;
-  __asm__ __volatile__("fbcx.ps %[splatValueVector], %[splatValueScalar]\n"
-                       : [ splatValueVector ] "=f"(splatValueVector)
-                       : [ splatValueScalar ] "r"(splatValueScalar));
+template <ElemKind elK, bool aligned>
+INLINE_ATTR void splatTensor(LibTensor* outT, const uint64_t splatVal, uint64_t flags, const uint32_t minionOffset = 0,
+                             const uint32_t assignedMinions = 0) {
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  [[maybe_unused]] float srcScale;
-  [[maybe_unused]] float srcOffset;
-
-  [[maybe_unused]] float dstScaleReciprocal;
-  [[maybe_unused]] float dstOffset;
-  if constexpr (isQuantizedElemKind(elK)) {
-    setupQuantize(dstScaleReciprocal, dstOffset, scale, offset);
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  if (minionId >= activeMinions) {
+    return;
   }
+
+  constexpr size_t bytesPerElement = Type::getElementSize(elK);
+
+  __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
 
   uint64_t conf;
   float indices;
@@ -63,49 +63,29 @@ INLINE_ATTR void splatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t s
   setupGatherScatterConfig<bytesPerElement, aligned>(conf, indices, indicesHigh);
 
   float op = 0.f;
+  __asm__ __volatile__("fbcx.ps %[op], %[lower]\n" : [ op ] "=f"(op) : [ lower ] "r"(splatVal));
+
   [[maybe_unused]] float opHigh = 0.f;
-  convert<FloatTy, elK>(splatValueVector, splatValueVectorHigh, op, opHigh, srcScale, srcOffset, dstScaleReciprocal,
-                        dstOffset);
+  if constexpr (bytesPerElement > 4) {
+    __asm__ __volatile__("fbcx.ps %[opHigh], %[higher]\n" : [ opHigh ] "=f"(opHigh) : [ higher ] "r"(splatVal >> 32));
+  }
 
-  store<bytesPerElement, aligned>(dst, conf, indices, indicesHigh, op, opHigh);
+  outT->partitionLoop<srcType>(minionId, activeMinions, flags, outT, splatOp<elK, aligned>, conf, indices, indicesHigh,
+                               op, opHigh);
 }
 
 template <ElemKind elK>
-INLINE_ATTR void fwdLibSplatInst(LibTensor* outT, const float splatVal, uint64_t flags, const uint32_t minionOffset = 0,
-                                 const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) {
-    return;
-  }
-
+INLINE_ATTR void fwdLibSplatInst(LibTensor* outT, const uint64_t splatVal, uint64_t flags,
+                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   constexpr bool aligned = false;
-
-  const float scale = outT->getScale();
-  const int32_t offset = outT->getOffset();
-
-  outT->partitionLoop<srcType>(minionId, activeMinions, flags, outT, splatOp<elK, aligned>, splatVal, scale, offset);
+  splatTensor<elK, aligned>(outT, splatVal, flags, minionOffset, assignedMinions);
 }
 
 template <ElemKind elK>
-INLINE_ATTR void fwdLibSplatInstAligned32Bytes(LibTensor* outT, const float splatVal, uint64_t flags,
+INLINE_ATTR void fwdLibSplatInstAligned32Bytes(LibTensor* outT, const uint64_t splatVal, uint64_t flags,
                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  if (minionId >= activeMinions) {
-    return;
-  }
-
   constexpr bool aligned = true;
-
-  const float scale = outT->getScale();
-  const int32_t offset = outT->getOffset();
-
-  outT->partitionLoop<srcType>(minionId, activeMinions, flags, outT, splatOp<elK, aligned>, splatVal, scale, offset);
+  splatTensor<elK, aligned>(outT, splatVal, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining
