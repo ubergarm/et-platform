@@ -40,7 +40,7 @@ namespace inlining {
  *  type of evict required.
  */
 template <ElemKind elKind>
-INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty)), void>
+INLINE_ATTR typename std::enable_if_t<(elKind == Float16Ty), void>
 fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, uint64_t flags,
                  const uint32_t minionOffset = 0, [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
@@ -52,8 +52,11 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
   auto inH = inT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
 
-  elkType accum = 0;
-  
+  elkType max = std::numeric_limits<elkType>::max();
+  outH.clear(max);
+
+  float accum = 0;
+
   sdim_t s = 0;
   sdim_t n = outH.size();
   sdim_t dir = 1;
@@ -66,35 +69,21 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
 
   for (sdim_t i = s; i != n; i+=dir) {
     std::array<dim_t, 1> iNdx = {static_cast<size_t>(i)};
+
     if (!exclusive) {
-      if (elKind == Float16Ty) {
-  float dst = 0;
-  convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
-  accum += static_cast<elkType>(dst);
-      }
-      else {
-  accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
-      }
+      float dst = 0;
+      convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
+      accum += dst;
     }
-    
-    if (elKind == Float16Ty) {
-      uint16_t dst = 0;
-      convertFp32ToFp16(accum, dst);
-      outH.at(iNdx) = dst;
-    }
-    else {
-      outH.at(iNdx) = quantize<elkType>(accum, outT->getScale(), outT->getOffset());
-    }
-    
+
+    uint16_t dst_tmp = 0;
+    convertFp32ToFp16(accum, dst_tmp);
+    outH.at(iNdx) = dst_tmp;
+
     if (exclusive) {
-      if (elKind == Float16Ty) {
-  float dst = 0;
-  convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst);
-  accum += static_cast<elkType>(dst);
-      }
-      else {
-  accum += dequantize<elkType>(inH.at(iNdx), inT->getScale(), inT->getOffset());
-      }
+      float dst1 = 0;
+      convertFp16ToFp32(static_cast<uint16_t>(inH.at(iNdx)), dst1);
+      accum += dst1;
     }
 
   }
@@ -103,10 +92,9 @@ fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, 
 }
 
 template <ElemKind elKind>
-INLINE_ATTR
-  typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty) && (elKind != BoolTy)), void>
-  fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, uint64_t flags,
-                   const uint32_t minionOffset = 0, [[maybe_unused]] const uint32_t assignedMinions = 0) {
+INLINE_ATTR typename std::enable_if_t<(elKind != Float16Ty), void>
+fwdLibCumSumInst(LibTensor* outT, LibTensor* inT, bool exclusive, bool reverse, uint64_t flags,
+                 const uint32_t minionOffset = 0, [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
 
