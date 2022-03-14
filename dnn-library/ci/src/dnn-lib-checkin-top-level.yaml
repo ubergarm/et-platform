@@ -25,6 +25,14 @@ stages:
     exec_before: [r"JOB_.*"]
     exec_after: ['DSL_JOB']
 
+  AUTO_CODE_GEN:
+    cmds:
+      - job: sw-platform/host-sw-integration/pipelines/dnn-lib/dnn-lib-automatic-code-gen-ci
+        parameters:
+          BRANCH: "${SW_PLATFORM_BRANCH}"
+          COMPONENT_COMMITS: "host-software/dnnLibrary:${BRANCH}, ${COMPONENT_COMMITS}"
+    exec_after: ['CLANG_CHECK']
+
   GLOW_CI:
     cmds:
       - job: sw-platform/glow-integration/glow-checkin-top-level
