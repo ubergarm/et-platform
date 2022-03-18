@@ -18,6 +18,8 @@
 #include <numeric>
 #include <string.h>
 #include <tuple>
+#include <type_traits>
+
 #ifdef __riscv
 #include <etsoc/isa/cacheops-umode.h>
 #include <etsoc/isa/utils.h>
@@ -604,14 +606,17 @@ public:
    */
   template<class ElemTy>  ElemTy *getRawDataPointer() {
     //@TODO check Elemty is type_.isType<>()
-    return reinterpret_cast<ElemTy*>(ptrData_);
+    constexpr auto alignment = std::alignment_of<ElemTy>::value;
+    assert(uintptr_t(ptrData_) % alignment == 0);
+    return reinterpret_cast<ElemTy*>(__builtin_assume_aligned(ptrData_, alignment));
   }
 
   /*@brief returns a const pointer to the raw data, of type \p ElemTy.
    */
   template<class ElemTy> const ElemTy *getRawDataPointer() const {
-    //@TODO check Elemty is type_.isType<>()
-    return reinterpret_cast<const ElemTy*>(ptrData_);
+    constexpr auto alignment = std::alignment_of<ElemTy>::value;
+    assert(uintptr_t(ptrData_) % alignment == 0);
+    return reinterpret_cast<ElemTy*>(__builtin_assume_aligned(ptrData_, alignment));
   }
 
 
