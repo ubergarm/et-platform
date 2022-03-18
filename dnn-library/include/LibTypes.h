@@ -18,6 +18,10 @@
 #define INLINE_ATTR __attribute__((always_inline)) inline
 
 #define CACHE_LINE_BYTES 64
+
+#define VLEN 256
+#define VREG_BYTES (VLEN / 8)
+
 #define MIN_PER_SHIRE 32
 
 //#define DIM_T_32

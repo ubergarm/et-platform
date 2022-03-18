@@ -101,13 +101,10 @@ namespace inlining {
  */
 
 template <ElemKind elK>
-inline __attribute((always_inline))
-void embeddingBagsTailVectorized(
-    uintptr_t minionCurrIndex, uintptr_t currSegmentStart,
-    uintptr_t currSegmentEnd,
-    uint8_t *tAInput, int64_t *indices,
-    uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
-    uint8_t *tWInput, uint8_t *dst_ptr, bool destAligned) { 
+inline __attribute((always_inline)) void
+embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStart, uintptr_t currSegmentEnd,
+                            uint8_t* tAInput, int64_t* indices, uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
+                            uint8_t* tWInput, uint8_t* dst_ptr, bool destAlignedVreg) {
 
   const bool float32Dst = (elK == FloatTy);
   const bool float16Dst = (elK == Float16Ty);
@@ -174,7 +171,7 @@ void embeddingBagsTailVectorized(
   }
 
   if (float32Dst) {
-    if (destAligned) {
+    if (destAlignedVreg) {
       // Store accumulated results.
       __asm__ __volatile__("fswg.ps f0, (%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0");
     } else {
@@ -193,7 +190,7 @@ void embeddingBagsTailVectorized(
       :
       : "f0"
     );
-    if (destAligned) {
+    if (destAlignedVreg) {
       PACK_AND_GLOBAL_STORE_8_FP16(f0, dst_ptr);
     } else {
       __asm__ __volatile__ (
@@ -258,9 +255,9 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
 
   // Assign work to Minions :
   //
-  // Each Minion gets assigned at least an output cache line to avoid
-  // coherence issues when writing..
-  // 
+  // NOTE: Each Minion gets assigned at least an output cache line for
+  // historical reasons although Global stores are in use.
+  //
   // NOTE: NOT IMPLEMENTED!!!
   //
   // If the row is smaller than a cache line then multiple rows need to
@@ -323,14 +320,14 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
     return;
   }
 
-  // Computes if the destination is correctly aligned and regulars stores can be
-  // used because there's no cache shared amongst minions.
-  // Need both the dest starting address being CL aligned as well as the pitch for
+  // Computes if the destination is correctly aligned to vReg and contiguous stores
+  // can be used isntead of scatters.
+  // Need both the dest starting address being VReg aligned as well as the pitch for
   // the smallest dimension
-  // The padding must be touchable or the number of elements multiple of cacheline
-  bool destAligned = (((uint64_t)tOutput % CACHE_LINE_BYTES) == 0) &&
-                     (((uint64_t)outT->strides()[0] % dstGroupElems) == 0) &&
-                     (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstGroupElems) == 0));
+  // The padding must be touchable or the number of elements multiple of Vreg size
+  bool destAlignedVreg = (((uint64_t)tOutput % VREG_BYTES) == 0) &&
+                         (((uint64_t)outT->strides()[0] % VREG_BYTES) == 0) &&
+                         (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % VREG_BYTES) == 0));
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
@@ -366,12 +363,19 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
     currSegmentEnd   = end;
     return emptySegment;
   };
-  
-  bool minionEmptySegment = false;
-  for (uintptr_t s = 0; s <= minionFirstSegment; s++) {
-    if (not minionEmptySegment)
-      minionFirstIndex += (currSegmentEnd - currSegmentStart);
-    minionEmptySegment = getNextSegment(s);
+
+  if (offH.raw(0) == 0) {
+    // fast path, offests start at 0, we can have a direct access to minionFirstIndex
+    minionFirstIndex = offH.raw(minionFirstSegment);
+    (void)getNextSegment(minionFirstSegment);
+  } else {
+    // slow path, offests do not start at 0, offets need traveral to get to minionFirstIndex
+    bool minionEmptySegment = false;
+    for (uintptr_t s = 0; s <= minionFirstSegment; s++) {
+      if (not minionEmptySegment)
+        minionFirstIndex += (currSegmentEnd - currSegmentStart);
+      minionEmptySegment = getNextSegment(s);
+    }
   }
 
   // Initialize indices.
@@ -497,7 +501,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
       }
 
       if (float32Dst) {
-        if (destAligned) {
+        if (destAlignedVreg) {
           // Store accumulated results.
           __asm__ __volatile__("fswg.ps f0,  (%[dst_ptr])\n"
                                "addi    %[dst_ptr], %[dst_ptr], 32\n"
@@ -527,7 +531,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
                              :
                              : "f0", "f1", "f2", "f3");
 
-        if (destAligned) {
+        if (destAlignedVreg) {
           PACK_AND_GLOBAL_STORE_16_FP16(f0, f1, dst_ptr);
           PACK_AND_GLOBAL_STORE_16_FP16(f2, f3, dst_ptr);
         } else {
@@ -569,12 +573,9 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
       );
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-        embeddingBagsTailVectorized<elK>(minionCurrIndex,
-          currSegmentStart, currSegmentEnd,
-          tAInput, indices,
-          in1T->strides()[0] * elemSize,
-          (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize,
-          tWInput, dst_ptr, destAligned);
+        embeddingBagsTailVectorized<elK>(
+          minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, in1T->strides()[0] * elemSize,
+          (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize, tWInput, dst_ptr, destAlignedVreg);
         dst_ptr += dstVRegElems * elemSize;
       }
 
@@ -585,12 +586,10 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
         : [tail_mask] "r" (dstRowTailVRegMask)
       );
 
-      embeddingBagsTailVectorized<elK>(minionCurrIndex,
-        currSegmentStart, currSegmentEnd,
-        tAInput, indices,
-        in1T->strides()[0] * elemSize,
-        (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize,
-        tWInput, dst_ptr, destAligned);
+      embeddingBagsTailVectorized<elK>(
+        minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, in1T->strides()[0] * elemSize,
+        (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize, tWInput, dst_ptr,
+        destAlignedVreg);
 
       minionCurrIndex += (currSegmentEnd - currSegmentStart);
 
