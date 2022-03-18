@@ -156,6 +156,7 @@ target_compile_options(dnn_lib
         -Werror=unused-variable
         -Werror=float-conversion
         -Werror=double-promotion
+        -Werror=cast-align
 )
 
 target_link_libraries(dnn_lib
