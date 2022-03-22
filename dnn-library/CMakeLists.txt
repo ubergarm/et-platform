@@ -98,9 +98,6 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/PackedBufferProxy.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/utils.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub/assert.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub/stdlib.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub/string.h
 )
 
 
@@ -123,8 +120,6 @@ install (TARGETS dnn_lib_host_generated_headers
 
 add_library(dnn_lib STATIC
     src/LibNodes.cpp
-    src/libc_stub/stdlib.c
-    src/libc_stub/string.c
 )
 add_library(dnnLibrary::dnn_lib ALIAS dnn_lib)
 target_include_directories(dnn_lib
@@ -132,7 +127,6 @@ target_include_directories(dnn_lib
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/inlining>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/internal>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/internal/libc_stub>
         $<INSTALL_INTERFACE:include/dnn_lib>
 )
 target_compile_features(dnn_lib PRIVATE cxx_std_17)
