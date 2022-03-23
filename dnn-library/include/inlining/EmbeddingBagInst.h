@@ -268,7 +268,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   // (a Minion must be assigned a full cache line to avoid coherence issues
   // when writing).
   // This correspond with a group (one or more VRegs).
-  const uintptr_t dstVRegElems = 8;  // SIMD/Vector length 
+  const uintptr_t dstVRegElems = 8; // SIMD/Vector length  in elements
   const uintptr_t dstGroupElems = CACHE_LINE_BYTES /  elemSize;
   const uintptr_t dstGroupVRegs = CACHE_LINE_BYTES / (elemSize * 8);
 
@@ -326,8 +326,8 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   // the smallest dimension
   // The padding must be touchable or the number of elements multiple of Vreg size
   bool destAlignedVreg = (((uint64_t)tOutput % VREG_BYTES) == 0) &&
-                         (((uint64_t)outT->strides()[0] % VREG_BYTES) == 0) &&
-                         (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % VREG_BYTES) == 0));
+                         (((uint64_t)outT->strides()[0] % dstVRegElems) == 0) &&
+                         (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstVRegElems) == 0));
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
