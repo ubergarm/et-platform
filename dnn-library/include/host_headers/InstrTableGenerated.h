@@ -661,7 +661,7 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     "MaxSplat", // name
     1, // # outs
     1,  // # ins
-    {instrMembers::mbValue}, // members
+    {instrMembers::mbValueBits}, // members
     2, // template param mask
     {"Aligned32Bytes"}, // impl versions
     implSel::MaxSplat, // custom impl selector

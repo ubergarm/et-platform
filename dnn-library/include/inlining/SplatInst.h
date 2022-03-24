@@ -40,6 +40,7 @@ INLINE_ATTR void splatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t s
 template <ElemKind elK, bool aligned>
 INLINE_ATTR void splatTensor(LibTensor* outT, const uint64_t splatVal, uint64_t flags, const uint32_t minionOffset = 0,
                              const uint32_t assignedMinions = 0) {
+
   using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
