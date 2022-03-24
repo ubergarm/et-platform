@@ -12,13 +12,13 @@
 #ifndef __SPLAT_INST_H_
 #define __SPLAT_INST_H_
 
+#include "LibTensor.h"
+#include "utils.h" // From include/internal path
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "utils.h" // From include/internal path
-#include "LibTensor.h"
 
 namespace dnn_lib {
 
@@ -29,15 +29,10 @@ INLINE_ATTR void splatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t s
                          [[maybe_unused]] uint64_t conf, [[maybe_unused]] float indices,
                          [[maybe_unused]] float indicesHigh, float op, [[maybe_unused]] float opHigh) {
 
-  // Enable only the valid elements
-  if (valid < 8) {
-    uint8_t mask = ((1 << valid) - 1);
-    __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-  } else {
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
-  }
-
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
+
+  // Enable only the valid elements
+  __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"((1 << valid) - 1) :);
 
   store<bytesPerElement, aligned>(dst, conf, indices, indicesHigh, op, opHigh);
 }
