@@ -28,6 +28,7 @@ enum class RoundingMode {
   Invalid2,
   Dynamic,
   LikeStdRoundAndCast = NearestTiesEven,
+  LikeNearbyIntFAndCast = NearestTiesMax,
   LikeCast = TowardsZero
 };
 
@@ -427,16 +428,17 @@ template <ElemKind dstElK> INLINE_ATTR void clip(float& destination, float& sour
   clip<type>(destination, source);
 }
 
-template <ElemKind dstElK, bool careAboutNonFinite = false, bool canAboutSignallingNaN = false>
+template <ElemKind dstElK, bool careAboutNonFinite = false, bool canAboutSignallingNaN = false,
+          RoundingMode roundingMode = RoundingMode::LikeStdRoundAndCast>
 INLINE_ATTR void doQuantize(float& destination, float source, float scaleReciprocal, float offset) {
   static_assert(isQuantizedElemKind(dstElK));
   multiplyAdd(destination, source, scaleReciprocal, offset);
-  convertFloatToInt32<RoundingMode::LikeStdRoundAndCast, careAboutNonFinite, canAboutSignallingNaN>(destination,
-                                                                                                    destination);
+  convertFloatToInt32<roundingMode, careAboutNonFinite, canAboutSignallingNaN>(destination, destination);
   clip<dstElK>(destination, destination);
 }
 
-template <ElemKind srcElK, ElemKind dstElK, bool matchx86 = false>
+template <ElemKind srcElK, ElemKind dstElK, bool matchx86 = false,
+          RoundingMode roundingMode = RoundingMode::LikeStdRoundAndCast>
 INLINE_ATTR void convert(float source, [[maybe_unused]] float sourceHigh, float& destination, float& destinationHigh,
                          const float& srcScale, const float& srcOffset, const float& dstScaleReciprocal,
                          const float& dstOffset) {
@@ -488,13 +490,17 @@ INLINE_ATTR void convert(float source, [[maybe_unused]] float sourceHigh, float&
                          : [ destination ] "=f"(destination)
                          : [ source ] "f"(source), [ bits ] "i"(16));
   } else if constexpr (srcElK == FloatTy and dstElK == Int8QTy) {
-    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source, dstScaleReciprocal,
+                                                                                dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == UInt8QTy) {
-    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source, dstScaleReciprocal,
+                                                                                dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int16QTy) {
-    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source, dstScaleReciprocal,
+                                                                                dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
-    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN>(destination, source, dstScaleReciprocal, dstOffset);
+    doQuantize<dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source, dstScaleReciprocal,
+                                                                                dstOffset);
   } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
     convertFloatToInt32<RoundingMode::LikeCast>(source, destination);
   } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {

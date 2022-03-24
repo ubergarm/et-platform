@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/home/pmunt/sw-platform-3/host-software/dnnLibrary/scripts
+//  cwd=/home/abel/work/repo/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1309,7 +1309,7 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     "Splat", // name
     1, // # outs
     0,  // # ins
-    {instrMembers::mbValue}, // members
+    {instrMembers::mbValueBits}, // members
     1, // template param mask
     {}, // impl versions
     implSel::defaultSel<1>, // custom impl selector

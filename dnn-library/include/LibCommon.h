@@ -27,28 +27,19 @@
 
 namespace dnn_lib {
 
-template <typename T, typename U> inline __attribute__((always_inline)) T bitwise_copy(const U& x) {
-  static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value,
+template <typename DestT, typename SrcT> inline __attribute__((always_inline)) DestT bitwise_copy(const SrcT& value) {
+
+  static_assert(std::is_trivially_copyable<DestT>::value && std::is_trivially_copyable<SrcT>::value,
                 "pseudo_cast can't handle types which are not trivially copyable");
-  static_assert(sizeof(T) == sizeof(U), "pseudo_cast can't handle types with different size");
+  static_assert(sizeof(DestT) >= sizeof(SrcT), "Destination should be bigger or equally sized as source");
 
-  T to;
-  memcpy(&to, &x, sizeof(T));
-  return to;
-}
-
-template <typename T, typename U> inline __attribute__((always_inline)) T bitwise_lsb_copy(const U& x) {
-  static_assert(std::is_trivially_copyable<T>::value && std::is_trivially_copyable<U>::value,
-                "pseudo_cast can't handle types which are not trivially copyable");
-
-  T to;
-  if (sizeof(U) >= sizeof(T))
-    memcpy(&to, &x, sizeof(T));
-  else {
-    to = 0;
-    memcpy(&to, &x, sizeof(U));
+  DestT result;
+  if constexpr (sizeof(DestT) > sizeof(SrcT)) {
+    result = 0;
   }
-  return to;
+  memcpy(&result, &value, sizeof(SrcT));
+
+  return result;
 }
 
 template <bool setMask = true>

@@ -58,6 +58,7 @@ class LibManagerSheet:
                       "Count": "uint32_t",
                       "SyncOffset": "uint32_t",
                       "Value": "float",
+                      "ValueBits": "uint64_t",
                       "Exclusive": "bool",
                       "Reverse": "bool",
                       "BlockSize": "uint32_t",
