@@ -303,7 +303,9 @@ struct Type final {
 
   /*@brief returns the size of the type element.
    */
-  unsigned getElementSize() const { return getElementSize(elementType_); }
+  size_t getElementSize() const {
+    return getElementSize(elementType_);
+  }
 
   /*@brief returns the size in bytes for this Tensor.
    */
@@ -679,7 +681,7 @@ public:
   dim_array_t offset2Coord(size_t offset) const {
     dim_array_t coords = {0};
     assert(strides()[ndims() - 1] == 1);
-    uint32_t rm = offset; // operations in uint32_t.. division is faster
+    uint32_t rm = static_cast<uint32_t>(offset); // operations in uint32_t.. division is faster
     for (size_t i = 0; i < ndims(); i++) {
       coords[i] = rm / static_cast<uint32_t>(strides()[i]);
       rm = rm - static_cast<uint32_t>(coords[i]) * static_cast<uint32_t>(strides()[i]);

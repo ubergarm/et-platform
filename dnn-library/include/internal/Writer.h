@@ -37,7 +37,7 @@ private:
         if constexpr (elK == FloatTy) {
           uint64_t x;
           __asm__("fmv.x.w %[destination], %[source]\n" : [ destination ] "=r"(x) : [ source ] "f"(value));
-          atomic_store_global_32(reinterpret_cast<uint32_t*>(ptr), x);
+          atomic_store_global_32(reinterpret_cast<uint32_t*>(ptr), static_cast<uint32_t>(x));
         } else {
           atomic_store_global_32(reinterpret_cast<uint32_t*>(ptr), static_cast<uint32_t>(value));
         }

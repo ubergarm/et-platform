@@ -162,7 +162,7 @@ DestTy clip(SrcTy in) {
   static_assert(sizeof(SrcTy) >= sizeof(DestTy), "Invalid types");
   auto mx = std::numeric_limits<DestTy>::max();
   auto mn = std::numeric_limits<DestTy>::min();
-  return std::max<SrcTy>(mn, std::min<SrcTy>(mx, in));
+  return static_cast<DestTy>(std::max<SrcTy>(mn, std::min<SrcTy>(mx, in)));
 }
 
 /// Converts floating point value to DestTy (int8 or int32) based on the
