@@ -49,7 +49,7 @@ fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, 
   auto outH = outT->getHandle<dstType>();
 
   float invFilterArea = 0.0;
-  fpReciprocalSingleElement((kernels[0] * kernels[1] * kernels[2]), invFilterArea);
+  fpReciprocalSingleElement(static_cast<float>(kernels[0] * kernels[1] * kernels[2]), invFilterArea);
 
   // For each input in the batch
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -128,7 +128,7 @@ fwdLibAvgPool3DInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, 
   auto outH = outT->getHandle<dstType>();
 
   float invFilterArea = 0.0;
-  fpReciprocalSingleElement((kernels[0] * kernels[1] * kernels[2]), invFilterArea);
+  fpReciprocalSingleElement(static_cast<float>(kernels[0] * kernels[1] * kernels[2]), invFilterArea);
 
   // For each input in the batch
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -192,7 +192,7 @@ fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>
   auto inH = inT->getHandle<dstType>();
   auto outH = outT->getHandle<dstType>();
 
-  float rawFilterArea = kernels[0] * kernels[1];
+  float rawFilterArea = static_cast<float>(kernels[0] * kernels[1]);
 
   // For each input in the batch:
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -280,7 +280,7 @@ fwdLibAvgPoolInst(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>
   auto inH = inT->getHandle<dstType>();
   auto outH = outT->getHandle<dstType>();
 
-  float rawFilterArea = kernels[0] * kernels[1];
+  float rawFilterArea = static_cast<float>(kernels[0] * kernels[1]);
 
   // For each input in the batch:
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -335,49 +335,46 @@ INLINE_ATTR void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT, cons
                                            const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions =
+    (assignedMinions == 0) ? static_cast<size_t>(MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
   void* src = inT->getRawDataPointer<void>();
   void* dst = outT->getRawDataPointer<void>();
 
-  // Addresser<dstElK> tOutput(dstMatrix, scale[1], offset[1]);
   Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<srcElK> tAInput(activations, scale[0], offset[0]);
   const Addresser<dstElK> tAInput(src, inT->getScale(), inT->getOffset());
 
-  // unsigned int *dstIndex = (unsigned int *)dstMatrixDims;
   const dim_t* dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)activationsDims;
   const dim_t* actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstMatrixPitches;
   const dim_t* dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)activationsPitches;
   const dim_t* actPitch = inT->strides().data();
 
-  float rawFilterArea = kernels[0] * kernels[1];
+  auto rawFilterArea = static_cast<float>(kernels[0] * kernels[1]);
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
-  if (maxRead == 0)
+  if (maxRead == 0) {
     return;
+  }
 
-  unsigned int coord[4] = {0, 0, 0, 0};
-  unsigned int k = 0;
-  getNonPaddingCoordinates(coord, initialAddr, 4, dstPitch, dstIndex, k);
+  dim_array_t coord = {0};
+  dim_t k = 0;
+  getNonPaddingCoordinates(coord, initialAddr, static_cast<dim_t>(ARRAY_SIZE(coord)), dstPitch, dstIndex, k);
 
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
+  size_t offsetOut = 0;
+  for (dim_t i = 0; i < k; i++) {
     offsetOut += coord[i] * dstPitch[i];
   }
   if (offsetOut >= numElemsDst)
     return;
 
-  unsigned int posMax = initialAddr + maxRead;
+  auto posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y;
   while (!done && (offsetOut < posMax)) {
@@ -385,7 +382,7 @@ INLINE_ATTR void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT, cons
     y = coord[2] * strides[1] - ssize_t(pads[1]);
     auto sum = tAInput[0];
     sum = 0;
-    float filterArea = rawFilterArea;
+    auto filterArea = rawFilterArea;
 
     for (size_t fx = 0; fx < kernels[0]; fx++) {
       for (size_t fy = 0; fy < kernels[1]; fy++) {
@@ -419,7 +416,7 @@ INLINE_ATTR void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT, cons
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0)
     evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize * initialAddr, clperminion);
 }

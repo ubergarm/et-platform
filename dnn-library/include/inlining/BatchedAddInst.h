@@ -33,17 +33,18 @@ template <ElemKind dstElK, ElemKind batchElK, ElemKind sliceElK>
 INLINE_ATTR void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
-  
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
-  void* dstT = outT->getRawDataPointer<void>();
-  void* batchT = in1T->getRawDataPointer<void>();
-  void* sliceT = in2T->getRawDataPointer<void>();
-   
+  auto* dstT = outT->getRawDataPointer<void>();
+  auto* batchT = in1T->getRawDataPointer<void>();
+  auto* sliceT = in2T->getRawDataPointer<void>();
+
   Addresser<dstElK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<batchElK> tBatch(batchT, in1T->getScale(), in1T->getOffset());
   const Addresser<sliceElK> tSlice(sliceT, in2T->getScale(), in2T->getOffset());
@@ -53,18 +54,17 @@ INLINE_ATTR void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T, L
   const dim_t *batchPitch = in1T->strides().data();
   const dim_t* slicePitch = in2T->strides().data();
 
-  unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
-  
-  unsigned int numElemsDst =
-      dstPitch[0] * dstIndex[0];
+  const dim_t pbatchDimNum = in1T->ndims();
 
-  unsigned int eSlicePitch[pbatchDimNum];
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+
+  dim_t eSlicePitch[pbatchDimNum];
   eSlicePitch[0] = 0;
-  for (unsigned int i = 1; i < pbatchDimNum; i++) {
+  for (dim_t i = 1; i < pbatchDimNum; i++) {
     eSlicePitch[i] = slicePitch[i - 1];
   }
 
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
@@ -72,22 +72,21 @@ INLINE_ATTR void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T, L
   if (maxRead == 0)
     return;
 
-  unsigned int coord[pbatchDimNum];
-  unsigned int k = 0;
+  dim_array_t coord = {0};
+  dim_t k = 0;
   getNonPaddingCoordinates(coord, initialAddr, pbatchDimNum, dstPitch,
                            dstIndex, k);
 
-
-  uint64_t offsetIn = 0;
-  uint64_t offsetIn2 = 0;
-  uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn = 0;
+  size_t offsetIn2 = 0;
+  size_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
     offsetIn += batchPitch[j] * coord[j];
     offsetIn2 += eSlicePitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
 
   Operator<Addresser<batchElK>, Addresser<sliceElK>, Addresser<dstElK>, Add> op;
@@ -99,15 +98,16 @@ INLINE_ATTR void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T, L
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
 INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
                                            const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
 
@@ -127,12 +127,10 @@ INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, Lib
   const dim_t *dstPitch = outT->strides().data();
   //  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
   const dim_t *batchPitch = in1T->strides().data();
-  //  unsigned int *slicePitch = (unsigned int *)pslicePitches;
   const dim_t *slicePitch = in2T->strides().data();
 
-  unsigned int pbatchDimNum = static_cast<unsigned int>(in1T->ndims());
+  dim_t pbatchDimNum = in1T->ndims();
 
-  
   float invDstScale;
   getReciprocal(outT->getScale(), invDstScale);
 
@@ -140,35 +138,36 @@ INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, Lib
   float largeScale;
   getReciprocal(invLargeScale, largeScale);
 
-  unsigned int numElemsDst =
-      dstPitch[0] * dstIndex[0];
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
 
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   getCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[pbatchDimNum];
-  unsigned int k = 0;
+  dim_array_t coord = {0};
+  dim_t k = 0;
   getNonPaddingCoordinates(coord, initialAddr, pbatchDimNum, dstPitch,
                            dstIndex, k);
 
-  uint64_t offsetIn2 = 0;
-  uint64_t offsetIn = 0;
-  uint64_t offsetOut = 0;
+  size_t offsetIn2 = 0;
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
 
-  unsigned int eSlicePitch[pbatchDimNum];
+  dim_t eSlicePitch[pbatchDimNum];
   eSlicePitch[0] = 0;
-  for(unsigned int i = 1; i < pbatchDimNum; i++) eSlicePitch[i] = slicePitch[i - 1];
+  for (dim_t i = 1; i < pbatchDimNum; i++) {
+    eSlicePitch[i] = slicePitch[i - 1];
+  }
 
-  for (unsigned int j = 0; j < k; j++) {
+  for (dim_t j = 0; j < k; j++) {
     offsetIn2 += eSlicePitch[j] * coord[j];
     offsetIn += batchPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
 
 
@@ -182,13 +181,13 @@ INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, Lib
       static_cast<int32_t>(nearbyintf(float(sliceVal - in2T->getOffset()) * (in2T->getScale() * invLargeScale)));
     int32_t R = B + S;
     tOutput[offsetOut] = clip<int32_t, int8_t>(
-      static_cast<int32_t>(nearbyintf(float(R) * (largeScale * invDstScale) + outT->getOffset())));
+      static_cast<int32_t>(nearbyintf(float(R) * (largeScale * invDstScale) + static_cast<float>(outT->getOffset()))));
 
     done = getOffsets(pbatchDimNum, coord, offsetOut, offsetIn, offsetIn2, dstIndex, dstPitch, batchPitch, eSlicePitch);
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * sizeof(int8_t) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * sizeof(int8_t) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + sizeof(int8_t)*initialAddr, clperminion);
 }
 
