@@ -68,14 +68,14 @@ INLINE_ATTR void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T, LibTens
   // unsigned int *src2Pitch = (unsigned int *)src2Pitches;
   const dim_t *src2Pitch = in2T->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
-  
-  unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrc2Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
+  dim_t srcDimNum = in1T->ndims();
 
-  for (size_t i = 0; i < srcDimNum; i++) {
+  size_t eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
+  size_t eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
+  size_t eSrc1Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
+  size_t eSrc2Pitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
+
+  for (dim_t i = 0; i < srcDimNum; i++) {
     eBatchDims[i] = srcIndex[i];
     eDstPitch[i] = dstPitch[i];
     eSrc1Pitch[i] = src1Pitch[i];
@@ -135,9 +135,9 @@ INLINE_ATTR void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   //  using src1Type = typename elemKind2elemTy<src1ElK>::type;
   //  using src2Type = typename elemKind2elemTy<src2ElK>::type;
 
-  
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */    
@@ -157,35 +157,35 @@ INLINE_ATTR void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   const dim_t *act1Pitch = in1T->strides().data();
   // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
   const dim_t *act2Pitch = in2T->strides().data();
-  
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
-  
+
+  dim_t srcDimNum = in1T->ndims();
+
   Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<BoolTy>, opType> op;
 
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
+  auto numElemsDst = dstPitch[0] * actIndex[0];
 
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<bool>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
-  uint64_t offsetIn1 = 0;
-  uint64_t offsetIn2 = 0;
-  uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn1 = 0;
+  size_t offsetIn2 = 0;
+  size_t offsetOut = 0;
+  for (size_t j = 0; j < k; j++) {
     offsetIn1 += act1Pitch[j] * coord[j];
     offsetIn2 += act2Pitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
   while (!done && (offsetOut < posMax)) {
     op.doOp(aDstT, aSrcT1, aSrcT2, offsetOut, offsetIn1, offsetIn2);
@@ -194,7 +194,7 @@ INLINE_ATTR void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
@@ -228,8 +228,9 @@ INLINE_ATTR void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
 template <ElemKind src1ElK, ElemKind src2ElK, typename opType>
 INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,
                                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   const float scale[] = { in1T->getScale(), in2T->getScale(), outT->getScale()};
@@ -256,40 +257,40 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
   uintptr_t srcAddr1 = (uintptr_t)srcT1;
   uintptr_t srcAddr2 = (uintptr_t)srcT2;
 
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
-  
+  dim_t srcDimNum = in1T->ndims();
+
   Operator<Addresser<src1ElK>, Addresser<src2ElK>, Addresser<src2ElK>, opType> op;
 
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
+  auto numElemsDst = dstPitch[0] * actIndex[0];
 
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<src1Type>();
   getCachelinePartition(1, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
-  uint64_t offsetIn = 0;
-  uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
+  for (size_t j = 0; j < k; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
-  unsigned int lastDim = srcDimNum - 1;
+  auto lastDim = srcDimNum - 1;
 
   int32_t gatherValues[8];
-  for (unsigned int i = 0; i < 8; i++) {
-      gatherValues[i] = i * typeSize;
+  for (int i = 0; i < 8; i++) {
+    gatherValues[i] = i * typeSize;
   }
-  unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  unsigned int elementsInRow, registersInRow, res;
+  size_t maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
+  size_t elementsInRow, registersInRow, res;
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
@@ -311,7 +312,7 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
     if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
       registersInRow = elementsInRow / 8;
       res = elementsInRow - registersInRow * 8;
-      mask = ((1 << res) - 1);
+      mask = static_cast<uint8_t>((1UL << res) - 1);
       if (!firstRow) midRow = true;
     }
     firstRow = false;
@@ -347,7 +348,7 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 

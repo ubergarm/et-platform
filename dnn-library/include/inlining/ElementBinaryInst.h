@@ -182,8 +182,10 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   static_assert(elK != Int64ITy, "Int64Ty not supported");
   // just return if minion is not to be used
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   using storage_t = typename elemKind2elemTy<elK>::type;
@@ -196,7 +198,7 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   auto compute = [&](const uintptr_t dstAddr, const uintptr_t src1Addr, uintptr_t src2Addr, const dim_t valid) {
     // set mask
     if (valid < 8) {
-      uint8_t mask = ((1 << valid) - 1);
+      uint8_t mask = static_cast<uint8_t>((1UL << valid) - 1);
       __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
     } else {
       __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
@@ -259,8 +261,9 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   INLINE_ATTR void fwdLibElementInst<Int64ITy, OP_>(LibTensor * outT, LibTensor * in1T, LibTensor * in2T,              \
                                                     uint64_t flags, const uint32_t minionOffset,                       \
                                                     const uint32_t assignedMinions) {                                  \
-    unsigned int minionId = get_minion_id() - minionOffset;                                                            \
-    unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;           \
+    assert(get_minion_id() >= minionOffset);                                                                           \
+    size_t minionId = get_minion_id() - minionOffset;                                                                  \
+    size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;           \
     if (minionId >= activeMinions)                                                                                     \
       return;                                                                                                          \
                                                                                                                        \
@@ -270,7 +273,8 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
       int64_t b = *(reinterpret_cast<int64_t*>(in2P));                                                                 \
       *o = BODY_;                                                                                                      \
     };                                                                                                                 \
-    outT->partitionLoop2<int64_t, int64_t, int64_t, 1>(minionId, activeMinions, flags, in1T, in2T, compute);           \
+    outT->partitionLoop2<int64_t, int64_t, int64_t, 1>(minionId, static_cast<uint32_t>(activeMinions), flags, in1T,    \
+                                                       in2T, compute);                                                 \
   }
 
 EB_I64_COMPUTE(Add, a + b)
