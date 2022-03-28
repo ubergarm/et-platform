@@ -291,9 +291,9 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   //
 
   // Compute the number of 8-element vectors per output cache line and number of elements as well
-  int dstCacheLineElems   = CACHE_LINE_BYTES / dstElemSize;
+  auto dstCacheLineElems = CACHE_LINE_BYTES / dstElemSize;
   int dstRowGroupElemSize = 64;
-  int dstRowGroupVRegs    = dstRowGroupElemSize / 8;
+  auto dstRowGroupVRegs = dstRowGroupElemSize / 8;
 
   // Compute the number of Cache Line groups per output row (rounded up).
   uintptr_t dstRowGroups = ((dstRowElemSize - 1) / dstRowGroupElemSize) + 1;
@@ -302,13 +302,13 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
   bool dstRowHasTail = ((dstRowElemSize % dstRowGroupElemSize) != 0);
 
   // Compute the number of 8-element vectors in the tail of the row.
-  int dstRowTailVRegs = (((dstRowElemSize - 1) / 8) + 1) % dstRowGroupVRegs;
+  auto dstRowTailVRegs = (((dstRowElemSize - 1) / 8) + 1) % dstRowGroupVRegs;
   if (dstRowTailVRegs == 0) {
     dstRowTailVRegs += dstRowGroupVRegs;
   }
 
   // Compute the element mask for the tail of the row.
-  uint8_t dstRowTailVRegMask = (1 << (((dstRowElemSize - 1) % 8) + 1)) - 1;
+  uint8_t dstRowTailVRegMask = static_cast<uint8_t>((1 << (((dstRowElemSize - 1) % 8) + 1)) - 1);
 
   uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
 
