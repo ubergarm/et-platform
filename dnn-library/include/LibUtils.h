@@ -166,6 +166,10 @@ private:
 
 #define MAX_TENSOR_DIMENSIONS 6
 
+constexpr size_t activeShires(uint64_t flags) {
+  return (flags & 0x1F) + 1;
+}
+
 #define ACTIVE_SHIRES ((flags & 0x1F) + 1)
 #define DO_EVICTS ((flags & 0x60) >> 5) // 01 = evictL2, 10 = evictL3, 11 = evictMem
 } // namespace dnn_lib
