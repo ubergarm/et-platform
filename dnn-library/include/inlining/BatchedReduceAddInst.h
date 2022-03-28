@@ -35,15 +35,16 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) {
     return;
   }
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* batchT = inT->getRawDataPointer<void>();
+  auto* dstT = outT->getRawDataPointer<void>();
+  auto* batchT = inT->getRawDataPointer<void>();
   constexpr bool globalStore = true;
   Addresser<elK, globalStore> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> tBatch(batchT, inT->getScale(), inT->getOffset());
@@ -53,9 +54,9 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *batchPitch = inT->strides().data();
 
-  unsigned int pbatchDimNum = static_cast<unsigned int>(inT->ndims());
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  const dim_t pbatchDimNum = inT->ndims();
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
 
   // requesting a globalPartition since we use globalStores
   getGlobalPartition(numElemsDst, /*out*/ initialAddr, /*out*/ maxRead, minionId, activeMinions);
@@ -64,8 +65,8 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
     return;
   }
 
-  unsigned int redBatchPitch[pbatchDimNum - 1];
-  for (size_t i = 0; i < pbatchDimNum; i++) {
+  dim_t redBatchPitch[pbatchDimNum - 1];
+  for (dim_t i = 0; i < pbatchDimNum; i++) {
     if (i < axis) {
       redBatchPitch[i] = batchPitch[i];
 
@@ -74,19 +75,19 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
     }
   }
 
-  unsigned int offsets[pbatchDimNum - 1];
-  unsigned int k;
+  dim_array_t offsets = {0};
+  dim_t k;
   getNonPaddingCoordinates(/*out*/ offsets, initialAddr, pbatchDimNum - 1, dstPitch, dstIndex,
                            /*out*/ k);
 
-  uint64_t offsetOut = 0;
-  uint64_t offsetIn = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetOut = 0;
+  size_t offsetIn = 0;
+  for (size_t j = 0; j < k; j++) {
     offsetOut += dstPitch[j] * offsets[j];
     offsetIn += redBatchPitch[j] * offsets[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
 
   while (!done && (offsetOut < posMax)) {
@@ -117,15 +118,16 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
                                                      const uint32_t minionOffset, const uint32_t assignedMinions) {
   constexpr ElemKind elK = Int8QTy;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) {
     return;
   }
 
-  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
-  int8_t *tBatch = inT->getRawDataPointer<int8_t>();
-  
+  auto* tOutput = outT->getRawDataPointer<int8_t>();
+  auto* tBatch = inT->getRawDataPointer<int8_t>();
+
   float invScale;
   getReciprocal(outT->getScale(), invScale);
   const dim_t *dstIndex = outT->dims().data();
@@ -133,9 +135,9 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *batchPitch = inT->strides().data();
 
-  unsigned int pbatchDimNum = static_cast<unsigned int>(inT->ndims());
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  dim_t pbatchDimNum = inT->ndims();
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   // requesting a globalPartition sice we use globalStores
   getGlobalPartition(numElemsDst, /*out*/ initialAddr, /*out*/ maxRead, minionId, activeMinions);
 
@@ -143,12 +145,12 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
     return;
   }
 
-  unsigned int offsets[pbatchDimNum - 1];
+  dim_array_t offsets = {0};
 
-  unsigned int k;
+  dim_t k;
 
-  unsigned int redBatchPitch[pbatchDimNum - 1];
-  for (size_t i = 0; i < pbatchDimNum; i++) {
+  dim_t redBatchPitch[pbatchDimNum - 1];
+  for (dim_t i = 0; i < pbatchDimNum; i++) {
     if (i < axis) {
       redBatchPitch[i] = batchPitch[i];
 
@@ -159,9 +161,9 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
 
   getNonPaddingCoordinates(/*out*/ offsets, initialAddr, pbatchDimNum - 1, dstPitch, dstIndex,
                            /*out*/ k);
-  uint64_t offsetOut = 0;
-  uint64_t offsetIn = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetOut = 0;
+  size_t offsetIn = 0;
+  for (size_t j = 0; j < k; j++) {
     offsetOut += dstPitch[j] * offsets[j];
     offsetIn += redBatchPitch[j] * offsets[j];
   }
@@ -177,16 +179,16 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
   float dstIndices;
   setupGatherScatterConfig<dstBytesPerElement, aligned>(dstConf, dstIndices);
 
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
   while (not done && offsetOut < posMax) {
     float sum = 0.f;
     for (size_t i = 0; i < batchIndex[axis]; i++) {
-      sum += tBatch[offsetIn] - inT->getOffset();
+      sum += static_cast<float>(tBatch[offsetIn] - inT->getOffset());
       offsetIn += batchPitch[axis];
     }
     offsetIn -= batchIndex[axis] * batchPitch[axis];
-    sum = sum * inT->getScale() * invScale + outT->getOffset(); // quantize
+    sum = sum * inT->getScale() * invScale + static_cast<float>(outT->getOffset()); // quantize
     convertFloatToInt32<RoundingMode::LikeStdRoundAndCast>(sum, sum);
 
     saturateInt8(sum, sum);

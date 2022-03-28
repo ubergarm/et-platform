@@ -154,7 +154,7 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution3DInst(
 
               // Scale the result back to the expected destination scale.
               outH.at(std::array<size_t, 5>{n, at, ax, ay, d}) =
-                quantize<elkType>(sum * matMulScale, outT->getScale(), outT->getOffset());
+                quantize<elkType>(static_cast<float>(sum) * matMulScale, outT->getScale(), outT->getOffset());
 
             } // W
           }   // H

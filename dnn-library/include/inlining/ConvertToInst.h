@@ -57,7 +57,7 @@ INLINE_ATTR void loadConvertStore(const uintptr_t dstAddr, const uintptr_t srcAd
 
   // Enables only the valid elements
   if (valid < 8) {
-    uint8_t mask = ((1 << valid) - 1);
+    uint8_t mask = static_cast<uint8_t>(((1UL << valid) - 1));
     __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
   } else {
     __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
@@ -86,8 +86,10 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions =
+    (assignedMinions == 0) ? static_cast<uint32_t>(MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) {
     return;
   }
