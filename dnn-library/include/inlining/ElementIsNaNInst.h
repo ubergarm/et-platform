@@ -111,8 +111,9 @@ INLINE_ATTR void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
                                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   //  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
@@ -142,14 +143,14 @@ INLINE_ATTR void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
                         minionId, activeMinions, aDstT);
   if (maxRead == 0)
     return;
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_aray_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
   uint64_t offsetIn = 0;
   uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  for (dim_t j = 0; j < k; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }

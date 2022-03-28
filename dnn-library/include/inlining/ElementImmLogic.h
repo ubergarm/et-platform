@@ -60,11 +60,11 @@ INLINE_ATTR void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType 
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = inT->strides().data();
 
-   unsigned int srcDimNum =  static_cast<unsigned int>(inT->ndims());
+  dim_t srcDimNum = inT->ndims();
 
-  unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  unsigned int eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  unsigned int eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
+  size_t eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
+  size_t eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
+  size_t eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
 
   for (size_t i = 0; i < srcDimNum; i++) {
     eBatchDims[i] = srcIndex[i];
@@ -100,7 +100,7 @@ template <ElemKind elK>
 INLINE_ATTR void fwdLibInt8ConverterInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  srcType imm_value = 0x80;
+  srcType imm_value = static_cast<srcType>(0x80);
   inlining::fwdLibElementImmLogic<srcType, Xor>(outT, inT, imm_value, flags, minionOffset, assignedMinions);
 }
 
