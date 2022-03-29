@@ -31,16 +31,17 @@ INLINE_ATTR void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT, LibT
                                          uint64_t flags, const uint32_t minionOffset = 0,
                                          const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT1 = in1T->getRawDataPointer<void>();
-  void* srcT2 = in2T->getRawDataPointer<void>();
-  
+  auto* dstT = outT->getRawDataPointer<void>();
+  auto* srcT1 = in1T->getRawDataPointer<void>();
+  auto* srcT2 = in2T->getRawDataPointer<void>();
+
   // Addresser<elK> ptrDstT(dstT, scale[3], offset[3]);
   Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   // bool *ptrCondT = (bool *)condT;
@@ -60,35 +61,35 @@ INLINE_ATTR void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT, LibT
   const dim_t *act2Pitch = in2T->strides().data();
   // unsigned int *condPitch = (unsigned int *)condPitches;
   const dim_t *condPitch = condT->strides().data();
-  
-  unsigned int srcDimNum = static_cast<unsigned int>(in1T->ndims());
 
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
+  dim_t srcDimNum = in1T->ndims();
 
-  unsigned int initialAddr, maxRead;
+  auto numElemsDst = dstPitch[0] * actIndex[0];
+
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
-  unsigned int offsetIn1 = 0;
-  unsigned int offsetIn2 = 0;
-  unsigned int offsetOut = 0;
-  unsigned int offsetCond = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn1 = 0;
+  size_t offsetIn2 = 0;
+  size_t offsetOut = 0;
+  size_t offsetCond = 0;
+  for (size_t j = 0; j < k; j++) {
     offsetIn1 += act1Pitch[j] * coord[j];
     offsetIn2 += act2Pitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
     offsetCond += condPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
   while (!done && (offsetOut < posMax)) {
     ptrDstT[offsetOut] =
@@ -98,7 +99,7 @@ INLINE_ATTR void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT, LibT
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 

@@ -39,12 +39,12 @@ INLINE_ATTR void fwdLibElementSingleInst(LibTensor* outT, LibTensor* inT, uint64
   auto aDstT = outT->getHandle<dstType>();
 
   const dim_t *srcIndex = inT->dims().data();
-  
-  uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
 
-  for (size_t i = 0; i < srcDimNum; i++) {
+  dim_t srcDimNum = inT->ndims();
+
+  size_t eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
+
+  for (dim_t i = 0; i < srcDimNum; i++) {
     eBatchDims[i] = srcIndex[i];
   }
 
@@ -73,11 +73,12 @@ INLINE_ATTR void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
-  
-  void *dst = outT->getRawDataPointer<void>();
+
+  auto* dst = outT->getRawDataPointer<void>();
   const auto aSrcT1 = inT->getHandle<srcType>();
   auto aDstT = outT->getHandle<dstType>();
 
@@ -85,25 +86,25 @@ INLINE_ATTR void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *actPitch = inT->strides().data();
 
-  uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
+  dim_t srcDimNum = inT->ndims();
 
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
+  auto numElemsDst = dstPitch[0] * actIndex[0];
 
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
   uint64_t offsetIn = 0;
   uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  for (size_t j = 0; j < k; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
@@ -120,7 +121,7 @@ INLINE_ATTR void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT
   /* maintain compatibility through the new Iface Libtensor */
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
@@ -130,9 +131,9 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
                                                    const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
 
@@ -147,47 +148,46 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
   uintptr_t dstAddr = (uintptr_t)dstT;
   uintptr_t srcAddr = (uintptr_t)srcT1;
 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  dim_t srcDimNum = inT->ndims();
 
-  
   Operator<Addresser<srcElK>, Addresser<srcElK>, Addresser<dstElK>, opType> op;
 
-  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
- 
-  unsigned int initialAddr, maxRead;
+  auto numElemsDst = dstPitch[0] * actIndex[0];
+
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
   uint64_t offsetIn = 0;
   uint64_t offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  for (size_t j = 0; j < k; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   bool done = false;
-  unsigned int lastDim = srcDimNum - 1;
+  auto lastDim = srcDimNum - 1;
 
   int32_t gatherValues[] = {0, 0, 0, 0, 0, 0, 0, 0};
-  for (unsigned int i = 0; i < 8; i++) {
-      gatherValues[i] = i * typeSize;
+  for (int i = 0; i < 8; i++) {
+    gatherValues[i] = static_cast<int32_t>(i * typeSize);
   }
 
-  unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  unsigned int elementsInRow, registersInRow, res;
+  auto maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
+  size_t elementsInRow, registersInRow, res;
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
   bool lastRow = false;
-  coord[0] *= (srcDimNum != 1);
+  coord[0] *= static_cast<unsigned int>(srcDimNum != 1);
 
   while (!done && (offsetOut < posMax)) {
     if (firstRow && (srcDimNum > 1) && coord[lastDim - 1] != maxRow) {
@@ -204,7 +204,7 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
     if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
       registersInRow = elementsInRow / 8;
       res = elementsInRow - registersInRow * 8;
-      mask = ((1 << res) - 1);
+      mask = static_cast<uint8_t>((1UL << res) - 1);
       if (!firstRow) midRow = true;
     }
     firstRow = false;
@@ -214,8 +214,8 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
 
     int32_t offset[] = {inT->getOffset(), outT->getOffset()};
     float scale[] =  {inT->getScale(), outT->getScale()};
-      
-    unsigned int cnt = 0;
+
+    size_t cnt = 0;
     while(cnt < registersInRow) {
       /* review in implementation sw-2429 to tacke out scale and offset from params and set what it is necessary*/
       op.doOpVect(gatherValues, srcAddr, dstAddr, scale, offset);
@@ -243,7 +243,7 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
