@@ -40,16 +40,17 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
   using srcType = typename elemKind2elemTy<srcElK>::type;
   using indexType = typename elemKind2elemTy<indexElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* dst2T = out2T->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
-  void* prangesT = in2T->getRawDataPointer<void>();
-  
+  auto* dstT = outT->getRawDataPointer<void>();
+  auto* dst2T = out2T->getRawDataPointer<void>();
+  auto* srcT = in1T->getRawDataPointer<void>();
+  auto* prangesT = in2T->getRawDataPointer<void>();
+
   // Addresser<srcElK> tOutput(dstT, scale[3], offset[3]);
   Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<srcElK> tInput(srcT, scale[0], offset[0]);
@@ -77,39 +78,38 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
   // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
   const dim_t *lenPitch = out2T->strides().data();
 
-  
-  unsigned int last_minion = activeMinions - 1;
+  auto last_minion = activeMinions - 1;
 
   size_t typeSize = getsize<srcType>();
-  unsigned int initialAddr = 0, maxRead = 0;
+  size_t initialAddr = 0, maxRead = 0;
 
   if (minionId < last_minion) {
 
-    unsigned int numElemsDst = dstPitch[0]*dstIndex[0];
+    size_t numElemsDst = dstPitch[0] * dstIndex[0];
 
     getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions - 1, dstT);
     if (maxRead == 0)
       return;
 
     // Assumption: srcDimsNum = dstDimsNum.
-    unsigned int srcDimsNum = static_cast<unsigned int>(in1T->ndims());
-    
-    unsigned int coordOut[srcDimsNum];
-    unsigned int last_non_zero_coord;
+    dim_t srcDimsNum = in1T->ndims();
+
+    dim_array_t coordOut = {0};
+    dim_t last_non_zero_coord;
     getNonPaddingCoordinates(coordOut, initialAddr, srcDimsNum, dstPitch,
                              dstIndex, last_non_zero_coord);
 
     uint64_t offsetOut = 0;
-    for (unsigned int i = 0; i < last_non_zero_coord; i++) {
+    for (dim_t i = 0; i < last_non_zero_coord; i++) {
       offsetOut += dstPitch[i]*coordOut[i];
     }
 
     uint64_t offsetRanges = rangesPitch[2];
     indexType length = tRanges[offsetRanges];
-    unsigned int range = 0;
-    unsigned int accumLength = 0;
-    unsigned int exampleSize = rangesIndex[1];
-    unsigned int exampleMem = rangesIndex[1]*rangesPitch[1];
+    size_t range = 0;
+    size_t accumLength = 0;
+    auto exampleSize = rangesIndex[1];
+    auto exampleMem = rangesIndex[1] * rangesPitch[1];
     while ( static_cast<uint64_t> ((accumLength + length)*dstPitch[0]) < offsetOut) {
       accumLength += length;
       offsetRanges += rangesPitch[1];
@@ -129,16 +129,18 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
       count++;
     }
     count--;
-    unsigned int positionInBatch = offsetOut - (accumLength + count)*dstPitch[0];
+    size_t positionInBatch = offsetOut - (accumLength + count) * dstPitch[0];
     offsetIn += positionInBatch;
-    unsigned int coordIn[srcDimsNum];
+    dim_array_t coordIn = {0};
     getNonPaddingCoordinates(coordIn, offsetIn, srcDimsNum, srcPitch, srcIndex,
                              last_non_zero_coord); // useless last parameter.
 
-    unsigned int batchElems = 1;
-    for (unsigned i = 1; i < srcDimsNum; ++i) batchElems *= srcIndex[i]; // avoiding padding elements.
+    size_t batchElems = 1;
+    for (dim_t i = 1; i < srcDimsNum; ++i) {
+      batchElems *= srcIndex[i]; // avoiding padding elements.
+    }
 
-    unsigned int posMax = maxRead + initialAddr;
+    auto posMax = maxRead + initialAddr;
     bool done = false;
     //TODO: SW-2650    bool doneIn = false; // useful for skipping padding positions in the source tensor.
 
@@ -170,7 +172,7 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
     }
 
     if (!DO_EVICTS) return;
-    unsigned int clperminion = (maxRead * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    size_t clperminion = (maxRead * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
   }
 
@@ -179,11 +181,11 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
 // active minion.
 
   else if (minionId == last_minion) {
-    unsigned int numExamples = rangesIndex[0];
-    unsigned int exampleSize = rangesIndex[1];
-    unsigned int offsetRanges = rangesPitch[2];
-    unsigned int auxoffsetRanges = rangesPitch[2]; // this aux variable helps avoiding products.
-    unsigned int offsetLengths = 0;
+    auto numExamples = rangesIndex[0];
+    auto exampleSize = rangesIndex[1];
+    auto offsetRanges = rangesPitch[2];
+    auto auxoffsetRanges = rangesPitch[2]; // this aux variable helps avoiding products.
+    size_t offsetLengths = 0;
 
     //It isn't thought that tlength writes will have more than 16 cache_lines.
     //So that, the initialAddr doesn't update.
@@ -203,7 +205,7 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
 
     // Todo: initialAddr should be the virtual address of the Length tensor.
     if (!DO_EVICTS) return;
-    unsigned int clperminion = (lenIndex[0] * lenPitch[0] * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    size_t clperminion = (lenIndex[0] * lenPitch[0] * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0) {
       evict_va_multi(DO_EVICTS, (uintptr_t)dst2T + typeSize*initialAddr, clperminion);
     }

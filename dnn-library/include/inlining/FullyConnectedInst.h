@@ -142,7 +142,7 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
     weightPitch *= size;
     int offsets[FULLYCONNECTED_MAX_ELEMS];
     for (size_t i = 0; i < FULLYCONNECTED_MAX_ELEMS; i++) {
-      offsets[i] = i * size;
+      offsets[i] = static_cast<int>(i * size);
     }
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
@@ -189,7 +189,7 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
     weightPitch *= size;
     int offsets[FULLYCONNECTED_MAX_ELEMS];
     for (size_t i = 0; i < FULLYCONNECTED_MAX_ELEMS; i++) {
-      offsets[i] = i * size;
+      offsets[i] = static_cast<int>(i * size);
     }
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
@@ -240,7 +240,7 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
     int gatherOffsetsW[FULLYCONNECTED_MAX_ELEMS];
     for (size_t i = 0; i < FULLYCONNECTED_MAX_ELEMS; i++) {
       gatherOffsetsA[i] = 0;
-      gatherOffsetsW[i] = i * size;
+      gatherOffsetsW[i] = static_cast<int>(i * size);
     }
     int offsets[2] = { tAInput.getOffset(), tWInput.getOffset() };
     float scales[2] = { tAInput.getScale(), tWInput.getScale() };
@@ -336,15 +336,16 @@ INLINE_ATTR void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibT
   using dstType  = typename elemKind2elemTy<dstElK>::type;
   using src1Type = typename elemKind2elemTy<dstElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT --> dst  in1T--> inActT  in2T--> inWeighT in3T-->inBiasT */
-  void *dstMatrix = outT->getRawDataPointer<void>();
-  void *activations = in1T->getRawDataPointer<void>();
-  void *weights = in2T->getRawDataPointer<void>();
+  auto* dstMatrix = outT->getRawDataPointer<void>();
+  auto* activations = in1T->getRawDataPointer<void>();
+  auto* weights = in2T->getRawDataPointer<void>();
   void *biases = nullptr;
   float biasScale = 1.0f;
   int32_t biasOffset = 0;
@@ -365,27 +366,27 @@ INLINE_ATTR void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibT
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *actPitch = in1T->strides().data();
   const dim_t *weightPitch = in2T->strides().data();
-  
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+
+  auto numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = sizeof(dstType);
 
   getGlobalPartition(numElemsDst, initialAddr, maxRead, minionId, activeMinions);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[2] = {0, 0};
-  unsigned int k = 0;
+  dim_array_t coord = {0};
+  dim_t k = 0;
   getNonPaddingCoordinates(coord, initialAddr, 2, dstPitch, dstIndex, k);
 
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
+  size_t offsetOut = 0;
+  for (size_t i = 0; i < k; i++) {
     offsetOut += coord[i] * dstPitch[i];
   }
   if (offsetOut >= numElemsDst)
     return;
 
-  unsigned int posMax = initialAddr + maxRead;
+  auto posMax = initialAddr + maxRead;
 
   bool done = false;
   // While there's work to do
@@ -424,7 +425,7 @@ INLINE_ATTR void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibT
 
   // Checks if evict is required
   if (DO_EVICTS) {
-    unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
   }
 }
