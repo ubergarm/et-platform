@@ -34,9 +34,9 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
                                                                       LibTensor* in2T,
                                                                       uint64_t flags,
                                                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
@@ -56,10 +56,10 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
   const dim_t *srcIndex = in1T->dims().data();
   // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = in1T->strides().data();
- 
-  unsigned int rowstodo = srcIndex[0] / activeMinions;
-  unsigned int firstrow;
-  unsigned int type1minions = srcIndex[0] - rowstodo * activeMinions;
+
+  auto rowstodo = srcIndex[0] / activeMinions;
+  size_t firstrow;
+  auto type1minions = srcIndex[0] - rowstodo * activeMinions;
   if (minionId < type1minions) {
     ++rowstodo;
     firstrow = minionId * rowstodo;
@@ -67,13 +67,12 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
     firstrow = type1minions +
                minionId * rowstodo; // Simplification of type1minions*(rowstodo
                                     // + 1) + (minionId - type1minions)*rowstodo
-  unsigned int lastrow = firstrow + rowstodo;
+  auto lastrow = firstrow + rowstodo;
 
   float op;
   float sum = 0;
-  unsigned int rowaddress =
-      firstrow * srcPitch[0]; // address of the first element of the row
-                              // considered in the following loop.
+  auto rowaddress = firstrow * srcPitch[0]; // address of the first element of the row
+                                            // considered in the following loop.
   for (size_t n = firstrow; n < lastrow; ++n) {
     float p_n = float(tInput[rowaddress + tLabels[n]]);
     fpLog2SingleElement(p_n, op);
@@ -81,12 +80,12 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
     rowaddress += srcPitch[0];
   }
 
-  unsigned int level = 0;
-  for (unsigned int k = 1; k < activeMinions; k *= 2) {
+  size_t level = 0;
+  for (size_t k = 1; k < activeMinions; k *= 2) {
     level++;
   }
 
-  for (unsigned int i = 0; i < level; i++) {
+  for (size_t i = 0; i < level; i++) {
     sum = tensor_reduce_float(sum, 0x0, 1, i, 0x3);
   }
 

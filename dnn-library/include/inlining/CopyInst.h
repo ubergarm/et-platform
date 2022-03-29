@@ -133,9 +133,11 @@ template <ElemKind elK>
 INLINE_ATTR void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset = 0,
                                 const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
-  assert((minionOffset + activeMinions <= MIN_PER_SHIRE * ACTIVE_SHIRES) && "Minion ID overflow");
+
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  assert((minionOffset + activeMinions <= MIN_PER_SHIRE * activeShires(flags)) && "Minion ID overflow");
 
   if (minionId >= activeMinions)
     return;
@@ -152,11 +154,11 @@ INLINE_ATTR void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
   const dim_t *actPitch = inT->strides().data();
 
   // Total number of elements in the tensor
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0]; 
+  auto numElemsDst = dstPitch[0] * dstIndex[0];
 
   // We give to each minion an initial address and the number of positions that
   // it must work on (maxRead).
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dst);
@@ -165,23 +167,23 @@ INLINE_ATTR void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
   
 
   // We move the initialAddr to the next non-padding position
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int k;                // Amount of non-zero coordinates
-  unsigned int coord[srcDimNum]; // Vector of coordinates
+  dim_t srcDimNum = inT->ndims();
+
+  dim_t k;                 // Amount of non-zero coordinates
+  dim_array_t coord = {0}; // Vector of coordinates
 
   /*use overloading WIP sw2400 sw2429*/
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
 
   // We get the actual initialAddr, in the input and output.
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
+  for (size_t j = 0; j < k; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  auto posMax = maxRead + initialAddr;
   // In each iteration we copy a full inner dimension and switch to the next one,
   // until completion.
   bool done = false;
@@ -208,7 +210,7 @@ INLINE_ATTR void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr, clperminion);
 }
 
@@ -243,11 +245,11 @@ template <ElemKind elK>
 INLINE_ATTR void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if ((minionId >= activeMinions) || (minionId >= activeMinions))
     return;
-  assert((minionOffset + activeMinions <= MIN_PER_SHIRE * ACTIVE_SHIRES) && "Minion ID overflow");
+  assert((minionOffset + activeMinions <= MIN_PER_SHIRE * activeShires(flags)) && "Minion ID overflow");
 
   /* maintain compatibility through the new Iface Libtensor */
 
