@@ -54,7 +54,7 @@ namespace inlining {
 /// \param[in] x, y, d Coordinates where our minions should start reading.
 
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK == FloatTy, std::size_t>::type = 0>
-INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* coord, const dim_t* actPitch,
+INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array_t& coord, const dim_t* actPitch,
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                unsigned int inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N> dilation) {
@@ -156,7 +156,7 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
 /// \brief Computes one element in the convolution.
 
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK == Float16Ty, std::size_t>::type = 0>
-INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* coord, const dim_t* actPitch,
+INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array_t& coord, const dim_t* actPitch,
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                unsigned int inCperG, float16& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N>& dilation) {
@@ -284,7 +284,7 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
 /// \param[in] x, y, d Coordinates where our minions should start reading.
 
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK != FloatTy, std::size_t>::type = 0>
-INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* coord, const dim_t* actPitch,
+INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array_t& coord, const dim_t* actPitch,
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                unsigned int inCperG, float& sum, [[maybe_unused]] int32_t mask, ssize_t x, ssize_t y,
                                ssize_t d, const float* scale, const int32_t* offset,
@@ -336,7 +336,7 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, unsigned int* c
 
 template <ElemKind dstElK, ElemKind biasElK, size_t N>
 INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias, void* output, size_t offsetOut,
-                                    unsigned int* coord, const dim_t* actPitch, const dim_t* weightPitch,
+                                    const dim_array_t& coord, const dim_t* actPitch, const dim_t* weightPitch,
                                     const dim_t* actIndex, const std::array<uint32_t, N>& kernels, unsigned int inCperG,
                                     [[maybe_unused]] int32_t mask, ssize_t x, ssize_t y, ssize_t d, const float* scale,
                                     const int32_t* offset, const std::array<uint32_t, N>& dilation) {
@@ -438,7 +438,7 @@ INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias
   doQuantize<dstElK>(tmp, tmp, outQuantScaleRec, outQuantOffset);
   int64_t first;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(first) : [ tmp ] "f"(tmp));
-  result = first;
+  result = static_cast<ElemType>(first);
 }
 
 /// \brief Performs a convolution
@@ -476,8 +476,9 @@ convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibT
                          [[maybe_unused]] const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -496,8 +497,8 @@ convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibT
   float scale[] = {in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
   int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  auto numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   using ElemType = typename elemKind2elemTy<dstElK>::type;
   size_t typeSize = getsize<ElemType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, output);
@@ -506,24 +507,25 @@ convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibT
 
   assert(actIndex[3] % group == 0 && "Input channels must be divisible by group.");
   assert(dstIndex[3] % group == 0 && "Output channels must be divisible by group.");
-  unsigned int inCperG = actIndex[3] / group;
-  unsigned int outCperG = dstIndex[3] / group;
+  auto inCperG = actIndex[3] / group;
+  auto outCperG = dstIndex[3] / group;
 
   dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG, 1};
 
   dim_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group, outCperG};
 
-  unsigned int coord[5], k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, 5, eDstPitch, eDstIndex, k);
 
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
+  size_t offsetOut = 0;
+  for (size_t i = 0; i < k; i++) {
     offsetOut += coord[i] * eDstPitch[i];
   }
   if (offsetOut >= numElemsDst)
     return;
 
-  unsigned int posMax = initialAddr + maxRead;
+  auto posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y, d;
   int32_t mask = (1 << (((inCperG - 1) & 0x7) + 1)) - 1;
@@ -541,7 +543,7 @@ convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibT
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0)
     evict_va_multi(DO_EVICTS, (uintptr_t)output + typeSize * initialAddr, clperminion);
 }
@@ -585,8 +587,9 @@ convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, L
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -607,8 +610,8 @@ convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, L
   float scale[] = {in1T->getScale(), in2T->getScale(), in3T->getScale(), outT->getScale()};
   int32_t offset[] = {in1T->getOffset(), in2T->getOffset(), in3T->getOffset(), outT->getOffset()};
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  auto numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<dstType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
@@ -616,24 +619,25 @@ convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, L
 
   assert(actIndex[3] % group == 0 && "Input channels must be divisible by group.");
   assert(dstIndex[3] % group == 0 && "Output channels must be divisible by group.");
-  unsigned int inCperG = actIndex[3] / group;
-  unsigned int outCperG = dstIndex[3] / group;
+  auto inCperG = actIndex[3] / group;
+  auto outCperG = dstIndex[3] / group;
 
   dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG, 1};
 
   dim_t eDstIndex[5] = {dstIndex[0], dstIndex[1], dstIndex[2], group, outCperG};
 
-  unsigned int coord[5], k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, 5, eDstPitch, eDstIndex, k);
 
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
+  size_t offsetOut = 0;
+  for (size_t i = 0; i < k; i++) {
     offsetOut += coord[i] * eDstPitch[i];
   }
   if (offsetOut >= numElemsDst)
     return;
 
-  unsigned int posMax = initialAddr + maxRead;
+  auto posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y, d;
   int32_t mask = (1 << (((inCperG - 1) & 0x7) + 1)) - 1;
@@ -652,7 +656,7 @@ convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, L
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0)
     evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize * initialAddr, clperminion);
 }

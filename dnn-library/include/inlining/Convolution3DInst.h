@@ -52,7 +52,7 @@ namespace inlining {
 
 template <ElemKind dstElK, ElemKind biasElK, size_t N>
 INLINE_ATTR void quantConvolution3DOp(void* activations, void* weights, void* bias, void* output, size_t offsetOut,
-                                      unsigned int* coord, const dim_t* actPitch, const dim_t* weightPitch,
+                                      const dim_array_t& coord, const dim_t* actPitch, const dim_t* weightPitch,
                                       const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
                                       unsigned int inCperG, ssize_t x, ssize_t y, ssize_t z, ssize_t d,
                                       const float& inScale, const float& filterScale, const float& biasScale,
@@ -147,7 +147,7 @@ INLINE_ATTR void quantConvolution3DOp(void* activations, void* weights, void* bi
   doQuantize<dstElK>(tmp, tmp, outQuantScaleRec, outQuantOffset);
   int64_t first;
   __asm__ __volatile__("fmvs.x.ps %[first], %[tmp], 0\n" : [ first ] "=r"(first) : [ tmp ] "f"(tmp));
-  result = first;
+  result = static_cast<ElemType>(first);
 }
 
 template <ElemKind elK, ElemKind biasElK, size_t N, size_t PN>
@@ -158,8 +158,9 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -184,8 +185,8 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
   const dim_t* actPitch = in1T->strides().data();
   const dim_t* weightPitch = in2T->strides().data();
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, output);
   if (maxRead == 0)
@@ -193,24 +194,24 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
 
   assert(actIndex[4] % group == 0 && "Input channels must be divisible by group.");
   assert(dstIndex[4] % group == 0 && "Output channels must be divisible by group.");
-  unsigned int inCperG = actIndex[4] / group;
-  unsigned int outCperG = dstIndex[4] / group;
+  auto inCperG = actIndex[4] / group;
+  auto outCperG = dstIndex[4] / group;
 
   size_t eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2], dstPitch[3], outCperG, 1};
   size_t eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2], dstIndex[3], group, outCperG};
 
-  unsigned int coord[6] = {0, 0, 0, 0, 0, 0};
-  unsigned int k = 0;
+  dim_array_t coord = {0, 0, 0, 0, 0, 0};
+  dim_t k = 0;
   getNonPaddingCoordinates(coord, initialAddr, 6, eDstPitch, eDstIndex, k);
 
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
+  size_t offsetOut = 0;
+  for (size_t i = 0; i < k; i++) {
     offsetOut += coord[i] * eDstPitch[i];
   }
   if (offsetOut >= numElemsDst)
     return;
 
-  unsigned int posMax = initialAddr + maxRead;
+  auto posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y, z, d;
 
@@ -229,7 +230,7 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0)
     evict_va_multi(DO_EVICTS, (uintptr_t)output + typeSize * initialAddr, clperminion);
 }
@@ -242,8 +243,9 @@ INLINE_ATTR void convolution3DNonQuantizedInst(LibTensor* outT, LibTensor* in1T,
                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions)
     return;
 
@@ -263,32 +265,32 @@ INLINE_ATTR void convolution3DNonQuantizedInst(LibTensor* outT, LibTensor* in1T,
   const dim_t* actPitch = in1T->strides().data();
   const dim_t* weightPitch = in2T->strides().data();
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
   assert(actIndex[4] % group == 0 && "Input channels must be divisible by group.");
   assert(dstIndex[4] % group == 0 && "Output channels must be divisible by group.");
-  unsigned int inCperG = actIndex[4] / group;
-  unsigned int outCperG = dstIndex[4] / group;
+  auto inCperG = actIndex[4] / group;
+  auto outCperG = dstIndex[4] / group;
 
   size_t eDstPitch[6] = {dstPitch[0], dstPitch[1], dstPitch[2], dstPitch[3], outCperG, 1};
   size_t eDstIndex[6] = {dstIndex[0], dstIndex[1], dstIndex[2], dstIndex[3], group, outCperG};
 
-  unsigned int coord[6] = {0, 0, 0, 0, 0, 0};
-  unsigned int k = 0;
+  dim_array_t coord = {0, 0, 0, 0, 0, 0};
+  dim_t k = 0;
   getNonPaddingCoordinates(coord, initialAddr, 6, eDstPitch, eDstIndex, k);
 
-  unsigned int offsetOut = 0;
-  for (unsigned int i = 0; i < k; i++) {
+  size_t offsetOut = 0;
+  for (size_t i = 0; i < k; i++) {
     offsetOut += coord[i] * eDstPitch[i];
   }
   if (offsetOut >= numElemsDst)
     return;
 
-  unsigned int posMax = initialAddr + maxRead;
+  auto posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y, z, d;
   while (!done && (offsetOut < posMax)) {
@@ -329,7 +331,7 @@ INLINE_ATTR void convolution3DNonQuantizedInst(LibTensor* outT, LibTensor* in1T,
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0)
     evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize * initialAddr, clperminion);
 }
