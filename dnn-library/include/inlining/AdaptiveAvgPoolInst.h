@@ -41,7 +41,7 @@ typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty))
 
   assert((inT->getElementType() == Float16Ty)||(inT->getElementType() == Int8QTy));
 
-  size_t rounding_mode = fegetround();
+  int rounding_mode = fegetround();
   std::fesetround(FE_UPWARD);
 
   using elkType = typename elemKind2elemTy<elKind>::type; 
@@ -49,9 +49,8 @@ typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty))
   auto inH = inT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
 
-
-#define START_IND(a, b, c) (a * c) / b
-#define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1
+#define START_IND(a, b, c) static_cast<uint32_t>((a * c) / b)
+#define END_IND(a, b, c) static_cast<uint32_t>(((a + 1) * c - 1) / b + 1)
 
   //For each input in the batch
   for (size_t n = 0; n < outT->dims()[0]; n++) {
@@ -60,52 +59,48 @@ typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind == Float16Ty))
       //For each value in the output tensor
       for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
 
-  unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
-  unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
+        auto x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
+        auto kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
 
-  for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
-    unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
-    unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
-    
-    float sum = 0;
+        for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
+          auto y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
+          auto kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
 
-    for (size_t fx = 0; fx < kH; fx++) {
-      for (size_t fy = 0; fy < kW; fy++) {
-        
-        dim_t ox = x + fx;
-        dim_t oy = y + fy;
+          float sum = 0;
 
-        std::array<size_t, 4> InIndices = {n, ox, oy, z};       
-        dim_array_t extStrides = outT->strides();
+          for (size_t fx = 0; fx < kH; fx++) {
+            for (size_t fy = 0; fy < kW; fy++) {
 
-        if (elKind == Float16Ty) {
-    float dst = 0;
-    /*the cast avoid compilation error due to quantize types are handle together here.*/
-    convertFp16ToFp32(static_cast<uint16_t>(inH.at(InIndices, extStrides, 3)), dst);
-    sum += dst;
-        }
-        else
-    sum += dequantize<elkType>(inH.at(InIndices, extStrides, 3),
-             inH.getScale(), 
-             inH.getOffset());
-      }
-    }
-    float kHW = kH * kW;
-    float invkHW;
-    fpReciprocalSingleElement(kHW, invkHW);
-    std::array<size_t, 4> OutIndices = {n, ax, ay, z};
+              dim_t ox = x + fx;
+              dim_t oy = y + fy;
 
-    if (elKind == Float16Ty) {
-      uint16_t dst = 0;
-      convertFp32ToFp16((sum * invkHW), dst);
-      outH.at(OutIndices) = dst;
-    }
-    else 
-      outH.at(OutIndices) = quantize<elkType>((sum * invkHW), 
-                outT->getScale(),
-                outT->getOffset());
+              std::array<size_t, 4> InIndices = {n, ox, oy, z};
+              dim_array_t extStrides = outT->strides();
 
-  } // W
+              if (elKind == Float16Ty) {
+                float dst = 0;
+                /*the cast avoid compilation error due to quantize types are handle together here.*/
+                convertFp16ToFp32(static_cast<uint16_t>(inH.at(InIndices, extStrides, 3)), dst);
+                sum += dst;
+              } else {
+                sum += dequantize<elkType>(inH.at(InIndices, extStrides, 3), inH.getScale(), inH.getOffset());
+              }
+            }
+          }
+          auto kHW = static_cast<float>(kH * kW);
+          float invkHW;
+          fpReciprocalSingleElement(kHW, invkHW);
+          std::array<size_t, 4> OutIndices = {n, ax, ay, z};
+
+          if (elKind == Float16Ty) {
+            uint16_t dst = 0;
+            convertFp32ToFp16((sum * invkHW), dst);
+            outH.at(OutIndices) = dst;
+          } else {
+            outH.at(OutIndices) = quantize<elkType>((sum * invkHW), outT->getScale(), outT->getOffset());
+          }
+
+        } // W
       } // H
     } // C
   } // N
@@ -135,46 +130,46 @@ typename std::enable_if_t<(!isQuantizedElemKind(elKind) && (elKind != Float16Ty)
   auto inH = inT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
 
-#define START_IND(a, b, c) (a * c) / b
-#define END_IND(a, b, c) ((a + 1) * c - 1) / b + 1
+#define START_IND(a, b, c) static_cast<uint32_t>((a * c) / b)
+#define END_IND(a, b, c) static_cast<uint32_t>(((a + 1) * c - 1) / b + 1)
 
   //For each input in the batch
-  for (size_t n = 0; n < outT->dims()[0]; n++) {
+  for (dim_t n = 0; n < outT->dims()[0]; n++) {
     //For each layer in the output tensor
-    for (size_t z = 0; z < inT->dims()[3]; z++) {
+    for (dim_t z = 0; z < inT->dims()[3]; z++) {
       //For each value in the output tensor
-      for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
+      for (dim_t ax = 0; ax < outT->dims()[1]; ax++) {
 
-  unsigned int x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
-  unsigned int kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
+        auto x = START_IND(ax, outT->dims()[1], inT->dims()[1]);
+        auto kH = END_IND(ax, outT->dims()[1], inT->dims()[1]) - x;
 
-  for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
-    unsigned int y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
-    unsigned int kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
-    
-    elkType sum = 0;
+        for (dim_t ay = 0; ay < outT->dims()[2]; ay++) {
+          auto y = START_IND(ay, outT->dims()[2], inT->dims()[2]);
+          auto kW = END_IND(ay, outT->dims()[2], inT->dims()[2]) - y;
 
-    for (size_t fx = 0; fx < kH; fx++) {
-      for (size_t fy = 0; fy < kW; fy++) {        
-        dim_t ox = x + fx;
-        dim_t oy = y + fy;
-        
-        std::array<size_t, 4> InIndices = {n, ox, oy, z};
-        dim_array_t extStrides = outT->strides();
-        sum += inH.at(InIndices, extStrides, 3);
-      }
-    }
+          elkType sum = 0;
 
-    float kHW = kH * kW;
-    float invkHW;
-    fpReciprocalSingleElement(kHW, invkHW);
-    std::array<size_t, 4> OutIndices = {n, ax, ay, z};
-    outH.at(OutIndices) = elkType(sum * invkHW);
+          for (size_t fx = 0; fx < kH; fx++) {
+            for (size_t fy = 0; fy < kW; fy++) {
+              dim_t ox = x + fx;
+              dim_t oy = y + fy;
 
-  } // W
-      } // H
-    } // C
-  } // N
+              std::array<size_t, 4> InIndices = {n, ox, oy, z};
+              dim_array_t extStrides = outT->strides();
+              sum += inH.at(InIndices, extStrides, 3);
+            }
+          }
+
+          auto kHW = static_cast<float>(kH * kW);
+          float invkHW;
+          fpReciprocalSingleElement(kHW, invkHW);
+          std::array<size_t, 4> OutIndices = {n, ax, ay, z};
+          outH.at(OutIndices) = sum * elkType(invkHW);
+
+        } // W
+      }   // H
+    }     // C
+  }       // N
 
   outT->evict(DO_EVICTS);
 

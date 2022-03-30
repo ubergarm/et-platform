@@ -28,7 +28,7 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind outelK, ElemKind inelK>
-INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, bool keepDim, uint64_t flags,
+INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, dim_t axis, bool keepDim, uint64_t flags,
                                   const uint32_t minionOffset = 0,
                                   [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
@@ -43,9 +43,9 @@ INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, 
   assert(((outT->getElementType() == Int64ITy) || 
           (outT->getElementType() == Int32ITy)) && "Not expected output Type");
 
-  auto &inpDims = inT->dims();
+  const dim_array_t& inpDims = inT->dims();
 
-  dim_array_t outDims = inpDims;
+  auto outDims = inpDims;
   /* std::array<size_t, max_tensor_dimensions> outDims = inpDims; */
   outDims[axis] = 1;
 
@@ -62,8 +62,8 @@ INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, 
 
               //Init max value/index
               //inElemTy maxVal = std::numeric_limits<inElemTy>::lowest();
-	      float maxVal = std::numeric_limits<float>::lowest();
-              size_t maxIdx = 0;
+              float maxVal = std::numeric_limits<float>::lowest();
+              dim_t maxIdx = 0;
 
               //Iterate input axis dimension
               for(dim_t axisIdx = 0; axisIdx < inpDims[axis]; axisIdx++) {
@@ -72,14 +72,13 @@ INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, 
                 
                 inpIdx[axis] = axisIdx;
                 /* inElemTy inpVal = 0.0; */
-		float inpVal = 0.0;
+                float inpVal = 0.0;
 
-		if (inelK == Float16Ty) {
-		  convertFp16ToFp32(static_cast<uint16_t>(srcH.at(inpIdx)), inpVal);
-		}
-		else {
-		  inpVal = srcH.at(inpIdx);
-		}
+                if (inelK == Float16Ty) {
+                  convertFp16ToFp32(static_cast<uint16_t>(srcH.at(inpIdx)), inpVal);
+                } else {
+                  inpVal = srcH.at(inpIdx);
+                }
 
                 if (inpVal > maxVal) {
                   maxVal = inpVal;
@@ -97,8 +96,7 @@ INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, size_t axis, 
               }
 
               //Store maximum index.
-	      destH.at(outIdx) = maxIdx;
-
+              destH.at(outIdx) = static_cast<outElemTy>(maxIdx);
             }
           }
         }

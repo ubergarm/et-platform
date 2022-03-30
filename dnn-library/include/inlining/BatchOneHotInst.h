@@ -33,15 +33,16 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
 
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* dataT = in1T->getRawDataPointer<void>();
-  void* valuesT = in3T->getRawDataPointer<void>();
-  
+  auto* dstT = outT->getRawDataPointer<void>();
+  auto* dataT = in1T->getRawDataPointer<void>();
+  auto* valuesT = in3T->getRawDataPointer<void>();
+
   // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
@@ -63,10 +64,9 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
   auto batchSize = dataIndex[0];
   auto featureCnt = dataIndex[1];
 
-  unsigned int numElemsDst = batchSize * dstPitch[0]; // Total number of elements in the tensor
+  auto numElemsDst = batchSize * dstPitch[0]; // Total number of elements in the tensor
 
-
-  unsigned int dstAddr, maxRead;
+  size_t dstAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, dstAddr, maxRead,
                         minionId, activeMinions, dstT);
@@ -76,23 +76,20 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
 
   // We move the initialAddr to the next non-padding position
 
-  unsigned int k;          // Amount of non-zero coordinates
-  unsigned int coord[2]; // Vector of coordinates
+  dim_t k;                 // Amount of non-zero coordinates
+  dim_array_t coord = {0}; // Vector of coordinates
 
-
-
-  getNonPaddingCoordinates(coord, dstAddr, 2, dstPitch, dstIndex,
-                           k);
+  getNonPaddingCoordinates(coord, dstAddr, 2, dstPitch, dstIndex, k);
 
   // We get the actual initialAddr, in the input and output.
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  dim_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
     offsetOut += dstPitch[j] * coord[j];
   }
-  unsigned int batchId = offsetOut/dstPitch[0];
-  unsigned int i = offsetOut - batchId * dstPitch[0];
-  int32_t l = i;
-  unsigned int featureId = 0;
+  auto batchId = offsetOut / dstPitch[0];
+  auto i = offsetOut - batchId * dstPitch[0];
+  auto l = i;
+  dim_t featureId = 0;
   while (l >= lengths[featureId]) {
     l -= lengths[featureId];
     featureId++;
@@ -104,8 +101,7 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
     }
   }
 
-
-  unsigned int posMax = maxRead + offsetOut;
+  auto posMax = maxRead + offsetOut;
 
   bool done = (offsetOut >= posMax);
   bool minionEnd = false;
@@ -150,7 +146,7 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*dstAddr, clperminion);
 }
 
