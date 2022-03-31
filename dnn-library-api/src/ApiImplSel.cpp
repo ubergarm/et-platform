@@ -149,6 +149,14 @@ size_t implSel::InsertTensor(std::vector<LibTensor*>& outTensors, std::vector<Li
   if ((dstDimNum < 2) or ((dstPitch[dstDimNum - 2] % dstCll) != 0)) {
     return 0;
   }
+  // see [SW-11828]. Threaded version does not support Broadcast slice (pitch==0) correctly.
+  auto& srcPitches = inTensors[0]->strides();
+  auto srcDimNum = inTensors[0]->ndims();
+  for (size_t i = 0; i < srcDimNum; i++) {
+    if (srcPitches[i] == 0) {
+      return 0;
+    }
+  }
 
   return 1;
 }
