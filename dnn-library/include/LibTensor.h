@@ -27,7 +27,6 @@
 
 namespace dnn_lib {
 
-
 struct Type final {
 
   /*@brief contains the dimensions (sizes) of the tensor.
@@ -49,57 +48,59 @@ struct Type final {
 
   /*@brief On quantized tensors, this represents the scale of the values.
    */
-  const float scale_ {};
+  const float scale_{};
 
   /*@brief On quantized tensors, this represents the offset of the values.
    */
-  const int32_t offset_ {};
+  const int32_t offset_{};
 
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims, const float scale, const int32_t offset) :
-    sizes_(make_dims(dims)),
-    elementType_(elk), numSizes_(numSizes),
-    scale_(scale), offset_(offset)
-  {
-    assert( isQuantizedElemKind(elk));
-  }
-
-  /*@brief Initialize a new non-quantized type.
-   */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes> &dims) :
-    sizes_(make_dims(dims)),
-    elementType_(elk), numSizes_(numSizes)
-  {
-    assert( !isQuantizedElemKind(elk));
-  }
-
-  /*@brief Initialize a new quantized type with \p scale an \p offset.
-   */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides,
-                 const float scale, const int32_t offset) :
-    sizes_(make_dims(dims)),
-    strides_(make_strides(strides)),
-    elementType_(elk),
-    numSizes_(numSizes),
-    scale_(scale), offset_(offset)
-  {
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims, const float scale,
+                 const int32_t offset)
+    : sizes_(make_dims(dims))
+    , elementType_(elk)
+    , numSizes_(numSizes)
+    , scale_(scale)
+    , offset_(offset) {
     assert(isQuantizedElemKind(elk));
   }
 
   /*@brief Initialize a new non-quantized type.
    */
-  template<size_t numSizes>
-  constexpr Type(const dnn_lib::ElemKind elk,  const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &strides) :
-    sizes_(make_dims(dims)),
-    strides_(make_strides(strides)),
-    elementType_(elk),
-    numSizes_(numSizes)
-  {
-    assert(  !isQuantizedElemKind(elk));
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims)
+    : sizes_(make_dims(dims))
+    , elementType_(elk)
+    , numSizes_(numSizes) {
+    assert(!isQuantizedElemKind(elk));
+  }
+
+  /*@brief Initialize a new quantized type with \p scale an \p offset.
+   */
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims,
+                 const std::array<dim_t, numSizes>& strides, const float scale, const int32_t offset)
+    : sizes_(make_dims(dims))
+    , strides_(make_strides(strides))
+    , elementType_(elk)
+    , numSizes_(numSizes)
+    , scale_(scale)
+    , offset_(offset) {
+    assert(isQuantizedElemKind(elk));
+  }
+
+  /*@brief Initialize a new non-quantized type.
+   */
+  template <size_t numSizes>
+  constexpr Type(const dnn_lib::ElemKind elk, const std::array<dim_t, numSizes>& dims,
+                 const std::array<dim_t, numSizes>& strides)
+    : sizes_(make_dims(dims))
+    , strides_(make_strides(strides))
+    , elementType_(elk)
+    , numSizes_(numSizes) {
+    assert(!isQuantizedElemKind(elk));
   }
 
   /*@brief non templated version of the previous constructors (receiving dimensions/strides with max_tensor_dimensions,
@@ -107,60 +108,66 @@ struct Type final {
    */
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
-  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t &dims, const dim_array_t &strides,
-                 const float scale, const int32_t offset) :
-    sizes_(dims),
-    strides_(strides),
-    elementType_(elk),
-    numSizes_(numSizes),
-    scale_(scale), offset_(offset)
-  {
+  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims,
+                 const dim_array_t& strides, const float scale, const int32_t offset)
+    : sizes_(dims)
+    , strides_(strides)
+    , elementType_(elk)
+    , numSizes_(numSizes)
+    , scale_(scale)
+    , offset_(offset) {
     assert(isQuantizedElemKind(elk));
   }
 
   /*@brief Initialize a new non-quantized type.
    */
-  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t &dims, const dim_array_t &strides) :
-    sizes_(dims),
-    strides_(strides),
-    elementType_(elk),
-    numSizes_(numSizes)
-  {
-    assert(  !isQuantizedElemKind(elk));
+  constexpr Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims,
+                 const dim_array_t& strides)
+    : sizes_(dims)
+    , strides_(strides)
+    , elementType_(elk)
+    , numSizes_(numSizes) {
+    assert(!isQuantizedElemKind(elk));
   }
-
 
   /*@brief Reshape existing type this takes care of quantized types.
    */
-  template<size_t numSizes>
-  static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims) {
-    if(T.isQuantizedType()) return Type(T.elementType_, dims, T.scale_, T.offset_);
-    else return Type(T.elementType_, dims);
+  template <size_t numSizes> static Type newShape(const Type& T, const std::array<dim_t, numSizes>& dims) {
+    if (T.isQuantizedType())
+      return Type(T.elementType_, dims, T.scale_, T.offset_);
+    else
+      return Type(T.elementType_, dims);
   }
 
   /*@brief Reshape existing type and change alignments.
-    */
-  template<size_t numSizes>
-  static Type newShape(const Type &T, const std::array<dim_t, numSizes> &dims, const std::array<dim_t, numSizes> &pitches){
-    if (T.isQuantizedType()) return Type(T.elementType_, dims, pitches, T.scale_, T.offset_);
-    else return Type(T.elementType_, dims, pitches);
+   */
+  template <size_t numSizes>
+  static Type newShape(const Type& T, const std::array<dim_t, numSizes>& dims,
+                       const std::array<dim_t, numSizes>& pitches) {
+    if (T.isQuantizedType())
+      return Type(T.elementType_, dims, pitches, T.scale_, T.offset_);
+    else
+      return Type(T.elementType_, dims, pitches);
   }
 
-  static Type newShape(const Type &T, size_t numSizes, const dim_array_t &dims, const dim_array_t &pitches){
-    if (T.isQuantizedType()) return Type(T.elementType_, numSizes, dims, pitches, T.scale_, T.offset_);
-    else return Type(T.elementType_, numSizes, dims, pitches);
+  static Type newShape(const Type& T, size_t numSizes, const dim_array_t& dims, const dim_array_t& pitches) {
+    if (T.isQuantizedType())
+      return Type(T.elementType_, numSizes, dims, pitches, T.scale_, T.offset_);
+    else
+      return Type(T.elementType_, numSizes, dims, pitches);
   }
 
   /*@brief Reshape existing type by taking shapes and strides of \p shapeType.
    */
-  static Type newShape(const Type &kindType, const Type shapeType) {
+  static Type newShape(const Type& kindType, const Type shapeType) {
     //@TODO  T.getElementType() == shapeType->getelementSize() Size should be the same
     if (kindType.isQuantizedType())
       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_, kindType.scale_, kindType.offset_);
     else
       return Type(kindType.elementType_, shapeType.sizes_, shapeType.strides_);
 
-    //TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate extended
+    // TODO: the numSizes_is set wrong => because of dimension and strides extension. Either set properly (e.g. separate
+    // extended
     // and non extended arrays... or maybe just delete this newShape, in case it is not needed)
   }
 
@@ -171,12 +178,15 @@ struct Type final {
   /* brief returns true if \p other has same shape.
    */
   bool hasSameShape(const Type other) const {
-    if (numSizes_ != other.getNumDims()) return false;
+    if (numSizes_ != other.getNumDims())
+      return false;
     const dim_array_t& other_sizes = other.getSizes();
     const dim_array_t& other_strides = other.getStrides();
     for (size_t idx = 0; idx < numSizes_; idx++) {
-      if (sizes_[idx] != other_sizes[idx]) return false;
-      if (strides_[idx] != other_strides[idx]) return false;
+      if (sizes_[idx] != other_sizes[idx])
+        return false;
+      if (strides_[idx] != other_strides[idx])
+        return false;
     }
     return true;
   }
@@ -209,18 +219,22 @@ struct Type final {
 
   /*@brief returns the Tensor dimension.
    */
-  dim_t getNumDims() const { return numSizes_;}
-
+  dim_t getNumDims() const {
+    return numSizes_;
+  }
 
   /*@brief returns the elemet type
    */
-  ElemKind getElementType() const { return elementType_; }
+  ElemKind getElementType() const {
+    return elementType_;
+  }
 
   /*@brief return the number of elements in the tensor.
    */
   dim_t size() const {
     dim_t acum = 1;
-    for(auto i: sizes_) acum*=i;
+    for (auto i : sizes_)
+      acum *= i;
     return acum;
   }
 
@@ -239,14 +253,14 @@ struct Type final {
 
   /*@brief returns true if the templated parameter \p Elemkind matches this type.
    */
-  template<class ElemTy> bool isType() const {
+  template <class ElemTy> bool isType() const {
     return isType<ElemTy>(elementType_);
   }
 
   /*@brief returns true if the templated parameter \p ElemKind matches the type
    *that's specified by the parameter \p Ty.
    */
-  template<class ElemTy> static bool isType(dnn_lib::ElemKind elk) {
+  template <class ElemTy> static bool isType(dnn_lib::ElemKind elk) {
     switch (elk) {
     case dnn_lib::ElemKind::FloatTy:
       return std::is_same<ElemTy, float>::value;
@@ -284,7 +298,9 @@ struct Type final {
   /*@brief true if the type of this Tensor is one of the quantized
    *types.
    */
-  bool isQuantizedType() const { return isQuantizedElemKind(elementType_); }
+  bool isQuantizedType() const {
+    return isQuantizedElemKind(elementType_);
+  }
 
   /*@brief true if the type of this Tensor is one of the and index type
    */
@@ -317,7 +333,9 @@ struct Type final {
    * account. Since size() does not take striding into account, size() is
    * always <= actualSize()
    */
-  size_t actualSize() const { return (sizes_[0] * strides_[0]); }
+  size_t actualSize() const {
+    return (sizes_[0] * strides_[0]);
+  }
 
   /// \return the size of the element \p Ty.
   static constexpr size_t getElementSize(dnn_lib::ElemKind Ty) {
@@ -393,14 +411,11 @@ struct Type final {
   //   }
   // }
 
-}; //class Type
-
-
+}; // class Type
 
 class LibTensor final {
 
- private:
-
+private:
   char* const ptrData_;
 
   const Type type_;
@@ -408,15 +423,19 @@ class LibTensor final {
   template <class ElemTy> friend class Handle;
 
   const bool untouch_;
- public:
 
+public:
   /* @brief returns the start address of the tensor.
    */
-  char* getAddress() const { return ptrData_;}
+  char* getAddress() const {
+    return ptrData_;
+  }
 
   /* @brief returns the type of the tensor.
    */
-  const Type &getType() const { return type_;}
+  const Type& getType() const {
+    return type_;
+  }
 
   /*@brief returns the element type of the tensor.
    */
@@ -443,47 +462,47 @@ class LibTensor final {
   //   return true;
   // }
 
-//   /*@brief set the content of the tenosr to zero. if \p resetFusedScalesOffsets,
-//    *then fused scales/offsets will be set to 1.0/0.0 as well.
-//    */
-//   void zero(bool resetFusedScalesOffsets = false) {
-//     size_t size = actualSize();
-//     //Quantized tensors should go to their offset.
-//     switch (type_.getElementType()) {
-//     case dnn_lib::ElemKind::Int8QTy: {
-//       auto *data = reinterpret_cast<int8_t *>(getData());
-//       std::fill(&data[0], &data[0] + size, (int8_t)type_.getOffset());
-//       break;
-//     }
-//     case dnn_lib::ElemKind::UInt8QTy: {
-//       auto *data = reinterpret_cast<uint8_t *>(getData());
-//       std::fill(&data[0], &data[0] + size, (uint8_t)type_.getOffset());
-//       break;
-//     }
-//     case dnn_lib::ElemKind::Int16QTy: {
-//       auto *data = reinterpret_cast<int16_t *>(getData());
-//       std::fill(&data[0], &data[0] + size, (int16_t)type_.getOffset());
-//       break;
-//     }
-//     case dnn_lib::ElemKind::Int32QTy: {
-//       auto *data = reinterpret_cast<int32_t *>(getData());
-//       std::fill(&data[0], &data[0] + size, (int32_t)type_.getOffset());
-//       break;
-//     }
-// #define FUSED_CASE(ELEM_KIND, DATA_TYPE)  case dnn_lib::ElemKind::ELEM_KIND: break
-//     /* FUSED_CASE(dnn_lib::ElemKind::UInt8FusedQTy, float);       */
-//     /* FUSED_CASE(dnn_lib::ElemKind::UInt8FusedFP16QTy, float16_t); */
-// #undef FUSED_CASE
-//      default:
-//       // Non-quantized tensors are set to 0.
-//        for(dim_t i = 0; i < (size * type_.getElementSize()); i++) {
+  //   /*@brief set the content of the tenosr to zero. if \p resetFusedScalesOffsets,
+  //    *then fused scales/offsets will be set to 1.0/0.0 as well.
+  //    */
+  //   void zero(bool resetFusedScalesOffsets = false) {
+  //     size_t size = actualSize();
+  //     //Quantized tensors should go to their offset.
+  //     switch (type_.getElementType()) {
+  //     case dnn_lib::ElemKind::Int8QTy: {
+  //       auto *data = reinterpret_cast<int8_t *>(getData());
+  //       std::fill(&data[0], &data[0] + size, (int8_t)type_.getOffset());
+  //       break;
+  //     }
+  //     case dnn_lib::ElemKind::UInt8QTy: {
+  //       auto *data = reinterpret_cast<uint8_t *>(getData());
+  //       std::fill(&data[0], &data[0] + size, (uint8_t)type_.getOffset());
+  //       break;
+  //     }
+  //     case dnn_lib::ElemKind::Int16QTy: {
+  //       auto *data = reinterpret_cast<int16_t *>(getData());
+  //       std::fill(&data[0], &data[0] + size, (int16_t)type_.getOffset());
+  //       break;
+  //     }
+  //     case dnn_lib::ElemKind::Int32QTy: {
+  //       auto *data = reinterpret_cast<int32_t *>(getData());
+  //       std::fill(&data[0], &data[0] + size, (int32_t)type_.getOffset());
+  //       break;
+  //     }
+  // #define FUSED_CASE(ELEM_KIND, DATA_TYPE)  case dnn_lib::ElemKind::ELEM_KIND: break
+  //     /* FUSED_CASE(dnn_lib::ElemKind::UInt8FusedQTy, float);       */
+  //     /* FUSED_CASE(dnn_lib::ElemKind::UInt8FusedFP16QTy, float16_t); */
+  // #undef FUSED_CASE
+  //      default:
+  //       // Non-quantized tensors are set to 0.
+  //        for(dim_t i = 0; i < (size * type_.getElementSize()); i++) {
 
-//        }
+  //        }
 
-//       break;
-//     }
+  //       break;
+  //     }
 
-//   }
+  //   }
 
   /*@brief Get number of dimensions the tensor has
    */
@@ -493,19 +512,23 @@ class LibTensor final {
 
   /*@brief returns the dimensions (padded with 1 until max_tensor_dimensions)
    */
-  const dim_array_t &dims() const { return type_.sizes_;}
+  const dim_array_t& dims() const {
+    return type_.sizes_;
+  }
 
   /*@brief returns the strides (padded with 0 until max_tensor_dimensions)
    */
-  const dim_array_t &strides() const { return type_.strides_;}
+  const dim_array_t& strides() const {
+    return type_.strides_;
+  }
 
   /*@brief returns strides as if there were no padding
    */
   dim_array_t stridesNoPadding() const {
     dim_array_t v;
-    v[ndims()-1] = 1;
-    for (int64_t i = ndims()-2; i >=0; i--){
-      v[i] = v[i+1] * dims()[i+1];
+    v[ndims() - 1] = 1;
+    for (int64_t i = ndims() - 2; i >= 0; i--) {
+      v[i] = v[i + 1] * dims()[i + 1];
     }
     return v;
   }
@@ -513,50 +536,58 @@ class LibTensor final {
   /*@brief returns the number of real menaingful elements in the tensor. Does
    *not take strides into account.
    */
-  dim_t size() const { return type_.size(); }
+  dim_t size() const {
+    return type_.size();
+  }
 
   /*@brief returns the actaul number of elements in the tensor taking stridding
    *into account. Since size() does not take striding into account, size() is
    *always <= actualSize(),
    */
-  dim_t actualSize() const { return type_.actualSize(); }
+  dim_t actualSize() const {
+    return type_.actualSize();
+  }
 
   /*@brief returns the number of bytes required to store the tensor based on its
    *Type. Note that this includes the size required for padding.
    */
-  uint64_t getSizeInBytes() const { return type_.getSizeInBytes(); }
+  uint64_t getSizeInBytes() const {
+    return type_.getSizeInBytes();
+  }
 
-  //constructor for quant types
-  template<size_t numSizes>
-  LibTensor(dnn_lib::ElemKind elk, void * const rawdata, const std::array<dim_t, numSizes> &dims,
-            const std::array<dim_t, numSizes> &pitches, const bool untouch, const float scale, const int offset)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(elk, dims, pitches, scale, offset),
-      untouch_(untouch) {}
+  // constructor for quant types
+  template <size_t numSizes>
+  LibTensor(dnn_lib::ElemKind elk, void* const rawdata, const std::array<dim_t, numSizes>& dims,
+            const std::array<dim_t, numSizes>& pitches, const bool untouch, const float scale, const int offset)
+    : ptrData_(reinterpret_cast<char*>(rawdata))
+    , type_(elk, dims, pitches, scale, offset)
+    , untouch_(untouch) {
+  }
 
   // constructor for non quant types
-  template<size_t numSizes>
-  LibTensor(dnn_lib::ElemKind elk, void * const rawdata, const std::array<dim_t, numSizes> &dims,
-            const std::array<dim_t, numSizes> &pitches, const bool untouch)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(elk, dims, pitches),
-      untouch_(untouch) {}
+  template <size_t numSizes>
+  LibTensor(dnn_lib::ElemKind elk, void* const rawdata, const std::array<dim_t, numSizes>& dims,
+            const std::array<dim_t, numSizes>& pitches, const bool untouch)
+    : ptrData_(reinterpret_cast<char*>(rawdata))
+    , type_(elk, dims, pitches)
+    , untouch_(untouch) {
+  }
 
   // constructor from type
-  LibTensor(const Type &type, void * const rawdata, const bool untouch)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(type),
-      untouch_(untouch) {}
+  LibTensor(const Type& type, void* const rawdata, const bool untouch)
+    : ptrData_(reinterpret_cast<char*>(rawdata))
+    , type_(type)
+    , untouch_(untouch) {
+  }
 
-  LibTensor(const Type &&type, void * const rawdata, const bool untouch)
-    : ptrData_(reinterpret_cast<char*>(rawdata)),
-      type_(std::move(type)),
-      untouch_(untouch) {}
-
+  LibTensor(const Type&& type, void* const rawdata, const bool untouch)
+    : ptrData_(reinterpret_cast<char*>(rawdata))
+    , type_(std::move(type))
+    , untouch_(untouch) {
+  }
 
   // LibTensor(const LibTensor &other) = delete;
   // LibTensor &operator=(const LibTensor &other) = delete;
-
 
   /*@brief return a new handle that points and manages this tensor.
    */
@@ -566,13 +597,12 @@ class LibTensor final {
     return Handle<ElemTy>(this);
   }
 
-  template <class ElemTy> const Handle<ElemTy> getHandle() const & {
+  template <class ElemTy> const Handle<ElemTy> getHandle() const& {
     //@TODO check Elemty type_.isType<ElemType>() handle to wrong type.
     return Handle<ElemTy>(const_cast<LibTensor*>(this));
   }
 
   template <class ElemTy = float> Handle<ElemTy> getHandle() && = delete;
-
 
   /* @brief copy raw data value at ptrData_ buffer tensor given at \p inTensor
    * to the other ptrData_ buffer at (this).
@@ -594,19 +624,23 @@ class LibTensor final {
 
   /*@brief return the raw unsafe pointer to the tensor payload.
    */
-  //TODO: REMOVE if not used  char* getUnsafePtr() const { return getData(); }
-
+  // TODO: REMOVE if not used  char* getUnsafePtr() const { return getData(); }
 
   /*TODO: After re-do sw-2429 (refact operands) are the getters necessary? if not remove them. */
 public:
-  float   getScale() const { return type_.getScale(); }
-  int32_t getOffset() const { return type_.getOffset(); }
-  size_t  getElementSize() const { return type_.getElementSize(); }
-
+  float getScale() const {
+    return type_.getScale();
+  }
+  int32_t getOffset() const {
+    return type_.getOffset();
+  }
+  size_t getElementSize() const {
+    return type_.getElementSize();
+  }
 
   /*@brief returns a pointer to the raw data, of type \p ElemTy.
    */
-  template<class ElemTy>  ElemTy *getRawDataPointer() {
+  template <class ElemTy> ElemTy* getRawDataPointer() {
     //@TODO check Elemty is type_.isType<>()
     constexpr auto alignment = std::alignment_of<ElemTy>::value;
     assert(uintptr_t(ptrData_) % alignment == 0);
@@ -615,12 +649,11 @@ public:
 
   /*@brief returns a const pointer to the raw data, of type \p ElemTy.
    */
-  template<class ElemTy> const ElemTy *getRawDataPointer() const {
+  template <class ElemTy> const ElemTy* getRawDataPointer() const {
     constexpr auto alignment = std::alignment_of<ElemTy>::value;
     assert(uintptr_t(ptrData_) % alignment == 0);
     return reinterpret_cast<ElemTy*>(__builtin_assume_aligned(ptrData_, alignment));
   }
-
 
   // returns offset and maxRead (in number of elements)
   void partitionCL(const uint64_t minionId, const unsigned activeMinions, dim_t& offset, dim_t& maxRead) const {
@@ -664,8 +697,8 @@ public:
     maxRead = CLperMin - mask;
 #endif
 
-    offset*=CACHE_LINE_BYTES / elementSize;
-    maxRead*=CACHE_LINE_BYTES / elementSize;
+    offset *= CACHE_LINE_BYTES / elementSize;
+    maxRead *= CACHE_LINE_BYTES / elementSize;
 
     if (minionId == 0) {
       maxRead += onlyMin0 / elementSize;
@@ -689,17 +722,16 @@ public:
     return coords;
   }
 
-
-  void evict(uint64_t dst, size_t offset, size_t count) const{
+  void evict(uint64_t dst, size_t offset, size_t count) const {
 #ifdef __riscv
     FENCE;
     const size_t typeSize = getElementSize();
     size_t cl = (count * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     assert(cl > 0);
     uintptr_t addr = reinterpret_cast<uintptr_t>(getAddress()) + typeSize * offset;
-    while(cl > 16) {
+    while (cl > 16) {
       cache_ops_evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
-      addr += (CACHE_LINE_BYTES*16);
+      addr += (CACHE_LINE_BYTES * 16);
       cl -= 16;
     }
     if (cl > 0)
@@ -935,28 +967,26 @@ public:
       std::make_index_sequence<2>{}, compute, std::forward<computeArgs_t>(computeArgs)...);
   }
 
-}; //end LibTensorBase class
-
-
+}; // end LibTensorBase class
 
 /*@brief Convert to flattened 1d offset given \p indices.
  *
  *@param[inout] indices keeps the coords of the element
  *@return
  */
-template<size_t N>
-INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices, const dim_array_t &strides) {
+template <size_t N>
+INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N>& indices, const dim_array_t& strides) {
   /*@TODO check indices size isn't bigger than strides*/
-  //assert(indices.size() <= strides.size());
+  // assert(indices.size() <= strides.size());
   size_t r = 0;
-  for (size_t i = 0 ; i < N; i++) r+=indices[i] * strides[i];
+  for (size_t i = 0; i < N; i++)
+    r += indices[i] * strides[i];
   return r;
 }
 
-template<size_t N>
-INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices,
-                                     const dim_array_t &strides,
-                                     const dim_array_t &extStrides, size_t ndx) {
+template <size_t N>
+INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N>& indices, const dim_array_t& strides,
+                                      const dim_array_t& extStrides, size_t ndx) {
 
   size_t r = 0;
   for (size_t i = 0; i < N; i++) {
@@ -965,22 +995,22 @@ INLINE_ATTR size_t getFlattenedOffset(const std::array<dim_t, N> &indices,
     else
       r += indices[i] * strides[i];
   }
-   return r;
+  return r;
 }
 
 #include "LibTensorIterator.h"
 
 template <class ElemTy> class Handle final {
 
-   /*brief pointer to the tensor that this handle wraps.
-    */
-  LibTensor * const tensor_;
+  /*brief pointer to the tensor that this handle wraps.
+   */
+  LibTensor* const tensor_;
 
-   /*@brief It has the mult of the sizes for each position to end.
-    */
-  const dim_array_t &strides_ __attribute__((aligned(8)));
+  /*@brief It has the mult of the sizes for each position to end.
+   */
+  const dim_array_t& strides_ __attribute__((aligned(8)));
 
-  const dim_array_t &sizes_  __attribute__((aligned(8)));
+  const dim_array_t& sizes_ __attribute__((aligned(8)));
 
   /*@brief the number of dimensions used in the tensor.
    */
@@ -990,11 +1020,18 @@ public:
   using iterator = HandleIterator<ElemTy>;
   friend class HandleIterator<ElemTy>;
 
-  const iterator begin() { return iterator(*this);}
-  const iterator end() { return iterator(*this, sizes_[0]*strides_[0], sizes_);}
-  iterator getIterator(size_t offset) { return iterator(*this, offset);}
-  iterator getIterator(const dim_array_t &coords) { return iterator(*this, coords);}
-
+  const iterator begin() {
+    return iterator(*this);
+  }
+  const iterator end() {
+    return iterator(*this, sizes_[0] * strides_[0], sizes_);
+  }
+  iterator getIterator(size_t offset) {
+    return iterator(*this, offset);
+  }
+  iterator getIterator(const dim_array_t& coords) {
+    return iterator(*this, coords);
+  }
 
   /*@brief Calculate the index for a specific element in the tensor.
    *
@@ -1002,14 +1039,12 @@ public:
    * dimensions as tensor to be acessed.
    *@return flattened 1D element position.
    */
-  template<size_t N>
-  size_t getElementPtr(const std::array<dim_t, N> &indices) const {
+  template <size_t N> size_t getElementPtr(const std::array<dim_t, N>& indices) const {
     return getFlattenedOffset(indices, strides_);
   }
 
-  template<size_t N>
-  size_t getElementPtr(const std::array<dim_t, N> &indices,
-                      const dim_array_t &extStrides, size_t ndx) const {
+  template <size_t N>
+  size_t getElementPtr(const std::array<dim_t, N>& indices, const dim_array_t& extStrides, size_t ndx) const {
     return getFlattenedOffset(indices, strides_, extStrides, ndx);
   }
 
@@ -1027,46 +1062,53 @@ public:
     return R % sizes_[dim];
   }
 
-   /*@brief returns the type of the tensor.
-    */
-   const Type& getType() const { return tensor_->getType(); }
+  /*@brief returns the type of the tensor.
+   */
+  const Type& getType() const {
+    return tensor_->getType();
+  }
 
-   /*@brief returns the element type of the tensor.
-    */
-   ElemKind getElementType() const { return tensor_->getElementType(); }
+  /*@brief returns the element type of the tensor.
+   */
+  ElemKind getElementType() const {
+    return tensor_->getElementType();
+  }
 
-   /*@brief Construct a Tensor handle.
-    */
-   Handle(LibTensor* tensor)
-     : tensor_(tensor)
-     , strides_(tensor->strides())
-     , sizes_(tensor->dims())
-     , numDims_(tensor->ndims()) {
-   }
+  /*@brief Construct a Tensor handle.
+   */
+  Handle(LibTensor* tensor)
+    : tensor_(tensor)
+    , strides_(tensor->strides())
+    , sizes_(tensor->dims())
+    , numDims_(tensor->ndims()) {
+  }
 
-   /*@brief returns the number of elements in the whole tensor.
-    */
-   dim_t size() const { return tensor_->size(); }
+  /*@brief returns the number of elements in the whole tensor.
+   */
+  dim_t size() const {
+    return tensor_->size();
+  }
 
-   /*@brief returns the number of elements in the tensor taking striding/pitches
-    *into account. Since size() does not take striding into account, size() is
-    *always <= actualSize():
-    */
-   dim_t actualSize() const { return tensor_->actualSize(); }
+  /*@brief returns the number of elements in the tensor taking striding/pitches
+   *into account. Since size() does not take striding into account, size() is
+   *always <= actualSize():
+   */
+  dim_t actualSize() const {
+    return tensor_->actualSize();
+  }
 
-   /*@brief check if given \p indices is into the dims_ bounds.
-    *
-    *@param[inout] indices
-    *@return true if indices is into the bounds.
-    */
-   /* bool isInBounds(dim_t* indices) const { */
-   /*   return tensor_->isInBounds(indices); */
-   /* } */
+  /*@brief check if given \p indices is into the dims_ bounds.
+   *
+   *@param[inout] indices
+   *@return true if indices is into the bounds.
+   */
+  /* bool isInBounds(dim_t* indices) const { */
+  /*   return tensor_->isInBounds(indices); */
+  /* } */
   // template<std::size_t sz>
   // bool isInBounds(std::array<dim_t, sz>& indices) const {
   //   return tensor_->isInBounds(indices);
   // }
-
 
   void clear(ElemTy value = 0) {
     std::fill(this->begin(), this->end(), value);
@@ -1078,48 +1120,212 @@ public:
   /*@brief return reference to a meaningful data element. This method skip
    *padding elements.
    */
-  template<size_t N>
-  ElemTy &at(std::array<dim_t, N> indices) {
+  template <size_t N> ElemTy& at(std::array<dim_t, N> indices) {
     size_t index = getElementPtr(indices);
-    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    auto* data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
 
-  template<size_t N>
-  const ElemTy &at(std::array<dim_t, N> indices) const {
+  template <size_t N> const ElemTy& at(std::array<dim_t, N> indices) const {
     size_t index = getElementPtr(indices);
-    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    auto* data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
 
   /*@brief specific case use strides from outside of tensor */
-  template<size_t N>
-  ElemTy &at(std::array<dim_t, N> indices, const dim_array_t &extStrides,
-            size_t ndx) {
+  template <size_t N> ElemTy& at(std::array<dim_t, N> indices, const dim_array_t& extStrides, size_t ndx) {
     size_t index = getElementPtr(indices, extStrides, ndx);
-    auto *data = tensor_->getRawDataPointer<ElemTy>();
+    auto* data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
 
   /*@brief returns the element at position offset \p idx without any size
    * of calculation. The returned element can be a pad element.*/
-  ElemTy &raw(size_t index) {
-    auto *data = tensor_->getRawDataPointer<ElemTy>();
+  ElemTy& raw(size_t index) {
+    auto* data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
 
   /*@brief returns the element at position offset \p idx without any size
    * of calculation. The returned element can be a pad element.*/
-  const ElemTy &raw(size_t index) const {
-    auto *data = tensor_->getRawDataPointer<ElemTy>();
+  const ElemTy& raw(size_t index) const {
+    auto* data = tensor_->getRawDataPointer<ElemTy>();
     return data[index];
   }
 
-  float getScale(void) {return tensor_->getScale();}
-  int32_t getOffset(void) {return tensor_->getOffset();}
+  float getScale(void) {
+    return tensor_->getScale();
+  }
+  int32_t getOffset(void) {
+    return tensor_->getOffset();
+  }
 
-}; //end Handle class
+}; // end Handle class
 
+// returns offset and maxRead (in number of elements)
+template <size_t bytesPerElement>
+INLINE_ATTR void partitionCL(uintptr_t address, dim_t sizeInBytes, const uint64_t minionId,
+                             const unsigned activeMinions, dim_t& offset, dim_t& maxRead) {
+
+  size_t onlyMin0;   // elements only for minion0 (e.g. unaligned bytes)
+  size_t firstSpare; // first minion with 1 CL less
+  size_t CLperMin;   // CL to process per minion
+
+  // if less that 1 CL... all to min0
+  if (sizeInBytes <= CACHE_LINE_BYTES) {
+    onlyMin0 = sizeInBytes;
+    firstSpare = 0;
+    CLperMin = 0;
+  } else {
+    // get number of non aligned elements, and subtract from the total size
+    // these unaligned elements will be processed by minion 0
+    onlyMin0 = (CACHE_LINE_BYTES - static_cast<size_t>(address) % CACHE_LINE_BYTES) % CACHE_LINE_BYTES;
+    int64_t aligned = sizeInBytes - onlyMin0;
+
+    // total number of involved CL
+    size_t inCL = (aligned + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    // CL per minion
+    CLperMin = inCL / activeMinions;
+    // and minions with 1 CL lss
+    firstSpare = inCL - CLperMin * activeMinions;
+  }
+
+#if 1
+  if (minionId < firstSpare) {
+    offset = (CLperMin + 1) * minionId;
+    maxRead = CLperMin + 1;
+  } else {
+    offset = CLperMin * minionId + firstSpare;
+    maxRead = CLperMin;
+  }
+#else // same as above, but avoiding branches
+  // mask is 0 if minionId >= firstSpare, 0xffff...fff (-1) if minionId < firstSpare
+  uint64_t mask = static_cast<int64_t>(minionId - firstSpare) >> 63;
+  offset = CLperMin * minionId + (minionId & mask) + (~mask & firstSpare);
+  maxRead = CLperMin - mask;
+#endif
+
+  offset *= CACHE_LINE_BYTES / bytesPerElement;
+  maxRead *= CACHE_LINE_BYTES / bytesPerElement;
+
+  if (minionId == 0) {
+    maxRead += onlyMin0 / bytesPerElement;
+  } else {
+    offset += onlyMin0 / bytesPerElement;
+  }
+
+  // Prevents going beyond the tensor limits (this can actually happen for the
+  // last minion) and overwrite other valid data
+  maxRead = std::min<dim_t>(maxRead, (sizeInBytes / bytesPerElement) - offset);
 }
+
+template <size_t bytesPerElement>
+INLINE_ATTR void evict(uintptr_t address, uint64_t dst, size_t offset, size_t allocationSizeElements) {
+  FENCE;
+  size_t allocationBytes = allocationSizeElements * bytesPerElement;
+  size_t cl = (allocationBytes + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  assert(cl > 0);
+  uintptr_t addr = address + bytesPerElement * offset;
+  while (cl > 16) {
+    cache_ops_evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
+    addr += (CACHE_LINE_BYTES * 16);
+    cl -= 16;
+  }
+  if (cl > 0)
+    cache_ops_evict_va(0, dst, addr, cl - 1, CACHE_LINE_BYTES, 0);
+}
+
+template <size_t bytesPerElement>
+INLINE_ATTR void evict(uintptr_t address, size_t allocationSizeElements, uint64_t dst) {
+  evict<bytesPerElement>(address, dst, 0, allocationSizeElements);
+}
+
+#define DISPATCHER(TEMPL_ARGS, NAME, FUNCTOR)                                                                          \
+  template <TEMPL_ARGS typename dstTensorType, typename dstType, typename... srcTensorTypes, typename... srcTypes,     \
+            size_t... idx, typename... computeArgs_t>                                                                  \
+  INLINE_ATTR void NAME(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,           \
+                        dstTensorType* outTensor, const dstType&, const std::tuple<srcTensorTypes*...>& inTensors,     \
+                        const std::tuple<srcTypes...>&, const std::index_sequence<idx...>&,                            \
+                        computeArgs_t&&... computeArgs) {                                                              \
+                                                                                                                       \
+    constexpr size_t step = 8;                                                                                         \
+    constexpr size_t nrInputs = sizeof...(srcTensorTypes);                                                             \
+                                                                                                                       \
+    static_assert(nrInputs == sizeof...(srcTypes) && nrInputs == sizeof...(idx));                                      \
+                                                                                                                       \
+    dim_t first; /* first element in raw array to process*/                                                            \
+    dim_t count; /* nr  elements in to process (will be in multiples of CL) */                                         \
+    const uintptr_t address = reinterpret_cast<uintptr_t>(outTensor->getAddress());                                    \
+    const dim_t sizeInBytes = outTensor->getSizeInBytes();                                                             \
+    partitionCL<sizeof(dstType)>(address, sizeInBytes, minionId, activeMinions, first, count);                         \
+                                                                                                                       \
+    if (unlikely(count == 0))                                                                                          \
+      return; /* minion has no work to do*/                                                                            \
+                                                                                                                       \
+    /* setup */                                                                                                        \
+    const dim_t N = outTensor->ndims();                                                                                \
+    \    
+    const dim_t lastDim = outTensor->dims()[N - 1];                                                                    \
+    const dim_t endOffset = first + count;                                                                             \
+    const auto srcPs = std::make_tuple(std::get<idx>(inTensors)->template getRawDataPointer<srcTypes>()...);           \
+    auto* const dstP = outTensor->template getRawDataPointer<dstType>();                                               \
+                                                                                                                       \
+    if (N == 1) {                                                                                                      \
+      /* Just 1 dim, and offset in elements is the same for all the tensors*/                                          \
+      dim_t offset = first;                                                                                            \
+      while (offset < endOffset) {                                                                                     \
+        dim_t elems = step;                                                                                            \
+        elems = std::min<dim_t>(elems, lastDim - offset);                                                              \
+        elems = std::min<dim_t>(elems, endOffset - offset);                                                            \
+        FUNCTOR(reinterpret_cast<uintptr_t>(dstP + offset),                                                            \
+                reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + offset)..., elems, computeArgs...);                 \
+        offset += step;                                                                                                \
+      }                                                                                                                \
+    } else {                                                                                                           \
+      /* Loop for more than 1 dim */                                                                                   \
+                                                                                                                       \
+      /* get iterators to loop through all the dimensions except the last one*/                                        \
+      auto out = outTensor->template getHandle<dstType>().getIterator(first);                                          \
+      dim_t oOffset = out.offset();                                                                                    \
+      auto in =                                                                                                        \
+        std::make_tuple(std::get<idx>(inTensors)->template getHandle<srcTypes>().getIterator(out.coords())...);        \
+      std::array<dim_t, nrInputs> iOffsets = {(std::get<idx>(in)).offset()...};                                        \
+                                                                                                                       \
+      if (out.coords()[N - 1] != 0) {                                                                                  \
+        /* First iterate until completing the first feature dimension (in case initial coordinates are in the middle   \
+         * of*/                                                                                                        \
+        /* the row */                                                                                                  \
+        size_t stop = std::min(lastDim - out.coords()[N - 1], endOffset - oOffset);                                    \
+        for (size_t i = 0; i < stop; i += step) {                                                                      \
+          /* Clips min values */                                                                                       \
+          dim_t elems = std::min<dim_t>(step, stop - i);                                                               \
+          FUNCTOR(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)),                                                   \
+                  reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + (iOffsets[idx] + i))..., elems, computeArgs...);  \
+        }                                                                                                              \
+        out += stop;                                                                                                   \
+        (std::get<idx>(in).operator+=(stop), ...);                                                                     \
+      }                                                                                                                \
+                                                                                                                       \
+      /* Then, complete the remaining iterations*/                                                                     \
+      for (; out.offset() < endOffset;                                                                                 \
+           out.step(N - 2), (std::get<idx>(in).step(N - 2), ...)) { /* step 2n outer dimension */                      \
+        assume(out.coords()[N - 1] == 0);                                                                              \
+                                                                                                                       \
+        oOffset = out.offset();                                                                                        \
+        iOffsets = {(std::get<idx>(in)).offset()...};                                                                  \
+        size_t stop = std::min(lastDim, endOffset - oOffset);                                                          \
+        for (size_t i = 0; i < stop; i += step) {                                                                      \
+          /* Clips min values */                                                                                       \
+          dim_t elems = std::min<dim_t>(step, stop - i);                                                               \
+          FUNCTOR(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)),                                                   \
+                  reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + (iOffsets[idx] + i))..., elems, computeArgs...);  \
+        }                                                                                                              \
+      }                                                                                                                \
+    }                                                                                                                  \
+                                                                                                                       \
+    evict<sizeof(dstType)>(DO_EVICTS, first, count);                                                                   \
+  }
+
+} // namespace dnn_lib
 
 #endif // _LIB_TENSOR_H_
