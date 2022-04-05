@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/home/abel/work/repo/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/home/cgomez/repos/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1232,16 +1232,19 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     3,  // # ins
     {}, // members
     5, // template param mask
-    {}, // impl versions
-    implSel::defaultSel<1>, // custom impl selector
+    {"Threaded"}, // impl versions
+    implSel::SparseLengthsSum, // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
-    {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0}, // evict available mask
-    {0x0}  // global store mask
+    {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched},
+        {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   },
 
   // ET_sparselengthsweightedsum
