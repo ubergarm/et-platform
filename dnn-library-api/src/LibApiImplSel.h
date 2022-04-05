@@ -80,6 +80,11 @@ public:
   //   1: Vectorized
   static size_t LocalResponseNormalization(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
 
+  // Best implementation selector for operator LocalResponseNormalization. Return values are:
+  //   0: base implementation (threaded)
+  //   1: Threaded
+  static size_t SparseLengthsSum(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
+
   // Best implementation selector for operator SparseLengthsWeightedSum. Return values are:
   //   0: base implementation
   //   1: Threaded
