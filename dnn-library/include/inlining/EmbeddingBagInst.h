@@ -106,12 +106,12 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
                             uint8_t* tAInput, int64_t* indices, uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
                             uint8_t* tWInput, uint8_t* dst_ptr, bool destAlignedVreg) {
 
-  const bool float32Dst = (elK == FloatTy);
-  const bool float16Dst = (elK == Float16Ty);
+  constexpr bool float32Dst = (elK == FloatTy);
+  constexpr bool float16Dst = (elK == Float16Ty);
 
-  assert(elK == FloatTy || elK == Float16Ty);
+  static_assert(elK == FloatTy || elK == Float16Ty);
 
-  const uintptr_t elemSize = float32Dst ? 4 : 2;
+  constexpr uintptr_t elemSize = float32Dst ? 4 : 2;
 
   // Clear vector accumulator at the start.
   __asm__ __volatile__ (
@@ -209,11 +209,12 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
                                                                 uint64_t flags, const uint32_t minionOffset = 0,
                                                                 const uint32_t assignedMinions = 0) {
 
-  const bool float32Dst = (elK == FloatTy);
-  const bool float16Dst = (elK == Float16Ty);
+  constexpr bool float32Dst = (elK == FloatTy);
+  constexpr bool float16Dst = (elK == Float16Ty);
 
-  assert(elK == FloatTy || elK == Float16Ty);
-
+  static_assert(elK == FloatTy || elK == Float16Ty);
+  // Get size of the output element.
+  const uintptr_t elemSize = float32Dst ? 4 : 2;
   // Get first ID for the first minion assigned to this operation.
   uint64_t minionId = get_minion_id();
 
@@ -250,9 +251,6 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   // Compute the number of elements per data row (first tensor dimension).
   const uintptr_t dstRowElemSize = outT->dims()[1];  
   
-  // Get size of the output element.
-  const uintptr_t elemSize = float32Dst ? 4 : 2;
-
   // Assign work to Minions :
   //
   // NOTE: Each Minion gets assigned at least an output cache line for
@@ -325,8 +323,8 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   // Need both the dest starting address being VReg aligned as well as the pitch for
   // the smallest dimension
   // The padding must be touchable or the number of elements multiple of Vreg size
-  bool destAlignedVreg = (((uint64_t)tOutput % VREG_BYTES) == 0) &&
-                         (((uint64_t)outT->strides()[0] % dstVRegElems) == 0) &&
+  const auto outputStrideZeroBytes = outT->strides()[0] * elemSize;
+  bool destAlignedVreg = (((uint64_t)tOutput % VREG_BYTES) == 0) && ((outputStrideZeroBytes % VREG_BYTES) == 0) &&
                          (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstVRegElems) == 0));
 
   // Compute the first output row (segment) assigned to the Minion.
@@ -384,7 +382,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
   uintptr_t minionCurrRowGroup = minionFirstRowGroup;
 
   // Initilize output pointer.
-  auto dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * dstGroupElems * elemSize;
+  auto dst_ptr = tOutput + minionCurrSegment * outputStrideZeroBytes + minionCurrRowGroup * dstGroupElems * elemSize;
 
   // Prepare gather indices
   int32_t gather_offsets16[] = { 0, 2, 4, 6, 8, 10, 12, 14 };
@@ -563,8 +561,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
         }
 
         getNextSegment(minionCurrSegment);
-
-        dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * dstGroupElems * elemSize;
+        dst_ptr = tOutput + minionCurrSegment * outputStrideZeroBytes + minionCurrRowGroup * dstGroupElems * elemSize;
       }
     } else {
       // Initialize mask to clear upper bytes from input load
@@ -599,7 +596,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
 
       getNextSegment(minionCurrSegment);
 
-      dst_ptr = tOutput + minionCurrSegment * outT->strides()[0] * elemSize + minionCurrRowGroup * dstGroupElems * elemSize;
+      dst_ptr = tOutput + minionCurrSegment * outputStrideZeroBytes + minionCurrRowGroup * dstGroupElems * elemSize;
     }
   }
 }
