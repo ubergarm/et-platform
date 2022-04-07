@@ -1160,6 +1160,13 @@ public:
     return tensor_->getOffset();
   }
 
+  float getScale(void) const {
+    return tensor_->getScale();
+  }
+  int32_t getOffset(void) const {
+    return tensor_->getOffset();
+  }
+
 }; // end Handle class
 
 // returns offset and maxRead (in number of elements)

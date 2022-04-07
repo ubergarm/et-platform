@@ -1941,6 +1941,20 @@ public:
     dst.at(p) = res;
   }
 
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(Handle<int8_t>& dst, const Handle<int8_t>& src, uint64_t& d, uint64_t& s) {
+    float res = dequantize<int8_t>(src.raw(s), src.getScale(), src.getOffset());
+    res = erfImpl(res);
+    dst.raw(d) = quantize<int8_t>(res, dst.getScale(), dst.getOffset());
+  }
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementErf>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(Handle<int8_t>& dst, const Handle<int8_t>& src, dim_array_t& p) {
+    float res = dequantize<int8_t>(src.at(p), src.getScale(), src.getOffset());
+    res = erfImpl(res);
+    dst.at(p) = quantize<int8_t>(res, dst.getScale(), dst.getOffset());
+  }
+
   //// Tanh operations ////
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, Tanh>::value, std::size_t>::type = 0>
