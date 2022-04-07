@@ -138,7 +138,7 @@ size_t implSel::SparseLengthsSum([[maybe_unused]] std::vector<LibTensor*>& outTe
 }
 
 size_t implSel::SparseLengthsWeightedSum(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
-  return 1;
+  return 0;
 }
 
 size_t implSel::InsertTensor(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
