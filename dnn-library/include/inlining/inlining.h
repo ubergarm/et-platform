@@ -35,6 +35,7 @@
 #include "ElementSingleInst.h" // From include/inlining path
 #include "EmbeddingBagInst.h" // From include/inlining path
 //#include "EmbeddingBagByteRowwiseOffsetsInst.h" // From include/inlining path
+#include "ETSOCGenericOpInst.h"
 #include "ExtractTensorInst.h" // From include/inlining path
 #include "FlipInst.h" // From include/inlining path
 #include "FullyConnectedInst.h" // From include/inlining path

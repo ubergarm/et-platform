@@ -57,6 +57,7 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagInst.h
 #  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagByteRowwiseOffsetsInst.h"
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ExtractTensorInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ETSOCGenericOpInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FullyConnectedInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsSumInst.h
