@@ -50,8 +50,8 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
   // const Addresser<elK> tValues(pvalues, scale[1], offset[1]);
   const Addresser<elK> tValues(valuesT, in3T->getScale(), in3T->getOffset());
   // int32_t *lengths = (int32_t *)plengths;
-  int32_t *lengths = in2T->getRawDataPointer<int32_t>();
-  
+  uint32_t* lengths = in2T->getRawDataPointer<uint32_t>();
+
   // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
   // unsigned int *dataIndex = (unsigned int *)pdataDims;

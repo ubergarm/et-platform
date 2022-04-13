@@ -47,7 +47,7 @@ fwdLibSparseLengthsSumInst(LibTensor* outT, LibTensor* data, LibTensor* indices,
   auto outH = outT->getHandle<elkType>();
   auto dataH = data->getHandle<elkType>();
   auto idxH = indices->getHandle<idxType>();
-  auto lengthH = length->getHandle<int32_t>();
+  auto lengthH = length->getHandle<uint32_t>();
 
   outH.zero();
 
@@ -111,7 +111,7 @@ INLINE_ATTR
   auto outH = outT->getHandle<elkType>();
   auto dataH = data->getHandle<elkType>();
   auto idxH = indices->getHandle<idxType>();
-  auto lengthH = length->getHandle<int32_t>();
+  auto lengthH = length->getHandle<uint32_t>();
 
   outH.zero();
 
@@ -130,7 +130,7 @@ INLINE_ATTR
   dim_array_t inCoords = {0};
 
   for (size_t i = 0; i < segments; i++, out.step(0), ++len) {
-    for ( int32_t j = 0; j < *len; ++j, ++idx){
+    for (size_t j = 0; j < *len; ++j, ++idx) {
       inCoords[0] = *idx;
       auto dataIn = dataH.getIterator(inCoords);
       auto dataOut = out;
@@ -159,8 +159,8 @@ fwdLibSparseLengthsSumInstThreaded(LibTensor* outT, LibTensor* data, LibTensor* 
   }
 
   assert(data->getElementType() == outT->getElementType() && "Input and Ouput tensor datatypes must the same");
-  assert((indices->getElementType() == Int64ITy) ||
-         (indices->getElementType() == Int32ITy) && "indices datatype must be integer 32/64-bit");
+  assert(((indices->getElementType() == Int64ITy) || (indices->getElementType() == Int32ITy)) &&
+         "indices datatype must be integer 32/64-bit");
   assert(lengths->getElementType() == Int32ITy && "Lenghts datatype must be 32-bit integer");
 
   // Obtain data partition
@@ -177,7 +177,7 @@ fwdLibSparseLengthsSumInstThreaded(LibTensor* outT, LibTensor* data, LibTensor* 
   auto outH = outT->getHandle<elkType>();
   auto dataH = data->getHandle<elkType>();
   auto idxH = indices->getHandle<idxType>();
-  auto lengthH = lengths->getHandle<int32_t>();
+  auto lengthH = lengths->getHandle<uint32_t>();
 
   const dim_t segmentStride = outT->strides()[0];
   const dim_t segments = lengths->dims()[0];
@@ -213,7 +213,7 @@ fwdLibSparseLengthsSumInstThreaded(LibTensor* outT, LibTensor* data, LibTensor* 
   for (size_t s = firstSegment; s <= lastSegment; s++, out.step(0), ++len) {
     size_t startElem = (s == firstSegment) ? firstSegmentBegin : 0;
     size_t lastElem = (s == lastSegment) ? lastSegmentEnd + 1 : numColumns;
-    for (int32_t j = 0; j < *len; j++, ++idx) {
+    for (size_t j = 0; j < *len; j++, ++idx) {
       auto outIt = out;
       dataCoords[0] = *idx;
       auto dataIt = dataH.getIterator(dataCoords); // Iterator to the data row to accumulate
@@ -257,8 +257,8 @@ INLINE_ATTR
   }
 
   assert(data->getElementType() == outT->getElementType() && "Input and Ouput tensor datatypes must the same");
-  assert((indices->getElementType() == Int64ITy) ||
-         (indices->getElementType() == Int32ITy) && "indices datatype must be integer 32/64-bit");
+  assert(((indices->getElementType() == Int64ITy) || (indices->getElementType() == Int32ITy)) &&
+         "indices datatype must be integer 32/64-bit");
   assert(lengths->getElementType() == Int32ITy && "Lenghts datatype must be 32-bit integer");
 
   // Obtain data partition

@@ -151,6 +151,10 @@ target_compile_options(dnn_lib
         -Werror=float-conversion
         -Werror=double-promotion
         -Werror=cast-align
+        -Werror=maybe-uninitialized
+        -Werror=parentheses
+        -Werror=unused-local-typedefs
+        -Werror=sign-compare
 )
 
 target_link_libraries(dnn_lib
