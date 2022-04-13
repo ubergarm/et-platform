@@ -1271,7 +1271,7 @@ INLINE_ATTR void evict(uintptr_t address, size_t allocationSizeElements, uint64_
                                                                                                                        \
     /* setup */                                                                                                        \
     const dim_t N = outTensor->ndims();                                                                                \
-    \    
+                                                                                                                       \
     const dim_t lastDim = outTensor->dims()[N - 1];                                                                    \
     const dim_t endOffset = first + count;                                                                             \
     const auto srcPs = std::make_tuple(std::get<idx>(inTensors)->template getRawDataPointer<srcTypes>()...);           \

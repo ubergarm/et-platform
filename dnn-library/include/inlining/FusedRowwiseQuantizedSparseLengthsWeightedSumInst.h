@@ -682,7 +682,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         "mov.m.x m0, zero, 0xff\n"
       );
 
-      for (int k = 0; k < (dstRowTailVRegs - 1); k++) {
+      for (size_t k = 0; k < (dstRowTailVRegs - 1); k++) {
         fusedRowwiseQuantizedSparseLengthsWeightedSumVect<elK>(
           minionCurrIndex, currSegmentLength, tAInput, indices, dataPitches[0], dataRowSize,
           minionCurrRowGroup * CACHE_LINE_BYTES + k * 8, fusedElemSize, fusedElK, tWInput, dst_ptr, destAligned,

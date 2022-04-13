@@ -65,7 +65,8 @@ INLINE_ATTR void maxSplatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_
   float srcLow, srcHigh;
   load<bytesPerElement, srcAligned>(src, srcConf, srcIndices, srcIndicesHigh, srcLow, srcHigh);
 
-  float resultLow, resultHigh;
+  float resultLow;
+  float resultHigh = 0;
   if constexpr (isAKnownSuitableForMaxInt32) {
     __asm__ __volatile__("fmax.pi %[resultLow], %[srcLow], %[splatLow]\n"
                          : [ resultLow ] "=f"(resultLow)
@@ -114,7 +115,6 @@ template <ElemKind elK, bool srcAligned, bool dstAligned>
 INLINE_ATTR void maxSplatTensor(LibTensor* outT, LibTensor* inT, uint64_t valueBits, uint64_t flags,
                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  using srcType = typename elemKind2elemTy<elK>::type;
 
   unsigned int minionId = get_minion_id() - minionOffset;
   unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
