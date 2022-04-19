@@ -55,17 +55,11 @@ INLINE_ATTR void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T, LibTens
   
   const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
   const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
-  // bool *aDstT = (bool *)dstT;
   bool* aDstT = outT->getRawDataPointer<bool>();
   
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = in1T->dims().data();
-
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
   const dim_t *src1Pitch = in1T->strides().data();
-  // unsigned int *src2Pitch = (unsigned int *)src2Pitches;
   const dim_t *src2Pitch = in2T->strides().data();
 
   dim_t srcDimNum = in1T->ndims();
@@ -139,23 +133,19 @@ INLINE_ATTR void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   size_t minionId = get_minion_id() - minionOffset;
   size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */    
-  void* srcT1 = in1T->getRawDataPointer<void>();
-  void* srcT2 = in2T->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
-  
+
+  /* maintain compatibility through the new Iface Libtensor */
+  auto srcT1 = in1T->getRawDataPointer<void>();
+  auto srcT2 = in2T->getRawDataPointer<void>();
+  auto dstT = outT->getRawDataPointer<void>();
+
   const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
   const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
-  bool *aDstT = outT->getRawDataPointer<bool>();
-  
-  // unsigned int *actIndex = (unsigned int *)srcDims;
+  auto aDstT = outT->getRawDataPointer<bool>();
+
   const dim_t *actIndex = in1T->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *act1Pitch = (unsigned int *)src1Pitches;
   const dim_t *act1Pitch = in1T->strides().data();
-  // unsigned int *act2Pitch = (unsigned int *)src2Pitches;
   const dim_t *act2Pitch = in2T->strides().data();
 
   dim_t srcDimNum = in1T->ndims();
@@ -287,7 +277,7 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
 
   int32_t gatherValues[8];
   for (int i = 0; i < 8; i++) {
-    gatherValues[i] = i * typeSize;
+    gatherValues[i] = static_cast<int32_t>(i * typeSize);
   }
   size_t maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
   size_t elementsInRow, registersInRow, res;

@@ -31,7 +31,7 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags,
+INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, dim_t axis, uint64_t flags,
                                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
@@ -114,7 +114,7 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, uns
 }
 
 template <>
-INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor* inT, unsigned int axis, uint64_t flags,
+INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor* inT, dim_t axis, uint64_t flags,
                                                      const uint32_t minionOffset, const uint32_t assignedMinions) {
   constexpr ElemKind elK = Int8QTy;
 
@@ -146,9 +146,7 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst<Int8QTy>(LibTensor* outT, LibTensor*
   }
 
   dim_array_t offsets = {0};
-
   dim_t k;
-
   dim_t redBatchPitch[pbatchDimNum - 1];
   for (dim_t i = 0; i < pbatchDimNum; i++) {
     if (i < axis) {

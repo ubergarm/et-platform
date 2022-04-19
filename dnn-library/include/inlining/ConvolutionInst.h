@@ -56,7 +56,7 @@ namespace inlining {
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK == FloatTy, std::size_t>::type = 0>
 INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array_t& coord, const dim_t* actPitch,
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
-                               unsigned int inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
+                               dim_t inCperG, float& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N> dilation) {
 
   (void)offset;
@@ -158,7 +158,7 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK == Float16Ty, std::size_t>::type = 0>
 INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array_t& coord, const dim_t* actPitch,
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
-                               unsigned int inCperG, float16& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
+                               dim_t inCperG, float16& sum, int32_t mask, ssize_t x, ssize_t y, ssize_t d,
                                const float* scale, const int32_t* offset, const std::array<uint32_t, N>& dilation) {
   (void)offset;
   (void)scale;
@@ -286,7 +286,7 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array
 template <ElemKind dstElK, size_t N, typename std::enable_if<dstElK != FloatTy, std::size_t>::type = 0>
 INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array_t& coord, const dim_t* actPitch,
                                const dim_t* weightPitch, const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
-                               unsigned int inCperG, float& sum, [[maybe_unused]] int32_t mask, ssize_t x, ssize_t y,
+                               dim_t inCperG, float& sum, [[maybe_unused]] int32_t mask, ssize_t x, ssize_t y,
                                ssize_t d, const float* scale, const int32_t* offset,
                                const std::array<uint32_t, N>& dilation) {
 
@@ -337,7 +337,7 @@ INLINE_ATTR void convolutionOp(void* activations, void* weights, const dim_array
 template <ElemKind dstElK, ElemKind biasElK, size_t N>
 INLINE_ATTR void quantConvolutionOp(void* activations, void* weights, void* bias, void* output, size_t offsetOut,
                                     const dim_array_t& coord, const dim_t* actPitch, const dim_t* weightPitch,
-                                    const dim_t* actIndex, const std::array<uint32_t, N>& kernels, unsigned int inCperG,
+                                    const dim_t* actIndex, const std::array<uint32_t, N>& kernels, dim_t inCperG,
                                     [[maybe_unused]] int32_t mask, ssize_t x, ssize_t y, ssize_t d, const float* scale,
                                     const int32_t* offset, const std::array<uint32_t, N>& dilation) {
 
@@ -471,8 +471,8 @@ template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t FN>
 INLINE_ATTR void
 convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                          const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
-                         const std::array<uint32_t, PN>& pads, unsigned int group,
-                         const std::array<uint32_t, N>& dilation, [[maybe_unused]] const size_t fusedActivation,
+                         const std::array<uint32_t, PN>& pads, dim_t group, const std::array<uint32_t, N>& dilation,
+                         [[maybe_unused]] const size_t fusedActivation,
                          [[maybe_unused]] const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
                          const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
@@ -482,10 +482,10 @@ convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibT
   if (minionId >= activeMinions)
     return;
 
-  void* output = outT->getRawDataPointer<void>();
-  void* activations = in1T->getRawDataPointer<void>();
-  void* weights = in2T->getRawDataPointer<void>();
-  void* bias = in3T->getRawDataPointer<void>();
+  auto output = outT->getRawDataPointer<void>();
+  auto activations = in1T->getRawDataPointer<void>();
+  auto weights = in2T->getRawDataPointer<void>();
+  auto bias = in3T->getRawDataPointer<void>();
 
   const dim_t* dstIndex = outT->dims().data();
   const dim_t* actIndex = in1T->dims().data();
@@ -580,8 +580,8 @@ template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t FN>
 INLINE_ATTR void
 convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                             const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
-                            const std::array<uint32_t, PN>& pads, unsigned int group,
-                            const std::array<uint32_t, N>& dilation, [[maybe_unused]] const size_t fusedActivation,
+                            const std::array<uint32_t, PN>& pads, dim_t group, const std::array<uint32_t, N>& dilation,
+                            [[maybe_unused]] const size_t fusedActivation,
                             [[maybe_unused]] const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
                             const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
@@ -619,8 +619,8 @@ convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, L
 
   assert(actIndex[3] % group == 0 && "Input channels must be divisible by group.");
   assert(dstIndex[3] % group == 0 && "Output channels must be divisible by group.");
-  auto inCperG = actIndex[3] / group;
-  auto outCperG = dstIndex[3] / group;
+  dim_t inCperG = actIndex[3] / group;
+  dim_t outCperG = dstIndex[3] / group;
 
   dim_t eDstPitch[5] = {dstPitch[0], dstPitch[1], dstPitch[2], outCperG, 1};
 
@@ -692,7 +692,7 @@ convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, L
 template <ElemKind dstElK, ElemKind biasElK, size_t N, size_t PN, size_t FN>
 INLINE_ATTR void fwdLibConvolutionInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T,
                                        const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
-                                       const std::array<uint32_t, PN>& pads, unsigned int group,
+                                       const std::array<uint32_t, PN>& pads, dim_t group,
                                        const std::array<uint32_t, N>& dilation, const size_t fusedActivation,
                                        const std::array<float, FN>& fusedActivationArgs, uint64_t flags,
                                        const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {

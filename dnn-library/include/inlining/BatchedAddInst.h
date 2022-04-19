@@ -39,7 +39,6 @@ INLINE_ATTR void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T, L
   size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   auto* dstT = outT->getRawDataPointer<void>();
   auto* batchT = in1T->getRawDataPointer<void>();
@@ -114,18 +113,12 @@ INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, Lib
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */
   void *dstT = outT->getRawDataPointer<void>();
-  
-  // int8_t *tOutput = (int8_t *)pdst;
-  int8_t *tOutput = outT->getRawDataPointer<int8_t>();
-  //  int8_t *tBatch = (int8_t *)pbatch;   // scale[0],offset[0]);
-  int8_t *tBatch = in1T->getRawDataPointer<int8_t>();
-  //  int32_t *tSlice = (int32_t *)pslice; // scale[1]
-  int32_t *tSlice = in2T->getRawDataPointer<int32_t>();
-  //  unsigned int *dstIndex = (unsigned int *)pdstDims;
+
+  auto tOutput = outT->getRawDataPointer<int8_t>();
+  auto tBatch = in1T->getRawDataPointer<int8_t>();
+  auto tSlice = in2T->getRawDataPointer<int32_t>();
   const dim_t *dstIndex = outT->dims().data();
-  //  unsigned int *dstPitch = (unsigned int *)pdstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  //  unsigned int *batchPitch = (unsigned int *)pbatchPitches;
   const dim_t *batchPitch = in1T->strides().data();
   const dim_t *slicePitch = in2T->strides().data();
 
@@ -139,7 +132,6 @@ INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, Lib
   getReciprocal(invLargeScale, largeScale);
 
   size_t numElemsDst = dstPitch[0] * dstIndex[0];
-
   size_t initialAddr, maxRead;
   getCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);

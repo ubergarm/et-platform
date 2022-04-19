@@ -43,9 +43,9 @@ INLINE_ATTR void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t 
   }
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* srcT = inT->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
- 
+  auto srcT = inT->getRawDataPointer<void>();
+  auto dstT = outT->getRawDataPointer<void>();
+
   Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   const Addresser<srcElK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());
   
@@ -53,10 +53,9 @@ INLINE_ATTR void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t 
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *srcPitch = inT->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int numElemsDst =
-      dstPitch[0] * srcIndex[0]; // Total number of elements in the tensor
+  dim_t srcDimNum = inT->ndims();
+
+  size_t numElemsDst = dstPitch[0] * srcIndex[0]; // Total number of elements in the tensor
 
   // We give to each minion an initial address the number of positions that it
   // must work on (maxRead).
