@@ -65,63 +65,66 @@ INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std:
                                      const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void *dst = outT->getRawDataPointer<void *>();
-  void *src = inT->getRawDataPointer<void *>();
-  
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  auto dst = outT->getRawDataPointer<void*>();
+  auto src = inT->getRawDataPointer<void*>();
+
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  dim_t srcDimNum = inT->ndims();
+
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dst);
   if (maxRead == 0)
     return;
 
-  unsigned int newPitch[srcDimNum];
-  for (unsigned int i = 0; i < srcDimNum; i++)
+  dim_t newPitch[srcDimNum];
+  for (dim_t i = 0; i < srcDimNum; i++)
     newPitch[i] = actPitch[shuffle[i]];
 
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex, k);
 
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
+  for (size_t j = 0; j < k; j++) {
     offsetIn += newPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
-  unsigned int posMax = maxRead + initialAddr;
+  size_t posMax = maxRead + initialAddr;
   bool done = false;
-  unsigned int lastDim = srcDimNum - 1;
+  dim_t lastDim = srcDimNum - 1;
 
   lastDim += (srcDimNum == 1);
   coord[0] *= (srcDimNum != 1);
 
-  unsigned int newPitchSize = newPitch[lastDim] * typeSize;
+  size_t newPitchSize = newPitch[lastDim] * typeSize;
   int32_t gatherValues[8];
-  for (unsigned int i = 0; i < 8; i++) gatherValues[i] = i*newPitchSize;
-  unsigned int dstPitchSize = dstPitch[lastDim] * typeSize;
+  for (size_t i = 0; i < 8; i++) {
+    gatherValues[i] = static_cast<int32_t>(i * newPitchSize);
+  }
+
+  size_t dstPitchSize = dstPitch[lastDim] * typeSize;
   int32_t scatterValues[8];
-  for (unsigned int i = 0; i < 8; i++) scatterValues[i] = i*dstPitchSize;
+  for (size_t i = 0; i < 8; i++) {
+    scatterValues[i] = static_cast<int32_t>(i * dstPitchSize);
+  }
 
   // Work pending to be done
   while (!done && (offsetOut < posMax)) {
     // Compute number of elements in current row
-    int elementsInRow = dstIndex[lastDim] - coord[lastDim];
+    size_t elementsInRow = dstIndex[lastDim] - coord[lastDim];
     if ((offsetOut + elementsInRow) > posMax) {
       elementsInRow = posMax - offsetOut;
     }
@@ -131,18 +134,18 @@ INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std:
     uintptr_t dstAddr = reinterpret_cast<uintptr_t>(dst) + offsetOut * typeSize;
 
     // Computes full passes and partial passes
-    int registersInRow = elementsInRow / 8;
-    int res = elementsInRow - registersInRow * 8;
-    
+    size_t registersInRow = elementsInRow / 8;
+    size_t res = elementsInRow - registersInRow * 8;
+
     __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
-    for (int i = 0; i < registersInRow; i++) {
+    for (size_t i = 0; i < registersInRow; i++) {
       transposeOp <srcType>(dstAddr, srcAddr, scatterValues, gatherValues);
       srcAddr += 8 * typeSize * newPitch[lastDim];
       dstAddr += 8 * typeSize;
     }
 
     if (res > 0) {
-      uint8_t mask = ((1 << res) - 1);
+      uint8_t mask = static_cast<uint8_t>((1 << res) - 1);
       __asm__ __volatile__("mov.m.x m0, %[mask], 0\n" : : [mask] "r" (mask) :);
       transposeOp <srcType>(dstAddr, srcAddr, scatterValues, gatherValues);
     }
@@ -163,7 +166,7 @@ INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std:
   // Eviction phase
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddr,
                                       clperminion);
 }
@@ -206,75 +209,71 @@ template <ElemKind elK, size_t N>
 INLINE_ATTR void
 fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT, const std::array<uint32_t, N>& shuffle,
                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  using srcType = typename elemKind2elemTy<elK>::type;  
+  using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
   void *dst = outT->getRawDataPointer<void>();
   void *src = inT->getRawDataPointer<void>();
   
-  // uintptr_t dstAddr = (uintptr_t)dst;
-  // uintptr_t srcAddr = (uintptr_t)srcp;
   uintptr_t dstAddr = reinterpret_cast<uintptr_t>(dst);
   uintptr_t srcAddr = reinterpret_cast<uintptr_t>(src);
 
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
-  
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-  
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+
+  dim_t srcDimNum = inT->ndims();
+
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
   if (maxRead == 0) {
     return;
   }
 
-  unsigned int newPitch[srcDimNum];
-  unsigned int newdstPitch[srcDimNum];
-  unsigned int newdstIndex[srcDimNum];
-  for (unsigned int i = 0; i < srcDimNum; i++) {
+  dim_t newPitch[srcDimNum];
+  dim_t newdstPitch[srcDimNum];
+  dim_t newdstIndex[srcDimNum];
+  for (dim_t i = 0; i < srcDimNum; i++) {
     newPitch[i] = actPitch[shuffle[i]];
     newdstPitch[i] = dstPitch[i];
     newdstIndex[i] = dstIndex[i];
   }
 
-  unsigned int coord[srcDimNum];
-  unsigned int k;
+  dim_array_t coord = {0};
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex, k);
 
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
     offsetIn += newPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
-  unsigned int lastDim = srcDimNum - 1;
-  unsigned int newPitchSize = newPitch[lastDim] * typeSize;
+  size_t posMax = maxRead + initialAddr;
+  dim_t lastDim = srcDimNum - 1;
+  size_t newPitchSize = newPitch[lastDim] * typeSize;
   int32_t gatherValues[8];
-  for (unsigned int i = 0; i < 8; i++) {
-    gatherValues[i] = i * newPitchSize;
+  for (dim_t i = 0; i < 8; i++) {
+    gatherValues[i] = static_cast<int32_t>(i * newPitchSize);
   }
 
   // We modify the pitches and coord so that the function getOffsets
   // jumps eight positions in lastDim, the smallest dimension.
   // Number 8 is the amount of lanes that a register has.
-  unsigned int res = ((dstIndex[lastDim] - 1) % 8) + 1;
+  size_t res = ((dstIndex[lastDim] - 1) % 8) + 1;
   coord[lastDim] /= 8;
   newPitch[lastDim] *= 8;
   newdstPitch[lastDim] *= 8;
   newdstIndex[lastDim] = ((dstIndex[lastDim] - 1) / 8) + 1;
-  unsigned int mask = ((1 << res) - 1);
+  uint8_t mask = static_cast<uint8_t>((1 << res) - 1);
 
   bool done = false;
   while (!done && (offsetOut < posMax)) {
@@ -293,7 +292,7 @@ fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT, const std::ar
     done = getOffsets(srcDimNum, coord, offsetOut, offsetIn, newdstIndex, newdstPitch, newPitch);
   }
   if (DO_EVICTS) {
-    unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
     if (clperminion > 0) {
       fence_evict_va(0, DO_EVICTS, initialAddr, clperminion - 1, CACHE_LINE_BYTES);
     }

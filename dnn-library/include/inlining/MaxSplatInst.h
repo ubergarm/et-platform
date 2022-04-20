@@ -115,9 +115,9 @@ template <ElemKind elK, bool srcAligned, bool dstAligned>
 INLINE_ATTR void maxSplatTensor(LibTensor* outT, LibTensor* inT, uint64_t valueBits, uint64_t flags,
                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) {
     return;
   }

@@ -110,41 +110,30 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   using dstType = typename elemKind2elemTy<dstElK>::type;
   //  using indxType = typename elemKind2elemTy<indicesElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
   
-  // float *tOutput = (float *)pdst;
   auto *tOutput = outT->getRawDataPointer<dstType>();
-  // uint8_t *tAInput = (uint8_t *)pdata;
-  uint8_t *tAInput = dataT->getRawDataPointer<uint8_t>();
-  // float *tScale = (float *)pscale;
-  float *tScale = scalesT->getRawDataPointer<float>();
-  // float *tOffset = (float *)poffset;
-  float *tOffset = offsetsT->getRawDataPointer<float>();
-  // float *tWInput = (float *)pweights;
-  float *tWInput = weightsT->getRawDataPointer<float>();
-  // long long *indices = (long long *)pindices;
-  long long *indices = indicesT->getRawDataPointer<long long>();
-  // int32_t *lengths = (int32_t *)plengths;
-  int32_t *lengths = lengthsT->getRawDataPointer<int32_t>();
-  
-  // unsigned int *dataIndex = (unsigned int *)pdataDims;
-  const dim_t *dataIndex = dataT->dims().data();  
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
-  const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
-  const dim_t *dataPitch = dataT->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
-  const dim_t *weightPitch = indicesT->strides().data();  
-  // size_t segments = pLengthsSize;
-  const size_t segments = static_cast<size_t>(lengthsT->ndims());
+  auto tAInput = dataT->getRawDataPointer<uint8_t>();
+  auto tScale = scalesT->getRawDataPointer<float>();
+  auto tOffset = offsetsT->getRawDataPointer<float>();
+  auto tWInput = weightsT->getRawDataPointer<float>();
+  auto indices = indicesT->getRawDataPointer<long long>();
+  auto lengths = lengthsT->getRawDataPointer<int32_t>();
 
-  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
-  
+  const dim_t *dataIndex = dataT->dims().data();  
+  const dim_t *dstPitch = outT->strides().data();
+  const dim_t *dataPitch = dataT->strides().data();
+  const dim_t* weightPitch = indicesT->strides().data();
+  const dim_t segments = lengthsT->ndims();
+
+  dim_t pdstDimNum = outT->ndims();
+
   size_t ranges[segments];
   size_t totalLength = 0;
-  for (size_t i = 0; i < segments; i++) {
+  for (dim_t i = 0; i < segments; i++) {
     ranges[i] = totalLength;
     totalLength += lengths[i];
   }
@@ -155,15 +144,16 @@ inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
   for (size_t i = 1; i < pdstDimNum; i++)
     lineSize *= dataIndex[i];
 
-  unsigned int cll = CACHE_LINE_BYTES / sizeof(float);
-  unsigned int rowsperminion = (cll - 1) / dstPitch[0] + 1;
-  unsigned int total_rows = rowsperminion * activeMinions;
-  for (unsigned int i = total_rows; i < segments; i += activeMinions)
+  size_t cll = CACHE_LINE_BYTES / sizeof(float);
+  size_t rowsperminion = (cll - 1) / dstPitch[0] + 1;
+  size_t total_rows = rowsperminion * activeMinions;
+  for (dim_t i = total_rows; i < segments; i += activeMinions) {
     rowsperminion++;
-  unsigned int row_begin = minionId * rowsperminion;
+  }
+  size_t row_begin = minionId * rowsperminion;
   if (row_begin >= segments)
     return;
-  unsigned int row_end = row_begin + rowsperminion;
+  size_t row_end = row_begin + rowsperminion;
 
   size_t curIdx = ranges[row_begin];
   for (size_t i = row_begin; i < row_end; i++) {
@@ -195,12 +185,13 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
   const bool Float16Dst = dstElK == Float16Ty;
   
   // Get offset of the Minion inside the group of Minions assigned to this Node.
-  uint64_t minionId = get_minion_id();
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id();
   if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.
   minionId -= minionOffset;
   
   // Get number of Minions assigned to this Node.
-  uint64_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
   if (minionId >= activeMinions) return;
@@ -208,35 +199,22 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
   // Set real types for input pointers.
   // For dst we used uint8_t because it can be accessed with different types.
 
-  // uint8_t *tOutput = (uint8_t *) pdst;
-  uint8_t *tOutput = outT->getRawDataPointer<uint8_t>();
-  // uint8_t *tAInput = (uint8_t *) pdata;
-  uint8_t *tAInput = dataT->getRawDataPointer<uint8_t>();
-  // float   *tWInput = (float   *) pweights;
-  float *tWInput = weightsT->getRawDataPointer<float>();
-  // int64_t *indices = (int64_t *) pindices;
-  int64_t *indices = indicesT->getRawDataPointer<int64_t>();
-  // int32_t *lengths = (int32_t *) plengths;
-  int32_t *lengths = lengthsT->getRawDataPointer<int32_t>();
-  // float   *scales  = (float   *) pscale;
-  float *scales = scalesT->getRawDataPointer<float>();
-  // float   *offsets = (float   *) poffset;
-  float *offsets = offsetsT->getRawDataPointer<float>();
-  
-  // uint32_t *dstDims     = (uint32_t *) pdstDims;
+  auto tOutput = outT->getRawDataPointer<uint8_t>();
+  auto tAInput = dataT->getRawDataPointer<uint8_t>();
+  auto tWInput = weightsT->getRawDataPointer<float>();
+  auto indices = indicesT->getRawDataPointer<int64_t>();
+  auto lengths = lengthsT->getRawDataPointer<int32_t>();
+  auto scales = scalesT->getRawDataPointer<float>();
+  auto offsets = offsetsT->getRawDataPointer<float>();
+
   const dim_t *dstDims = outT->dims().data();
-  // uint32_t *dataDims    = (uint32_t *) pdataDims;
   const dim_t *dataDims = dataT->dims().data();
-  // uint32_t *dstPitches  = (uint32_t *) pdstPitches;
   const dim_t *dstPitches = outT->strides().data();
-  // uint32_t *dataPitches = (uint32_t *) pdataPitches;
   const dim_t *dataPitches = dataT->strides().data();
 
+  dim_t pdstDimNum = outT->ndims();
 
-  unsigned int pdstDimNum = static_cast<unsigned int>(outT->ndims());
-  
   // TODO : Add assert checking segments is equal to the number of output rows.
-
   // TODO : Add assert checking that totalLength is smaller than the size of
   // the indices tensor.
   //
@@ -275,7 +253,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
   uintptr_t dstRowTailVRegs = (((dstRowSize - 1) / 8) + 1) % dstCacheLineVRegs;
 
   // Compute the element mask for the tail of the row.
-  uint8_t dstRowTailVRegMask = (1 << (((dstRowSize - 1) % 8) + 1)) - 1;
+  uint8_t dstRowTailVRegMask = static_cast<uint8_t>((1 << (((dstRowSize - 1) % 8) + 1)) - 1);
 
   // Assign work to Minions :
   //

@@ -320,89 +320,6 @@ inline __attribute__((always_inline)) void getGlobalPartition(size_t numElems, s
  * @param[in] minionId The id of the minion that calls the function.
  * @param[in] activeMinions The number of minions that is working on the tensor.
  */
-inline __attribute__((always_inline))
-void getCachelinePartition(unsigned int elementSize, unsigned int numElems,
-                           unsigned int &offset, unsigned int &maxRead,
-                           unsigned int minionId, unsigned int activeMinions,
-                           void * addr) {
-
-  // How many elements does a cache line contain
-  unsigned int cacheLineSizeElems = CACHE_LINE_BYTES / elementSize;
-
-  // When unaligned, how many elements from the tensor are in the first cache line,
-  // or zero when aligned.
-  unsigned int unalignedElements =
-    ((((uintptr_t)addr + CACHE_LINE_BYTES - 1) & ~(CACHE_LINE_BYTES - 1)) - (uintptr_t)addr) / elementSize;
-
-  // When unaligned, how many elements from the first cache line do not belong to the tensor,
-  // or zero when aligned.
-  unsigned int missalignmentElements = likely(unalignedElements == 0) ? 0 : cacheLineSizeElems - unalignedElements;
-
-  // Total number of cache lines (rounded up)
-  unsigned int totalCacheLines = (missalignmentElements + numElems - 1) / cacheLineSizeElems + 1;
-
-  // Ensure that all the minions have a least one cache line to do
-  if (unlikely(activeMinions > totalCacheLines)) {
-    activeMinions = totalCacheLines;
-
-    // When there is an excess of minions make redundant the ones for which there is no work
-    if (unlikely(minionId >= activeMinions)) {
-      offset = 0;
-      maxRead = 0;
-      return;
-    }
-  }
-
-  // Each minion will process a number of consecutive cache lines (a region)
-  unsigned int regionSizeLines = totalCacheLines / activeMinions;
-
-  // After covering with "activeMinions" regions, each region containing "regionSizeLines"
-  // lines, there is still a cache lines remainder.
-  unsigned int cacheLinesRemainder = totalCacheLines % activeMinions;
-
-  // The remainder of cache lines is done by adding one extra line to each minion whose
-  // id is greater or equal than firstMinionDoingOneExtra. For example, if the
-  // remainder is 3 lines and the number of active minions is 4, then minions 1,
-  // 2 and 3 should do an extra cache line.
-  unsigned int firstMinionDoingOneExtra = activeMinions - cacheLinesRemainder;
-
-  if (minionId < firstMinionDoingOneExtra) {
-    maxRead = regionSizeLines;
-    offset = regionSizeLines * minionId;
-  } else {
-    maxRead = regionSizeLines + 1;
-    offset = regionSizeLines * firstMinionDoingOneExtra + maxRead * (minionId - firstMinionDoingOneExtra);
-  }
-
-  // Convert from cache lines to elements
-  maxRead *= cacheLineSizeElems;
-  offset *= cacheLineSizeElems;
-
-  // Ensure minions other than zero start on a cache line boundary
-  if (unlikely(missalignmentElements > 0 and activeMinions > 1)) {
-    if (minionId == 0) {
-      // Minion zero does "missAlignmentElements" fewer elements
-      maxRead -= missalignmentElements;
-    } else if (likely(minionId != activeMinions - 1)) {
-      // Minions that are neither zero or last move "missAlignmentElements" left
-      offset -= missalignmentElements;
-    } else {
-      // The last minion moves "missAlignmentElements" left and does "missAlignmentElements" extra elements
-      offset -= missalignmentElements;
-      maxRead += missalignmentElements;
-    }
-  }
-
-  if (unlikely(offset >= numElems)) {
-    // Do nothing when offset is beyond numElems minus one
-    maxRead = 0;
-  } else {
-    // Clip maxRead so that offset plus maxRead does not got beyond numElems minus one
-    maxRead = std::min(maxRead, numElems - offset);
-  }
-}
-
-/* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
 inline __attribute__((always_inline)) void getCachelinePartition(size_t elementSize, size_t numElems, size_t& offset,
                                                                  size_t& maxRead, size_t minionId, size_t activeMinions,
                                                                  void* addr) {
@@ -508,30 +425,6 @@ inline __attribute__((always_inline)) void getCachelinePartition(size_t elementS
  * @param[in] minionId The id of the minion that calls the function.
  * @param[in] activeMinions The number of minions that is working on the tensor.
  */
-inline __attribute__((always_inline))
-void getReversedCachelinePartition(unsigned int elementsize, unsigned int ElemsDst,
-                                   unsigned int &offset, unsigned int &maxRead,
-                                   unsigned int activeMinions) {
-// TODO : Needs to take into account unaligned destination tensor. 
-//        Needs to use minionId from operator with substracted initial minion.
-//        Not sure why this version is require, only used in LengthsToRanges operator.
-//        This version seems to set the extra cacheline in the first minion,
-//        rather than the last minion.
-  unsigned int minionId = (activeMinions - get_minion_id()) - 1;
-  unsigned int cll = CACHE_LINE_BYTES / elementsize;            // Cacheline length
-  unsigned int ncl = (ElemsDst - 1) / cll + 1;    // Amount of cache lines
-  unsigned int mcl = ncl / activeMinions;         // Amount of cl for a minion
-  unsigned int mod = ncl - activeMinions * mcl;
-  if (minionId < mod) {
-    ++mcl;
-    offset = mcl * cll * minionId;
-  } else
-    offset = (mod + minionId * mcl) * cll;
-
-  maxRead = mcl * cll;
-}
-
-/* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
 inline __attribute__((always_inline)) void getReversedCachelinePartition(size_t elementsize, size_t ElemsDst,
                                                                          size_t& offset, size_t& maxRead,
                                                                          size_t activeMinions) {
@@ -569,29 +462,6 @@ inline __attribute__((always_inline)) void getReversedCachelinePartition(size_t 
  * @param[in] pitch The vector of pitches of the given tensor.
  * @returns True if the tensor has ended and false otherwise.
  */
-  template <typename offset_t, typename dims_t, typename pitches_t>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset,
-                const dims_t *index, const pitches_t *pitch) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset += pitch[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset -= (index[j] - 1) * pitch[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
-
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;
-}
-
-/* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
 template <typename offset_t, typename dims_t, typename pitches_t>
 inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t& coord, offset_t& offset,
                                                       const dims_t* index, const pitches_t* pitch) {
@@ -622,33 +492,6 @@ inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t&
  *  (but not necessarily the same pitches).
  */
 template <typename T>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, const unsigned int *index, const unsigned int *pitch1,
-                const unsigned int *pitch2) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset1 += pitch1[j];
-      offset2 += pitch2[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset1 -= (index[j] - 1) * pitch1[j];
-      offset2 -= (index[j] - 1) * pitch2[j];
-      coord[j] = 0;
-    } else {
-      return true;
-    }
-  }
-
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;
-}
-
-/* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
-template <typename T>
 inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t& coord, T& offset1, T& offset2,
                                                       const dim_t* index, const dim_t* pitch1, const dim_t* pitch2) {
 
@@ -674,32 +517,6 @@ inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t&
 
 /* overloading while sw-2400 and sw-2429 are WIP */
   template <typename T, typename U, typename S>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, U *index, S *pitch1,
-                U *pitch2) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset1 += static_cast<T>(pitch1[j]);
-      offset2 += static_cast<T>(pitch2[j]);
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset1 -= static_cast<T>((index[j] - 1) * pitch1[j]);
-      offset2 -= static_cast<T>((index[j] - 1) * pitch2[j]);
-      coord[j] = 0;
-    } else
-      return true;
-  }
-
-  // FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;
-  }
-
-  /* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
-  template <typename T, typename U, typename S>
   inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t& coord, T& offset1, T& offset2,
                                                         U* index, S* pitch1, U* pitch2) {
 
@@ -723,31 +540,6 @@ bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
   }
 
 /* overloading while sw-2400 and sw-2429 are WIP */
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, unsigned int &offset1,
-                unsigned int &offset2, const size_t*index, const size_t *pitch1,
-                unsigned int* pitch2) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset1 += pitch1[j];
-      offset2 += pitch2[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset1 -= (index[j] - 1) * pitch1[j];
-      offset2 -= (index[j] - 1) * pitch2[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
-
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;
-}
-
-/* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
 inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t& coord, size_t& offset1,
                                                       size_t& offset2, const dim_t* index, const dim_t* pitch1,
                                                       dim_t* pitch2) {
@@ -779,34 +571,6 @@ inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t&
  * @warning The tensors in which we are moving should have the same dimensions
  *  (but not necessarily the same pitches).
  */
-  template <typename T, typename U, typename S>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, T &offset1,
-                T &offset2, T &offset3, U *index, U *pitch1,
-                U *pitch2, S *pitch3) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (likely(coord[j] != (index[j] - 1))) {
-      offset1 += pitch1[j];
-      offset2 += pitch2[j];
-      offset3 += pitch3[j];
-      coord[j]++;
-      return false;
-    } else if (likely(j != 0)) {
-      offset1 -= (index[j] - 1) * pitch1[j];
-      offset2 -= (index[j] - 1) * pitch2[j];
-      offset3 -= (index[j] - 1) * pitch3[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
-
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;
-}
-
-/* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
 template <typename T, typename U, typename S>
 inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t& coord, T& offset1, T& offset2,
                                                       T& offset3, U* index, U* pitch1, U* pitch2, S* pitch3) {
@@ -840,37 +604,6 @@ inline __attribute__((always_inline)) bool getOffsets(dim_t dimNum, dim_array_t&
  * @warning The tensors in which we are moving should have the same dimensions
  *  (but not necessarily the same pitches).
  */
-  template <typename offset_t, typename dims_t, typename pitches_t>
-inline __attribute__((always_inline))
-bool getOffsets(unsigned int dimNum, unsigned int *coord, offset_t &offset1,
-                offset_t &offset2, offset_t &offset3, offset_t &offset4, const dims_t *index,
-                const pitches_t *pitch1, const pitches_t *pitch2,
-                const pitches_t *pitch3, const pitches_t *pitch4) {
-
-  for (int j = dimNum - 1; j >= 0; j--) {
-    if (coord[j] != (index[j] - 1)) {
-      offset1 += pitch1[j];
-      offset2 += pitch2[j];
-      offset3 += pitch3[j];
-      offset4 += pitch4[j];
-      coord[j]++;
-      return false;
-    } else if (j != 0) {
-      offset1 -= (index[j] - 1) * pitch1[j];
-      offset2 -= (index[j] - 1) * pitch2[j];
-      offset3 -= (index[j] - 1) * pitch3[j];
-      offset4 -= (index[j] - 1) * pitch4[j];
-      coord[j] = 0;
-    } else
-      return true;
-  }
-
-  //FIXME: use assertion throw "getOffsets Malfunction";
-  // To avoid warnings. This point will never be reached.
-  return true;
-}
-
-/* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
 template <typename offset_t, typename dims_t, typename pitches_t>
 inline __attribute__((always_inline)) bool
 getOffsets(dim_t dimNum, dim_array_t& coord, offset_t& offset1, offset_t& offset2, offset_t& offset3, offset_t& offset4,
@@ -1016,9 +749,7 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getPo
 /// \param[in]  numofelement, All elements for a given dimension to be processed.
 ///
 template <typename srcType>
-inline __attribute__((always_inline))
-std::pair<int,int>  getLanesResFromNElements(unsigned int numofelements)
-{
+inline __attribute__((always_inline)) std::pair<int, int> getLanesResFromNElements(uint32_t numofelements) {
   int lanes = 0, res = 0;
 
   if (getsize<srcType>() == 1) {

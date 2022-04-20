@@ -56,7 +56,6 @@ INLINE_ATTR void fwdLibSpaceToDepthInst(LibTensor* outT, LibTensor* inT, const u
   assert(((inT->getElementType() == FloatTy)||(inT->getElementType() == Int64ITy)));
 
   using elkType = typename elemKind2elemTy<elKind>::type;
-
   auto inH = inT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
 
