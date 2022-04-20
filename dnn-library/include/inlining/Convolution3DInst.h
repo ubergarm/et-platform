@@ -53,11 +53,11 @@ namespace inlining {
 template <ElemKind dstElK, ElemKind biasElK, size_t N>
 INLINE_ATTR void quantConvolution3DOp(void* activations, void* weights, void* bias, void* output, size_t offsetOut,
                                       const dim_array_t& coord, const dim_t* actPitch, const dim_t* weightPitch,
-                                      const dim_t* actIndex, const std::array<uint32_t, N>& kernels,
-                                      unsigned int inCperG, ssize_t x, ssize_t y, ssize_t z, ssize_t d,
-                                      const float& inScale, const float& filterScale, const float& biasScale,
-                                      const float& outScale, const int32_t& inOffset, const int32_t& filterOffset,
-                                      const int32_t& biasOffset, const int32_t& outOffset) {
+                                      const dim_t* actIndex, const std::array<uint32_t, N>& kernels, dim_t inCperG,
+                                      ssize_t x, ssize_t y, ssize_t z, ssize_t d, const float& inScale,
+                                      const float& filterScale, const float& biasScale, const float& outScale,
+                                      const int32_t& inOffset, const int32_t& filterOffset, const int32_t& biasOffset,
+                                      const int32_t& outOffset) {
 
   using ElemType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::elemType;
   using AccumulatorType = typename AccumulatingQuantizedOpTypes<dstElK, biasElK>::accumulatorType;

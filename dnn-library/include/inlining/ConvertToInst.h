@@ -27,8 +27,8 @@ namespace inlining {
 
 template <ElemKind srcElK, ElemKind dstElK, bool alignedSrc, bool alignedDst>
 INLINE_ATTR void loadConvertStore(const uintptr_t dstAddr, const uintptr_t srcAddr, const dim_t valid,
-                                  const float& srcScaleScalar, const float& srcOffsetScalar,
-                                  const float& dstScaleScalar, const float& dstOffsetScalar) {
+                                  const float& srcScaleScalar, const int32_t& srcOffsetScalar,
+                                  const float& dstScaleScalar, const int32_t& dstOffsetScalar) {
   __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
 
   constexpr size_t srcBytesPerElement = Type::getElementSize(srcElK);
@@ -43,14 +43,14 @@ INLINE_ATTR void loadConvertStore(const uintptr_t dstAddr, const uintptr_t srcAd
   setupGatherScatterConfig<srcBytesPerElement, dstBytesPerElement, false, false>(conf, indices, indicesHigh, dstConf,
                                                                                  dstIndices, dstIndicesHigh);
   float srcScale, srcOffset;
-  (void)srcScale;
-  (void)srcOffset;
+  // (void)srcScale;
+  // (void)srcOffset;
   if constexpr (isQuantizedElemKind(srcElK)) {
     setupDequantize(srcScale, srcOffset, srcScaleScalar, srcOffsetScalar);
   }
   float dstScaleReciprocal, dstOffset;
-  (void)dstScaleReciprocal;
-  (void)dstOffset;
+  // (void)dstScaleReciprocal;
+  // (void)dstOffset;
   if constexpr (isQuantizedElemKind(srcElK)) {
     setupQuantize(dstScaleReciprocal, dstOffset, dstScaleScalar, dstOffsetScalar);
   }
@@ -99,13 +99,13 @@ fwdLibConvertToInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags, c
 
   float srcScaleScalar = inT->getScale();
   int32_t srcOffsetScalar = inT->getOffset();
-  (void)srcScaleScalar;
-  (void)srcOffsetScalar;
+  // (void)srcScaleScalar;
+  // (void)srcOffsetScalar;
 
   float dstScaleScalar = outT->getScale();
   int32_t dstOffsetScalar = outT->getOffset();
-  (void)dstScaleScalar;
-  (void)dstOffsetScalar;
+  // (void)dstScaleScalar;
+  // (void)dstOffsetScalar;
 
   outT->partitionLoop<dstType, srcType>(minionId, activeMinions, flags, inT,
                                         loadConvertStore<srcElK, dstElK, alignedSrc, alignedDst>, srcScaleScalar,

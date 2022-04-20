@@ -263,7 +263,7 @@ INLINE_ATTR void fwdLibChannelWiseQuantizedConvolution2DInst(
 
             // Scale the bias to match the scale of the matrix mulitplication.
             outH.at(std::array<size_t, 4>{n, ax, ay, d}) =
-              quantize<elkType>(sum * matMulScale, outT->getScale(), outT->getOffset());
+              quantize<elkType>(static_cast<float>(sum) * matMulScale, outT->getScale(), outT->getOffset());
 
           } // W
         }   // H

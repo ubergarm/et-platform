@@ -102,14 +102,14 @@ INLINE_ATTR void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex,
                            k);
 
-  uint64_t offsetIn = 0;
-  uint64_t offsetOut = 0;
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
   for (size_t j = 0; j < k; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
   Operator<srcType, srcType, dstType, opType> op;
-  unsigned int posMax = maxRead + initialAddr;
+  size_t posMax = maxRead + initialAddr;
   bool done = false;
   __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
   while (!done && (offsetOut < posMax)) {
