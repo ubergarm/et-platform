@@ -134,7 +134,7 @@ size_t implSel::LocalResponseNormalization(std::vector<LibTensor*>& outTensors, 
 
 size_t implSel::SparseLengthsSum([[maybe_unused]] std::vector<LibTensor*>& outTensors,
                                  [[maybe_unused]] std::vector<LibTensor*>& inTensors) {
-  return 0;
+  return 1;
 }
 
 size_t implSel::SparseLengthsWeightedSum(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
