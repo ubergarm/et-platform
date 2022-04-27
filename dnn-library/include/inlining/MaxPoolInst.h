@@ -68,9 +68,8 @@ INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* ou
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
@@ -88,25 +87,25 @@ INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* ou
 
   auto srcPitchNoPadding = inT->stridesNoPadding();
 
-  size_t numElemsDst = dstPitch[0] * dstIndex[0];
-  size_t initialAddr, maxRead;
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, tOutput);
   if (maxRead == 0)
     return;
 
-  dim_array_t coord = {0};
-  dim_t k = 0;
+  unsigned int coord[4] = {0, 0, 0, 0};
+  unsigned int k = 0;
   getNonPaddingCoordinates(coord, initialAddr, 4, dstPitch, dstIndex, k);
 
-  size_t offsetOut = 0;
-  for (dim_t i = 0; i < k; i++) {
+  unsigned int offsetOut = 0;
+  for (unsigned i = 0; i < k; i++) {
     offsetOut += coord[i] * dstPitch[i];
   }
   if (offsetOut >= numElemsDst)
     return;
 
-  size_t posMax = initialAddr + maxRead;
+  unsigned int posMax = initialAddr + maxRead;
   bool done = false;
   ssize_t x, y;
 
@@ -156,7 +155,7 @@ INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* ou
           continue;
         }
 
-        size_t idx =
+        int64_t idx =
           coord[0] * actPitch[0] + (size_t)ox * actPitch[1] + (size_t)oy * actPitch[2] + coord[3] * actPitch[3];
         srcType val = tInput[idx];
         if (first || greaterOrEqualThan<srcElK>(val, max_value)) {
@@ -188,7 +187,7 @@ INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* ou
   }
   if (!DO_EVICTS)
     return;
-  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0)
     evict_va_multi(DO_EVICTS, (uintptr_t)tOutput + typeSize * initialAddr, clperminion);
 }

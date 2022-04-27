@@ -32,39 +32,40 @@ void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT, [[maybe_unused]]
                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? 32 : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? 32 : assignedMinions;
   if (activeMinions > 32) activeMinions = 32;
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
-  auto dstT = outT->getRawDataPointer<void>();
-  auto plengths = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
+  void* plengths = inT->getRawDataPointer<void>();
 
+  // const Addresser<elK> lengths(plengths, scale[0], offset[0]);
   const Addresser<elK> lengths(plengths, inT->getScale(), inT->getOffset());
+  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
   Addresser<elK>    tOutput(dstT, outT->getScale(), outT->getOffset());
 
-  ssize_t level = -1;
-  for (size_t j = 1; j < activeMinions; j *= 2)
+  int level = -1;
+  for (unsigned int j = 1; j < activeMinions; j *= 2)
     level++;
 
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
   
   const dim_t *lenIndx = inT->dims().data();
 
-  size_t initialAddr, maxRead;
+  unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getReversedCachelinePartition(typeSize, lenIndx[0], initialAddr, maxRead,
                                activeMinions);
 
-  size_t posMax = maxRead + initialAddr;
+  unsigned int posMax = maxRead + initialAddr;
 
-  float offset = static_cast<float>(lengths[0]);
+  float offset = lengths[0];
   offset = 0;
-  for (size_t i = initialAddr; i < posMax; i++) {
-    offset += static_cast<float>(lengths[i]);
-  }
+  for (size_t i = initialAddr; i < posMax; i++)
+    offset += lengths[i];
 
 #define tensor_reduce_params(_lvl)                    \
         ((0ULL  & 0x2)        << 62) |                \
@@ -117,7 +118,7 @@ void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT, [[maybe_unused]]
 
   static_assert(elK == Int32ITy, "Unsupported elK type.");
   for (size_t i = initialAddr; i < posMax; i++) {
-    float length = static_cast<float>(lengths[i]);
+    float length = lengths[i];
     tOutput[i * dstPitch[0]] = static_cast<srcType>(offset);
     tOutput[i * dstPitch[0] + 1] = static_cast<srcType>(length);
     offset += length;
