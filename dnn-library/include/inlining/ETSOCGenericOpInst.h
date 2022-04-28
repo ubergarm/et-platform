@@ -15,6 +15,7 @@
 #include "DenoiseMasks.h"
 #include "LibTensor.h"
 #include "utils.h"
+#include "FFT.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
@@ -28,7 +29,7 @@ namespace inlining {
 enum class Operation { FFT = 0, IFFT = 1, FFT_FILTER_IFFT = 2, NOISE_FILTER_1 = 3, LAST };
 static constexpr const char* Op2String[] = {"FFT", "IFFT", "FFT_FILTER_IFFT", "NOISE_FILTER_1", "LAST"};
 
-INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
+INLINE_ATTR void fftTensors(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
                      const uint32_t assignedMinions, uint32_t activeMinions, uint32_t minionId) {
 
   //  FIXME: just minon 0 does some work at the moment.
@@ -42,17 +43,31 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
 
   et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
 
-  // just copy input over real and imaginary planes.
-  auto inH = inT->getHandle<float>();
-  auto outH = outT->getHandle<float>();
-  auto outIt = outH.getIterator(0);
+  float* in = inT->getRawDataPointer<float>();
+  float* out = outT->getRawDataPointer<float>();
 
-  for (auto inIt = inH.getIterator(0); inIt != inH.end(); ++inIt, ++outIt) {
-    *outIt = *inIt;
-  }
+  const dim_t *srcDims = inT->dims().data();
+  const dim_t *srcStrides = inT->strides().data();
+  const dim_t *dstStrides = outT->strides().data();
 
-  for (auto inIt = inH.getIterator(0); inIt != inH.end(); ++inIt, ++outIt) {
-    *outIt = *inIt;
+  size_t batches = srcDims[0];
+
+  for (size_t batch = 0; batch < batches; ++batch) {
+    size_t width = srcDims[3];
+    size_t height = srcDims[2];
+    float* real = in + srcStrides[0] * batch;
+    size_t real_stride = srcStrides[2];
+    float* img = real + srcStrides[1];
+    size_t img_stride = srcStrides[2];
+    float* result_real = out + dstStrides[0] * batch;
+    size_t result_real_stride = dstStrides[2];
+    float* result_img = result_real + dstStrides[1];
+    size_t result_img_stride =  dstStrides[2];
+
+    fft2d(width, height, real, real_stride,
+                 img, img_stride, result_real,
+                 result_real_stride, result_img,
+                 result_img_stride);
   }
 }
 
@@ -116,7 +131,7 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
 
   switch (Operation(op)) {
   case Operation::FFT:
-    return fft(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
+    return fftTensors(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
   case Operation::NOISE_FILTER_1:
     return freqDomainNoiseFilter(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
   default:
