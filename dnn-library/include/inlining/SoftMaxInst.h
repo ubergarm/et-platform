@@ -43,8 +43,8 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
 
   if (get_minion_id() != minionOffset) return;
 
-  auto dstT = outT->getRawDataPointer<srcType>();
-  auto srcT = inT->getRawDataPointer<srcType>();
+  srcType* dstT = outT->getRawDataPointer<srcType>();
+  srcType* srcT = inT->getRawDataPointer<srcType>();
 
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> acumInt(dstT, outT->getScale(), outT->getOffset());
@@ -54,18 +54,19 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
   const dim_t *srcPitch = inT->strides().data();
   const dim_t *dstPitch = outT->strides().data();
 
-  for (dim_t n = 0; n < srcIndex[0]; n++) {
-    dim_t start = n * srcPitch[0];
-    dim_t end = start + srcIndex[1];
-    dim_t outStart = n * dstPitch[0];
+  for (unsigned int n = 0; n < srcIndex[0]; n++) {
+    unsigned int start = n * srcPitch[0];
+    unsigned int end = start + srcIndex[1];
+
+    unsigned int outStart = n * dstPitch[0];
 
     float max = float(tInput[start]);
-    for (dim_t i = start + 1; i < end; i++)
+    for (unsigned int i = start + 1; i < end; i++)
       max = std::max(max, float(tInput[i]));
 
     // Compute exp.
     float sum = 0;
-    for (dim_t i = start, j = outStart; i < end; i++, j++) {
+    for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       float e = getExp(float(tInput[i]) - max);
       sum += e;
       if (elK == BFloat16Ty) {
@@ -79,7 +80,7 @@ INLINE_ATTR void fwdLibSoftMaxInst(LibTensor* outT, LibTensor* inT, [[maybe_unus
     fpReciprocalSingleElement(sum, inverseSum);
 
     // Normalize the output.
-    for (dim_t i = start, j = outStart; i < end; i++, j++) {
+    for (unsigned int i = start, j = outStart; i < end; i++, j++) {
       auto in = acumInt[j];
       if (elK == BFloat16Ty) {
         in = static_cast<srcType>(in * inverseSum);
@@ -111,13 +112,12 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
 
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  auto dstT = outT->getRawDataPointer<srcType>();
-  auto srcT = inT->getRawDataPointer<srcType>();
+  srcType* dstT = outT->getRawDataPointer<srcType>();
+  srcType* srcT = inT->getRawDataPointer<srcType>();
 
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> acumInt(dstT, outT->getScale(), outT->getOffset());
@@ -125,12 +125,14 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
   
   const dim_t *srcIndex = inT->dims().data();
   const dim_t *srcPitch = inT->strides().data();
+
   const dim_t *dstPitch = outT->strides().data();
+
   constexpr size_t typeSize = getsize<srcType>();
 
-  size_t rowstodo = srcIndex[0] / activeMinions;
-  size_t rowsRemainder = srcIndex[0] - rowstodo * activeMinions;
-  size_t firstrow;
+  unsigned int rowstodo = srcIndex[0] / activeMinions;
+  unsigned int rowsRemainder = srcIndex[0] - rowstodo * activeMinions;
+  unsigned int firstrow;
 
   if (minionId < rowsRemainder) {
     ++rowstodo;
@@ -139,20 +141,21 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
     firstrow = (rowstodo + 1) * rowsRemainder + (minionId - rowsRemainder) * rowstodo;
   }
 
-  size_t lastrow = firstrow + rowstodo;
-  size_t step = srcPitch[0] * typeSize;
-  size_t outStep = dstPitch[0] * typeSize;
-  size_t memOffset = firstrow * step;
-  size_t outMemOffset = firstrow * outStep;
+  unsigned int lastrow = firstrow + rowstodo;
+
+  unsigned int step = srcPitch[0] * typeSize;
+  unsigned int outStep = dstPitch[0] * typeSize;
+  unsigned int memOffset = firstrow * step;
+  unsigned int outMemOffset = firstrow * outStep;
 
   uintptr_t srcAddr = (uintptr_t)srcT + memOffset;
   uintptr_t dstAddr = (uintptr_t)dstT + outMemOffset;
 
-  size_t numRegs = srcIndex[1] / 8;
-  size_t extraLanes = srcIndex[1] - 8 * numRegs;
+  unsigned int numRegs = srcIndex[1] / 8;
+  unsigned int extraLanes = srcIndex[1] - 8 * numRegs;
   bool floatType = (typeSize == 4); // 1 if fp32 and 0 if fp16.
   int32_t registerSize = 8*typeSize;
-  auto log2e = static_cast<float>(M_LOG2E);
+  float log2e = static_cast<float>(M_LOG2E);
 
 #define GATHER_FLOAT(_addr)                                                                                            \
   "beq %[floatType], zero, 16f \n"                                                                                     \
@@ -198,7 +201,7 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
                        : [ indices ] "=f"(indices)
                        : [ values ] "m"(*(const int32_t(*)[8])values));
 
-  for (size_t n = firstrow; n < lastrow; n++) {
+  for (unsigned int n = firstrow; n < lastrow; n++) {
 
     uint64_t srcAddrTmp, dstAddrTmp;
 

@@ -43,9 +43,8 @@ INLINE_ATTR void splatTensor(LibTensor* outT, const uint64_t splatVal, uint64_t 
 
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) {
     return;
   }

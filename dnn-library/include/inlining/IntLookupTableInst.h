@@ -31,45 +31,52 @@ INLINE_ATTR void fwdLibIntLookupTableInst(LibTensor* outT, LibTensor* in1T, LibT
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto dst = outT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
 
-  auto ptrDstT = outT->getRawDataPointer<int8_t>();
-  auto ptrSrcT1 = in1T->getRawDataPointer<int8_t>();
-  auto ptrSrcT2 = in2T->getRawDataPointer<int8_t>();
+  // int8_t *ptrDstT = (int8_t *)dstT;
+  int8_t* ptrDstT = outT->getRawDataPointer<int8_t>();
+  // int8_t *ptrSrcT1 = (int8_t *)src1T;
+  int8_t* ptrSrcT1 = in1T->getRawDataPointer<int8_t>();
+  // int8_t *ptrSrcT2 = (int8_t *)src2T;
+  int8_t* ptrSrcT2 = in2T->getRawDataPointer<int8_t>();
 
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t* dstIndex =  outT->dims().data();
+  // unsigned int *src1Index = (unsigned int *)src1Dims;
   const dim_t* src1Index =  in1T->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t* dstPitch = outT->strides().data();
+  // unsigned int *src1Pitch = (unsigned int *)src1Pitches;
   const dim_t* src1Pitch = in1T->strides().data();
 
-  dim_t dstDimNum = outT->ndims();
+  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
 
-  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
-  size_t initialAddr, maxRead;
+  unsigned int initialAddr, maxRead;
   getCachelinePartition(sizeof(int8_t), numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, ptrDstT);
   if (maxRead == 0)
     return;
 
-  dim_array_t coord = {0};
-  dim_t k;
+  unsigned int coord[dstDimNum];
+  unsigned int k;
+
   /* overloading while sw-2400 and sw-2429 are WIP */
   getNonPaddingCoordinates(coord, initialAddr, dstDimNum, dstPitch, dstIndex, k);
 
-  size_t offsetIn = 0;
-  size_t offsetOut = 0;
-  for (dim_t j = 0; j < k; j++) {
+  unsigned int offsetIn = 0;
+  unsigned int offsetOut = 0;
+  for (unsigned int j = 0; j < k; j++) {
     offsetIn += src1Pitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
-  size_t posMax = maxRead + initialAddr;
+  unsigned int posMax = maxRead + initialAddr;
 
   bool done = false;
   while (!done && (offsetOut < posMax)) {
@@ -79,7 +86,7 @@ INLINE_ATTR void fwdLibIntLookupTableInst(LibTensor* outT, LibTensor* in1T, LibT
   }
   if (!DO_EVICTS)
     return;
-  size_t clperminion = (maxRead * sizeof(int8_t) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * sizeof(int8_t) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + sizeof(int8_t)*initialAddr, clperminion);
 }
 

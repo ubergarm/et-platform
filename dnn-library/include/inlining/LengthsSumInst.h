@@ -31,67 +31,75 @@ INLINE_ATTR void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTenso
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* outT --> dst  in1T--> src in2T--> index*/
   /* maintain compatibility through the new Iface Libtensor */
-  auto dst = outT->getRawDataPointer<void>();
-  auto src = in1T->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer<void>();
+  void* src = in1T->getRawDataPointer<void>();
 
+  // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tTmp(pdst, scale[2], offset[2]);
   const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tAInput(pdata, scale[0], offset[0]);
   const Addresser<elK> tAInput(src, in1T->getScale(), in1T->getOffset());
-  auto lengths = in2T->getRawDataPointer<int32_t>();
+  // int32_t *lengths = (int32_t *)plengths;
+  int32_t* lengths = in2T->getRawDataPointer<int32_t>();
 
+  // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
+  // unsigned int *dataIndex = (unsigned int *)pdataDims;
   const dim_t *dataIndex = in1T->dims().data();
 
+  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
   const dim_t *dstPitch = outT->strides().data();
+  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
   const dim_t *dataPitch = in1T->strides().data();
 
-  size_t pdataDimNum = static_cast<unsigned int>(in1T->ndims());
-  size_t numElemsDst = dstPitch[0] * dstIndex[0]; // Total number of elements in the tensor
+  unsigned int pdataDimNum = static_cast<unsigned int>(in1T->ndims());
+
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0]; // Total number of elements in the tensor
 
   // We give to each minion an initial address and the number of positions that it must work on (maxRead).
-  size_t initialAddr, maxRead;
+  unsigned int initialAddr, maxRead;
   getCachelinePartition(sizeof(srcType), numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
   if (maxRead == 0) return;
 
   // We move the initialAddr to the next non-padding position
 
-  dim_t k;                    // Amount of non-zero coordinates
-  dim_array_t coordIn = {0};  // Vector of coordinates
-  dim_array_t coordOut = {0}; // Vector of coordinates
+  unsigned int k;                     // Amount of non-zero coordinates
+  unsigned int coordIn[pdataDimNum];  // Vector of coordinates
+  unsigned int coordOut[pdataDimNum]; // Vector of coordinates
 
   getNonPaddingCoordinates(coordOut, initialAddr, pdataDimNum, dstPitch, dstIndex, k);
   coordIn[0] = 0;
-  for (dim_t i = 1; i < pdataDimNum; i++) {
+  for (unsigned int i = 1; i < pdataDimNum; i++) {
     coordIn[i] = coordOut [i];
   }
-  for (dim_t l = 0; l < coordOut[0]; l++)
+  for (unsigned int l = 0; l < coordOut[0]; l++)
     coordIn[0] += lengths[l];
 
-  size_t offsetIn = 0;
-  size_t offsetOut = 0;
-  for (dim_t j = 0; j < k; j++) {
+  unsigned int offsetIn = 0;
+  unsigned int offsetOut = 0;
+  for (unsigned int j = 0; j < k; j++) {
     offsetIn += dataPitch[j]*coordIn[j];
     offsetOut += dstPitch[j]*coordOut[j];
   }
-  size_t offsetIn0 = offsetIn;
-  size_t offsetOut0 = offsetOut;
+  unsigned int offsetIn0 = offsetIn;
+  unsigned int offsetOut0 = offsetOut;
 
-  dim_array_t coordIn0 = {0};
-  dim_array_t coordOut0 = {0};
+  unsigned int coordIn0[pdataDimNum];
+  unsigned int coordOut0[pdataDimNum];
 
-  for (dim_t i = 0; i < pdataDimNum; i++) {
+  for (unsigned int i = 0; i < pdataDimNum; i++) {
     coordIn0[i] = coordIn[i];
     coordOut0[i] = coordOut[i];
   }
 
-  size_t posMax = maxRead + initialAddr;
+  unsigned int posMax = maxRead + initialAddr;
   // initialize output tensor
   for (size_t elem = initialAddr; elem < posMax; elem++)
     tOutput[elem] = 0;
@@ -129,11 +137,13 @@ INLINE_ATTR void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTenso
       }
       if (offsetOut >= posMax) {
         done = true;
+        //  tOutput[offsetOut] = offsetOut0;
+        //  tOutput[offsetOut + 1] = offsetOut;
       }
       offsetIn = offsetIn0 + (posIn + 1) * dataPitch[0];
       offsetOut = offsetOut0;
 
-      for (dim_t i = 0; i < pdataDimNum; i++) {
+      for (unsigned int i = 0; i < pdataDimNum; i++) {
         coordIn[i] = coordIn0[i];
         coordOut[i] = coordOut0[i];
       }
@@ -141,17 +151,18 @@ INLINE_ATTR void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTenso
       endmatrix = false;
     }
     if (done) {
+      // tOutput[offsetOut] = -10;
       break;
     }
     offsetIn = 0;
     offsetIn0 = 0;
     offsetOut = 0;
     offsetOut0 = 0;
-    for (dim_t i = 1; i < pdataDimNum; i++) {
+    for (unsigned int i = 1; i < pdataDimNum; i++) {
       coordIn[i] = coordIn0[i] = 0;
       coordOut[i] = coordOut0[i] = 0;
     }
-    for (dim_t j = 0; j <= coordOut0[0]; j++) {
+    for (unsigned int j = 0; j <= coordOut0[0]; j++) {
       offsetIn += dataPitch[0] * lengths[j];
       offsetIn0 += dataPitch[0] * lengths[j];
       offsetOut += dstPitch[0];
@@ -164,7 +175,7 @@ INLINE_ATTR void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTenso
   }
 
   if (!DO_EVICTS) return;
-  size_t clperminion = (maxRead * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + sizeof(srcType)*initialAddr, clperminion);
 }
 

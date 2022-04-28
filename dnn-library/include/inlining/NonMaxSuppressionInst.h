@@ -52,7 +52,7 @@ private:
     } else {
       if ((count_ + 1) < MAX) {
         // move element of array one position to the right
-        for (ssize_t i = count_; i > pos; i--) {
+        for (int i = count_; i > pos; i--) {
           data_[i] = data_[i - 1];
         }
         wr_ptr_++;
@@ -108,7 +108,7 @@ public:
   std::array<T, MAX> &data() { return data_;}
   size_t countElem() { return count_;}
 
-  template <typename func_t> void pushConditional(float p1, size_t p2, func_t fnc) {
+  template <typename func_t> void pushConditional(float p1, int p2, func_t fnc) {
 
     if (this->empty()) {
       ClassBox nbx = {p1,p2};
@@ -135,7 +135,7 @@ static void maxMin(float lhs, float rhs, float &min, float &max) {
 
 template <typename ElemTy>
 static bool doIOU(Handle<ElemTy>& boxes, dim_t batchIndex, dim_t selectedBoxIndex, dim_t candidateBoxIndex,
-                  size_t centerPointBox, float iouThreshold, bool isV4) {
+                  int centerPointBox, float iouThreshold, bool isV4) {
 
   float sx[] = {0.0f, 0.0f, 0.0f, 0.0f};
   float cx[] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -238,7 +238,7 @@ static bool doIOU(Handle<ElemTy>& boxes, dim_t batchIndex, dim_t selectedBoxInde
  */
 template <ElemKind srcElk>
 void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, LibTensor* boxesT, LibTensor* scoresT,
-                                 const size_t centerPointBox, const size_t maxOutputBoxesPerClass,
+                                 const long long centerPointBox, const long long maxOutputBoxesPerClass,
                                  const float iouThreshold, const float scoreThreshold, const bool isTFVersion4,
                                  uint64_t flags, const uint32_t minionOffset = 0,
                                  [[maybe_unused]] const uint32_t assignedMinions = 0) {
@@ -257,10 +257,11 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, L
   auto boxesH = boxesT->getHandle<float>();
   auto scoresH = scoresT->getHandle<float>();
 
-  dim_t boxesBoxDim = boxesT->ndims() - 2;
+  int boxesBoxDim = boxesT->ndims() - 2;
+
   size_t numBatches = 1;
   size_t numClasses = 1;
-  dim_t numBoxes = boxesT->dims()[boxesBoxDim];
+  size_t numBoxes = boxesT->dims()[boxesBoxDim];
 
   size_t maxOutputPerBatch = 0;
 
@@ -285,7 +286,10 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, L
   }
 
   ClassBox cbZero(0.0f,0); //for init std::array
+
   CustomFifo<ClassBox, MAX_CUSTOM_ARRAY_SIZE> selectedIndices;
+
+  // std::vector<ClassBox> selectedIndices;
   size_t outPutBoxIndex = 0;
 
   for (size_t batchIndex = 0; batchIndex < numBatches; ++batchIndex) {
@@ -294,12 +298,14 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, L
     for (size_t classIndex = 0; classIndex < numClasses; ++classIndex) {
       /* selectedIndices.fill(cbZero);  */
       selectedIndices.clear(cbZero);
-      size_t detectedPerClass = 0;
+      ssize_t detectedPerClass = 0;
       //std::priority_queue<ClassBox,std::vector<ClassBox>, 64>, decltype(cmpFunc)> queue(cmpFunc);
       CustomFifo<ClassBox, MAX_CUSTOM_ARRAY_SIZE> fifoArray;
       
       for (size_t boxIndex = 0; boxIndex < numBoxes; ++boxIndex) {
+
         size_t position = ((batchIndex * numClasses + classIndex) * numBoxes + boxIndex);
+
         size_t pos0stride = (position / (scoresT->dims()[1] * scoresT->dims()[2])) * scoresT->strides()[0];
         size_t pos1stride =
           (position % (scoresT->dims()[1] * scoresT->dims()[2])) / scoresT->dims()[2] * scoresT->strides()[1];
@@ -317,7 +323,7 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, L
       while (!fifoArray.empty()) {
         auto priorBox = fifoArray.pop();
         bool selected = true;
-
+        //        for (auto &sBox : selectedIndices) {
         for (size_t i = 0; i < selectedIndices.countElem(); i++) {
           auto sBox = selectedIndices.data()[i];
 
@@ -332,14 +338,14 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, L
           selectedIndices.push(priorBox);  
 
           if (isTFVersion4) {
-            indicesH.at(std::array<size_t, 1>{outPutBoxIndex}) = static_cast<srcType>(priorBox.second);
+            indicesH.at(std::array<size_t, 1>{outPutBoxIndex}) = priorBox.second;
             tScore = scoresH.at(std::array<size_t,1>{priorBox.second});
           }
           else {
-            indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 0}) = static_cast<srcType>(batchIndex);
+            indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 0}) = static_cast<uint32_t>(batchIndex);
             /* convert from float to uint64 has to pas through 32bit conversion*/
-            indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 1}) = static_cast<srcType>(classIndex);
-            indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 2}) = static_cast<srcType>(priorBox.second);
+            indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 1}) = static_cast<uint32_t>(classIndex);
+            indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 2}) = static_cast<uint32_t>(priorBox.second);
             tScore = scoresH.at(std::array<size_t,3>{batchIndex, classIndex, priorBox.second});
           }
           
@@ -366,18 +372,18 @@ void fwdLibNonMaxSuppressionInst(LibTensor* indicesT, LibTensor* numOfSelIndT, L
   
     for (size_t i = detectedPerBatch; i < maxOutputPerBatch; i++) {
       if (isTFVersion4) {
-        indicesH.at(std::array<size_t, 1>{outPutBoxIndex}) = static_cast<srcType>(minBox.boxIndex);
+        indicesH.at(std::array<size_t, 1>{outPutBoxIndex}) = minBox.boxIndex;
       }
       else {
-        indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 0}) = static_cast<srcType>(minBox.batchIndex);
-        indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 1}) = static_cast<srcType>(minBox.classIndex);
-        indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 2}) = static_cast<srcType>(minBox.boxIndex);
+        indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 0}) = minBox.batchIndex;
+        indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 1}) = minBox.classIndex;
+        indicesH.at(std::array<size_t, 2>{outPutBoxIndex, 2}) = minBox.boxIndex;
       }
     
       ++outPutBoxIndex;
     }
 
-    for (size_t i = 0; i < maxOutputBoxesPerClass; ++i) {
+    for (ssize_t i = 0; i < maxOutputBoxesPerClass; ++i) {
       numOfSelIndH.at(std::array<size_t,1>{batchIndex * maxOutputBoxesPerClass + i}) = detectedPerBatch;
     }
   }

@@ -35,16 +35,15 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTenso
                                                       const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
-  auto dstMatrix = out1T->getRawDataPointer<void>();
-  auto dst2Matrix = out2T->getRawDataPointer<void>();
-  auto activations = inT->getRawDataPointer<void>();
+  void* dstMatrix = out1T->getRawDataPointer<void>();
+  void* dst2Matrix = out2T->getRawDataPointer<void>();
+  void* activations = inT->getRawDataPointer<void>();
 
   Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
   Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
@@ -60,35 +59,35 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTenso
   assert(dstIndex[0] == actIndex[0] and dstIndex[1] == actIndex[1] and dstIndex[2] == actIndex[2] and
          dstIndex[3] == actIndex[3]);
 
-  auto windowSize = static_cast<float>(2 * halfWindowSize + 1);
+  size_t windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;
   fpReciprocalSingleElement(windowSize, inversedWindowSize);
   float normedAlpha = alpha * inversedWindowSize;
 
-  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
 
-  size_t initialAddr, maxRead;
+  unsigned int initialAddr, maxRead;
   constexpr size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstMatrix);
   if (maxRead == 0)
     return;
 
-  const size_t srcDimNum = 4;
-  dim_array_t coord = {0};
-  dim_t numDimensions = 0;
+  const unsigned int srcDimNum = 4;
+  unsigned int coord[srcDimNum] = {0, 0, 0, 0};
+  unsigned int numDimensions = 0;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, numDimensions);
 
-  size_t offsetIn = 0;
-  size_t offsetOut = 0;
-  size_t offsetOut2 = 0;
-  for (dim_t j = 0; j < numDimensions; j++) {
+  unsigned int offsetIn = 0;
+  unsigned int offsetOut = 0;
+  unsigned int offsetOut2 = 0;
+  for (unsigned int j = 0; j < numDimensions; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
     offsetOut2 += dstPitch2[j] * coord[j];
   }
 
-  size_t posMax = maxRead + initialAddr;
+  unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   while (!done && (offsetOut < posMax)) {
 
@@ -124,7 +123,7 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTenso
   }
   if (!DO_EVICTS)
     return;
-  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + typeSize*initialAddr, clperminion);
 }
 
@@ -170,16 +169,15 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
   using type = typename elemKind2elemTy<elK>::type;
   constexpr size_t bytesPerElement = getsize<type>();
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) {
     return;
   }
 
-  auto dstMatrix = out1T->getRawDataPointer<void>();
-  auto dst2Matrix = out2T->getRawDataPointer<void>();
-  auto activations = inT->getRawDataPointer<void>();
+  void* dstMatrix = out1T->getRawDataPointer<void>();
+  void* dst2Matrix = out2T->getRawDataPointer<void>();
+  void* activations = inT->getRawDataPointer<void>();
 
   const dim_t *dstIndex = out1T->dims().data();
   const dim_t *actIndex = inT->dims().data();
@@ -191,28 +189,28 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
   assert(dstIndex[0] == actIndex[0] and dstIndex[1] == actIndex[1] and dstIndex[2] == actIndex[2] and
          dstIndex[3] == actIndex[3]);
 
-  auto windowSize = static_cast<float>(2 * halfWindowSize + 1);
+  auto windowSize = 2 * halfWindowSize + 1;
   float inversedWindowSize;
   fpReciprocalSingleElement(windowSize, inversedWindowSize);
   float normedAlpha = alpha * inversedWindowSize;
 
-  size_t numElemsDst = dstPitch[0] * dstIndex[0];
-  size_t initialAddr, maxRead;
+  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  unsigned int initialAddr, maxRead;
   getCachelinePartition(bytesPerElement, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dstMatrix);
 
   if (maxRead == 0) {
     return;
   }
 
-  const size_t srcDimNum = 4;
-  dim_array_t coord = {0};
-  dim_t numDimensions = 0;
+  const unsigned int srcDimNum = 4;
+  unsigned int coord[srcDimNum] = {0, 0, 0, 0};
+  unsigned int numDimensions = 0;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, numDimensions);
 
-  size_t offsetIn = 0;
-  size_t offsetOut = 0;
-  size_t offsetOut2 = 0;
-  for (dim_t j = 0; j < numDimensions; j++) {
+  unsigned int offsetIn = 0;
+  unsigned int offsetOut = 0;
+  unsigned int offsetOut2 = 0;
+  for (unsigned int j = 0; j < numDimensions; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
     offsetOut2 += dstPitch2[j] * coord[j];
@@ -237,15 +235,15 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
   float dstIndices2;
   setupGatherScatterConfig<bytesPerElement, dstAligned>(dstConf2, dstIndices2);
 
-  size_t posMax = maxRead + initialAddr;
+  unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   while (not done and offsetOut < posMax) {
 
     size_t c = size_t(coord[3]);
-    size_t start = (c >= halfWindowSize ? c - halfWindowSize : 0);
-    size_t end = std::min(c + halfWindowSize, actIndex[3] - 1);
-    size_t registers = (end - start + 1) / 8;
-    size_t mod = (end - start + 1) - 8 * registers;
+    unsigned int start = (c >= halfWindowSize ? c - halfWindowSize : 0);
+    unsigned int end = std::min(c + halfWindowSize, (long unsigned int)actIndex[3] - 1);
+    unsigned int registers = (end - start + 1) / 8;
+    unsigned int mod = (end - start + 1) - 8 * registers;
 
     uintptr_t srcAddr =
       reinterpret_cast<uintptr_t>(activations) + (offsetIn + (start - c) * actPitch[3]) * bytesPerElement;
@@ -257,7 +255,7 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
                          : [ squareSum ] "=f"(squareSum), [ squareSumTail ] "=f"(squareSumTail));
 
     constexpr uint32_t pitch = 8 * bytesPerElement;
-    for (size_t i = 0; i < registers; ++i, srcAddr += pitch) {
+    for (uint64_t i = 0; i < registers; ++i, srcAddr += pitch) {
       load<bytesPerElement, srcAligned>(srcAddr, srcConf, srcIndices, value);
       convert<elK, FloatTy>(value);
       __asm__ __volatile__("fmadd.ps %[squareSum], %[value], %[value], %[squareSum]\n"
@@ -307,7 +305,7 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
 
   if (!DO_EVICTS)
     return;
-  size_t clperminion = (maxRead * bytesPerElement + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * bytesPerElement + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0)
     evict_va_multi(DO_EVICTS, (uintptr_t)dstMatrix + bytesPerElement * initialAddr, clperminion);
 }

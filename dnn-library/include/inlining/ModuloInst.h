@@ -27,56 +27,62 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK>
-INLINE_ATTR void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, uint64_t divisor, bool signFollowDivisor,
+INLINE_ATTR void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, long long divisor, bool signFollowDivisor,
                                   uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  assert(get_minion_id() >= minionOffset);
-  size_t minionId = get_minion_id() - minionOffset;
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  unsigned int minionId = get_minion_id() - minionOffset;
+  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  auto srcT = inT->getRawDataPointer<void>();
-  auto dstT = outT->getRawDataPointer<void>();
+  void* srcT = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer<void>();
 
+  // Addresser<elK> tOutput(dstT, scale[1], offset[1]);
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<elK> tInput(srcT, scale[0], offset[0]);
   const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());
- 
+
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+
+  // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
+  // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
 
-  size_t numElemsDst = dstPitch[0] * actIndex[0];
-  size_t initialAddr, maxRead;
+  unsigned int numElemsDst = dstPitch[0] * actIndex[0];
+  unsigned int initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  dim_t srcDimNum = inT->ndims();
+  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
 
-  dim_array_t coord = {0};
-  dim_t k;
+  unsigned int coord[srcDimNum];
+  unsigned int k;
 
   /* overloading while sw-2400 and sw-2429 are WIP */
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
 
-  size_t offsetIn = 0;
-  size_t offsetOut = 0;
-  for (dim_t j = 0; j < k; j++) {
+  unsigned int offsetIn = 0;
+  unsigned int offsetOut = 0;
+  for (unsigned int j = 0; j < k; j++) {
     offsetIn += actPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
-  size_t posMax = maxRead + initialAddr;
+  unsigned int posMax = maxRead + initialAddr;
   bool done = false;
   while (!done && (offsetOut < posMax)) {
-    auto res = (tInput[offsetIn]) % static_cast<srcType>(divisor);
+    auto res = (tInput[offsetIn]) % divisor;
     if (signFollowDivisor && (res < 0)) {
-      res += static_cast<srcType>(divisor);
+      res += divisor;
     }
     tOutput[offsetOut] = res;
     
@@ -86,7 +92,7 @@ INLINE_ATTR void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, uint64_t divi
   }
   if (!DO_EVICTS)
     return;
-  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 

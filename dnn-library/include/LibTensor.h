@@ -527,7 +527,7 @@ public:
   dim_array_t stridesNoPadding() const {
     dim_array_t v;
     v[ndims() - 1] = 1;
-    for (sdim_t i = ndims() - 2; i >= 0; i--) {
+    for (int64_t i = ndims() - 2; i >= 0; i--) {
       v[i] = v[i + 1] * dims()[i + 1];
     }
     return v;
@@ -656,7 +656,7 @@ public:
   }
 
   // returns offset and maxRead (in number of elements)
-  void partitionCL(const size_t minionId, const size_t activeMinions, dim_t& offset, dim_t& maxRead) const {
+  void partitionCL(const uint64_t minionId, const unsigned activeMinions, dim_t& offset, dim_t& maxRead) const {
 
     size_t onlyMin0;   // elements only for minion0 (e.g. unaligned bytes)
     size_t firstSpare; // first minion with 1 CL less
@@ -760,7 +760,7 @@ public:
    */
   template <typename dstType, typename srcType = dstType, dim_t step = 8, bool doEvicts = true, typename compute_t,
             typename... computeArgs_t>
-  INLINE_ATTR void partitionLoop(const size_t minionId, const size_t activeMinions, const uint64_t flags,
+  INLINE_ATTR void partitionLoop(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
                                  LibTensor* inT, compute_t compute, computeArgs_t&&... computeArgs) {
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -860,7 +860,7 @@ public:
  */
   template <typename dstType, dim_t step = 8, bool doEvicts = true, typename compute_t, typename... computeArgs_t,
             typename... srcTypes, typename... tensorTypes, size_t... idx>
-  INLINE_ATTR void partitionLoop(const size_t minionId, const size_t activeMinions, const uint64_t flags,
+  INLINE_ATTR void partitionLoop(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
                                  const std::tuple<tensorTypes*...>& inT, const std::tuple<srcTypes...>&,
                                  const std::index_sequence<idx...>&, compute_t compute,
                                  computeArgs_t&&... computeArgs) {
@@ -885,6 +885,7 @@ public:
     // setup
     const auto N = ndims();
     const dim_t lastDim = dims()[N - 1];
+
     const dim_t endOffset = first + count;
 
     const auto srcPs = std::make_tuple(std::get<idx>(inT)->template getRawDataPointer<srcTypes>()...);
@@ -958,7 +959,7 @@ public:
 
   template <typename dstType, typename srcType1 = dstType, typename srcType2 = dstType, dim_t step = 8,
             bool doEvicts = true, typename compute_t, typename... computeArgs_t>
-  INLINE_ATTR void partitionLoop2(const size_t minionId, const size_t activeMinions, const uint64_t flags,
+  INLINE_ATTR void partitionLoop2(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,
                                   LibTensor* in1T, LibTensor* in2T, compute_t compute, computeArgs_t&&... computeArgs) {
 
     partitionLoop<dstType, step, doEvicts, compute_t, computeArgs_t...>(
@@ -1170,8 +1171,8 @@ public:
 
 // returns offset and maxRead (in number of elements)
 template <size_t bytesPerElement>
-INLINE_ATTR void partitionCL(uintptr_t address, dim_t sizeInBytes, const uint64_t minionId, const size_t activeMinions,
-                             dim_t& offset, dim_t& maxRead) {
+INLINE_ATTR void partitionCL(uintptr_t address, dim_t sizeInBytes, const uint64_t minionId,
+                             const unsigned activeMinions, dim_t& offset, dim_t& maxRead) {
 
   size_t onlyMin0;   // elements only for minion0 (e.g. unaligned bytes)
   size_t firstSpare; // first minion with 1 CL less
@@ -1249,7 +1250,7 @@ INLINE_ATTR void evict(uintptr_t address, size_t allocationSizeElements, uint64_
 #define DISPATCHER(TEMPL_ARGS, NAME, FUNCTOR)                                                                          \
   template <TEMPL_ARGS typename dstTensorType, typename dstType, typename... srcTensorTypes, typename... srcTypes,     \
             size_t... idx, typename... computeArgs_t>                                                                  \
-  INLINE_ATTR void NAME(const size_t minionId, const size_t activeMinions, const uint64_t flags,                       \
+  INLINE_ATTR void NAME(const unsigned int minionId, const unsigned int activeMinions, const uint64_t flags,           \
                         dstTensorType* outTensor, const dstType&, const std::tuple<srcTensorTypes*...>& inTensors,     \
                         const std::tuple<srcTypes...>&, const std::index_sequence<idx...>&,                            \
                         computeArgs_t&&... computeArgs) {                                                              \
