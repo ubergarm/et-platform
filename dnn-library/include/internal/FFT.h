@@ -4,43 +4,72 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 
 namespace dnn_lib {
 
 // Prototypes
 
-INLINE_ATTR void fft(size_t size, float *real, float *img, float *result_real,
-         float *result_img);
+INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, float* result_img);
 
-INLINE_ATTR void fft2d(size_t width, size_t height, float *real, size_t real_stride,
-           float *img, size_t img_stride, float *result_real,
-           size_t result_real_stride, float *result_img,
-           size_t result_img_stride);
+INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
+                       float* result_real, size_t result_real_stride, float* result_img, size_t result_img_stride);
 
-INLINE_ATTR void fft_inv(size_t size, float *real, float *img, float *result_real,
-             float *result_img);  
+INLINE_ATTR void fft_inv(size_t size, float* real, float* img, float* result_real, float* result_img);
 
-INLINE_ATTR void fft2d_inv(size_t width, size_t height, float *real, size_t real_stride,
-               float *img, size_t img_stride, float *result_real,
-               size_t result_real_stride, float *result_img,
-               size_t result_img_stride);
+INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
+                           float* result_real, size_t result_real_stride, float* result_img, size_t result_img_stride);
 
 // Implementation
 
-INLINE_ATTR void euler_formula(float angle, float &real, float &img) {
-  real = cos(angle);
-  img = sin(angle);
-}
+class Stack {
+private:
+  using EType = uint32_t;
+  static constexpr size_t elementsPerMinion = 16 * 1024;
+  static constexpr size_t numMinions = 1024;
 
-INLINE_ATTR void w(size_t j, size_t n, float &real, float &img) {
-  return euler_formula(static_cast<float>(-2 * M_PI) * static_cast<float>(j) / float(n), real, img);
-}
-
-INLINE_ATTR void twiddle_vector_small(size_t size, float real[], float img[]) {  
-  for (size_t i = 0; i < size; ++i) {
-    w(i, size, real[i], img[i]);
+public:
+  Stack(size_t minionId) {
+    constexpr size_t totalElements = elementsPerMinion * numMinions;    
+    static EType allocation[totalElements] __attribute__((aligned(64)));
+    pointer = allocation + elementsPerMinion * minionId;
+    start = pointer;
   }
-}
+
+  ~Stack() {
+    assert(pointer == start);
+  }
+
+  EType* current() const {
+    return pointer;
+  }
+
+  void restore(EType* value) {
+    pointer = value;
+  }
+
+  template <typename T, size_t elements = 1> T* push() {
+    T* result = reinterpret_cast<T*>(pointer);
+    constexpr size_t baseElements = (sizeof(T)*elements + sizeof(EType) - 1) / sizeof(EType);
+    pointer += baseElements;
+    return result;
+  }
+
+  template <typename T> T* push(size_t elements) {
+    T* result = reinterpret_cast<T*>(pointer);
+    size_t baseElements = (sizeof(T)*elements + sizeof(EType) - 1) / sizeof(EType);
+    pointer += baseElements;
+    return result;
+  }
+
+  template <typename T, size_t elements = 1> void pop() {
+    pointer -= sizeof(T) * elements;
+  }
+
+private:
+  EType* pointer;
+  EType* start;
+};
 
 constexpr size_t countBits(size_t value) {
   size_t result = 0;
@@ -56,22 +85,54 @@ static_assert(countBits(1) == 1);
 static_assert(countBits(8) == 1);
 static_assert(countBits(9) == 2);
 
-constexpr bool isPowerOfTwo(size_t value) { return countBits(value) == 1; }
+constexpr bool isPowerOfTwo(size_t value) {
+  return countBits(value) == 1;
+}
 
 static_assert(isPowerOfTwo(0) == false);
 static_assert(isPowerOfTwo(8) == true);
 static_assert(isPowerOfTwo(9) == false);
 
+//  Compute 1.f / static_cast<float>(n) when n is a power of two without using divides
+INLINE_ATTR float rec(size_t n) {
+  assert(isPowerOfTwo(n));
+  float result = 2.f;
+  while (n) {
+    result *= 0.5f;
+    n >>= 1;
+  }
+  return result;
+}
+
+INLINE_ATTR void euler_formula(float angle, float& real, float& img) {
+  real = cos(angle);
+  img = sin(angle);
+}
+
+INLINE_ATTR void w(size_t j, float recN, float& real, float& img) {
+  return euler_formula(-2.f * static_cast<float>(M_PI) * static_cast<float>(j) * recN, real, img);
+}
+
+INLINE_ATTR void twiddle_vector_small(size_t size, float real[], float img[]) {
+  float recN = rec(size);
+  for (size_t i = 0; i < size; ++i) {
+    w(i, recN, real[i], img[i]);
+  }
+}
+
 INLINE_ATTR void twiddle_vector_big(size_t n, float real[], float img[]) {
+
   assert(n >= 16 and isPowerOfTwo(n));
+
   real[0] = 1;
   img[0] = 0;
   real[n >> 2] = 0;
   img[n >> 2] = -1;
   real[n >> 1] = -1;
   img[n >> 1] = 0;
-  const float k = static_cast<float>(2 * M_PI) / static_cast<float>(n);
-  for (size_t j = 1; j < n / 8; ++j) {
+
+  const float k = 2.f * static_cast<float>(M_PI) * rec(n);
+  for (uint32_t j = 1; j < (n >> 3); ++j) {
     const float angle = k * static_cast<float>(j);
     const float cosine = cos(angle);
     const float sine = sin(angle);
@@ -92,7 +153,7 @@ INLINE_ATTR void twiddle_vector_big(size_t n, float real[], float img[]) {
     real[n - (n >> 2) + j] = sine;
     img[n - (n >> 2) + j] = cosine;
   }
-  const float sine = sin(static_cast<float>(M_PI * 0.25));
+  const float sine = sin(static_cast<float>(M_PI) * 0.25f);
   real[n >> 3] = sine;
   img[n >> 3] = -sine;
   real[(n >> 3) + (n >> 2)] = -sine;
@@ -103,17 +164,17 @@ INLINE_ATTR void twiddle_vector_big(size_t n, float real[], float img[]) {
   img[n - (n >> 3)] = sine;
 }
 
-INLINE_ATTR void mult(float x, float y, float u, float v, float &real, float &img) {
+INLINE_ATTR void mult(float x, float y, float u, float v, float& real, float& img) {
   real = x * u - y * v;
   img = x * v + y * u;
 }
 
-INLINE_ATTR void add(float x, float y, float u, float v, float &real, float &img) {
+INLINE_ATTR void add(float x, float y, float u, float v, float& real, float& img) {
   real = x + u;
   img = y + v;
 }
 
-INLINE_ATTR void sub(float x, float y, float u, float v, float &real, float &img) {
+INLINE_ATTR void sub(float x, float y, float u, float v, float& real, float& img) {
   real = x - u;
   img = y - v;
 }
@@ -122,11 +183,9 @@ constexpr size_t twiddle_index(size_t round, size_t i) {
   return i & ((8 + 16 + 32 + 64 + 128) >> round);
 }
 
-INLINE_ATTR void fft16_round(float twiddle_real[16], float twiddle_img[16],
-                        float X_real[16], float X_img[16], size_t round,
-                        float result_real[16], float result_img[16],
-                        const size_t select_mult_second[8],
-                        const size_t select_add_or_sub_first[8]) {
+INLINE_ATTR void fft16_round(float twiddle_real[16], float twiddle_img[16], float X_real[16], float X_img[16],
+                             size_t round, float result_real[16], float result_img[16],
+                             const size_t select_mult_second[8], const size_t select_add_or_sub_first[8]) {
 
   // This loop is suitable for vectorizing
   for (size_t i = 0; i < 8; ++i) {
@@ -134,19 +193,14 @@ INLINE_ATTR void fft16_round(float twiddle_real[16], float twiddle_img[16],
     size_t sidx = select_mult_second[i];
     size_t fidx = select_add_or_sub_first[i];
     float term_real, term_img;
-    mult(twiddle_real[tidx], twiddle_img[tidx], X_real[sidx], X_img[sidx],
-         term_real, term_img);
-    add(X_real[fidx], X_img[fidx], term_real, term_img, result_real[i],
-        result_img[i]);
-    sub(X_real[fidx], X_img[fidx], term_real, term_img, result_real[i + 8],
-        result_img[i + 8]);
+    mult(twiddle_real[tidx], twiddle_img[tidx], X_real[sidx], X_img[sidx], term_real, term_img);
+    add(X_real[fidx], X_img[fidx], term_real, term_img, result_real[i], result_img[i]);
+    sub(X_real[fidx], X_img[fidx], term_real, term_img, result_real[i + 8], result_img[i + 8]);
   }
 }
 
-INLINE_ATTR void fft16_slice(float *real, float *img, size_t start, size_t step,
-                        size_t size, float twiddle_real[16],
-                        float twiddle_img[16], float res_real[16],
-                        float res_img[16]) {
+INLINE_ATTR void fft16_slice(float* real, float* img, size_t start, size_t step, size_t size, float twiddle_real[16],
+                             float twiddle_img[16], float res_real[16], float res_img[16]) {
   assert(size == 16);
   float tmp_real[16];
   float tmp_img[16];
@@ -160,99 +214,101 @@ INLINE_ATTR void fft16_slice(float *real, float *img, size_t start, size_t step,
     select_add_or_sub_first[i] = start + step * select_add_or_sub_first[i];
   }
 
-  fft16_round(twiddle_real, twiddle_img, real, img, 0, tmp_real, tmp_img,
-              select_mult_second, select_add_or_sub_first);
+  fft16_round(twiddle_real, twiddle_img, real, img, 0, tmp_real, tmp_img, select_mult_second, select_add_or_sub_first);
 
   constexpr size_t select_mult_second2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
   constexpr size_t select_add_or_sub_first2[8] = {0, 2, 4, 6, 8, 10, 12, 14};
 
-  fft16_round(twiddle_real, twiddle_img, tmp_real, tmp_img, 1, res_real,
-              res_img, select_mult_second2, select_add_or_sub_first2);
+  fft16_round(twiddle_real, twiddle_img, tmp_real, tmp_img, 1, res_real, res_img, select_mult_second2,
+              select_add_or_sub_first2);
 
-  fft16_round(twiddle_real, twiddle_img, res_real, res_img, 2, tmp_real,
-              tmp_img, select_mult_second2, select_add_or_sub_first2);
+  fft16_round(twiddle_real, twiddle_img, res_real, res_img, 2, tmp_real, tmp_img, select_mult_second2,
+              select_add_or_sub_first2);
 
-  fft16_round(twiddle_real, twiddle_img, tmp_real, tmp_img, 3, res_real,
-              res_img, select_mult_second2, select_add_or_sub_first2);
+  fft16_round(twiddle_real, twiddle_img, tmp_real, tmp_img, 3, res_real, res_img, select_mult_second2,
+              select_add_or_sub_first2);
 }
 
-void fft_with_precompute(float *base_twiddle_real, float *base_twiddle_img,
-                         size_t twiddle_step, float fft16_twiddle_real[16],
-                         float fft16_twiddle_img[16], float *real, float *img,
-                         size_t start, size_t step, size_t size,
-                         float *result_real, float *result_img) {
+void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
+                         float fft16_twiddle_real[16], float fft16_twiddle_img[16], float* real, float* img,
+                         size_t start, size_t step, size_t size, float* result_real, float* result_img) {
   if (size == 16) {
-    fft16_slice(real, img, start, step, size, fft16_twiddle_real,
-                fft16_twiddle_img, result_real, result_img);
+    fft16_slice(real, img, start, step, size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
   } else if (size == 1) {
     result_real[0] = real[start];
     result_img[0] = img[start];
   } else {
-    size_t half_size = size >> 1;    
-    float tmp_real_even[half_size];
-    float tmp_img_even[half_size];
-    fft_with_precompute(base_twiddle_real, base_twiddle_img, 2 * twiddle_step,
-                        fft16_twiddle_real, fft16_twiddle_img, real, img, start,
-                        2 * step, half_size, tmp_real_even, tmp_img_even);
-    float tmp_real_odd[half_size];
-    float tmp_img_odd[half_size];
-    fft_with_precompute(base_twiddle_real, base_twiddle_img, 2 * twiddle_step,
-                        fft16_twiddle_real, fft16_twiddle_img, real, img,
-                        start + step, 2 * step, half_size, tmp_real_odd,
-                        tmp_img_odd);
-    size_t twiddle_index = 0;    
+    size_t half_size = size >> 1;
+    auto saved = stack.current();
+    float* tmp_real_even = stack.push<float>(half_size);
+    float* tmp_img_even = stack.push<float>(half_size);
+    fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, 2 * twiddle_step, fft16_twiddle_real,
+                        fft16_twiddle_img, real, img, start, 2 * step, half_size, tmp_real_even, tmp_img_even);
+    float* tmp_real_odd = stack.push<float>(half_size);
+    float* tmp_img_odd = stack.push<float>(half_size);
+    fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, 2 * twiddle_step, fft16_twiddle_real,
+                        fft16_twiddle_img, real, img, start + step, 2 * step, half_size, tmp_real_odd, tmp_img_odd);
+    size_t twiddle_index = 0;
     for (size_t j = 0; j < half_size; ++j) {
       float twiddle_real = base_twiddle_real[twiddle_index];
       float twiddle_img = base_twiddle_img[twiddle_index];
       float term_real, term_img;
-      mult(twiddle_real, twiddle_img, tmp_real_odd[j], tmp_img_odd[j],
-           term_real, term_img);
-      add(tmp_real_even[j], tmp_img_even[j], term_real, term_img,
-          result_real[j], result_img[j]);
-      sub(tmp_real_even[j], tmp_img_even[j], term_real, term_img,
-          result_real[j + (half_size)], result_img[j + (half_size)]);
+      mult(twiddle_real, twiddle_img, tmp_real_odd[j], tmp_img_odd[j], term_real, term_img);
+      add(tmp_real_even[j], tmp_img_even[j], term_real, term_img, result_real[j], result_img[j]);
+      sub(tmp_real_even[j], tmp_img_even[j], term_real, term_img, result_real[j + (half_size)],
+          result_img[j + (half_size)]);
       twiddle_index += twiddle_step;
     }
+    stack.restore(saved);
   }
 }
 
-INLINE_ATTR void fft(size_t size, float *real, float *img, float *result_real,
-         float *result_img) {
-  float base_twiddle_real[size];
-  float base_twiddle_img[size];
+INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, float* result_img) {
+
+  size_t minionId = 0;
+  Stack stack(minionId);
+  auto saved = stack.current();
+
+  float* base_twiddle_real = stack.push<float>(size);
+  float* base_twiddle_img = stack.push<float>(size);
   if (size >= 16)
     twiddle_vector_big(size, base_twiddle_real, base_twiddle_img);
   else
     twiddle_vector_small(size, base_twiddle_real, base_twiddle_img);
+  
   float fft16_twiddle_real[16];
   float fft16_twiddle_img[16];
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
+  
   constexpr size_t twiddle_step = 1;
-  fft_with_precompute(base_twiddle_real, base_twiddle_img, twiddle_step,
-                      fft16_twiddle_real, fft16_twiddle_img, real, img, 0, 1,
-                      size, result_real, result_img);
+  fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
+                      real, img, 0, 1, size, result_real, result_img);
+
+  stack.restore(saved);  
 }
 
-INLINE_ATTR void fft2d(size_t width, size_t height, float *real, size_t real_stride,
-           float *img, size_t img_stride, float *result_real,
-           size_t result_real_stride, float *result_img,
-           size_t result_img_stride) {
+INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
+                       float* result_real, size_t result_real_stride, float* result_img, size_t result_img_stride) {
+
+  size_t minionId = 0;
+  Stack stack(minionId);
+  auto saved = stack.current();
 
   assert(real_stride == img_stride);
   assert(result_real_stride == result_img_stride);
 
   // Precompute twiddle vector for horizontal FFT
-  float horiz_base_twiddle_real[width];
-  float horiz_base_twiddle_img[width];
+  float* horiz_base_twiddle_real = stack.push<float>(width);
+  float* horiz_base_twiddle_img = stack.push<float>(width);
+
   if (width >= 16)
     twiddle_vector_big(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
   else
-    twiddle_vector_small(width, horiz_base_twiddle_real,
-                         horiz_base_twiddle_img);
+    twiddle_vector_small(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
 
   // Precompute twiddle vector for vertical FFT
-  float vert_base_twiddle_real[width];
-  float vert_base_twiddle_img[width];
+  float* vert_base_twiddle_real = stack.push<float>(height);
+  float* vert_base_twiddle_img = stack.push<float>(height);
   if (height >= 16)
     twiddle_vector_big(height, vert_base_twiddle_real, vert_base_twiddle_img);
   else
@@ -264,38 +320,36 @@ INLINE_ATTR void fft2d(size_t width, size_t height, float *real, size_t real_str
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
 
   // Storage for one column of intermediate results
-  float result_column_real[height];
-  float result_column_img[height];
+  float* result_column_real = stack.push<float>(width);
+  float* result_column_img = stack.push<float>(width);
 
   constexpr size_t twiddle_step = 1;
 
   // Per row FFT
   for (size_t row = 0; row < height; ++row) {
-    fft_with_precompute(horiz_base_twiddle_real, horiz_base_twiddle_img,
-                        twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
-                        real + row * real_stride, img + row * img_stride, 0, 1,
-                        width, result_real + row * result_real_stride,
-                        result_img + row * result_img_stride);
+    fft_with_precompute(stack, horiz_base_twiddle_real, horiz_base_twiddle_img, twiddle_step, fft16_twiddle_real,
+                        fft16_twiddle_img, real + row * real_stride, img + row * img_stride, 0, 1, width,
+                        result_real + row * result_real_stride, result_img + row * result_img_stride);
   }
 
   // Per column FFT
   for (size_t col = 0; col < width; ++col) {
-    fft_with_precompute(vert_base_twiddle_real, vert_base_twiddle_img,
-                        twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
-                        result_real, result_img, col, result_real_stride,
-                        height, result_column_real, result_column_img);
+    fft_with_precompute(stack, vert_base_twiddle_real, vert_base_twiddle_img, twiddle_step, fft16_twiddle_real,
+                        fft16_twiddle_img, result_real, result_img, col, result_real_stride, height, result_column_real,
+                        result_column_img);
     for (size_t row = 0; row < height; ++row) {
       result_real[row * result_real_stride + col] = result_column_real[row];
       result_img[row * result_img_stride + col] = result_column_img[row];
     }
   }
+
+  stack.restore(saved);
 }
 
-INLINE_ATTR void fft_inv_with_precompute(float *base_twiddle_real, float *base_twiddle_img,
-                             size_t twiddle_step, float fft16_twiddle_real[16],
-                             float fft16_twiddle_img[16], float *real,
-                             float *img, size_t start, size_t step, size_t size,
-                             float *result_real, float *result_img) {
+INLINE_ATTR void fft_inv_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img,
+                                         size_t twiddle_step, float fft16_twiddle_real[16], float fft16_twiddle_img[16],
+                                         float* real, float* img, size_t start, size_t step, size_t size,
+                                         float* result_real, float* result_img) {
 
   float real2[size];
   float img2[size];
@@ -304,40 +358,44 @@ INLINE_ATTR void fft_inv_with_precompute(float *base_twiddle_real, float *base_t
     img2[i] = -img[start + i * step];
   }
 
-  fft_with_precompute(base_twiddle_real, base_twiddle_img, twiddle_step,
-                      fft16_twiddle_real, fft16_twiddle_img, real2, img2, 0, 1,
-                      size, result_real, result_img);
+  fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
+                      real2, img2, 0, 1, size, result_real, result_img);
 
-  float rec = 1.f / static_cast<float>(size);
-  float minus_rec = -rec;
+  float reciprocal = rec(size);
+  float minus_reciprocal = -reciprocal;
 
   for (size_t i = 0; i < size; ++i) {
-    result_real[i] = rec * result_real[i];
-    result_img[i] = minus_rec * result_img[i];
+    result_real[i] = reciprocal * result_real[i];
+    result_img[i] = minus_reciprocal * result_img[i];
   }
 }
 
-INLINE_ATTR void fft_inv(size_t size, float *real, float *img, float *result_real,
-             float *result_img) {
+INLINE_ATTR void fft_inv(size_t size, float* real, float* img, float* result_real, float* result_img) {
+
+  size_t minionId = 0;
+  Stack stack(minionId);
+
   float base_twiddle_real[size];
   float base_twiddle_img[size];
   if (size >= 16)
     twiddle_vector_big(size, base_twiddle_real, base_twiddle_img);
   else
     twiddle_vector_small(size, base_twiddle_real, base_twiddle_img);
+
   float fft16_twiddle_real[16];
   float fft16_twiddle_img[16];
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
+
   constexpr size_t twiddle_step = 1;
-  fft_inv_with_precompute(base_twiddle_real, base_twiddle_img, twiddle_step,
-                          fft16_twiddle_real, fft16_twiddle_img, real, img, 0,
-                          1, size, result_real, result_img);
+  fft_inv_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real,
+                          fft16_twiddle_img, real, img, 0, 1, size, result_real, result_img);
 }
 
-INLINE_ATTR void fft2d_inv(size_t width, size_t height, float *real, size_t real_stride,
-               float *img, size_t img_stride, float *result_real,
-               size_t result_real_stride, float *result_img,
-               size_t result_img_stride) {
+INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
+                           float* result_real, size_t result_real_stride, float* result_img, size_t result_img_stride) {
+
+  size_t minionId = 0;
+  Stack stack(minionId);
 
   assert(real_stride == img_stride);
   assert(result_real_stride == result_img_stride);
@@ -348,8 +406,7 @@ INLINE_ATTR void fft2d_inv(size_t width, size_t height, float *real, size_t real
   if (width >= 16)
     twiddle_vector_big(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
   else
-    twiddle_vector_small(width, horiz_base_twiddle_real,
-                         horiz_base_twiddle_img);
+    twiddle_vector_small(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
 
   // Precompute twiddle vector for vertical FFT
   float vert_base_twiddle_real[width];
@@ -372,19 +429,16 @@ INLINE_ATTR void fft2d_inv(size_t width, size_t height, float *real, size_t real
 
   // Per row FFT
   for (size_t row = 0; row < height; ++row) {
-    fft_inv_with_precompute(horiz_base_twiddle_real, horiz_base_twiddle_img,
-                            twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
-                            real + row * real_stride, img + row * img_stride, 0,
-                            1, width, result_real + row * result_real_stride,
-                            result_img + row * result_img_stride);
+    fft_inv_with_precompute(stack, horiz_base_twiddle_real, horiz_base_twiddle_img, twiddle_step, fft16_twiddle_real,
+                            fft16_twiddle_img, real + row * real_stride, img + row * img_stride, 0, 1, width,
+                            result_real + row * result_real_stride, result_img + row * result_img_stride);
   }
 
   // Per column FFT
   for (size_t col = 0; col < width; ++col) {
-    fft_inv_with_precompute(vert_base_twiddle_real, vert_base_twiddle_img,
-                            twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
-                            result_real, result_img, col, result_real_stride,
-                            height, result_column_real, result_column_img);
+    fft_inv_with_precompute(stack, vert_base_twiddle_real, vert_base_twiddle_img, twiddle_step, fft16_twiddle_real,
+                            fft16_twiddle_img, result_real, result_img, col, result_real_stride, height,
+                            result_column_real, result_column_img);
     for (size_t row = 0; row < height; ++row) {
       result_real[row * result_real_stride + col] = result_column_real[row];
       result_img[row * result_img_stride + col] = result_column_img[row];
