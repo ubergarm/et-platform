@@ -1,16 +1,31 @@
-check_formatting:
-  image: ubuntu:bionic
+include:
+  - project: software/gitlab-ci-common
+    ref: c099f62aa1b24a883d5e6c5c6ce837370026a9c4
+    file:
+      - /rules/generic-workflow.yaml
+      - /jobs/generic-k8s-job.yaml
+      - /pods/medium-pod.yaml
+      - /rules/exec_maybe_interactively.yaml
+
+default:
+  interruptible: true
+
+clang-format:
+  extends:
+    - .template_job
+    - .pod_medium
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/centos-7.9.2009-et-sw-platform:0.2.15
   stage: build
-  tags:
-    - k8s 
-  before_script:
-    - echo -e "\e[0Ksection_start:`date +%s`:install_system_deps_section[collapsed=true]\r\e[0KInstall system dependencies"
-    - apt update
-    - apt install -y clang-format git-core
-    - echo -e "\e[0Ksection_end:`date +%s`:install_system_deps_section\r\e[0K"
   script:
-    - echo `which clang-format`
-    - cd "$CI_PROJECT_DIR"
-    - linter_errors=$(git clang-format-6.0 origin/master -q --diff | grep -v --color=never "no modified files to format" || true)
-    - echo "$linter_errors"
-    - if [ ! -z "$linter_errors" ]; then echo "Detected formatting issues; please fix"; exit 1; else echo "Formatting is correct"; exit 0; fi
+     - git fetch origin master
+     - git clang-format --diff origin/master -- * | grep -e "clang-format did not modify any files$" -e "^no modified files to format$"
+      
+dnnlibApi-ci-pipeline:
+  stage: test
+  variables: 
+    PIPELINE_CI_SUBPROJECT: 'dnnLibraryApi'
+    SUBMODULE_BRANCH: ${CI_COMMIT_REF_NAME}
+  trigger:
+    project: software/sw-platform
+    branch: develop/ml-compiler
+    strategy: depend

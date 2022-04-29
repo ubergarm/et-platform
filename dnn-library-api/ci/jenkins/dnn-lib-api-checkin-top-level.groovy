@@ -94,7 +94,6 @@ pipeline {
       stages {
         stage('CHECKOUT_SCM') {
           steps {
-            updateGitlabCommitStatus name: JOB_NAME, state: 'pending'
             script {
               def seconds = -1
               retry(8) {
@@ -114,6 +113,12 @@ pipeline {
                 env.GIT_COMMIT = scm_variables.get('GIT_COMMIT')
               }
             }
+            script {
+              sh 'echo "Only gitlab-ci files changed. Skipping the pipeline..."'
+              currentBuild.getRawBuild().getExecutor().interrupt(Result.UNSTABLE)
+              sleep(1)   // Interrupt is not blocking and does not take effect immediately.
+            }           
+            updateGitlabCommitStatus name: JOB_NAME, state: 'pending'            
           }
         }
         stage('INIT_UTILS') {

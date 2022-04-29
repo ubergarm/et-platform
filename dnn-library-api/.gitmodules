@@ -1,3 +1,0 @@
-[submodule "ci/ci-tools"]
-	path = ci/ci-tools
-	url = git@gitlab.esperanto.ai:software/ci-tools.git
