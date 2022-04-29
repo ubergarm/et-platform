@@ -27,27 +27,25 @@ namespace inlining {
 
 struct dataToCopyXSliceDim {
 
-  unsigned int nCopy = 1;
-  unsigned int advSlice = 1;
-  unsigned int advDst = 1;
-  unsigned int sliceAddr = 0;
-  unsigned int dstAddr = 0;
-  unsigned int jmpDstAddr = 0;
-  unsigned int jmpSlcAddr = 0;
+  size_t nCopy = 1;
+  size_t advSlice = 1;
+  size_t advDst = 1;
+  size_t sliceAddr = 0;
+  size_t dstAddr = 0;
+  size_t jmpDstAddr = 0;
+  size_t jmpSlcAddr = 0;
 };
 
-template <typename ptrT, unsigned int nDim> class WriteSliceToDst {
+template <typename ptrT, dim_t nDim> class WriteSliceToDst {
 public:
   static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions], const ptrT* tSlices,
-                                ptrT* tOutput, unsigned int maxDim, unsigned int& sliceAddr, unsigned int& dstAddr) {
+                                ptrT* tOutput, dim_t maxDim, size_t& sliceAddr, size_t& dstAddr) {
     if (nDim >= maxDim) {
       WriteSliceToDst<ptrT, nDim - 1>::cpyIt(sliceSteps, tSlices, tOutput, maxDim, sliceAddr, dstAddr);
     }
     else {
-      for (unsigned int k = 0; k < sliceSteps[nDim].nCopy; k++) {
-
+      for (dim_t k = 0; k < sliceSteps[nDim].nCopy; k++) {
         WriteSliceToDst<ptrT, nDim - 1>::cpyIt(sliceSteps, tSlices, tOutput, maxDim, sliceAddr, dstAddr);
-
         sliceAddr += sliceSteps[nDim].sliceAddr;
         dstAddr += sliceSteps[nDim].dstAddr;
       }
@@ -59,9 +57,8 @@ template <typename ptrT>
 class WriteSliceToDst<ptrT, 0> {
   public:
     static INLINE_ATTR void cpyIt(const dataToCopyXSliceDim sliceSteps[max_tensor_dimensions], const ptrT* tSlices,
-                                  ptrT* tOutput, [[maybe_unused]] unsigned int maxDim, unsigned int& sliceAddr,
-                                  unsigned int& dstAddr) {
-      for (unsigned int k = 0; k < sliceSteps[0].nCopy; k++) {
+                                  ptrT* tOutput, [[maybe_unused]] size_t maxDim, size_t& sliceAddr, size_t& dstAddr) {
+      for (size_t k = 0; k < sliceSteps[0].nCopy; k++) {
         auto val = tSlices[(sliceAddr + k)];
         tOutput[(dstAddr + k)] = val;
       }
@@ -79,41 +76,30 @@ INLINE_ATTR void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTens
   /* maintain compatibility through the new Iface Libtensor */
   /* outT --> dst  in1T--> src in2T--> slice*/
 
-  // ptrType* tSlices = static_cast<ptrType*>(slicesT);
-  srcType* tSlices = in2T->getRawDataPointer<srcType>();
-  // ptrType* tOutput = static_cast<ptrType*>(dstT);
-  srcType* tOutput = outT->getRawDataPointer<srcType>();
-  // uint64_t  *tIndices = (uint64_t *)indexT;
-  uint64_t* tIndices = in1T->getRawDataPointer<uint64_t>();
+  auto tSlices = in2T->getRawDataPointer<srcType>();
+  auto tOutput = outT->getRawDataPointer<srcType>();
+  auto tIndices = in1T->getRawDataPointer<uint64_t>();
 
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *indicesIndex = (unsigned int *)indicesDims;
   const dim_t *indicesIndex = in1T->dims().data();
-  // unsigned int *slicesIndex = (unsigned int *)slicesDims;
   const dim_t *slicesIndex = in2T->dims().data();
-
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *indicesPitch = (unsigned int *)pindicesPitches;
   const dim_t *indicesPitch = in1T->strides().data();
-  // unsigned int *slicesPitch = (unsigned int *)slicesPitches;
   const dim_t* slicesPitch = in2T->strides().data();
 
-  unsigned int sliceNumDim = static_cast<unsigned int>(in2T->ndims());
+  dim_t sliceNumDim = in2T->ndims();
 
   dataToCopyXSliceDim sliceSteps[max_tensor_dimensions];
-  int push_ptr = 0;
+  size_t push_ptr = 0;
 
   //assert(sliceNumDim>1);
-  unsigned int i = 0;
-  unsigned int accumSlc = 0;
-  unsigned int accumDst = 0;
+  size_t i = 0;
+  size_t accumSlc = 0;
+  size_t accumDst = 0;
 
   for (i = 0; i < (sliceNumDim - 1); i++) {
 
     sliceSteps[push_ptr++] = dataToCopyXSliceDim();
-
     sliceSteps[i].nCopy = slicesIndex[sliceNumDim-(i+1)];
     
     accumSlc = 0;
@@ -130,7 +116,7 @@ INLINE_ATTR void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTens
     }
     else if (i>1) {
 
-      for (unsigned int j = 1; j < i; j++) {
+      for (dim_t j = 1; j < i; j++) {
         accumSlc += sliceSteps[j].jmpSlcAddr;
         accumDst += sliceSteps[j].jmpDstAddr;
       }
@@ -141,14 +127,14 @@ INLINE_ATTR void fwdLibScatterDataInst(LibTensor* outT, LibTensor* in1T, LibTens
   }
 
   for (i = 0; i < indicesIndex[0]; i++) {
-    unsigned int dstDataIdx = 0;
-    for (unsigned int j = 0; j < indicesIndex[1]; j++) {
+    dim_t dstDataIdx = 0;
+    for (dim_t j = 0; j < indicesIndex[1]; j++) {
       dstDataIdx *= dstIndex[j];
       dstDataIdx += tIndices[(i*indicesPitch[0])+(j*indicesPitch[1])];
     }
 
-    unsigned int dstAddr = (dstDataIdx * dstPitch[0]);
-    unsigned int sliceAddr = (i * slicesPitch[0]);
+    size_t dstAddr = (dstDataIdx * dstPitch[0]);
+    size_t sliceAddr = (i * slicesPitch[0]);
 
     //  Non-recursive version keep it just in case of the 
     //  lower recursive perfomance 

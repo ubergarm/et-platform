@@ -53,17 +53,17 @@ fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, [[maybe_unu
                   [[maybe_unused]] const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  uint32_t hart = get_hart_id();
-  uint32_t threadId = hart & 1;
-  uint32_t minionId = (hart >> 1) - (32 * 32 + 16);
-  uint32_t activeMinions = (assignedMinions == 0) ? 16 : assignedMinions;
+  size_t hart = get_hart_id();
+  size_t threadId = hart & 1;
+  size_t minionId = (hart >> 1) - (32 * 32 + 16);
+  size_t activeMinions = (assignedMinions == 0) ? 16 : assignedMinions;
   // Disable second thread from now on, as they don't have tensor extensions
   if ((threadId != 0) || (minionId >= activeMinions)) {
     return;
   }
 
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = inT->getRawDataPointer<void>();
+  auto dst = outT->getRawDataPointer<void>();
+  auto src = inT->getRawDataPointer<void>();
 
   // Need to use the sizes of the output tensor. Graph might change them slightly (vs the input dimensions) to make
   // sure the function doesn't go beyond the tensor limits (can happen when the source tensor is a son with an offset
@@ -72,28 +72,28 @@ fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, [[maybe_unu
   const dim_t* pitch = outT->strides().data();
 
   size_t typeSize = getsize<srcType>();
-  uint64_t numBytes = pitch[0] * index[0] * typeSize + off;       // Total number of elements in the tensor
-  uint64_t numCacheLines = (numBytes - 1) / CACHE_LINE_BYTES + 1; // 64 = CacheLineLength
+  size_t numBytes = pitch[0] * index[0] * typeSize + off;       // Total number of elements in the tensor
+  size_t numCacheLines = (numBytes - 1) / CACHE_LINE_BYTES + 1; // 64 = CacheLineLength
   int64_t  minionCacheLines = (numCacheLines - 1) / activeMinions + 1;
-  uint64_t initialCacheLine = minionCacheLines * minionId;
-  uint64_t lastCacheLine = initialCacheLine + minionCacheLines;
+  size_t initialCacheLine = minionCacheLines * minionId;
+  size_t lastCacheLine = initialCacheLine + minionCacheLines;
   minionCacheLines = (lastCacheLine <= numCacheLines)   ? minionCacheLines
                    : (initialCacheLine < numCacheLines) ? numCacheLines - initialCacheLine
                    :                                      0;
 
   // Computes source and destination
-  uint64_t srcAddr = ((uint64_t)src & ~0x3FULL) + initialCacheLine * CACHE_LINE_BYTES; // Aligns to cache line
-  uint64_t dstAddr = (uint64_t)dst + initialCacheLine * CACHE_LINE_BYTES;
-  uint64_t srcAddrOrig = srcAddr;
+  size_t srcAddr = ((size_t)src & ~0x3FUL) + initialCacheLine * CACHE_LINE_BYTES; // Aligns to cache line
+  size_t dstAddr = (size_t)dst + initialCacheLine * CACHE_LINE_BYTES;
+  size_t srcAddrOrig = srcAddr;
 
   // Saves minion cache lines for evicts
-  int64_t minionCacheLinesOrig = minionCacheLines;
+  size_t minionCacheLinesOrig = minionCacheLines;
 
   // Actual copies doing tensorload + tensorstore
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
   while (minionCacheLines > 0) {
     // Caps to 16 cachelines
-    uint32_t cl = (minionCacheLines >= 16) ? 0xF : minionCacheLines - 1;
+    size_t cl = (minionCacheLines >= 16) ? 0xFUL : minionCacheLines - 1;
     // Copies source to L1 Scp and makes sure they are available
     // for the tensor store
     tensor_load(0, 0, 0, 0, 0, srcAddr, 0, cl, 0x40, 0);
@@ -129,7 +129,7 @@ fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, [[maybe_unu
     cache_ops_cb_drain(SHIRE_OWN, 3);
   } else {
     cache_ops_cb_drain(SHIRE_OWN, minionId);
-    uint32_t pending = 4 - activeMinions;
+    size_t pending = 4 - activeMinions;
     if (minionId < pending) {
       cache_ops_cb_drain(SHIRE_OWN, minionId + activeMinions);
     }

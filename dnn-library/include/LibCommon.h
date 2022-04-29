@@ -205,9 +205,9 @@ int8_t quantizeValInt8(float val, float scale, int32_t offset) {
 /*@brief newDims filled with currDims values and expanded dimensions =1
  *until max tensor dimension is reached.
  */
-inline __attribute__((always_inline)) void expandDimsToMax(dim_t* newDims, dim_t* currDims, unsigned int numDims) {
+inline __attribute__((always_inline)) void expandDimsToMax(dim_t* newDims, dim_t* currDims, dim_t numDims) {
 
-  for (unsigned int i = 0; i < max_tensor_dimensions; i++) {
+  for (dim_t i = 0; i < max_tensor_dimensions; i++) {
     if (i< numDims)
       newDims[i] = currDims[i];
     else
@@ -220,7 +220,7 @@ inline __attribute__((always_inline)) void expandDimsToMax(dim_t* newDims, dim_t
  */
 template <typename ElemTy>
 inline __attribute__((always_inline)) void loopAxis(Handle<ElemTy> srcH, Handle<ElemTy> destH,
-                                                    const dim_array_t& newDims, unsigned int axis) {
+                                                    const dim_array_t& newDims, dim_t axis) {
 
   dim_array_t indicesDest = {0,};
   dim_array_t indicesSrc = {0,};

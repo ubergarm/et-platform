@@ -28,8 +28,8 @@ namespace inlining {
 
 template <ElemKind elK>
 inline __attribute__((always_inline)) void sparseToDenseOp(uintptr_t dst, uintptr_t src, const uint64_t* indices,
-                                                           unsigned int batchPitchBytes, uint64_t batchElement,
-                                                           unsigned int numIndices) {
+                                                           size_t batchPitchBytes, dim_t batchElement,
+                                                           dim_t numIndices) {
 
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
@@ -113,47 +113,47 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
                                                                    uint64_t flags,
                                                                    const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in2T->getRawDataPointer<void>();
+  auto dstT = outT->getRawDataPointer<void>();
+  auto srcT = in2T->getRawDataPointer<void>();
   const uint64_t* indices = in1T->getRawDataPointer<uint64_t>();
 
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *indIndex = in1T->dims().data();
-
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *srcPitch = in2T->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(in2T->ndims());
+  dim_t srcDimNum = in2T->ndims();
 
   uintptr_t dstAddr = (uintptr_t)dstT;    
   uintptr_t srcAddr = (uintptr_t)srcT;
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
 
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   constexpr size_t typeSize = Type::getElementSize(elK);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum];
-  for (unsigned int i = 0; i < srcDimNum; i++)
+  dim_array_t coord = {0};
+  for (dim_t i = 0; i < srcDimNum; i++)
     coord[i] = 0;
-  unsigned int k;
+  dim_t k;
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, dstIndex, k);
 
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
 
-  unsigned int batchPitchBytes = srcPitch[0] * Type::getElementSize(elK);
+  size_t batchPitchBytes = srcPitch[0] * Type::getElementSize(elK);
   // @TODO srcpitch It is a cnst pointer!!!!. Re-do in other way
   // it is not allowed modify tensor properties. It needs a cpy of it.
   size_t cpySrcPitch[srcDimNum];
@@ -162,16 +162,16 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   //srcPitch[0] = 0;
   cpySrcPitch[0] = 0;
 
-  for (unsigned int j = 0; j < k; j++) {
+  for (dim_t j = 0; j < k; j++) {
     offsetOut += dstPitch[j] * coord[j];
     offsetIn += cpySrcPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  size_t posMax = maxRead + initialAddr;
   bool done = false;
-  unsigned int lastDim = srcDimNum - 1;
-  unsigned int maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  unsigned int elementsInRow, registersInRow, res;
+  size_t lastDim = srcDimNum - 1;
+  size_t maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
+  size_t elementsInRow, registersInRow, res;
 
   bool firstRow = true;
   bool midRow = false;
@@ -193,7 +193,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
     if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
       registersInRow = elementsInRow / 8;
       res = elementsInRow - registersInRow * 8;
-      uint8_t mask = ((1 << res) - 1);
+      uint8_t mask = static_cast<uint8_t>((1 << res) - 1);
       __asm__ __volatile__("mov.m.x m1, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
       if (!firstRow) midRow = true;
     }
@@ -203,7 +203,7 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
-    for (unsigned int i = 0; i < registersInRow; i++) {
+    for (size_t i = 0; i < registersInRow; i++) {
       sparseToDenseOp<elK>(dstAddr, srcAddr, indices, batchPitchBytes, coord[0], indIndex[0]);
       srcAddr += 8 * typeSize;
       dstAddr += 8 * typeSize;
@@ -227,7 +227,8 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 

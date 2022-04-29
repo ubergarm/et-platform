@@ -30,32 +30,27 @@ INLINE_ATTR void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT, uint64_t fl
                                     const uint32_t assignedMinions = 0) {
   using dstType = typename elemKind2elemTy<dstElK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
+  auto dstT = outT->getRawDataPointer<void>();
 
-  // Addresser<dstElK> ptrDstT(dstT, scale, offset);
   Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  // srcElK *ptrSrcT = (srcElK *)srcT;
   const Addresser<srcElK> ptrSrcT(inT->getRawDataPointer<void>(), inT->getScale(), inT->getOffset());
 
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
   const dim_t *srcIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
   const dim_t *srcPitch = inT->strides().data();
+  dim_t srcDimNum = inT->ndims();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
-
-  unsigned int numElemsDst = dstPitch[0] * srcIndex[0]; // Total number of elements in the tensor
+  size_t numElemsDst = dstPitch[0] * srcIndex[0]; // Total number of elements in the tensor
 
   // We give to each minion an initial address the number of positions that it
   // must work on (maxRead).
-  unsigned int initialAddr, maxRead;
+  size_t initialAddr, maxRead;
   size_t typeSize = sizeof(dstType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
@@ -63,19 +58,19 @@ INLINE_ATTR void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT, uint64_t fl
     return;
 
   // We move the initialAddr to the next non-padding position
-  unsigned int coord[srcDimNum]; // Vector of coordinates
-  unsigned int k = 0;            // Amount of non-zero coordinates
+  dim_array_t coord = {0}; // Vector of coordinates
+  dim_t k = 0;             // Amount of non-zero coordinates
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, srcIndex, k);
 
   // We get the actual initialAddr, in the input and output.
-  unsigned int offsetIn = 0;
-  unsigned int offsetOut = 0;
-  for (unsigned int j = 0; j < k; j++) {
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
     offsetIn += srcPitch[j] * coord[j];
     offsetOut += dstPitch[j] * coord[j];
   }
 
-  unsigned int posMax = maxRead + initialAddr;
+  size_t posMax = maxRead + initialAddr;
   // In each iteration we copy a position and switch to the next one, until
   // completion.
   bool done = false;
@@ -89,7 +84,7 @@ INLINE_ATTR void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT, uint64_t fl
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
