@@ -72,21 +72,16 @@ fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT, const std::array<flo
   fpReciprocalSingleElement(rszBlScale[2], invRszBlScale_2);
 
   // Number of samples
-  for (size_t ob = 0; ob < outT->dims()[0]; ++ob) {
+  for (dim_t ob = 0; ob < outT->dims()[0]; ++ob) {
     // Height
-    for (size_t oh = 0; oh < outT->dims()[1]; ++oh) {
+    for (dim_t oh = 0; oh < outT->dims()[1]; ++oh) {
       // Width
-      for (size_t ow = 0; ow < outT->dims()[2]; ++ow) {
+      for (dim_t ow = 0; ow < outT->dims()[2]; ++ow) {
+        float ihf = static_cast<float>(static_cast<uint32_t>(oh)) * invRszBlScale_1;
+        float iwf = static_cast<float>(static_cast<uint32_t>(ow)) * invRszBlScale_2;
 
-        /* float ihf = ((static_cast<uint32_t>(oh) * 1.0f) * invRszBlScale_1); */
-        /* float iwf = ((static_cast<uint32_t>(ow) * 1.0f) * invRszBlScale_2); */
-        /* float ihf = ((oh * 1.0f) * invRszBlScale_1); */
-        /* float iwf = ((ow * 1.0f) * invRszBlScale_2); */
-        float ihf = (static_cast<float>(oh * 1.0) * invRszBlScale_1);
-        float iwf = (static_cast<float>(ow * 1.0) * invRszBlScale_2);
-
-        size_t ih = static_cast<uint32_t>(ihf);
-        size_t iw = static_cast<uint32_t>(iwf);
+        uint32_t ih = static_cast<uint32_t>(ihf);
+        uint32_t iw = static_cast<uint32_t>(iwf);
 
         auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
         auto ih1 = std::min(static_cast<size_t>(ih + 1), dataT->dims()[1] - 1);
@@ -112,9 +107,9 @@ fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT, const std::array<flo
             dst11 = dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc}), dataH.getScale(),
                                         dataH.getOffset());
           }
-          float hd = static_cast<float>(dst00) + static_cast<float>(dst10 - dst00) * (ihf - ih);
-          float hw = static_cast<float>(dst01) + static_cast<float>(dst11 - dst01) * (ihf - ih);
-          float result = hd + (hw - hd) * (iwf - iw);
+          float hd = dst00 + (dst10 - dst00) * (ihf - static_cast<float>(ih));
+          float hw = dst01 + (dst11 - dst01) * (ihf - static_cast<float>(ih));
+          float result = hd + (hw - hd) * (iwf - static_cast<float>(iw));
 
           if (elKind == Float16Ty) {
             uint16_t out16 = 0;
@@ -160,15 +155,12 @@ INLINE_ATTR
     for (size_t oh = 0; oh < outT->dims()[1]; ++oh) {
       // Width
       for (size_t ow = 0; ow < outT->dims()[2]; ++ow) {
-
-        /* float ihf = ((oh * 1.0f) * invRszBlScale_1); */
-        /* float iwf = ((ow * 1.0f) * invRszBlScale_2); */
-        float ihf = (static_cast<float>(oh * 1.0) * invRszBlScale_1);
-        float iwf = (static_cast<float>(ow * 1.0) * invRszBlScale_2);
+        float ihf = static_cast<float>(static_cast<uint32_t>(oh)) * invRszBlScale_1;
+        float iwf = static_cast<float>(static_cast<uint32_t>(ow)) * invRszBlScale_2;
 
         /* @TODO Due to SW-1974 Change to uint64_t once ticket will be solved.*/
-        size_t ih = static_cast<uint32_t>(ihf);
-        size_t iw = static_cast<uint32_t>(iwf);
+        uint32_t ih = static_cast<uint32_t>(ihf);
+        uint32_t iw = static_cast<uint32_t>(iwf);
 
         auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
         auto ih1 = std::min(static_cast<size_t>(ih + 1), dataT->dims()[1] - 1);
@@ -182,10 +174,9 @@ INLINE_ATTR
           auto v10 = dataH.at(std::array<size_t, 4>{ob, ih1, iw0, oc});
           auto v11 = dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc});
 
-          auto hd = static_cast<float>(v00) + static_cast<float>(v10 - v00) * (ihf - ih);
-          auto hw = static_cast<float>(v01) + static_cast<float>(v11 - v01) * (ihf - ih);
-          float result = hd + (hw - hd) * (iwf - iw);
-          // outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = result;
+          auto hd = static_cast<float>(v00) + static_cast<float>(v10 - v00) * (ihf - static_cast<float>(ih));
+          auto hw = static_cast<float>(v01) + static_cast<float>(v11 - v01) * (ihf - static_cast<float>(ih));
+          float result = hd + (hw - hd) * (iwf - static_cast<float>(iw));
           if (elKind == BFloat16Ty || elKind == Float16Ty) {
             outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<float>(result);
           } else if (elKind == Int64ITy) {

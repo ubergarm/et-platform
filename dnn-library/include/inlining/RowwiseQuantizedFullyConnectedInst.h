@@ -33,65 +33,55 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dst in1T->data in2T-> weight in3T->bias in4T->scale in5T->offset */
 
-  void* pdst = outT->getRawDataPointer<void>();
+  auto pdst = outT->getRawDataPointer<void>();
 
-  // int8_t *tOutput = (int8_t *)pdst;
-  int8_t* tOutput = outT->getRawDataPointer<int8_t>();
-  // int8_t *tAInput = (int8_t *)pdata;
-  int8_t* tAInput = in1T->getRawDataPointer<int8_t>();
-  // int8_t *tWInput = (int8_t *)pweights;
-  int8_t* tWInput = in2T->getRawDataPointer<int8_t>();
-  // int32_t *tBias = (int32_t *)pbias;
-  int32_t* tBias = in3T->getRawDataPointer<int32_t>();
-  // float *tScale = (float *)pscale;
-  float* tScale = in4T->getRawDataPointer<float>();
-  // int32_t *tOffset = (int32_t *)poffset;
-  int32_t* tOffset = in5T->getRawDataPointer<int32_t>();
+  auto tOutput = outT->getRawDataPointer<int8_t>();
+  auto tAInput = in1T->getRawDataPointer<int8_t>();
+  auto tWInput = in2T->getRawDataPointer<int8_t>();
+  auto tBias = in3T->getRawDataPointer<int32_t>();
+  auto tScale = in4T->getRawDataPointer<float>();
+  auto tOffset = in5T->getRawDataPointer<int32_t>();
 
-  // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dataIndex = (unsigned int *)pdataDims;
   const dim_t *dataIndex = in1T->dims().data();
 
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
   const dim_t *dataPitch =  in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
   const dim_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
   //  fpReciprocalSingleElement(dstscale, invDstScale);
   fpReciprocalSingleElement(outT->getScale(), invDstScale);
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, pdst);
   if (maxRead == 0)
     return;
 
-  unsigned int dstDimNum = 2;
-  unsigned int coordOut[dstDimNum];
-  unsigned int last_non_zero_coord;
+  dim_t dstDimNum = 2;
+  dim_array_t coordOut = {0};
+  dim_t last_non_zero_coord;
   getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
 
-  uint64_t offsetOut = 0;
-  for (unsigned int i = 0; i < last_non_zero_coord; i++) {
+  size_t offsetOut = 0;
+  for (dim_t i = 0; i < last_non_zero_coord; i++) {
     offsetOut += dstPitch[i]*coordOut[i];
   }
 
-  uint64_t offsetAIn = coordOut[0] * dataPitch[0];
-  uint64_t offsetWIn = coordOut[1] * weightPitch[0];
+  size_t offsetAIn = coordOut[0] * dataPitch[0];
+  size_t offsetWIn = coordOut[1] * weightPitch[0];
 
-  unsigned int posMax = maxRead + initialAddr;
+  size_t posMax = maxRead + initialAddr;
   bool done = false;
 
   while (!done && (offsetOut < posMax)) {
@@ -108,7 +98,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
     uintptr_t actAddr = (uintptr_t)tAInput + typeSize*offsetAIn;
     uintptr_t wgtAddr = (uintptr_t)tWInput + typeSize*offsetWIn;
 
-    size_t srcoffset = in1T->getOffset();
+    auto srcoffset = in1T->getOffset();
 
 #define MATMUL_ITERATION               \
     "fgb.ps   f0, f28(%[actAddr])\n" \
@@ -183,10 +173,8 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
         [elemsRow]  "r" (dataIndex[1])
       : "t0", "t1", "t2", "f0", "f1", "f29", "f30", "f31");
 
-    // tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
-    //   float(sum) * (matMulScale * invDstScale) + dstoffset));
-    tOutput[offsetOut] = clip<int32_t, int8_t>(
-      static_cast<int32_t>(nearbyintf(float(sum) * (matMulScale * invDstScale) + outT->getOffset())));
+    tOutput[offsetOut] = clip<int32_t, int8_t>(static_cast<int32_t>(
+      nearbyintf(static_cast<float>(sum) * (matMulScale * invDstScale) + static_cast<float>(outT->getOffset()))));
 
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {
@@ -201,7 +189,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 
 #undef MATMUL_ITERATION
@@ -216,71 +204,56 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTenso
          in1T->getElementType() == Int8QTy &&
          in2T->getElementType() == Int8QTy);
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  void* pdst = outT->getRawDataPointer<void>();
+  auto pdst = outT->getRawDataPointer<void>();
 
-  // int8_t *tOutput = (int8_t *)pdst;
-  int8_t* tOutput = outT->getRawDataPointer<int8_t>();
-  // int8_t *tAInput = (int8_t *)pdata;
-  int8_t* tAInput = in1T->getRawDataPointer<int8_t>();
-  // int8_t *tWInput = (int8_t *)pweights;
-  int8_t* tWInput = in2T->getRawDataPointer<int8_t>();
-  // int32_t *tBias = (int32_t *)pbias;
-  int32_t* tBias = in3T->getRawDataPointer<int32_t>();
-  // float *tScale = (float *)pscale;
-  float* tScale = in4T->getRawDataPointer<float>();
-  // int32_t *tOffset = (int32_t *)poffset;
-  int32_t* tOffset = in5T->getRawDataPointer<int32_t>();
+  auto tOutput = outT->getRawDataPointer<int8_t>();
+  auto tAInput = in1T->getRawDataPointer<int8_t>();
+  auto tWInput = in2T->getRawDataPointer<int8_t>();
+  auto tBias = in3T->getRawDataPointer<int32_t>();
+  auto tScale = in4T->getRawDataPointer<float>();
+  auto tOffset = in5T->getRawDataPointer<int32_t>();
 
-  // unsigned int *dstIndex = (unsigned int *)pdstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *dataIndex = (unsigned int *)pdataDims;
   const dim_t *dataIndex = in1T->dims().data();
-
-  // unsigned int *dstPitch = (unsigned int *)pdstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *dataPitch = (unsigned int *)pdataPitches;
   const dim_t* dataPitch = in1T->strides().data();
-  // unsigned int *weightPitch = (unsigned int *)pweightsPitches;
   const dim_t *weightPitch = in2T->strides().data();
 
   float invDstScale;
   //  fpReciprocalSingleElement(dstscale, invDstScale);
   fpReciprocalSingleElement(outT->getScale(), invDstScale);
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
-  unsigned int initialAddr, maxRead;
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<int8_t>();
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, pdst);
   if (maxRead == 0)
     return;
 
-  unsigned int dstDimNum = 2;
-  unsigned int coordOut[dstDimNum];
-  unsigned int last_non_zero_coord;
+  dim_t dstDimNum = 2;
+  dim_array_t coordOut = {0};
+  dim_t last_non_zero_coord;
   getNonPaddingCoordinates(coordOut, initialAddr, dstDimNum, dstPitch, dstIndex, last_non_zero_coord);
 
-  uint64_t offsetOut = 0;
-  for (unsigned int i = 0; i < last_non_zero_coord; i++) {
+  size_t offsetOut = 0;
+  for (dim_t i = 0; i < last_non_zero_coord; i++) {
     offsetOut += dstPitch[i]*coordOut[i];
   }
 
-  uint64_t offsetAIn = coordOut[0] * dataPitch[0];
-  uint64_t offsetWIn = coordOut[1] * weightPitch[0];
-
-  unsigned int posMax = maxRead + initialAddr;
+  size_t offsetAIn = coordOut[0] * dataPitch[0];
+  size_t offsetWIn = coordOut[1] * weightPitch[0];
+  size_t posMax = maxRead + initialAddr;
   bool done = false;
 
   while (!done && (offsetOut < posMax)) {
-
-    // float matMulScale = tScale[coordOut[1]] * srcscale;
     float matMulScale = tScale[coordOut[1]] * in1T->getScale();
     float invMatMulScale;
     fpReciprocalSingleElement(matMulScale, invMatMulScale);
-    // int32_t sum = nearbyintf(float(tBias[coordOut[1]] - biasoffset) * biasscale * invMatMulScale);
     int32_t sum = static_cast<int32_t>(
       nearbyintf(float(tBias[coordOut[1]] - in3T->getOffset()) * in3T->getScale() * invMatMulScale));
     int32_t woffset = tOffset[coordOut[1]];
@@ -343,8 +316,8 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTenso
 
     // tOutput[offsetOut] = clip<int32_t, int8_t>(nearbyintf(
     //   float(sum) * (matMulScale * invDstScale) + dstoffset));
-    tOutput[offsetOut] = clip<int32_t, int8_t>(
-      static_cast<int32_t>(nearbyintf(float(sum) * (matMulScale * invDstScale) + outT->getOffset())));
+    tOutput[offsetOut] = clip<int32_t, int8_t>(static_cast<int32_t>(
+      nearbyintf(float(sum) * (matMulScale * invDstScale) + static_cast<float>(outT->getOffset()))));
 
     done = getOffsets(dstDimNum, coordOut, offsetOut, dstIndex, dstPitch);
     if (coordOut[1] != 0) {
@@ -358,7 +331,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTenso
 
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)pdst + typeSize*initialAddr, clperminion);
 
 #undef MATMUL_ITERATION

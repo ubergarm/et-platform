@@ -72,7 +72,7 @@ static void partialQuicksort(void *vals, void *inds, int low, int high, int m) {
 
 /// \brief Whether the values stored in a and b match.
 
-INLINE_ATTR bool same(size_t count, unsigned int a[], unsigned int b[]) {
+INLINE_ATTR bool same(size_t count, dim_array_t& a, dim_array_t& b) {
   for (size_t index = 0; index < count; ++index) {
     if (a[index] != b[index]) {
       return false;
@@ -87,13 +87,14 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
                                             const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* srcT = inT->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
+  auto srcT = inT->getRawDataPointer<void>();
+  auto dstT = outT->getRawDataPointer<void>();
 
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
@@ -106,27 +107,27 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
   const dim_t *valuesPitch = outT->strides().data();
   const dim_t *indexPitch = out2T->strides().data();
 
-  int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  dim_t srcDimNum = inT->ndims();
 
-  int numElemsValues = valuesPitch[0] * valuesIndex[0];
-  unsigned int initialAddr, maxRead;
+  size_t numElemsValues = valuesPitch[0] * valuesIndex[0];
+  size_t initialAddr, maxRead;
   size_t typeSize = getsize<srcType>();
   getCachelinePartition(typeSize, numElemsValues, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
 
-  unsigned int coord[srcDimNum];
-  for (int i = 0; i < srcDimNum; i++) {
+  dim_array_t coord = {0};
+  for (dim_t i = 0; i < srcDimNum; i++) {
     coord[i] = 0;
   }
-  unsigned int l = 0;
+  dim_t l = 0;
 
   /* overloading while sw-2400 and sw-2429 are WIP */
   getNonPaddingCoordinates(coord, initialAddr, srcDimNum, valuesPitch, valuesIndex, l);
 
-  int valuesOffset = 0;
-  int indexOffset = 0;
+  size_t valuesOffset = 0;
+  size_t indexOffset = 0;
   for (int i = 0; i < (int) l; i++) {
     valuesOffset += coord[i] * valuesPitch[i];
     indexOffset += coord[i] * indexPitch[i];
@@ -134,38 +135,38 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
   if (valuesOffset >= numElemsValues)
     return;
 
-  size_t n = inputIndex[srcDimNum - 1];
-  unsigned int scratchCoords[3] = {UINT_MAX, UINT_MAX, UINT_MAX};
+  dim_t n = inputIndex[srcDimNum - 1];
+  dim_array_t scratchCoords = {UINT_MAX, UINT_MAX, UINT_MAX, 0, 0, 0};
   // ET_ASSERT(srcDimNum - 1 <= (int)(sizeof(scratchCoords) / sizeof(scratchCoords[0]));
   float tmpValues[n];
   long long tmpInd[n];
 
-  int posMax = initialAddr + maxRead;
+  size_t posMax = initialAddr + maxRead;
   bool done = false;
 
   while (!done && valuesOffset < posMax) {
 
     // Recompute the scratch only when a coordinate other than the last changed
-    if (not same(srcDimNum - 1, coord, scratchCoords)) {
-      int offsetInput = 0;
+    if (not same(srcDimNum - 1UL, coord, scratchCoords)) {
+      size_t offsetInput = 0;
       // Point to the first element in the innermost dimension
-      for (int i = 0; i < srcDimNum - 1; i++) {
+      for (dim_t i = 0; i < srcDimNum - 1; i++) {
         offsetInput += coord[i] * inputPitch[i];
       }
       // Fill the scratch with values and indidces
-      for (int i = 0; i < (int)n; i++) {
-        tmpValues[i] = inputT[offsetInput + i * inputPitch[srcDimNum - 1]];
+      for (dim_t i = 0; i < n; i++) {
+        tmpValues[i] = static_cast<float>(inputT[offsetInput + i * inputPitch[srcDimNum - 1]]);
         tmpInd[i] = i;
       }
       // Apply partial quicksort
-      partialQuicksort(tmpValues, tmpInd, 0, n - 1, k);
+      partialQuicksort(tmpValues, tmpInd, 0, static_cast<int>(n) - 1, k);
       // Save all the coordinates but last
-      for (int i = 0; i < srcDimNum - 1; i++) {
+      for (dim_t i = 0; i < srcDimNum - 1; i++) {
         scratchCoords[i] = coord[i];
       }
     }
 
-    int resCoord = coord[srcDimNum - 1];
+    ssize_t resCoord = coord[srcDimNum - 1];
     valuesT[valuesOffset] = static_cast<srcType>(tmpValues[resCoord]);
     indT[indexOffset] = tmpInd[resCoord];
 
@@ -175,7 +176,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
   }
   if (!DO_EVICTS)
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
 }
 
@@ -186,57 +187,49 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
                                            const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
   
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* srcT = inT->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
+  auto srcT = inT->getRawDataPointer<void>();
+  auto dstT = outT->getRawDataPointer<void>();
 
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
 
-  //  long long *indT = (long long *)dstT2;
   long long *indT = out2T->getRawDataPointer<long long>();
-  // srcType *valT = (srcType *)dstT;
-
-  // unsigned int *inputIndex = (unsigned int *)srcDims;
   const dim_t *inputIndex = inT->dims().data();
-
-  // unsigned int *valuesPitch = (unsigned int *)dstPitches;
   const dim_t *valuesPitch = outT->strides().data();
-  // unsigned int *indexPitch = (unsigned int *)dst2Pitches;
   const dim_t *indexPitch = out2T->strides().data();
-  // unsigned int *inputPitch = (unsigned int *)srcPitches;
   const dim_t *inputPitch = inT->strides().data();
 
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  dim_t srcDimNum = inT->ndims();
 
-  unsigned int row_length = inputIndex[srcDimNum - 1];
-  unsigned int rows = 1;
+  size_t row_length = inputIndex[srcDimNum - 1];
+  size_t rows = 1;
   for (size_t i = 0; i < size_t(srcDimNum - 1); i++)
     rows *= inputIndex[i];
-  unsigned int max_minionsperrow = std::min(activeMinions / rows, row_length / 4);
+  size_t max_minionsperrow = std::min(activeMinions / rows, row_length / 4);
 
-  unsigned int minionsperrow = 1;
+  size_t minionsperrow = 1;
   int level = -1;
   while (minionsperrow * 2 <= max_minionsperrow) {
     minionsperrow *= 2;
     level++;
   }
 
-  unsigned int row_id = minionId / minionsperrow;
+  size_t row_id = minionId / minionsperrow;
   if (row_id >= rows)
     return;
 
-  unsigned int row_minionId = minionId - row_id * minionsperrow;
+  size_t row_minionId = minionId - row_id * minionsperrow;
 
   size_t n = row_length / minionsperrow;
   size_t remainder = row_length - minionsperrow * n;
-  unsigned int batch_offset = row_id;
+  size_t batch_offset = row_id;
   long long row_offset;
   if (row_minionId < remainder) {
     n++;
@@ -245,7 +238,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
     row_offset = remainder * (n + 1) + (row_minionId - remainder) * n;
   }
 
-  unsigned int batchDim = (srcDimNum > 1) ? (srcDimNum - 2) : 0;
+  size_t batchDim = (srcDimNum > 1) ? (srcDimNum - 2) : 0;
   indT += batch_offset * indexPitch[batchDim];
   // valT += batch_offset * valuesPitch[srcDimNum - 2];
 
@@ -254,7 +247,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
   long long tmpInd[5] = {-1, -1, -1, -1, -1};
   long long final_offset = row_offset + n;
   for (long long i = row_offset; i < final_offset; i++) {
-    tmpValues[4] = inputT[batch_offset * inputPitch[batchDim] + i * inputPitch[srcDimNum - 1]];
+    tmpValues[4] = static_cast<float>(inputT[batch_offset * inputPitch[batchDim] + i * inputPitch[srcDimNum - 1]]);
     tmpInd[4] = i;
     for (int j = 3; j >= 0; j--) {
       if (tmpValues[j + 1] > tmpValues[j])
@@ -362,7 +355,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
 
   if (row_minionId == 0) {
     int32_t gather_coord[] = {0, 8, 16, 24, 4, 12, 20, 28};
-    float tmpT[4];
+    float tmpT[4] __attribute__((aligned(16)));
     __asm__ __volatile__("flw.ps  f31, %[gather_coord]\n"
                          "fscw.ps f1, f31(%[indT])\n"
                          "mov.m.x m0, zero, 0x0f\n"
@@ -371,7 +364,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
                          : [ indT ] "r"(indT),
                            [ gather_coord ] "m"( *(const int32_t(*)[8]) gather_coord)
                          : "f0", "f1", "f31", "memory");
-    for (unsigned i = 0; i < k; i++)
+    for (dim_t i = 0; i < k; i++)
       valuesT[batch_offset * valuesPitch[batchDim] + i] = static_cast<srcType>(tmpT[i]);
   }
 }
@@ -383,52 +376,47 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
                                            const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* srcT = inT->getRawDataPointer<void>();
-  void* dstT = outT->getRawDataPointer<void>();
+  auto srcT = inT->getRawDataPointer<void>();
+  auto dstT = outT->getRawDataPointer<void>();
 
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
 
-  // long long *indT = (long long *)dstT2;
   long long *indT = out2T->getRawDataPointer<long long>();
 
-  // unsigned int *inputIndex = (unsigned int *)srcDims;
   const dim_t *inputIndex = inT->dims().data();
-  // unsigned int *valuesPitch = (unsigned int *)dstPitches;
   const dim_t *valuesPitch = outT->strides().data();
-  // unsigned int *indexPitch = (unsigned int *)dst2Pitches;
   const dim_t *indexPitch = out2T->strides().data();
-  // unsigned int *inputPitch = (unsigned int *)srcPitches;
   const dim_t *inputPitch = inT->strides().data();
 
-  uint8_t srcDimNum = static_cast<unsigned int>(inT->ndims());
+  dim_t srcDimNum = inT->ndims();
 
-  unsigned int row_length = inputIndex[srcDimNum - 1];
-  unsigned int rows = 1;
+  size_t row_length = inputIndex[srcDimNum - 1];
+  size_t rows = 1;
   for (uint8_t i = 0; i < srcDimNum - 1; i++)
     rows *= inputIndex[i];
-  unsigned int max_minionsperrow = std::min(activeMinions / rows, row_length / k);
+  size_t max_minionsperrow = std::min(activeMinions / rows, row_length / k);
 
-  unsigned int minionsperrow = 1;
+  size_t minionsperrow = 1;
   int level = -1;
   while (minionsperrow * 2 <= max_minionsperrow) {
     minionsperrow *= 2;
     level++;
   }
 
-  unsigned int row_id = minionId / minionsperrow;
+  size_t row_id = minionId / minionsperrow;
   if (row_id >= rows)
     return;
-  unsigned int rowMinionId = minionId - row_id * minionsperrow;
+  size_t rowMinionId = minionId - row_id * minionsperrow;
 
   size_t n = row_length / minionsperrow;
   size_t remainder = row_length - minionsperrow * n;
-  unsigned int batch_offset = row_id;
+  unsigned int batch_offset = static_cast<uint32_t>(row_id);
   long long row_offset;
   if (rowMinionId < remainder) {
     n++;
@@ -437,7 +425,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
     row_offset = rowMinionId * n + remainder;
   }
 
-  unsigned int batchDim = (srcDimNum > 1) ? (srcDimNum - 2) : 0;
+  size_t batchDim = (srcDimNum > 1) ? (srcDimNum - 2) : 0;
   indT += batch_offset * indexPitch[batchDim];
 
   float minusInf = -std::numeric_limits<float>::infinity();
@@ -446,7 +434,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
   long long tmpInd[9] = {-1, -1, -1, -1, -1, -1, -1, -1, -1};
   long long final_offset = row_offset + n;
   for (long long i = row_offset; i < final_offset; i++) {
-    tmpValues[8] = inputT[batch_offset * inputPitch[batchDim] + i];
+    tmpValues[8] = static_cast<float>(inputT[batch_offset * inputPitch[batchDim] + i]);
     tmpInd[8] = i;
     for (int j = 7; j >= 0; j--) {
       if (tmpValues[j + 1] > tmpValues[j])
@@ -568,15 +556,16 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
                            "f9", "f10", "f11", "f12", "f13", "f30");
     pow *= 2;
   }
-
+  return;
   if (rowMinionId == 0) {
-    float tmpT[8];
+
+    float tmpT[8] __attribute__((aligned(16)));
     __asm__ __volatile__("flw.ps  f31, %[gather_indices]\n"
                          "fscw.ps f2, f31(%[indT])\n"
                          "faddi.pi f31, f31, 0x20\n"
                          "fscw.ps f3, f31(%[indT])\n"
                          "mov.m.x m0, zero, 0x0F\n"
-                         "fsw.ps f0, %[tmpT]\n"
+                         "fsw.ps f0, 0x0+%[tmpT]\n"
                          "fsw.ps f1, 0x10+%[tmpT]\n"
 
                          : [ tmpT ] "=m"(*(float(*)[8])tmpT)

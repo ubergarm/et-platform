@@ -26,7 +26,7 @@ namespace dnn_lib {
 
 namespace inlining {
 
-INLINE_ATTR unsigned int minTview(uint8_t& type, unsigned int a, unsigned int b, unsigned int c) {
+INLINE_ATTR size_t minTview(uint8_t& type, size_t a, dim_t b, dim_t c) {
   type = 0;
   if(b < a) {
     type = 1;
@@ -81,66 +81,64 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
                                       const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
 
-  unsigned int minionId = get_minion_id() - minionOffset;
-  unsigned int activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = inT->getRawDataPointer<void>();
+  auto dst = outT->getRawDataPointer<void>();
+  auto src = inT->getRawDataPointer<void>();
 
-  // Addresser<elK> tOutput(dst, scale[1], offset[1]);
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
-  // const Addresser<elK> tAInput(src, scale[0], offset[0]);
   const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
-  // unsigned int *dstIndex = (unsigned int *)dstDims;
   const dim_t *dstIndex = outT->dims().data();
-  // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *actPitch = (unsigned int *)srcPitches;
   const dim_t *actPitch = inT->strides().data();
 
-  unsigned int dstDimNum = static_cast<unsigned int>(outT->ndims());
-  unsigned int srcDimNum = static_cast<unsigned int>(inT->ndims());
+  dim_t dstDimNum = outT->ndims();
+  dim_t srcDimNum = inT->ndims();
 
-  unsigned int numElemsDst = dstPitch[0] * dstIndex[0];
+  size_t numElemsDst = dstPitch[0] * dstIndex[0];
 
-  unsigned int initialAddrOut, maxRead;
+  size_t initialAddrOut, maxRead;
   int32_t typeSize = (int32_t) sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddrOut, maxRead,
                         minionId, activeMinions, dst); // Obtain initial addr 4 minions
   if (maxRead == 0)
     return; // No work to do for the minion
 
-  unsigned int coordIn[srcDimNum], coordOut[dstDimNum], kOut;
+  dim_array_t coordIn = {0};
+  dim_array_t coordOut = {0};
+  dim_t kOut;
   getNonPaddingCoordinates(coordOut, initialAddrOut, dstDimNum, dstPitch,
                            dstIndex, kOut); // Find the first useful coord vect
-  unsigned int srcLastDim = srcDimNum - 1;
-  unsigned int dstLastDim = dstDimNum - 1;
-  unsigned int auxActPitch[srcDimNum], auxdstPitch[dstDimNum];
+  dim_t srcLastDim = srcDimNum - 1;
+  dim_t dstLastDim = dstDimNum - 1;
+  dim_array_t auxActPitch = {0};
+  dim_array_t auxdstPitch = {0};
   auxActPitch[srcLastDim] = auxdstPitch[dstLastDim] = 1;
-  for (int i = srcDimNum - 2; i >= 0; i--)
+  for (sdim_t i = srcDimNum - 2; i >= 0; i--)
     auxActPitch[i] = auxActPitch[i + 1] * actIndex[i + 1];
-  for (int i = dstDimNum - 2; i >= 0; i--)
+  for (sdim_t i = dstDimNum - 2; i >= 0; i--)
     auxdstPitch[i] = auxdstPitch[i + 1] * dstIndex[i + 1];
 
-  unsigned int addrIn, addrOut, elements_moved;
+  size_t addrIn, addrOut, elements_moved;
   addrIn = addrOut = elements_moved = 0;
 
-  for (unsigned int j = 0; j < kOut; j++) { // Compute the output address
+  for (dim_t j = 0; j < kOut; j++) { // Compute the output address
     addrOut += dstPitch[j] * coordOut[j];
     elements_moved += auxdstPitch[j] * coordOut[j];
   }
-  for (unsigned int i = 0; i < srcDimNum; i++) { // Compute the input coord vec
+  for (dim_t i = 0; i < srcDimNum; i++) { // Compute the input coord vec
     coordIn[i] = elements_moved / auxActPitch[i];
     elements_moved = elements_moved - coordIn[i] * auxActPitch[i];
   }
-  for (int i = srcLastDim; i >= 0; i--) { // Add to in coord vect the offset
-    coordIn[i] += (int)coord[i];
+  for (sdim_t i = srcLastDim; i >= 0; i--) { // Add to in coord vect the offset
+    coordIn[i] += coord[i];
     if (coordIn[i] >= actIndex[i]) {
       coordIn[i] = coordIn[i] % actIndex[i];
       coordIn[i - 1] += 1;
@@ -149,7 +147,7 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
   }
   uint8_t *dst8 = (uint8_t *) dst + addrOut*typeSize;;
   uint8_t *src8 = (uint8_t *) src + addrIn*typeSize;
-  unsigned int posMax = std::min(maxRead + initialAddrOut, numElemsDst); // Last position to "copy"
+  size_t posMax = std::min(maxRead + initialAddrOut, numElemsDst); // Last position to "copy"
   maxRead = posMax - addrOut;
 
   int32_t gatherValues[8] = { 0, typeSize, 2 * typeSize, 3 * typeSize,
@@ -159,7 +157,7 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
   bool done = false;
   while ((addrOut < posMax) & !done) {
     uint8_t type;
-    unsigned int d =
+    size_t d =
       minTview(type, maxRead, actIndex[srcLastDim] - coordIn[srcLastDim], dstIndex[dstLastDim] - coordOut[dstLastDim]);
     if(type == 1) {
       addrOut += (d - 1) * dstPitch[dstLastDim];
@@ -176,7 +174,7 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
 
     maxRead -= d; // FIXME it does not support doubles
 
-    std::pair<int, int> lanes = getLanesResFromNElements<srcType>(d);
+    std::pair<int, int> lanes = getLanesResFromNElements<srcType>(static_cast<uint32_t>(d));
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
     while (lanes.first >= 8) {
@@ -203,7 +201,7 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
       dst8 += 4*lanes.first;
     }
     if (lanes.second != 0) {
-      uint8_t mask = ((1 << lanes.second) - 1);
+      uint8_t mask = static_cast<uint8_t>((1 << lanes.second) - 1);
       gatherScatterTView <srcType>(src8, dst8, mask, gatherValues);
     }
     if (type == 0)
@@ -225,7 +223,7 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
 
   if (!DO_EVICTS) // Evicting the result
     return;
-  unsigned int clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
   if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize*initialAddrOut, clperminion);
 }
 
