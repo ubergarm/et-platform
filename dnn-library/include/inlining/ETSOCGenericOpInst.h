@@ -134,7 +134,9 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
   et_printf("%s(%d) [%d] called with op: %s \n", __func__, __LINE__, get_minion_id(), Op2String[op]);
 
   auto minionId = get_minion_id();
-  // Rebase minion ID.
+  
+  // Relative minion id
+  assert(minionId >= minionOffset);
   minionId -= minionOffset;
 
   // Get number of Minions assigned to this Node.
