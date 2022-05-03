@@ -275,11 +275,11 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
     twiddle_vector_big(size, base_twiddle_real, base_twiddle_img);
   else
     twiddle_vector_small(size, base_twiddle_real, base_twiddle_img);
-  
+
   float fft16_twiddle_real[16];
   float fft16_twiddle_img[16];
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
-  
+
   constexpr size_t twiddle_step = 1;
   fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
                       real, img, 0, 1, size, result_real, result_img);
@@ -320,8 +320,8 @@ INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_str
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
 
   // Storage for one column of intermediate results
-  float* result_column_real = stack.push<float>(width);
-  float* result_column_img = stack.push<float>(width);
+  float* result_column_real = stack.push<float>(height);
+  float* result_column_img = stack.push<float>(height);
 
   constexpr size_t twiddle_step = 1;
 
@@ -351,8 +351,11 @@ INLINE_ATTR void fft_inv_with_precompute(Stack& stack, float* base_twiddle_real,
                                          float* real, float* img, size_t start, size_t step, size_t size,
                                          float* result_real, float* result_img) {
 
-  float real2[size];
-  float img2[size];
+  auto saved = stack.current();
+
+  // Pack the input and invert imaginary component
+  float* real2 = stack.push<float>(size);
+  float* img2 = stack.push<float>(size);
   for (size_t i = 0; i < size; ++i) {
     real2[i] = real[start + i * step];
     img2[i] = -img[start + i * step];
@@ -363,20 +366,22 @@ INLINE_ATTR void fft_inv_with_precompute(Stack& stack, float* base_twiddle_real,
 
   float reciprocal = rec(size);
   float minus_reciprocal = -reciprocal;
-
   for (size_t i = 0; i < size; ++i) {
     result_real[i] = reciprocal * result_real[i];
     result_img[i] = minus_reciprocal * result_img[i];
   }
+
+  stack.restore(saved);
 }
 
 INLINE_ATTR void fft_inv(size_t size, float* real, float* img, float* result_real, float* result_img) {
 
   size_t minionId = 0;
   Stack stack(minionId);
+  auto saved = stack.current();
 
-  float base_twiddle_real[size];
-  float base_twiddle_img[size];
+  float* base_twiddle_real = stack.push<float>(size);
+  float* base_twiddle_img = stack.push<float>(size);
   if (size >= 16)
     twiddle_vector_big(size, base_twiddle_real, base_twiddle_img);
   else
@@ -389,6 +394,8 @@ INLINE_ATTR void fft_inv(size_t size, float* real, float* img, float* result_rea
   constexpr size_t twiddle_step = 1;
   fft_inv_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real,
                           fft16_twiddle_img, real, img, 0, 1, size, result_real, result_img);
+
+  stack.restore(saved);
 }
 
 INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
@@ -396,21 +403,22 @@ INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real
 
   size_t minionId = 0;
   Stack stack(minionId);
+  auto saved = stack.current();
 
   assert(real_stride == img_stride);
   assert(result_real_stride == result_img_stride);
 
   // Precompute twiddle vector for horizontal FFT
-  float horiz_base_twiddle_real[width];
-  float horiz_base_twiddle_img[width];
+  float* horiz_base_twiddle_real = stack.push<float>(width);
+  float* horiz_base_twiddle_img = stack.push<float>(width);
   if (width >= 16)
     twiddle_vector_big(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
   else
     twiddle_vector_small(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
 
   // Precompute twiddle vector for vertical FFT
-  float vert_base_twiddle_real[width];
-  float vert_base_twiddle_img[width];
+  float* vert_base_twiddle_real = stack.push<float>(height);
+  float* vert_base_twiddle_img = stack.push<float>(height);
   if (height >= 16)
     twiddle_vector_big(height, vert_base_twiddle_real, vert_base_twiddle_img);
   else
@@ -422,8 +430,8 @@ INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
 
   // Storage for one column of intermediate results
-  float result_column_real[height];
-  float result_column_img[height];
+  float* result_column_real = stack.push<float>(height);
+  float* result_column_img = stack.push<float>(height);
 
   constexpr size_t twiddle_step = 1;
 
@@ -444,6 +452,8 @@ INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real
       result_img[row * result_img_stride + col] = result_column_img[row];
     }
   }
+
+  stack.restore(saved);
 }
 
 } // namespace dnn_lib
