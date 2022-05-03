@@ -31,7 +31,6 @@ enum class Operation {
   IFFT,  
   NOISE_FILTER_1,
   COUNT,
-  LAST = COUNT - 1
 };
 
 static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1"};
@@ -140,7 +139,7 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
   minionId -= minionOffset;
 
   // Get number of Minions assigned to this Node.
-  uint64_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  uint32_t activeMinions = (assignedMinions == 0) ? static_cast<uint32_t>(MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
   if (minionId >= activeMinions) {
@@ -154,6 +153,7 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
     return fft<true>(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
   case Operation::NOISE_FILTER_1:
     return freqDomainNoiseFilter(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
+  case Operation::COUNT:
   default:
     et_assert("unsupported operation");
   }

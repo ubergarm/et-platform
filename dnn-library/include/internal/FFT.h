@@ -235,6 +235,11 @@ INLINE_ATTR void fft16_slice(float* real, float* img, size_t start, size_t step,
 
 void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
                          float fft16_twiddle_real[16], float fft16_twiddle_img[16], float* real, float* img,
+                         size_t start, size_t step, size_t size, float* result_real, float* result_img);
+
+
+void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
+                         float fft16_twiddle_real[16], float fft16_twiddle_img[16], float* real, float* img,
                          size_t start, size_t step, size_t size, float* result_real, float* result_img) {
   if (size == 16) {
     fft16_slice(real, img, start, step, size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
