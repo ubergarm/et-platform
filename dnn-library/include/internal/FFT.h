@@ -6,6 +6,10 @@
 #include <cstddef>
 #include <cstdint>
 
+#ifndef INLINE_ATTR
+#define INLINE_ATTR __attribute__((always_inline)) inline
+#endif
+
 namespace dnn_lib {
 
 // Prototypes
@@ -30,7 +34,7 @@ private:
 
 public:
   Stack(size_t minionId) {
-    constexpr size_t totalElements = elementsPerMinion * numMinions;    
+    constexpr size_t totalElements = elementsPerMinion * numMinions;
     static EType allocation[totalElements] __attribute__((aligned(64)));
     pointer = allocation + elementsPerMinion * minionId;
     start = pointer;
@@ -50,14 +54,14 @@ public:
 
   template <typename T, size_t elements = 1> T* push() {
     T* result = reinterpret_cast<T*>(pointer);
-    constexpr size_t baseElements = (sizeof(T)*elements + sizeof(EType) - 1) / sizeof(EType);
+    constexpr size_t baseElements = (sizeof(T) * elements + sizeof(EType) - 1) / sizeof(EType);
     pointer += baseElements;
     return result;
   }
 
   template <typename T> T* push(size_t elements) {
     T* result = reinterpret_cast<T*>(pointer);
-    size_t baseElements = (sizeof(T)*elements + sizeof(EType) - 1) / sizeof(EType);
+    size_t baseElements = (sizeof(T) * elements + sizeof(EType) - 1) / sizeof(EType);
     pointer += baseElements;
     return result;
   }
@@ -284,7 +288,7 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
   fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
                       real, img, 0, 1, size, result_real, result_img);
 
-  stack.restore(saved);  
+  stack.restore(saved);
 }
 
 INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
@@ -300,7 +304,6 @@ INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_str
   // Precompute twiddle vector for horizontal FFT
   float* horiz_base_twiddle_real = stack.push<float>(width);
   float* horiz_base_twiddle_img = stack.push<float>(width);
-
   if (width >= 16)
     twiddle_vector_big(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
   else
@@ -459,3 +462,169 @@ INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real
 } // namespace dnn_lib
 
 #endif // _FFT_H_
+
+#ifdef FFT_HOST_TEST
+
+// Build and run a test on the host as:
+//
+//   cp FFT.h /tmp/fft.cpp && g++ -DFFT_HOST_TEST=1 /tmp/fft.cpp -g && ./a.out
+
+#include <iostream>
+
+void print(size_t height, size_t width, const std::string& name, float* real, size_t real_stride, float* img,
+           size_t img_stride) {
+  std::cout << "\n" << name << "\n";
+  for (size_t i = 0; i < height; ++i) {
+    for (size_t j = 0; j < width; ++j) {
+      if (j != 0) {
+        std::cout << " ; ";
+      }
+      std::cout << real[i * real_stride + j] << "," << img[i * img_stride + j];
+    }
+    std::cout << "\n";
+  }
+}
+
+void test1() {
+  std::cout << "\n>>>> Test 1\n";
+
+  size_t size = 32;
+  float result_real[size];
+
+  float result_img[size];
+  float real[size];
+  float img[size];
+  for (size_t i = 0; i < size; ++i) {
+    real[i] = i;
+    img[i] = 0;
+  }
+  print(1, size, "Input", real, 0, img, 0);
+
+  dnn_lib::fft(size, real, img, result_real, result_img);
+  print(1, size, "FFT", result_real, 0, result_img, 0);
+
+  float expected_result_real[size] = {496., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
+                                      -16., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
+                                      -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.};
+
+  float expected_result_img[size] = {
+    +0.,  +162.4507262, +80.43743187, +52.74493134, +38.627417, +29.93389459, +23.9456922,  +19.49605641,
+    +16., +13.13086065, +10.69085821, +8.55217818,  +6.627417,  +4.85354694,  +3.18259788,  +1.57586245,
+    +0.,  -1.57586245,  -3.18259788,  -4.85354694,  -6.627417,  -8.55217818,  -10.69085821, -13.13086065,
+    -16., -19.49605641, -23.9456922,  -29.93389459, -38.627417, -52.74493134, -80.43743187, -162.4507262};
+
+  for (size_t i = 0; i < size; ++i) {
+    assert(std::abs(result_real[i] - expected_result_real[i]) < 0.01f);
+    assert(std::abs(result_img[i] - expected_result_img[i]) < 0.01f);
+  }
+
+  float reconst_real[size];
+  float reconst_img[size];
+  dnn_lib::fft_inv(size, result_real, result_img, reconst_real, reconst_img);
+  print(1, size, "Reconstructed", reconst_real, 0, reconst_img, 0);
+
+  for (size_t i = 0; i < size; ++i) {
+    assert(std::abs(reconst_real[i] - real[i]) < 0.001f);
+    assert(std::abs(reconst_img[i] - img[i]) < 0.001f);
+  }
+}
+
+void test2() {
+
+  std::cout << "\n>>>> Test 2\n";
+
+  constexpr size_t height = 2;
+  constexpr size_t width = 4;
+
+  constexpr size_t real_stride = 4;
+  constexpr size_t img_stride = 4;
+  float real[height][real_stride] = {{1, 3, 2, 1}, {1, 2, 2, 0}};
+  float img[height][img_stride] = {0};
+
+  std::cout << "Input\n";
+  for (size_t row = 0; row < height; ++row) {
+    for (size_t col = 0; col < width; ++col) {
+      std::cout << real[row][col] << "," << img[row][col] << "; ";
+    }
+    std::cout << "\n";
+  }
+  print(height, width, "Input", &real[0][0], real_stride, &img[0][0], img_stride);
+
+  constexpr size_t result_real_stride = 4;
+  constexpr size_t result_img_stride = 4;
+  float result_real[height][result_real_stride] = {0};
+  float result_img[height][img_stride] = {0};
+  dnn_lib::fft2d(width, height, &real[0][0], real_stride, &img[0][0], img_stride, &result_real[0][0],
+                 result_real_stride, &result_img[0][0], result_img_stride);
+  print(height, width, "FFT 2D", &result_real[0][0], result_real_stride, &result_img[0][0], result_img_stride);
+
+  float expected_result_real[height][result_real_stride] = {{12., -2., 0., -2.}, {2., 0., -2., 0.}};
+
+  float expected_result_img[height][img_stride] = {{0., -4., 0., 4.}, {0., 0., 0., 0.}};
+
+  for (size_t row = 0; row < height; ++row) {
+    for (size_t col = 0; col < width; ++col) {
+      assert(std::abs(result_real[row][col] - expected_result_real[row][col]) < 0.00001f);
+      assert(std::abs(result_img[row][col] - expected_result_img[row][col]) < 0.00001f);
+    }
+  }
+
+  std::cout << "Reconstructed\n";
+
+  constexpr size_t reconst_real_stride = 4;
+  constexpr size_t reconst_img_stride = 4;
+  float reconst_real[height][reconst_real_stride] = {0};
+  float reconst_img[height][reconst_img_stride] = {0};
+
+  dnn_lib::fft2d_inv(width, height, &result_real[0][0], result_real_stride, &result_img[0][0], result_img_stride,
+                     &reconst_real[0][0], reconst_real_stride, &reconst_img[0][0], reconst_img_stride);
+  print(height, width, "Reconstructed", &reconst_real[0][0], reconst_real_stride, &reconst_img[0][0],
+        reconst_img_stride);
+
+  for (size_t row = 0; row < height; ++row) {
+    for (size_t col = 0; col < width; ++col) {
+      assert(std::abs(reconst_real[row][col] - real[row][col]) < 0.000001f);
+      assert(std::abs(reconst_img[row][col] - img[row][col]) < 0.000001f);
+    }
+  }
+}
+
+void test3() {
+
+  std::cout << "\n>>>> Test 3\n";
+
+  constexpr size_t height = 1;
+  constexpr size_t width = 1;
+
+  constexpr size_t real_stride = width;
+  constexpr size_t img_stride = width;
+
+  float real[height][real_stride];
+  float img[height][img_stride];
+  for (size_t row = 0; row < height; ++row) {
+    for (size_t col = 0; col < width; ++col) {
+      real[row][col] = row;
+      img[row][col] = col;
+    }
+  }
+
+  constexpr size_t result_real_stride = width;
+  constexpr size_t result_img_stride = width;
+  float result_real[height][result_real_stride] = {0};
+  float result_img[height][img_stride] = {0};
+
+  dnn_lib::fft2d(width, height, &real[0][0], real_stride, &img[0][0], img_stride, &result_real[0][0],
+                 result_real_stride, &result_img[0][0], result_img_stride);
+}
+
+int main(int argc, char** argv) {
+
+  test1();
+  test2();
+  test3();
+  std::cout << "\nALL PASSED\n\n";
+
+  return 0;
+}
+
+#endif
