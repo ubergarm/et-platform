@@ -26,10 +26,18 @@ namespace dnn_lib {
 
 namespace inlining {
 
-enum class Operation { FFT = 0, IFFT = 1, FFT_FILTER_IFFT = 2, NOISE_FILTER_1 = 3, LAST };
-static constexpr const char* Op2String[] = {"FFT", "IFFT", "FFT_FILTER_IFFT", "NOISE_FILTER_1", "LAST"};
+enum class Operation {
+  FFT = 0,
+  IFFT,  
+  NOISE_FILTER_1,
+  COUNT,
+  LAST = COUNT - 1
+};
 
-INLINE_ATTR void fftTensors(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
+static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1"};
+
+template<bool inverse = false>
+INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
                      const uint32_t assignedMinions, uint32_t activeMinions, uint32_t minionId) {
 
   //  FIXME: just minon 0 does some work at the moment.
@@ -64,10 +72,18 @@ INLINE_ATTR void fftTensors(LibTensor* outT, LibTensor* inT, uint64_t flags, con
     float* result_img = result_real + dstStrides[1];
     size_t result_img_stride =  dstStrides[2];
 
-    fft2d(width, height, real, real_stride,
-                 img, img_stride, result_real,
-                 result_real_stride, result_img,
-                 result_img_stride);
+    if constexpr (inverse) {
+      fft2d_inv(width, height, real, real_stride,
+                   img, img_stride, result_real,
+                   result_real_stride, result_img,
+                   result_img_stride);
+    } else {
+      fft2d(width, height, real, real_stride,
+                   img, img_stride, result_real,
+                   result_real_stride, result_img,
+                   result_img_stride);
+    }
+
   }
 }
 
@@ -131,7 +147,9 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
 
   switch (Operation(op)) {
   case Operation::FFT:
-    return fftTensors(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
+    return fft<false>(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
+  case Operation::IFFT:
+    return fft<true>(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
   case Operation::NOISE_FILTER_1:
     return freqDomainNoiseFilter(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
   default:
