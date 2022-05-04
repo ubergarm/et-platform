@@ -13,9 +13,9 @@
 #define _ETSOCGENERICOP_INST_H_
 
 #include "DenoiseMasks.h"
+#include "FFT.h"
 #include "LibTensor.h"
 #include "utils.h"
-#include "FFT.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
@@ -28,14 +28,14 @@ namespace inlining {
 
 enum class Operation {
   FFT = 0,
-  IFFT,  
+  IFFT,
   NOISE_FILTER_1,
   COUNT,
 };
 
 static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1"};
 
-template<bool inverse = false>
+template <bool inverse = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
                      const uint32_t assignedMinions, uint32_t activeMinions, uint32_t minionId) {
 
@@ -53,9 +53,9 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   float* in = inT->getRawDataPointer<float>();
   float* out = outT->getRawDataPointer<float>();
 
-  const dim_t *srcDims = inT->dims().data();
-  const dim_t *srcStrides = inT->strides().data();
-  const dim_t *dstStrides = outT->strides().data();
+  const dim_t* srcDims = inT->dims().data();
+  const dim_t* srcStrides = inT->strides().data();
+  const dim_t* dstStrides = outT->strides().data();
 
   size_t batches = srcDims[0];
 
@@ -69,20 +69,15 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
     float* result_real = out + dstStrides[0] * batch;
     size_t result_real_stride = dstStrides[2];
     float* result_img = result_real + dstStrides[1];
-    size_t result_img_stride =  dstStrides[2];
+    size_t result_img_stride = dstStrides[2];
 
     if constexpr (inverse) {
-      fft2d_inv(width, height, real, real_stride,
-                   img, img_stride, result_real,
-                   result_real_stride, result_img,
-                   result_img_stride);
+      fft2d_inv(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
+                result_img_stride);
     } else {
-      fft2d(width, height, real, real_stride,
-                   img, img_stride, result_real,
-                   result_real_stride, result_img,
-                   result_img_stride);
+      fft2d(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
+            result_img_stride);
     }
-
   }
 }
 
@@ -133,13 +128,14 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
   et_printf("%s(%d) [%d] called with op: %s \n", __func__, __LINE__, get_minion_id(), Op2String[op]);
 
   auto minionId = get_minion_id();
-  
+
   // Relative minion id
   assert(minionId >= minionOffset);
   minionId -= minionOffset;
 
   // Get number of Minions assigned to this Node.
-  uint32_t activeMinions = (assignedMinions == 0) ? static_cast<uint32_t>(MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  uint32_t activeMinions =
+    (assignedMinions == 0) ? static_cast<uint32_t>(MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
   if (minionId >= activeMinions) {
