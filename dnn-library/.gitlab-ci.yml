@@ -1,0 +1,32 @@
+include:
+  - project: software/gitlab-ci-common
+    ref: c099f62aa1b24a883d5e6c5c6ce837370026a9c4
+    file:
+      - /rules/generic-workflow.yaml
+      - /jobs/generic-k8s-job.yaml
+      - /pods/medium-pod.yaml
+      - /rules/exec_maybe_interactively.yaml
+
+default:
+  interruptible: true
+
+clang-format:
+  extends:
+    - .template_job
+    - .pod_medium
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/centos-7.9.2009-et-sw-platform:0.2.15
+  stage: build
+  variables:
+    CMD_SCRIPT: | 
+     git fetch origin master
+     git clang-format --diff origin/master -- * | grep -e "clang-format did not modify any files$" -e "^no modified files to format$"
+      
+dnnlib-ci-pipeline:
+  stage: test
+  variables: 
+    PIPELINE_CI_SUBPROJECT: 'dnnLibrary'
+    SUBMODULE_BRANCH: ${CI_COMMIT_REF_NAME}
+  trigger:
+    project: software/sw-platform
+    branch: develop/ml-compiler
+    strategy: depend
