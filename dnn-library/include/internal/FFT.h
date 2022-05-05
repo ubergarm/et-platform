@@ -14,6 +14,7 @@ namespace dnn_lib {
 
 // Prototypes
 
+template <size_t workItemBits = 0>
 INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, float* result_img);
 
 INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
@@ -68,6 +69,10 @@ public:
 
   template <typename T, size_t elements = 1> void pop() {
     pointer -= sizeof(T) * elements;
+  }
+
+  template <typename T> static T* offset(T* value, size_t idOffset) {
+    return value + idOffset * elementsPerMinion;
   }
 
 private:
@@ -233,9 +238,9 @@ INLINE_ATTR void fft16_slice(float* real, float* img, size_t start, size_t step,
               select_add_or_sub_first2);
 }
 
-INLINE_ATTR  void reduce(float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step, size_t half_size,
-            float* tmp_real_even, float* tmp_img_even, float* tmp_real_odd, float* tmp_img_odd, float* result_real,
-            float* result_img) {
+INLINE_ATTR void reduce(float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step, size_t half_size,
+                        float* tmp_real_even, float* tmp_img_even, float* tmp_real_odd, float* tmp_img_odd,
+                        float* result_real, float* result_img) {
   size_t twiddle_index = 0;
   for (size_t j = 0; j < half_size; ++j) {
     float twiddle_real = base_twiddle_real[twiddle_index];
@@ -278,6 +283,7 @@ void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twi
   }
 }
 
+template <size_t workItemBits = 0>
 INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, float* result_img) {
 
   size_t minionId = 0;
@@ -296,8 +302,111 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
 
   constexpr size_t twiddle_step = 1;
+  size_t start = 0;
+  size_t step = 1;
   fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
-                      real, img, 0, 1, size, result_real, result_img);
+                      real, img, start, step, size, result_real, result_img);
+
+  stack.restore(saved);
+}
+
+template<size_t flb = 0, size_t fcc = 0, size_t thread = 0>
+INLINE_ATTR void barrier(size_t first, size_t range, size_t step) {
+#ifndef FFT_HOST_TEST
+  if (flbarrier(flb, range - 1)) {    
+    size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
+    size_t endLocal = firstLocal + range;
+    assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
+    size_t mask = 0;
+    for (size_t i = firstLocal; i < endLocal; i += step) {
+      mask = mask | (1 << i);
+    }
+    fcc_send(SHIRE_OWN, thread, fcc, mask);
+  }
+  fcc_consume(fcc);
+#endif
+}
+
+template <size_t workItemBits = 0>
+INLINE_ATTR void threadedFft(size_t firstMinionId, size_t minionId, size_t size, float* real, float* img,
+                             float* result_real, float* result_img) {
+  Stack stack(minionId);
+  auto saved = stack.current();
+
+  // Preccompute twiddle vector for general FFT
+  float* base_twiddle_real = stack.push<float>(size);
+  float* base_twiddle_img = stack.push<float>(size);
+  if (size >= 16)
+    twiddle_vector_big(size, base_twiddle_real, base_twiddle_img);
+  else
+    twiddle_vector_small(size, base_twiddle_real, base_twiddle_img);
+
+  // Preccompute twiddle vector for fft16_slice
+  float fft16_twiddle_real[16];
+  float fft16_twiddle_img[16];
+  twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
+
+  // Set start, step, size and twiddle_step for minionId
+  size_t start = 0;
+  size_t step = 1;
+  size_t twiddle_step = 1;
+  for (int index = int(workItemBits) - 1; index >= 0; index--) {
+    size_t bit = 1 << index;
+    if ((minionId & bit) != 0) {
+      start = start + step;
+    }
+    step <<= 1;
+    size >>= 1;
+    twiddle_step <<= 1;
+  }
+
+  // When using just one minion uset result_real and result_img as destination, the stack otherwise
+  constexpr size_t numMinions = 1 << workItemBits;
+  float* tmp_real;
+  float* tmp_img;
+  if (numMinions == 1) {
+    tmp_real = result_real;
+    tmp_img = result_img;
+  } else {
+    tmp_real = stack.push<float>(size);
+    tmp_img = stack.push<float>(size);
+  }
+
+  // Perform the FFT recursion branch assigne to the minion
+  fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
+                      real, img, start, step, size, tmp_real, tmp_img);
+
+  // Now perform workItemBits reduce passes
+  //
+  // - First pass with reduces pairs of consecutive elements
+  // - Second pass reduces pairs of consecutive even numbers
+  // - Third pass reduces pairs of consecutive multiples of 4
+  // - And so on.
+  //
+  size_t minionStep = 1;
+  for (int index = 0; index < workItemBits; index++) {
+    barrier(firstMinionId, numMinions, minionStep);
+    if ((minionId & minionStep) == 0) {
+      float* even_real = tmp_real;
+      float* even_img = tmp_img;
+      float* odd_real = Stack::offset(tmp_real, minionStep);
+      float* odd_img = Stack::offset(tmp_img, minionStep);
+      if (index == workItemBits - 1) {
+        tmp_real = result_real;
+        tmp_img = result_img;
+      } else {
+        tmp_real = stack.push<float>(2 * size);
+        tmp_img = stack.push<float>(2 * size);
+      }
+      twiddle_step >>= 1;
+      reduce(base_twiddle_real, base_twiddle_img, twiddle_step, size, even_real, even_img, odd_real, odd_img, tmp_real,
+             tmp_img);
+    } else {
+      break;
+    }
+    minionStep <<= 1;
+    size <<= 1;
+  }
 
   stack.restore(saved);
 }
@@ -517,13 +626,11 @@ void test1() {
   float expected_result_real[size] = {496., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
                                       -16., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
                                       -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.};
-
   float expected_result_img[size] = {
     +0.,  +162.4507262, +80.43743187, +52.74493134, +38.627417, +29.93389459, +23.9456922,  +19.49605641,
     +16., +13.13086065, +10.69085821, +8.55217818,  +6.627417,  +4.85354694,  +3.18259788,  +1.57586245,
     +0.,  -1.57586245,  -3.18259788,  -4.85354694,  -6.627417,  -8.55217818,  -10.69085821, -13.13086065,
     -16., -19.49605641, -23.9456922,  -29.93389459, -38.627417, -52.74493134, -80.43743187, -162.4507262};
-
   for (size_t i = 0; i < size; ++i) {
     assert(std::abs(result_real[i] - expected_result_real[i]) < 0.01f);
     assert(std::abs(result_img[i] - expected_result_img[i]) < 0.01f);
@@ -570,9 +677,7 @@ void test2() {
   print(height, width, "FFT 2D", &result_real[0][0], result_real_stride, &result_img[0][0], result_img_stride);
 
   float expected_result_real[height][result_real_stride] = {{12., -2., 0., -2.}, {2., 0., -2., 0.}};
-
   float expected_result_img[height][img_stride] = {{0., -4., 0., 4.}, {0., 0., 0., 0.}};
-
   for (size_t row = 0; row < height; ++row) {
     for (size_t col = 0; col < width; ++col) {
       assert(std::abs(result_real[row][col] - expected_result_real[row][col]) < 0.00001f);
@@ -618,14 +723,78 @@ void test3() {
       img[row][col] = col;
     }
   }
+  print(height, width, "Input", &real[0][0], real_stride, &img[0][0], img_stride);
 
   constexpr size_t result_real_stride = width;
   constexpr size_t result_img_stride = width;
   float result_real[height][result_real_stride] = {0};
   float result_img[height][img_stride] = {0};
-
   dnn_lib::fft2d(width, height, &real[0][0], real_stride, &img[0][0], img_stride, &result_real[0][0],
                  result_real_stride, &result_img[0][0], result_img_stride);
+  print(height, width, "FFT 2D", &result_real[0][0], result_real_stride, &result_img[0][0], result_img_stride);
+}
+
+void test4() {
+  std::cout << "\n>>>> Test 4\n";
+
+  size_t size = 32;
+  float result_real[size];
+
+  float result_img[size];
+  float real[size];
+  float img[size];
+  for (size_t i = 0; i < size; ++i) {
+    real[i] = i;
+    img[i] = 0;
+  }
+  print(1, size, "Input", real, 0, img, 0);
+
+  constexpr size_t minionOffset = 16;
+  constexpr size_t workItemBits = 2;
+  //
+  // Running the threaded FFT with a sequence of minion ids that ensures
+  // the final FFT result is correct, irrespective of the fact that the
+  // barrier mechanism for syncrhonizing before the reduce operations may
+  // be broken.
+  //
+  // Firstly, minions 1 and 3 populate their stacks because their computations
+  // do not depend on the stack from any other minion. These two runs abort
+  // before writting anything to the destination vector, but they have the side
+  // effect of populating the stacks for minion 1 and 3 with valid intermediate
+  // results.
+  //
+  // Then minion 2 runs because it only depends on minion 3, but again it does
+  // not write any result into the destination vectors. Finally, minion 0 that
+  // depends on minion 2 can run and leaves the correct result on the
+  // destination vectors.
+  //
+  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 1, size, real, img, result_real, result_img);
+  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 3, size, real, img, result_real, result_img);
+  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 2, size, real, img, result_real, result_img);
+  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 0, size, real, img, result_real, result_img);
+
+  float expected_result_real[size] = {496., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
+                                      -16., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
+                                      -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.};
+  float expected_result_img[size] = {
+    +0.,  +162.4507262, +80.43743187, +52.74493134, +38.627417, +29.93389459, +23.9456922,  +19.49605641,
+    +16., +13.13086065, +10.69085821, +8.55217818,  +6.627417,  +4.85354694,  +3.18259788,  +1.57586245,
+    +0.,  -1.57586245,  -3.18259788,  -4.85354694,  -6.627417,  -8.55217818,  -10.69085821, -13.13086065,
+    -16., -19.49605641, -23.9456922,  -29.93389459, -38.627417, -52.74493134, -80.43743187, -162.4507262};
+  for (size_t i = 0; i < size; ++i) {
+    assert(std::abs(result_real[i] - expected_result_real[i]) < 0.01f);
+    assert(std::abs(result_img[i] - expected_result_img[i]) < 0.01f);
+  }
+
+  float reconst_real[size];
+  float reconst_img[size];
+  dnn_lib::fft_inv(size, result_real, result_img, reconst_real, reconst_img);
+  print(1, size, "Reconstructed", reconst_real, 0, reconst_img, 0);
+
+  for (size_t i = 0; i < size; ++i) {
+    assert(std::abs(reconst_real[i] - real[i]) < 0.001f);
+    assert(std::abs(reconst_img[i] - img[i]) < 0.001f);
+  }
 }
 
 int main(int argc, char** argv) {
@@ -633,6 +802,7 @@ int main(int argc, char** argv) {
   test1();
   test2();
   test3();
+  test4();
   std::cout << "\nALL PASSED\n\n";
 
   return 0;
