@@ -54,31 +54,51 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   float* out = outT->getRawDataPointer<float>();
 
   const dim_t* srcDims = inT->dims().data();
+  const dim_t* dstDims = outT->dims().data();  
   const dim_t* srcStrides = inT->strides().data();
   const dim_t* dstStrides = outT->strides().data();
 
   size_t batches = srcDims[0];
+  size_t channels = srcDims[1];  
+  [[maybe_unused]] size_t components = srcDims[2];
+  size_t height = srcDims[3];
+  size_t width = srcDims[4];
+
+  assert(batches > 0);
+  assert(channels > 0);
+  assert(components == 2);
+  assert(height  > 0);
+  assert(width > 0);
+
+  assert(isPowerOfTwo(height));
+  assert(isPowerOfTwo(width));
+
+  assert(batches == dstDims[0]);
+  assert(channels == dstDims[1]);
+  assert(components == dstDims[2]);
+  assert(height == dstDims[3]);
+  assert(width == dstDims[4]);
 
   for (size_t batch = 0; batch < batches; ++batch) {
-    size_t width = srcDims[3];
-    size_t height = srcDims[2];
-    float* real = in + srcStrides[0] * batch;
-    size_t real_stride = srcStrides[2];
-    float* img = real + srcStrides[1];
-    size_t img_stride = srcStrides[2];
-    float* result_real = out + dstStrides[0] * batch;
-    size_t result_real_stride = dstStrides[2];
-    float* result_img = result_real + dstStrides[1];
-    size_t result_img_stride = dstStrides[2];
-
-    if constexpr (inverse) {
-      fft2d_inv(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
-                result_img_stride);
-    } else {
-      fft2d(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
-            result_img_stride);
+     for (size_t channel = 0; channel < channels; ++channel) {
+      float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
+      size_t real_stride = srcStrides[3];
+      float* img = real + srcStrides[2];
+      size_t img_stride = srcStrides[3];
+      float* result_real = out + dstStrides[0] * batch + dstStrides[1] * channel;
+      size_t result_real_stride = dstStrides[3];
+      float* result_img = result_real + dstStrides[2];
+      size_t result_img_stride = dstStrides[3];
+      if constexpr (inverse) {
+        fft2d_inv(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
+                  result_img_stride);
+      } else {
+        fft2d(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
+              result_img_stride);
+      }
     }
   }
+
 }
 
 INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
