@@ -233,10 +233,25 @@ INLINE_ATTR void fft16_slice(float* real, float* img, size_t start, size_t step,
               select_add_or_sub_first2);
 }
 
+INLINE_ATTR  void reduce(float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step, size_t half_size,
+            float* tmp_real_even, float* tmp_img_even, float* tmp_real_odd, float* tmp_img_odd, float* result_real,
+            float* result_img) {
+  size_t twiddle_index = 0;
+  for (size_t j = 0; j < half_size; ++j) {
+    float twiddle_real = base_twiddle_real[twiddle_index];
+    float twiddle_img = base_twiddle_img[twiddle_index];
+    float term_real, term_img;
+    mult(twiddle_real, twiddle_img, tmp_real_odd[j], tmp_img_odd[j], term_real, term_img);
+    add(tmp_real_even[j], tmp_img_even[j], term_real, term_img, result_real[j], result_img[j]);
+    sub(tmp_real_even[j], tmp_img_even[j], term_real, term_img, result_real[j + (half_size)],
+        result_img[j + (half_size)]);
+    twiddle_index += twiddle_step;
+  }
+}
+
 void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
                          float fft16_twiddle_real[16], float fft16_twiddle_img[16], float* real, float* img,
                          size_t start, size_t step, size_t size, float* result_real, float* result_img);
-
 
 void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
                          float fft16_twiddle_real[16], float fft16_twiddle_img[16], float* real, float* img,
@@ -257,17 +272,8 @@ void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twi
     float* tmp_img_odd = stack.push<float>(half_size);
     fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, 2 * twiddle_step, fft16_twiddle_real,
                         fft16_twiddle_img, real, img, start + step, 2 * step, half_size, tmp_real_odd, tmp_img_odd);
-    size_t twiddle_index = 0;
-    for (size_t j = 0; j < half_size; ++j) {
-      float twiddle_real = base_twiddle_real[twiddle_index];
-      float twiddle_img = base_twiddle_img[twiddle_index];
-      float term_real, term_img;
-      mult(twiddle_real, twiddle_img, tmp_real_odd[j], tmp_img_odd[j], term_real, term_img);
-      add(tmp_real_even[j], tmp_img_even[j], term_real, term_img, result_real[j], result_img[j]);
-      sub(tmp_real_even[j], tmp_img_even[j], term_real, term_img, result_real[j + (half_size)],
-          result_img[j + (half_size)]);
-      twiddle_index += twiddle_step;
-    }
+    reduce(base_twiddle_real, base_twiddle_img, twiddle_step, half_size, tmp_real_even, tmp_img_even, tmp_real_odd,
+           tmp_img_odd, result_real, result_img);
     stack.restore(saved);
   }
 }
