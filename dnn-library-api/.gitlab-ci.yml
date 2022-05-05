@@ -16,9 +16,10 @@ clang-format:
     - .pod_medium
   image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/centos-7.9.2009-et-sw-platform:0.2.15
   stage: build
-  script:
-     - git fetch origin master
-     - git clang-format --diff origin/master -- * | grep -e "clang-format did not modify any files$" -e "^no modified files to format$"
+  variables:
+    CMD_SCRIPT: |
+      git fetch origin master
+      git clang-format --diff origin/master -- * | grep -e "clang-format did not modify any files$" -e "^no modified files to format$"
       
 dnnlibApi-ci-pipeline:
   stage: test
@@ -28,4 +29,4 @@ dnnlibApi-ci-pipeline:
   trigger:
     project: software/sw-platform
     branch: develop/ml-compiler
-    strategy: depend
+    strategy: depend 
