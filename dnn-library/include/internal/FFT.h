@@ -14,7 +14,7 @@ namespace dnn_lib {
 
 // Prototypes
 
-template <size_t workItemBits = 0>
+template <size_t workBranchBits = 0>
 INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, float* result_img);
 
 INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
@@ -283,7 +283,6 @@ void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twi
   }
 }
 
-template <size_t workItemBits = 0>
 INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, float* result_img) {
 
   size_t minionId = 0;
@@ -310,10 +309,10 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
   stack.restore(saved);
 }
 
-template<size_t flb = 0, size_t fcc = 0, size_t thread = 0>
+template <size_t flb = 0, size_t fcc = 0, size_t thread = 0>
 INLINE_ATTR void barrier(size_t first, size_t range, size_t step) {
 #ifndef FFT_HOST_TEST
-  if (flbarrier(flb, range - 1)) {    
+  if (flbarrier(flb, range - 1)) {
     size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
     size_t endLocal = firstLocal + range;
     assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
@@ -327,30 +326,17 @@ INLINE_ATTR void barrier(size_t first, size_t range, size_t step) {
 #endif
 }
 
-template <size_t workItemBits = 0>
-INLINE_ATTR void threadedFft(size_t firstMinionId, size_t minionId, size_t size, float* real, float* img,
-                             float* result_real, float* result_img) {
-  Stack stack(minionId);
+template <size_t workBranchBits = 2>
+INLINE_ATTR void fft_threaded_with_precompute(size_t minionId, Stack& stack, float* base_twiddle_real,
+                                              float* base_twiddle_img, float fft16_twiddle_real[16],
+                                              float fft16_twiddle_img[16], float* real, float* img, size_t start,
+                                              size_t step, size_t size, float* result_real, float* result_img) {
+
   auto saved = stack.current();
 
-  // Preccompute twiddle vector for general FFT
-  float* base_twiddle_real = stack.push<float>(size);
-  float* base_twiddle_img = stack.push<float>(size);
-  if (size >= 16)
-    twiddle_vector_big(size, base_twiddle_real, base_twiddle_img);
-  else
-    twiddle_vector_small(size, base_twiddle_real, base_twiddle_img);
-
-  // Preccompute twiddle vector for fft16_slice
-  float fft16_twiddle_real[16];
-  float fft16_twiddle_img[16];
-  twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
-
   // Set start, step, size and twiddle_step for minionId
-  size_t start = 0;
-  size_t step = 1;
   size_t twiddle_step = 1;
-  for (int index = int(workItemBits) - 1; index >= 0; index--) {
+  for (int index = int(workBranchBits) - 1; index >= 0; index--) {
     size_t bit = 1 << index;
     if ((minionId & bit) != 0) {
       start = start + step;
@@ -361,7 +347,7 @@ INLINE_ATTR void threadedFft(size_t firstMinionId, size_t minionId, size_t size,
   }
 
   // When using just one minion uset result_real and result_img as destination, the stack otherwise
-  constexpr size_t numMinions = 1 << workItemBits;
+  constexpr size_t numMinions = 1 << workBranchBits;
   float* tmp_real;
   float* tmp_img;
   if (numMinions == 1) {
@@ -376,7 +362,7 @@ INLINE_ATTR void threadedFft(size_t firstMinionId, size_t minionId, size_t size,
   fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
                       real, img, start, step, size, tmp_real, tmp_img);
 
-  // Now perform workItemBits reduce passes
+  // Now perform workBranchBits reduce passes
   //
   // - First pass with reduces pairs of consecutive elements
   // - Second pass reduces pairs of consecutive even numbers
@@ -384,14 +370,15 @@ INLINE_ATTR void threadedFft(size_t firstMinionId, size_t minionId, size_t size,
   // - And so on.
   //
   size_t minionStep = 1;
-  for (int index = 0; index < workItemBits; index++) {
+  size_t firstMinionId = minionId & ~(numMinions - 1);
+  for (size_t index = 0; index < workBranchBits; index++) {
     barrier(firstMinionId, numMinions, minionStep);
     if ((minionId & minionStep) == 0) {
       float* even_real = tmp_real;
       float* even_img = tmp_img;
       float* odd_real = Stack::offset(tmp_real, minionStep);
       float* odd_img = Stack::offset(tmp_img, minionStep);
-      if (index == workItemBits - 1) {
+      if (index == workBranchBits - 1) {
         tmp_real = result_real;
         tmp_img = result_img;
       } else {
@@ -408,6 +395,30 @@ INLINE_ATTR void threadedFft(size_t firstMinionId, size_t minionId, size_t size,
     size <<= 1;
   }
 
+  stack.restore(saved);
+}
+
+template <size_t workBranchBits = 2>
+INLINE_ATTR void fft_threaded(size_t minionId, size_t size, float* real, float* img, float* result_real,
+                              float* result_img) {
+  Stack stack(minionId);
+  auto saved = stack.current();
+
+  // Preccompute twiddle vector for general FFT
+  float* base_twiddle_real = stack.push<float>(size);
+  float* base_twiddle_img = stack.push<float>(size);
+  if (size >= 16)
+    twiddle_vector_big(size, base_twiddle_real, base_twiddle_img);
+  else
+    twiddle_vector_small(size, base_twiddle_real, base_twiddle_img);
+
+  // Precompute twiddle vector for fft16_slice
+  float fft16_twiddle_real[16];
+  float fft16_twiddle_img[16];
+  twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
+
+  fft_threaded_with_precompute<workBranchBits>(minionId, stack, base_twiddle_real, base_twiddle_img, fft16_twiddle_real,
+                                               fft16_twiddle_img, real, img, 0, 1, size, result_real, result_img);
   stack.restore(saved);
 }
 
@@ -454,7 +465,7 @@ INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_str
                         fft16_twiddle_img, real + row * real_stride, img + row * img_stride, 0, 1, width,
                         result_real + row * result_real_stride, result_img + row * result_img_stride);
   }
-
+#if 1
   // Per column FFT
   for (size_t col = 0; col < width; ++col) {
     fft_with_precompute(stack, vert_base_twiddle_real, vert_base_twiddle_img, twiddle_step, fft16_twiddle_real,
@@ -463,6 +474,79 @@ INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_str
     for (size_t row = 0; row < height; ++row) {
       result_real[row * result_real_stride + col] = result_column_real[row];
       result_img[row * result_img_stride + col] = result_column_img[row];
+    }
+  }
+#endif
+  stack.restore(saved);
+}
+
+template <size_t workRowBits = 2, size_t workRowBranchBits = 2, size_t workColBits = 2, size_t workColBranchBits = 2,
+          bool pass1 = true, bool pass2 = true>
+INLINE_ATTR void fft2d_threaded(size_t firstMinionId, size_t minionId, size_t width, size_t height, float* real,
+                                size_t real_stride, float* img, size_t img_stride, float* result_real,
+                                size_t result_real_stride, float* result_img, size_t result_img_stride) {
+
+  Stack stack(minionId);
+  auto saved = stack.current();
+
+  assert(real_stride == img_stride);
+  assert(result_real_stride == result_img_stride);
+
+  // Precompute twiddle vector for horizontal FFT
+  float* horiz_base_twiddle_real = stack.push<float>(width);
+  float* horiz_base_twiddle_img = stack.push<float>(width);
+  if (width >= 16)
+    twiddle_vector_big(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
+  else
+    twiddle_vector_small(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
+
+  // Precompute twiddle vector for vertical FFT
+  float* vert_base_twiddle_real = stack.push<float>(height);
+  float* vert_base_twiddle_img = stack.push<float>(height);
+  if (height >= 16)
+    twiddle_vector_big(height, vert_base_twiddle_real, vert_base_twiddle_img);
+  else
+    twiddle_vector_small(height, vert_base_twiddle_real, vert_base_twiddle_img);
+
+  // Precompute twiddle vector for FFT16
+  float fft16_twiddle_real[16];
+  float fft16_twiddle_img[16];
+  twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
+
+  if constexpr (pass1) {
+    // Per row FFT
+    constexpr size_t rowsGroupSize = 1 << workRowBits;
+    for (size_t row0 = 0; row0 < height; row0 += rowsGroupSize) {
+      size_t rowMinionGroupId =
+        ((minionId - firstMinionId) & ((1 << (workRowBits + workRowBranchBits)) - 1)) >> workRowBranchBits;
+      size_t row = row0 + rowMinionGroupId;
+      fft_threaded_with_precompute<workRowBranchBits>(
+        minionId, stack, horiz_base_twiddle_real, horiz_base_twiddle_img, fft16_twiddle_real, fft16_twiddle_img,
+        real + row * real_stride, img + row * img_stride, 0, 1, width, result_real + row * result_real_stride,
+        result_img + row * result_img_stride);
+    }
+  }
+
+  if constexpr (pass2) {
+    // Storage for one column of intermediate results
+    float* result_column_real;
+    float* result_column_img;
+    result_column_real = stack.push<float>(height);
+    result_column_img = stack.push<float>(height);
+
+    // Per column FFT
+    constexpr size_t colsGroupSize = 1 << workColBits;
+    for (size_t col0 = 0; col0 < width; col0 += colsGroupSize) {
+      size_t colMinionGroupId =
+        ((minionId - firstMinionId) & ((1 << (workColBits + workColBranchBits)) - 1)) >> workColBranchBits;
+      size_t col = col0 + colMinionGroupId;
+      fft_threaded_with_precompute<workColBranchBits>(
+        minionId, stack, vert_base_twiddle_real, vert_base_twiddle_img, fft16_twiddle_real, fft16_twiddle_img,
+        result_real, result_img, col, result_real_stride, height, result_column_real, result_column_img);
+      for (size_t row = 0; row < height; ++row) {
+        result_real[row * result_real_stride + col] = result_column_real[row];
+        result_img[row * result_img_stride + col] = result_column_img[row];
+      }
     }
   }
 
@@ -658,14 +742,6 @@ void test2() {
   constexpr size_t img_stride = 4;
   float real[height][real_stride] = {{1, 3, 2, 1}, {1, 2, 2, 0}};
   float img[height][img_stride] = {0};
-
-  std::cout << "Input\n";
-  for (size_t row = 0; row < height; ++row) {
-    for (size_t col = 0; col < width; ++col) {
-      std::cout << real[row][col] << "," << img[row][col] << "; ";
-    }
-    std::cout << "\n";
-  }
   print(height, width, "Input", &real[0][0], real_stride, &img[0][0], img_stride);
 
   constexpr size_t result_real_stride = 4;
@@ -750,7 +826,7 @@ void test4() {
   print(1, size, "Input", real, 0, img, 0);
 
   constexpr size_t minionOffset = 16;
-  constexpr size_t workItemBits = 2;
+  constexpr size_t workBranchBits = 2;
   //
   // Running the threaded FFT with a sequence of minion ids that ensures
   // the final FFT result is correct, irrespective of the fact that the
@@ -768,10 +844,10 @@ void test4() {
   // depends on minion 2 can run and leaves the correct result on the
   // destination vectors.
   //
-  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 1, size, real, img, result_real, result_img);
-  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 3, size, real, img, result_real, result_img);
-  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 2, size, real, img, result_real, result_img);
-  dnn_lib::threadedFft<workItemBits>(minionOffset, minionOffset + 0, size, real, img, result_real, result_img);
+  dnn_lib::fft_threaded<workBranchBits>(minionOffset + 1, size, real, img, result_real, result_img);
+  dnn_lib::fft_threaded<workBranchBits>(minionOffset + 3, size, real, img, result_real, result_img);
+  dnn_lib::fft_threaded<workBranchBits>(minionOffset + 2, size, real, img, result_real, result_img);
+  dnn_lib::fft_threaded<workBranchBits>(minionOffset + 0, size, real, img, result_real, result_img);
 
   float expected_result_real[size] = {496., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
                                       -16., -16., -16., -16., -16., -16., -16., -16., -16., -16., -16.,
@@ -797,12 +873,86 @@ void test4() {
   }
 }
 
+void test5() {
+
+  std::cout << "\n>>>> Test 5\n";
+
+  constexpr size_t height = 2;
+  constexpr size_t width = 4;
+
+  constexpr size_t real_stride = 4;
+  constexpr size_t img_stride = 4;
+  float real[height][real_stride] = {{1, 3, 2, 1}, {1, 2, 2, 0}};
+  float img[height][img_stride] = {0};
+  print(height, width, "Input", &real[0][0], real_stride, &img[0][0], img_stride);
+
+  constexpr size_t firstMinionId = 16;
+  constexpr size_t result_real_stride = 4;
+  constexpr size_t result_img_stride = 4;
+  float result_real[height][result_real_stride] = {0};
+  float result_img[height][img_stride] = {0};
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, true, false>(firstMinionId, firstMinionId + 1, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, true, false>(firstMinionId, firstMinionId + 0, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, true, false>(firstMinionId, firstMinionId + 2 + 1, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, true, false>(firstMinionId, firstMinionId + 2 + 0, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, false, true>(firstMinionId, firstMinionId + 0, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, false, true>(firstMinionId, firstMinionId + 1, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, false, true>(firstMinionId, firstMinionId + 2, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  dnn_lib::fft2d_threaded<1, 1, 2, 0, false, true>(firstMinionId, firstMinionId + 3, width, height, &real[0][0],
+                                                   real_stride, &img[0][0], img_stride, &result_real[0][0],
+                                                   result_real_stride, &result_img[0][0], result_img_stride);
+  print(height, width, "FFT 2D", &result_real[0][0], result_real_stride, &result_img[0][0], result_img_stride);
+
+  float expected_result_real[height][result_real_stride] = {{12., -2., 0., -2.}, {2., 0., -2., 0.}};
+  float expected_result_img[height][img_stride] = {{0., -4., 0., 4.}, {0., 0., 0., 0.}};
+  for (size_t row = 0; row < height; ++row) {
+    for (size_t col = 0; col < width; ++col) {
+      assert(std::abs(result_real[row][col] - expected_result_real[row][col]) < 0.00001f);
+      assert(std::abs(result_img[row][col] - expected_result_img[row][col]) < 0.00001f);
+    }
+  }
+
+  std::cout << "Reconstructed\n";
+
+  constexpr size_t reconst_real_stride = 4;
+  constexpr size_t reconst_img_stride = 4;
+  float reconst_real[height][reconst_real_stride] = {0};
+  float reconst_img[height][reconst_img_stride] = {0};
+
+  dnn_lib::fft2d_inv(width, height, &result_real[0][0], result_real_stride, &result_img[0][0], result_img_stride,
+                     &reconst_real[0][0], reconst_real_stride, &reconst_img[0][0], reconst_img_stride);
+  print(height, width, "Reconstructed", &reconst_real[0][0], reconst_real_stride, &reconst_img[0][0],
+        reconst_img_stride);
+
+  for (size_t row = 0; row < height; ++row) {
+    for (size_t col = 0; col < width; ++col) {
+      assert(std::abs(reconst_real[row][col] - real[row][col]) < 0.000001f);
+      assert(std::abs(reconst_img[row][col] - img[row][col]) < 0.000001f);
+    }
+  }
+}
+
 int main(int argc, char** argv) {
 
   test1();
   test2();
   test3();
   test4();
+  test5();
   std::cout << "\nALL PASSED\n\n";
 
   return 0;

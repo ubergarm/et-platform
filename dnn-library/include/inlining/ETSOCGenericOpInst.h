@@ -40,9 +40,11 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
                      const uint32_t assignedMinions, uint32_t activeMinions, uint32_t minionId) {
 
   //  FIXME: just minon 0 does some work at the moment.
-  if (minionId != 0) {
+  if (minionId >= 1) {
     return;
   }
+
+
   (void)flags;
   (void)minionOffset;
   (void)activeMinions;
@@ -93,8 +95,12 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
         fft2d_inv(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
                   result_img_stride);
       } else {
-        fft2d(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
+#if 0
+        fft2d_threaded(assignedMinions, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
               result_img_stride);
+#else
+        fft2d(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img, result_img_stride);
+#endif
       }
     }
   }
