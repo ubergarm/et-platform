@@ -39,19 +39,6 @@ template <bool inverse = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
                      const uint32_t assignedMinions, uint32_t activeMinions, uint32_t minionId) {
 
-  // Mapping from minion dimensions to compute dimensions
-  constexpr size_t workRowBits = 0;
-  constexpr size_t workRowBranchBits = 0;
-  constexpr size_t workColBits = 0;
-  constexpr size_t workColBranchBits = 0;
-
-  static_assert(workRowBits + workRowBranchBits ==  workColBits + workColBranchBits);
-  constexpr size_t numMinions = 1 << (workRowBits + workRowBranchBits);
-
-  if (minionId >= numMinions) {
-    return;
-  }
-
   (void)flags;
   (void)minionOffset;
   (void)activeMinions;
@@ -88,8 +75,23 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   assert(height == dstDims[3]);
   assert(width == dstDims[4]);
 
+  // Mapping from minion dimensions to compute dimensions
+  constexpr size_t workRowBits = 0;
+  constexpr size_t workRowBranchBits = 0;
+  constexpr size_t workColBits = 0;
+  constexpr size_t workColBranchBits = 0;
+  static_assert(workRowBits + workRowBranchBits ==  workColBits + workColBranchBits);      
+
+  constexpr size_t numMinions = 1 << (workRowBits + workRowBranchBits);
+  size_t firstMinionId = minionOffset;
+
+  if ((minionId - firstMinionId) >= numMinions) {
+    return;
+  }
+
   for (size_t batch = 0; batch < batches; ++batch) {
      for (size_t channel = 0; channel < channels; ++channel) {
+
       float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
       size_t real_stride = srcStrides[3];
       float* img = real + srcStrides[2];
@@ -98,13 +100,15 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
       size_t result_real_stride = dstStrides[3];
       float* result_img = result_real + dstStrides[2];
       size_t result_img_stride = dstStrides[3];
+
       if constexpr (inverse) {
-        fft2d_inv(width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
-                  result_img_stride);
-      } else {
         constexpr bool pass1 = true;
         constexpr bool pass2 = true;
-        fft2d_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits, pass1, pass2>(
+        fft2d_inv_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits, pass1, pass2> (
+          minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
+          result_img_stride);
+      } else {
+        fft2d_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits>(
           minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
           result_img_stride);
       }
