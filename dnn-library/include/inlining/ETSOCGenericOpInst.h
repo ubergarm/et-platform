@@ -37,12 +37,10 @@ static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1"};
 
 template <bool inverse = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
-                     const uint32_t assignedMinions, uint32_t activeMinions, uint32_t minionId) {
+                     const uint32_t numMinions, uint32_t minionId) {
 
-  (void)flags;
-  (void)minionOffset;
-  (void)activeMinions;
-  (void)assignedMinions;
+  (void)flags;  
+  (void)numMinions;
 
   et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
 
@@ -82,10 +80,8 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   constexpr size_t workColBranchBits = 0;
   static_assert(workRowBits + workRowBranchBits ==  workColBits + workColBranchBits);      
 
-  constexpr size_t numMinions = 1 << (workRowBits + workRowBranchBits);
-  size_t firstMinionId = minionOffset;
-
-  if ((minionId - firstMinionId) >= numMinions) {
+  assert(numMinions == 1 << (workRowBits + workRowBranchBits));
+  if ((minionId - minionOffset) >= numMinions) {
     return;
   }
 
@@ -118,9 +114,9 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
 }
 
 INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
-                                       const uint32_t assignedMinions, uint32_t activeMinions, uint32_t minionId) {
+                                       const uint32_t numMinions, uint32_t minionId) {
   //  FIXME: just minon 0 does some work at the moment.
-  if (minionId != 0) {
+  if ((minionId - minionOffset) != 0) {
     return;
   }
 
@@ -128,8 +124,7 @@ INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t
 
   (void)flags;
   (void)minionOffset;
-  (void)activeMinions;
-  (void)assignedMinions;
+  (void)numMinions;
 
   et_assert(inT->dims()[0] == 2);
 
@@ -157,34 +152,28 @@ template <ElemKind elK>
 INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint32_t op, uint64_t flags,
                                           const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  (void)flags;
-
   static_assert(elK == FloatTy);
 
-  et_printf("%s(%d) [%d] called with op: %s \n", __func__, __LINE__, get_minion_id(), Op2String[op]);
+  (void)flags;
 
-  auto minionId = get_minion_id();
-
-  // Relative minion id
-  assert(minionId >= minionOffset);
-  minionId -= minionOffset;
-
-  // Get number of Minions assigned to this Node.
-  uint32_t activeMinions =
-    (assignedMinions == 0) ? static_cast<uint32_t>(MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  // If assigned minions is 0, use them all
+  size_t numMinions = (assignedMinions == 0) ? static_cast<uint32_t>(MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
-  if (minionId >= activeMinions) {
+  auto minionId = get_minion_id();
+  if ((minionId - minionOffset) >= numMinions) {
     return;
   }
 
+  et_printf("%s(%d) [%d] called with op: %s \n", __func__, __LINE__, minionId, Op2String[op]);
+
   switch (Operation(op)) {
   case Operation::FFT:
-    return fft<false>(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
+    return fft<false>(outT, inT, flags, minionOffset, numMinions, minionId);
   case Operation::IFFT:
-    return fft<true>(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
+    return fft<true>(outT, inT, flags, minionOffset, numMinions, minionId);
   case Operation::NOISE_FILTER_1:
-    return freqDomainNoiseFilter(outT, inT, flags, minionOffset, assignedMinions, activeMinions, minionId);
+    return freqDomainNoiseFilter(outT, inT, flags, minionOffset, numMinions, minionId);
   case Operation::COUNT:
   default:
     et_assert("unsupported operation");
