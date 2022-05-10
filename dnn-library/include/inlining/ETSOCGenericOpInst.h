@@ -35,14 +35,34 @@ enum class Operation {
 
 static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1"};
 
-template <bool inverse = false>
-INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
-                     const uint32_t numMinions, uint32_t minionId) {
+template <typename T> INLINE_ATTR T min(T a, T b) {
+  return (a < b) ? a : b;
+}
 
-  (void)flags;  
+template <bool inverse = false>
+INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset, uint32_t numMinions,
+                     uint32_t minionId) {
+  (void)flags;
   (void)numMinions;
 
-  et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
+  // Mapping from minion dimensions to compute dimensions
+  constexpr size_t workRowBits = 0;
+  constexpr size_t workRowBranchBits = 0;
+  constexpr size_t workColBits = 0;
+  constexpr size_t workColBranchBits = 0;
+
+  // Ensure we got assigned at least as many minions as we can use
+  assert(numMinions >= (1 << (workRowBits + workRowBranchBits)));
+
+  // Use just as many minions as we can
+  numMinions = min(numMinions, static_cast<uint32_t>(1 << (workRowBits + workRowBranchBits)));
+
+  // Unused minions return inmediately
+  if ((minionId - minionOffset) >= numMinions) {
+    return;
+  }
+
+  et_printf("%s(%d) [minionId=%d numMinions=%d]\n", __func__, __LINE__, minionId, numMinions);
 
   float* in = inT->getRawDataPointer<float>();
   float* out = outT->getRawDataPointer<float>();
@@ -73,18 +93,6 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   assert(height == dstDims[3]);
   assert(width == dstDims[4]);
 
-  // Mapping from minion dimensions to compute dimensions
-  constexpr size_t workRowBits = 0;
-  constexpr size_t workRowBranchBits = 0;
-  constexpr size_t workColBits = 0;
-  constexpr size_t workColBranchBits = 0;
-  static_assert(workRowBits + workRowBranchBits ==  workColBits + workColBranchBits);      
-
-  assert(numMinions == 1 << (workRowBits + workRowBranchBits));
-  if ((minionId - minionOffset) >= numMinions) {
-    return;
-  }
-
   for (size_t batch = 0; batch < batches; ++batch) {
     for (size_t channel = 0; channel < channels; ++channel) {
 
@@ -100,13 +108,13 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
       if constexpr (inverse) {
         constexpr bool pass1 = true;
         constexpr bool pass2 = true;
-        fft2d_inv_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits, pass1, pass2> (
-          minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
-          result_img_stride);
+        fft2d_inv_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits, pass1, pass2>(
+          minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
+          result_img, result_img_stride);
       } else {
         fft2d_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits>(
-          minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
-          result_img_stride);
+          minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
+          result_img, result_img_stride);
       }
     }
   }
@@ -157,14 +165,11 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
 
   // If assigned minions is 0, use them all
   size_t numMinions = (assignedMinions == 0) ? static_cast<uint32_t>(MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  size_t minionId = get_minion_id();
 
-  // If Minion is outside the group assigned to this Node get out.
-  auto minionId = get_minion_id();
-  if ((minionId - minionOffset) >= numMinions) {
-    return;
+  if (minionId == 0) {
+    et_printf("%s(%d) [numMinions=%d op=%s]\n", __func__, __LINE__, numMinions, Op2String[op]);
   }
-
-  et_printf("%s(%d) [%d] called with op: %s \n", __func__, __LINE__, minionId, Op2String[op]);
 
   switch (Operation(op)) {
   case Operation::FFT:
