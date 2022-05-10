@@ -48,12 +48,12 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   float* out = outT->getRawDataPointer<float>();
 
   const dim_t* srcDims = inT->dims().data();
-  const dim_t* dstDims = outT->dims().data();  
+  const dim_t* dstDims = outT->dims().data();
   const dim_t* srcStrides = inT->strides().data();
   const dim_t* dstStrides = outT->strides().data();
 
   size_t batches = srcDims[0];
-  size_t channels = srcDims[1];  
+  size_t channels = srcDims[1];
   [[maybe_unused]] size_t components = srcDims[2];
   size_t height = srcDims[3];
   size_t width = srcDims[4];
@@ -61,7 +61,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   assert(batches > 0);
   assert(channels > 0);
   assert(components == 2);
-  assert(height  > 0);
+  assert(height > 0);
   assert(width > 0);
 
   assert(isPowerOfTwo(height));
@@ -86,7 +86,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   }
 
   for (size_t batch = 0; batch < batches; ++batch) {
-     for (size_t channel = 0; channel < channels; ++channel) {
+    for (size_t channel = 0; channel < channels; ++channel) {
 
       float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
       size_t real_stride = srcStrides[3];
@@ -110,7 +110,6 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
       }
     }
   }
-
 }
 
 INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,

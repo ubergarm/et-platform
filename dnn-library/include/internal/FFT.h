@@ -188,13 +188,135 @@ INLINE_ATTR void sub(float x, float y, float u, float v, float& real, float& img
   img = y - v;
 }
 
+#ifndef FFT_HOST_TEST
+
+INLINE_ATTR void vector_fft16_round(float twiddle_real[16], float twiddle_img[16], float X_real[16], float X_img[16],
+                                    int32_t round, float result_real[16], float result_img[16],
+                                    const int32_t select_mult_second[8], const int32_t select_add_or_sub_first[8]) {
+
+  constexpr int32_t mask = 8 + 16 + 32 + 64 + 128;
+
+  int32_t vI[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+
+  float twIndices;
+  float twReal, twImg, xRealMul, xImgMul, xRealAdd, xImgAdd;
+  float termReal, termImg;
+  float tmp0, tmp1;
+  float mulIndices, addSubIndices;
+
+  __asm__ __volatile__(
+    // compute twiddle gather indices
+    "fbcx.ps    %[twIndices], %[mask]\n"               // twIndices <- 248;
+    "fbcx.ps    %[tmp0], %[round]\n"                   //
+    "fsra.pi    %[twIndices], %[twIndices], %[tmp0]\n" // twIndices <- twIndices >> round;
+    "flw.ps     %[tmp1], %[vI]\n"
+    "fand.pi    %[twIndices], %[twIndices], %[tmp1]\n" // twIndices[i] <- twIndices[i] * i;
+    // load multiply, add, sub gather indices
+    "flw.ps     %[mulIndices], %[select_mult_second]\n"         // mulIndices <- load(@select_mult_second, 8);
+    "flw.ps     %[addSubIndices], %[select_add_or_sub_first]\n" // addSubIndices <- load(@select_add_or_sub_first, 8);
+    // gather twiddle values
+    "fslli.pi   %[twIndices], %[twIndices], 2\n"            // twIndices << 2
+    "fgw.ps     %[twReal], %[twIndices](%[twiddle_real])\n" // twReal <- gather(@twiddle_real, vTwiddle);
+    "fgw.ps     %[twImg], %[twIndices](%[twiddle_img])\n"   // twImg <- gather(@twiddle_img, vTwiddle);
+    // gather x_real multiply values
+    "fslli.pi   %[mulIndices], %[mulIndices], 2\n"       // mulIndices << 2
+    "fgw.ps     %[xRealMul], %[mulIndices](%[X_real])\n" // xRealMul <- gather(@X_real, mulIndices);
+    "fgw.ps     %[xImgMul], %[mulIndices](%[X_img])\n"   // xImgMul <- gather(@X_img, mulIndices);
+    // gather x_real add/sub values
+    "fslli.pi   %[addSubIndices], %[addSubIndices], 2\n"    // mulIndices << 2
+    "fgw.ps     %[xRealAdd], %[addSubIndices](%[X_real])\n" // xRealAdd <- gather(@X_real, addSubIndices);
+    "fgw.ps     %[xImgAdd], %[addSubIndices](%[X_img])\n"   // xImgAdd <- gather(@X_img, addSubIndices);
+
+    // multiply op
+    // real
+    "fmul.ps    %[termReal], %[twImg], %[xImgMul]\n"                // (twImg * xImgMul)
+    "fmsub.ps   %[termReal], %[twReal], %[xRealMul], %[termReal]\n" // term_real <- twReal * xRealMul - (twImg *
+                                                                    // xImgMul);
+    // img
+    "fmul.ps    %[termImg], %[twReal], %[xImgMul]\n"             // (twReal * xImgMul)
+    "fmadd.ps   %[termImg], %[twImg], %[xRealMul], %[termImg]\n" // term_img <- twImg * xRealMul + (twImg * xImgMul);
+
+    // add
+    "fadd.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // tmp0 <- xRealAdd + termReal;
+    "fadd.ps    %[tmp1], %[xImgAdd], %[termImg]\n"   // tmp1 <- xImgAdd + termImg;
+    // store added elems
+    "fsw.ps     %[tmp0], (%[result_real])\n"
+    "fsw.ps     %[tmp1], (%[result_img])\n"
+
+    // sub
+    "fsub.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // real <- xRealAdd - termReal;
+    "fsub.ps    %[tmp1], %[xImgAdd], %[termImg]\n"   // img <- xImgAdd - termImg;
+    // store sub elems
+    "fsw.ps     %[tmp0], 32(%[result_real])\n"
+    "fsw.ps     %[tmp1], 32(%[result_img])\n"
+
+    : [ twIndices ] "=&f"(twIndices), [ mulIndices ] "=&f"(mulIndices), [ addSubIndices ] "=&f"(addSubIndices),
+      [ twReal ] "=&f"(twReal), [ twImg ] "=&f"(twImg), [ xRealMul ] "=&f"(xRealMul), [ xImgMul ] "=&f"(xImgMul),
+      [ xRealAdd ] "=&f"(xRealAdd), [ xImgAdd ] "=&f"(xImgAdd), [ termReal ] "=&f"(termReal),
+      [ termImg ] "=&f"(termImg), [ tmp0 ] "=&f"(tmp0), [ tmp1 ] "=&f"(tmp1)
+    : [ mask ] "r"(mask), [ vI ] "m"(*(const int32_t(*)[8])vI), [ round ] "r"(round),
+      [ twiddle_real ] "r"(twiddle_real), [ twiddle_img ] "r"(twiddle_img), [ X_real ] "r"(X_real),
+      [ X_img ] "r"(X_img), [ result_real ] "r"(result_real), [ result_img ] "r"(result_img),
+      [ select_mult_second ] "m"(*(const int32_t(*)[8])select_mult_second),
+      [ select_add_or_sub_first ] "m"(*(const int32_t(*)[8])select_add_or_sub_first)
+    : "memory");
+}
+
+INLINE_ATTR void vector_fft16_slice(float* real, float* img, int32_t start, int32_t step, size_t size,
+                                    float twiddle_real[16], float twiddle_img[16], float res_real[16],
+                                    float res_img[16]) {
+  assert(size == 16);
+  float tmp_real[16];
+  float tmp_img[16];
+
+  int32_t select_mult_second[8] = {8, 12, 10, 14, 9, 13, 11, 15};
+  int32_t select_add_or_sub_first[8] = {0, 4, 2, 6, 1, 5, 3, 7};
+
+  float mulIndices, addsubIndices;
+  float tmp0, tmp1, tmp2, tmp3;
+
+  __asm__ __volatile__(
+    "fbcx.ps    %[tmp0], %[start]\n"                           // tmp0 <- broadcast(start);
+    "fbcx.ps    %[tmp1], %[step]\n"                            // tmp1 <- broadcast(step);
+    "flw.ps     %[tmp2], %[mul_second]\n"                      // tmp2 <- load(*mul_second);
+    "flw.ps     %[tmp3], %[addsub_first]\n"                    // tmp3 <- load(*addsub_first);
+    "fmul.pi    %[mulIndices], %[tmp1], %[tmp2]\n"             // mulIndices <- vmul(step, mul_second);
+    "fadd.pi    %[mulIndices], %[tmp0], %[mulIndices]\n"       // mulIndices <- vadd(start, mul_second);
+    "fmul.pi    %[addsubIndices], %[tmp1], %[tmp3]\n"          // addsubIndices <- vmul(step, addsub_first);
+    "fadd.pi    %[addsubIndices], %[tmp0], %[addsubIndices]\n" // addsubIndices <- vadd(start, addsub_first);
+    "fsw.ps     %[mulIndices], %[mul_second]\n"
+    "fsw.ps     %[addsubIndices], %[addsub_first]\n"
+    : [ mulIndices ] "=&f"(mulIndices), [ addsubIndices ] "=&f"(addsubIndices), [ tmp0 ] "=&f"(tmp0),
+      [ tmp1 ] "=&f"(tmp1), [ tmp2 ] "=&f"(tmp2), [ tmp3 ] "=&f"(tmp3)
+    : [ start ] "r"(start), [ step ] "r"(step), [ mul_second ] "m"(*(const int32_t(*)[8])select_mult_second),
+      [ addsub_first ] "m"(*(const int32_t(*)[8])select_add_or_sub_first)
+    : "memory");
+  // TODO: pass vector register as a parameter instead of dumping back to memory
+  vector_fft16_round(twiddle_real, twiddle_img, real, img, 0, tmp_real, tmp_img, select_mult_second,
+                     select_add_or_sub_first);
+
+  constexpr int32_t select_mult_second2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+  constexpr int32_t select_add_or_sub_first2[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+
+  vector_fft16_round(twiddle_real, twiddle_img, tmp_real, tmp_img, 1, res_real, res_img, select_mult_second2,
+                     select_add_or_sub_first2);
+
+  vector_fft16_round(twiddle_real, twiddle_img, res_real, res_img, 2, tmp_real, tmp_img, select_mult_second2,
+                     select_add_or_sub_first2);
+
+  vector_fft16_round(twiddle_real, twiddle_img, tmp_real, tmp_img, 3, res_real, res_img, select_mult_second2,
+                     select_add_or_sub_first2);
+}
+
+#endif
+
 constexpr size_t twiddle_index(size_t round, size_t i) {
   return i & ((8 + 16 + 32 + 64 + 128) >> round);
 }
 
 INLINE_ATTR void fft16_round(float twiddle_real[16], float twiddle_img[16], float X_real[16], float X_img[16],
-                             size_t round, float result_real[16], float result_img[16],
-                             const size_t select_mult_second[8], const size_t select_add_or_sub_first[8]) {
+                             int32_t round, float result_real[16], float result_img[16],
+                             const int32_t select_mult_second[8], const int32_t select_add_or_sub_first[8]) {
 
   // This loop is suitable for vectorizing
   for (size_t i = 0; i < 8; ++i) {
@@ -208,14 +330,15 @@ INLINE_ATTR void fft16_round(float twiddle_real[16], float twiddle_img[16], floa
   }
 }
 
-INLINE_ATTR void fft16_slice(float* real, float* img, size_t start, size_t step, size_t size, float twiddle_real[16],
+INLINE_ATTR void fft16_slice(float* real, float* img, int32_t start, int32_t step, size_t size, float twiddle_real[16],
                              float twiddle_img[16], float res_real[16], float res_img[16]) {
+
   assert(size == 16);
   float tmp_real[16];
   float tmp_img[16];
 
-  size_t select_mult_second[8] = {8, 12, 10, 14, 9, 13, 11, 15};
-  size_t select_add_or_sub_first[8] = {0, 4, 2, 6, 1, 5, 3, 7};
+  int32_t select_mult_second[8] = {8, 12, 10, 14, 9, 13, 11, 15};
+  int32_t select_add_or_sub_first[8] = {0, 4, 2, 6, 1, 5, 3, 7};
 
   // This loop is suitable for vectorizing
   for (size_t i = 0; i < 8; ++i) {
@@ -225,8 +348,8 @@ INLINE_ATTR void fft16_slice(float* real, float* img, size_t start, size_t step,
 
   fft16_round(twiddle_real, twiddle_img, real, img, 0, tmp_real, tmp_img, select_mult_second, select_add_or_sub_first);
 
-  constexpr size_t select_mult_second2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
-  constexpr size_t select_add_or_sub_first2[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+  constexpr int32_t select_mult_second2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+  constexpr int32_t select_add_or_sub_first2[8] = {0, 2, 4, 6, 8, 10, 12, 14};
 
   fft16_round(twiddle_real, twiddle_img, tmp_real, tmp_img, 1, res_real, res_img, select_mult_second2,
               select_add_or_sub_first2);
@@ -262,7 +385,11 @@ void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twi
                          float fft16_twiddle_real[16], float fft16_twiddle_img[16], float* real, float* img,
                          size_t start, size_t step, size_t size, float* result_real, float* result_img) {
   if (size == 16) {
+#ifndef FFT_HOST_TEST
+    vector_fft16_slice(real, img, start, step, size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
+#else
     fft16_slice(real, img, start, step, size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
+#endif
   } else if (size == 1) {
     result_real[0] = real[start];
     result_img[0] = img[start];
