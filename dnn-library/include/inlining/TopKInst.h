@@ -246,6 +246,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
   float tmpValues[5] = {minusInf, minusInf, minusInf, minusInf, minusInf};
   long long tmpInd[5] = {-1, -1, -1, -1, -1};
   long long final_offset = row_offset + n;
+
   for (long long i = row_offset; i < final_offset; i++) {
     tmpValues[4] = static_cast<float>(inputT[batch_offset * inputPitch[batchDim] + i * inputPitch[srcDimNum - 1]]);
     tmpInd[4] = i;
@@ -523,7 +524,6 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
        "fcmov.ps f3, f30, f3, f13\n"      \
        "fcmov.ps f7, f30, f13, f7\n"
 
-
   unsigned int pow = 1;
   for (int j = 0; j <= level; j++) {
     uint64_t startReg = ((minionId / pow + 1) & 0x1) * 4;
@@ -556,7 +556,7 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
                            "f9", "f10", "f11", "f12", "f13", "f30");
     pow *= 2;
   }
-  return;
+
   if (rowMinionId == 0) {
 
     float tmpT[8] __attribute__((aligned(16)));
