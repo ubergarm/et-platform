@@ -46,23 +46,24 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   (void)numMinions;
 
   // Mapping from minion dimensions to compute dimensions
+  constexpr size_t workBatchBits = 3;
   constexpr size_t workRowBits = 0;
   constexpr size_t workRowBranchBits = 0;
   constexpr size_t workColBits = 0;
   constexpr size_t workColBranchBits = 0;
 
   // Ensure we got assigned at least as many minions as we can use
-  assert(numMinions >= (1 << (workRowBits + workRowBranchBits)));
+  assert(numMinions >= (1 << (workBatchBits + workRowBits + workRowBranchBits)));
 
   // Use just as many minions as we can
-  numMinions = min(numMinions, static_cast<uint32_t>(1 << (workRowBits + workRowBranchBits)));
+  numMinions = min(numMinions, static_cast<uint32_t>(1 << (workBatchBits + workRowBits + workRowBranchBits)));
 
   // Unused minions return inmediately
   if ((minionId - minionOffset) >= numMinions) {
     return;
   }
 
-  et_printf("%s(%d) [minionId=%d numMinions=%d]\n", __func__, __LINE__, minionId, numMinions);
+  et_printf("%s(%d) [minionOffset=%d numMinions=%d minionId=%d]\n", __func__, __LINE__, minionOffset, numMinions, minionId);
 
   float* in = inT->getRawDataPointer<float>();
   float* out = outT->getRawDataPointer<float>();
@@ -93,7 +94,15 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   assert(height == dstDims[3]);
   assert(width == dstDims[4]);
 
-  for (size_t batch = 0; batch < batches; ++batch) {
+  constexpr size_t batchElemsGroupSize = 1 << workBatchBits;
+
+  for (size_t batch0 = 0; batch0 < batches; batch0 += batchElemsGroupSize) {
+
+    size_t batchMinionGroupId = (minionId & ((1 << (workBatchBits + workColBits + workColBranchBits)) - 1)) >> (workColBits + workColBranchBits);
+    size_t batch = batch0 + batchMinionGroupId;
+    size_t minionOffset0 = (minionOffset + minionId) & ~((1 << (workColBits + workColBranchBits)) - 1);
+    size_t minionId0 = minionId & ((1 << (workColBits + workColBranchBits)) - 1);
+
     for (size_t channel = 0; channel < channels; ++channel) {
 
       float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
@@ -109,11 +118,11 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
         constexpr bool pass1 = true;
         constexpr bool pass2 = true;
         fft2d_inv_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits, pass1, pass2>(
-          minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
+          minionOffset0, minionId0, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
           result_img, result_img_stride);
       } else {
         fft2d_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits>(
-          minionOffset, minionId, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
+          minionOffset0, minionId0, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
           result_img, result_img_stride);
       }
     }
