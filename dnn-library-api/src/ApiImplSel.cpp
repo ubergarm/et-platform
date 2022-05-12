@@ -73,6 +73,7 @@ size_t implSel::MaxSplat(std::vector<LibTensor*>& outTensors, std::vector<LibTen
 size_t implSel::RowwiseQuantizedFullyConnected(std::vector<LibTensor*>& outTensors,
                                                std::vector<LibTensor*>& inTensors) {
   // SW-6838: Exploit all the operand alignment combinations for RowwiseQuantizedFullyConnected
+  return 0; // Workaround for SW-12216 !
   LibTensor* outT = outTensors[0];
   LibTensor* in1T = inTensors[0];
   LibTensor* in2T = inTensors[1];
