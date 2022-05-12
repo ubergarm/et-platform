@@ -46,11 +46,14 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   (void)numMinions;
 
   // Mapping from minion dimensions to compute dimensions
-  constexpr size_t workBatchBits = 3;
+  constexpr size_t workBatchBits = 0;
   constexpr size_t workRowBits = 0;
   constexpr size_t workRowBranchBits = 0;
   constexpr size_t workColBits = 0;
   constexpr size_t workColBranchBits = 0;
+
+  static_assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
+  static_assert(workRowBits + workRowBranchBits <= 5);
 
   // Ensure we got assigned at least as many minions as we can use
   assert(numMinions >= (1 << (workBatchBits + workRowBits + workRowBranchBits)));
@@ -63,7 +66,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
     return;
   }
 
-  et_printf("%s(%d) [minionOffset=%d numMinions=%d minionId=%d]\n", __func__, __LINE__, minionOffset, numMinions, minionId);
+  //et_printf("%s(%d) [minionOffset=%d numMinions=%d minionId=%d]\n", __func__, __LINE__, minionOffset, numMinions, minionId);
 
   float* in = inT->getRawDataPointer<float>();
   float* out = outT->getRawDataPointer<float>();
@@ -102,6 +105,8 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
     size_t batch = batch0 + batchMinionGroupId;
     size_t minionOffset0 = (minionOffset + minionId) & ~((1 << (workColBits + workColBranchBits)) - 1);
     size_t minionId0 = minionId & ((1 << (workColBits + workColBranchBits)) - 1);
+
+    //et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions, minionOffset0, minionId0, batch);    
 
     for (size_t channel = 0; channel < channels; ++channel) {
 

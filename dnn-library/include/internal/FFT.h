@@ -437,10 +437,14 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
 }
 
 template <[[maybe_unused]] size_t flb = 0, [[maybe_unused]] size_t fcc = 0, [[maybe_unused]] size_t thread = 0>
-INLINE_ATTR void barrier([[maybe_unused]] size_t first, [[maybe_unused]] size_t range, [[maybe_unused]] size_t step) {
+INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
 #ifndef FFT_HOST_TEST
-  if (flbarrier(flb, range - 1)) {
-    size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
+  size_t minionId = get_minion_id();
+  size_t first = minionId & ~(range-1);
+  size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
+  //et_printf("barrier: mid=%d range=%d first=%d end=%d step=%d\n", minionId, range, firstLocal, endLocal, step);
+  if (flbarrier(firstLocal, range - 1)) {    
+    //size_t minionId = get_minion_id();
     size_t endLocal = firstLocal + range;
     assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
     size_t mask = 0;
@@ -512,7 +516,7 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t minionOffset, size_t minion
   assert((minionOffset & (numMinions - 1)) == 0);
 
   for (size_t index = 0; index < workBranchBits; index++) {
-    barrier(minionOffset, numMinions, minionStep);
+    barrier(numMinions, minionStep);
     if ((minionId & minionStep) == 0) {
       float* even_real = tmp_real;
       float* even_img = tmp_img;
@@ -634,7 +638,8 @@ INLINE_ATTR void fft2d_threaded(size_t minionOffset, size_t minionId, size_t wid
                                 size_t real_stride, float* img, size_t img_stride, float* result_real,
                                 size_t result_real_stride, float* result_img, size_t result_img_stride) {
 
-  // static_assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
+  static_assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
+
   size_t numMinions = 1 << (workRowBits + workRowBranchBits);
   if (minionId >= numMinions) {
     return;
@@ -675,6 +680,7 @@ INLINE_ATTR void fft2d_threaded(size_t minionOffset, size_t minionId, size_t wid
       size_t row = row0 + rowMinionGroupId;
       size_t minionOffset0 = (minionOffset + minionId) & ~((1 << workRowBranchBits) - 1);
       size_t minionId0 = minionId & ((1 << workRowBranchBits) - 1);
+      //et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d row=%d]\n", __func__, __LINE__, minionId, numMinions, minionOffset0, minionId0, row);                
       fft_threaded_with_precompute<workRowBranchBits>(
         minionOffset0, minionId0, stack, horiz_base_twiddle_real, horiz_base_twiddle_img, fft16_twiddle_real,
         fft16_twiddle_img, real + row * real_stride, img + row * img_stride, 0, 1, width,
@@ -682,7 +688,7 @@ INLINE_ATTR void fft2d_threaded(size_t minionOffset, size_t minionId, size_t wid
     }
   }
 
-  barrier(minionOffset, numMinions, 1);
+  barrier(numMinions, 1);
 
   if constexpr (pass2) {
     // Storage for one column of intermediate results
@@ -698,6 +704,7 @@ INLINE_ATTR void fft2d_threaded(size_t minionOffset, size_t minionId, size_t wid
       size_t col = col0 + colMinionGroupId;
       size_t minionOffset0 = (minionOffset + minionId) & ~((1 << workColBranchBits) - 1);
       size_t minionId0 = minionId & ((1 << workColBranchBits) - 1);
+      //et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d col=%d]\n", __func__, __LINE__, minionId, numMinions, minionOffset0, minionId0, col);
       fft_threaded_with_precompute<workColBranchBits>(minionOffset0, minionId0, stack, vert_base_twiddle_real,
                                                       vert_base_twiddle_img, fft16_twiddle_real, fft16_twiddle_img,
                                                       result_real, result_img, col, result_real_stride, height,
