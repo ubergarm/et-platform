@@ -39,37 +39,37 @@ template <typename T> INLINE_ATTR T min(T a, T b) {
   return (a < b) ? a : b;
 }
 
-template <bool inverse = false>
-INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset, uint32_t numMinions,
-                     uint32_t minionId) {
-  (void)flags;
-  (void)numMinions;
-
-  // Mapping from minion dimensions to compute dimensions
-  constexpr size_t workBatchBits = 0;
-  constexpr size_t workRowBits = 0;
-  constexpr size_t workRowBranchBits = 0;
-  constexpr size_t workColBits = 0;
-  constexpr size_t workColBranchBits = 0;
-
-  static_assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
-  static_assert(workRowBits + workRowBranchBits <= 5);
-
-  // Ensure we got assigned at least as many minions as we can use
-  assert(numMinions >= (1 << (workBatchBits + workRowBits + workRowBranchBits)));
-
-  // Use just as many minions as we can
-  numMinions = min(numMinions, static_cast<uint32_t>(1 << (workBatchBits + workRowBits + workRowBranchBits)));
-
-  // Unused minions return inmediately
-  if ((minionId - minionOffset) >= numMinions) {
-    return;
+constexpr size_t log2(size_t value) {
+  size_t result = 0;
+  while (value >>= 1) {
+    result++;
   }
+  return result;
+}
 
-  //et_printf("%s(%d) [minionOffset=%d numMinions=%d minionId=%d]\n", __func__, __LINE__, minionOffset, numMinions, minionId);
+static_assert(log2(1) == 0);
+static_assert(log2(2) == 1);
+static_assert(log2(4) == 2);
 
-  float* in = inT->getRawDataPointer<float>();
-  float* out = outT->getRawDataPointer<float>();
+void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]] size_t components, size_t height,
+               size_t width, size_t numMinions, size_t& workBatchBits, size_t& workRowBits, size_t& workRowBranchBits,
+               size_t& workColBits, size_t& workColBranchBits) {
+
+  size_t log2NumMinions = log2(numMinions);
+
+  workRowBits = min(size_t(5), min(log2(height), log2(width)));
+  workRowBranchBits = 0;
+  workColBits = workRowBits;
+  workColBranchBits = workRowBranchBits;
+  workBatchBits = min(log2(batches), log2NumMinions - workRowBits - workRowBranchBits);
+
+  assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
+  assert(workRowBits + workRowBranchBits <= 5);
+}
+
+template <bool inverse = false>
+INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset,
+                     uint32_t numMinions, uint32_t minionId) {
 
   const dim_t* srcDims = inT->dims().data();
   const dim_t* dstDims = outT->dims().data();
@@ -97,16 +97,47 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
   assert(height == dstDims[3]);
   assert(width == dstDims[4]);
 
-  constexpr size_t batchElemsGroupSize = 1 << workBatchBits;
+  // Mapping from minion dimensions to compute dimensions
+  size_t workBatchBits;
+  size_t workRowBits, workRowBranchBits;
+  size_t workColBits, workColBranchBits;
+  fftTiling(batches, channels, components, height, width, numMinions, workBatchBits, workRowBits, workRowBranchBits,
+            workColBits, workColBranchBits);
+
+  if (minionId - minionOffset == 0) {
+    et_printf("bBits=%d rBits=%d rBrBits=%d cBits=%d cBrBits=%d", workBatchBits, workRowBits, workRowBranchBits,
+              workColBits, workColBranchBits);
+  }
+
+  // Ensure we got assigned at least as many minions as we can use
+  assert(numMinions >= static_cast<size_t>(1 << (workBatchBits + workRowBits + workRowBranchBits)));
+
+  // Use just as many minions as we can
+  numMinions = min(numMinions, static_cast<uint32_t>(1 << (workBatchBits + workRowBits + workRowBranchBits)));
+
+  // Unused minions return inmediately
+  if ((minionId - minionOffset) >= numMinions) {
+    return;
+  }
+
+  // et_printf("%s(%d) [minionOffset=%d numMinions=%d minionId=%d]\n", __func__, __LINE__, minionOffset, numMinions,
+  // minionId);
+
+  float* in = inT->getRawDataPointer<float>();
+  float* out = outT->getRawDataPointer<float>();
+
+  size_t batchElemsGroupSize = 1 << workBatchBits;
 
   for (size_t batch0 = 0; batch0 < batches; batch0 += batchElemsGroupSize) {
 
-    size_t batchMinionGroupId = (minionId & ((1 << (workBatchBits + workColBits + workColBranchBits)) - 1)) >> (workColBits + workColBranchBits);
+    size_t batchMinionGroupId =
+      (minionId & ((1 << (workBatchBits + workColBits + workColBranchBits)) - 1)) >> (workColBits + workColBranchBits);
     size_t batch = batch0 + batchMinionGroupId;
     size_t minionOffset0 = (minionOffset + minionId) & ~((1 << (workColBits + workColBranchBits)) - 1);
     size_t minionId0 = minionId & ((1 << (workColBits + workColBranchBits)) - 1);
 
-    //et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions, minionOffset0, minionId0, batch);    
+    et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions,
+              minionOffset0, minionId0, batch);
 
     for (size_t channel = 0; channel < channels; ++channel) {
 
@@ -122,13 +153,13 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint
       if constexpr (inverse) {
         constexpr bool pass1 = true;
         constexpr bool pass2 = true;
-        fft2d_inv_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits, pass1, pass2>(
-          minionOffset0, minionId0, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
-          result_img, result_img_stride);
+        fft2d_inv_threaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset0,
+                                         minionId0, width, height, real, real_stride, img, img_stride, result_real,
+                                         result_real_stride, result_img, result_img_stride);
       } else {
-        fft2d_threaded<workRowBits, workRowBranchBits, workColBits, workColBranchBits>(
-          minionOffset0, minionId0, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
-          result_img, result_img_stride);
+        fft2d_threaded(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset0, minionId0, width,
+                       height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
+                       result_img_stride);
       }
     }
   }
