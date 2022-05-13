@@ -14,7 +14,7 @@ clang-format:
   extends:
     - .template_job
     - .pod_medium
-  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/centos-7.9.2009-et-sw-platform:0.2.15
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/centos-7.9.2009-et-sw-platform:0.3.0
   stage: build
   variables:
     CMD_SCRIPT: |
@@ -26,6 +26,8 @@ dnnlibApi-ci-pipeline:
   variables: 
     PIPELINE_CI_SUBPROJECT: 'dnnLibraryApi'
     SUBMODULE_BRANCH: ${CI_COMMIT_REF_NAME}
+    MR_ID: ${CI_MERGE_REQUEST_IID}
+    TARGET_BRANCH: ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}
   trigger:
     project: software/sw-platform
     branch: develop/ml-compiler
