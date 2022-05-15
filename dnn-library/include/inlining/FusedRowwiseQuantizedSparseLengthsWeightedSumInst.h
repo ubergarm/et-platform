@@ -51,11 +51,11 @@ inline __attribute((always_inline)) void fusedRowwiseQuantizedSparseLengthsWeigh
   uint8_t* dst_ptr, bool destAligned, const bool Weighted = true) {
 
   const bool float32Dst = elK == FloatTy;
-  const bool float16Dst = elK == Float16Ty;
+  [[maybe_unused]] const bool float16Dst = elK == Float16Ty;
 
   assert(float32Dst || float16Dst);
 
-  const bool float32Fused = fusedElK == UInt8FusedQTy;
+  [[maybe_unused]] const bool float32Fused = fusedElK == UInt8FusedQTy;
   const bool float16Fused = fusedElK == UInt8FusedFP16QTy;
 
   assert(float32Fused || float16Fused);
@@ -190,7 +190,7 @@ inline __attribute((always_inline))
 void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
         LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
         uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-    
+
   const bool float32Dst = elK == FloatTy;
   const bool float16Dst = elK == Float16Ty;
 

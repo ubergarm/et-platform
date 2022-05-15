@@ -11,6 +11,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(dnnLibrary VERSION 0.1.0 LANGUAGES C CXX)
 
+message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
@@ -134,13 +135,8 @@ target_compile_options(dnn_lib
     PRIVATE
         -Wall
         $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
-)
-
-
-# Even w/o treating all warnings as arrors, there are some warnings we don't
-# allow at this compilation stage. This list wil grow as categories are cleaned up.
-target_compile_options(dnn_lib
-    PRIVATE
+        # Even w/o treating all warnings as arrors, there are some warnings we don't
+        # allow at this compilation stage. This list wil grow as categories are cleaned up.
         -Werror=shadow 
         -Werror=ignored-qualifiers 
         -Werror=div-by-zero
@@ -156,7 +152,6 @@ target_compile_options(dnn_lib
         -Werror=unused-local-typedefs
         -Werror=sign-compare
 )
-
 target_link_libraries(dnn_lib
     PRIVATE
         et-common-libs::cm-umode

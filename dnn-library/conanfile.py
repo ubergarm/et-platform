@@ -1,7 +1,10 @@
-from conans import ConanFile, tools
-from conans.errors import ConanInvalidConfiguration
+from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMake
+from conan.tools.layout import cmake_layout
+from conans import tools
+from conans.errors import ConanInvalidConfiguration
 import os
+
 
 class DnnLibraryConan(ConanFile):
     name = "dnnLibrary"
@@ -14,52 +17,63 @@ class DnnLibraryConan(ConanFile):
 
     settings = "os", "compiler", "build_type", "arch"
     options = {
-        "fPIC": [True, False]
+        "fPIC": [True, False],
+        "warnings_as_errors": [True, False]
     }
     default_options = {
-        "fPIC": True
+        "fPIC": True,
+        "warnings_as_errors": False
     }
-    generators = "cmake_find_package_multi"
 
-    exports_sources = [ "CMakeLists.txt", "include/*", "scripts/*", "src/*", "dnnLibraryConfig.cmake.in" ]
+    scm = {
+        "type": "git",
+        "url": "git@gitlab.esperanto.ai:software/dnn-library.git",
+        "revision": "auto",
+    }
+    generators = "CMakeDeps"
 
+    python_requires = "conan-common/[>=0.5.0 <1.0.0]"
+
+    def set_version(self):
+        self.version = self.python_requires["conan-common"].module.get_version_from_cmake_project(self, self.name)
+    
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
     
-    def configure(self):
-        if self.settings.compiler.get_safe("cppstd"):
-            tools.check_min_cppstd(self, 17)
-
     def requirements(self):
-        self.requires("device-minion-runtime/0.0.1")
+        self.requires("et-common-libs/0.0.5")
 
-    def validate(self):
+    def validate(self):        
         if self.settings.arch != "rv64":
-            raise ConanInvalidConfiguration("arch not supported")
+            raise ConanInvalidConfiguration("Cross-compiling to arch {} is not supported".format(self.settings.arch))
 
+        check_req_min_cppstd = self.python_requires["conan-common"].module.check_req_min_cppstd
+        check_req_min_cppstd(self, "17")
+
+        et_common_libs = self.dependencies["et-common-libs"]
+        # et-common-libs must be compiled with these components
+        for flag in ["with_cm_umode"]:
+            if not et_common_libs.options.get_safe(flag):
+                raise ConanInvalidConfiguration("{0} requires {1} package with '-o {1}:{2}'".format(self.name, "et-common-libs", flag))
+
+    def layout(self):
+        cmake_layout(self)
+        self.folders.source = "."
+    
     def generate(self):
         tc = CMakeToolchain(self)
         tc.variables["CMAKE_INSTALL_LIBDIR"] = "lib"
-        tc.variables["CMAKE_VERBOSE_MAKEFILE"] = True
-        tc.variables["ENABLE_WARNINGS_AS_ERRORS"] = False
-        tc.variables["ENABLE_DEPRECATED"] = False
+        tc.variables["ENABLE_WARNINGS_AS_ERRORS"] = self.options.warnings_as_errors
         tc.generate()
     
-    _cmake = None
-    def _configure_cmake(self):
-        if not self._cmake:
-            cmake = CMake(self)
-            cmake.configure()
-            self._cmake = cmake
-        return self._cmake
-    
     def build(self):
-        cmake = self._configure_cmake()
+        cmake = CMake(self)
+        cmake.configure()
         cmake.build()
-    
+
     def package(self):
-        cmake = self._configure_cmake()
+        cmake = CMake(self)
         cmake.install()
         tools.rmdir(os.path.join(self.package_folder, "lib", "cmake"))
 
