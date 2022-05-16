@@ -57,11 +57,13 @@ enum ElemKind {
 // Enum with list of known members
 #define SCALAR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
 #define VECTOR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
-enum class instrMembers {
+enum class InstrMembers {
   mbInvalid = 0,
 #include "LibApiMembers.def"
   mbMaxMembers
 };
+
+using instrMembers = InstrMembers;
 
 // Type and name maps
 template <dnn_lib::instrMembers mb> struct memberMap;
@@ -108,7 +110,7 @@ struct instrConfig {
   std::string name;
   size_t nrOutputTensors; // number of output and in/out tensor operands
   size_t nrInputTensors;  // number of input tensor operands
-  std::vector<instrMembers> members;
+  std::vector<InstrMembers> members;
   uint64_t templateMask;
   std::vector<std::string> versions;
 

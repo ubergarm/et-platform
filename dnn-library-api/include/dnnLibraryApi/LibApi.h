@@ -58,6 +58,27 @@ size_t getInstrNumCycles(const std::string& operatorName, size_t assignedMinions
 size_t getImplementation(const std::string& operatorName, const std::vector<Tensor>& outOperands,
                          const std::vector<Tensor>& inOperands);
 
+/*!
+ * getMemberName returns a string with the member name.
+ * \param[in] mb is the enum of the member of interest
+ * \returns the member name in string format
+ */
+std::string getMemberName(InstrMembers mb);
+
+/*!
+ * getMemberType returns a string with the member type (bool, int, int64_t, ...).
+ * \param[in] mb is the enum of the member of interest
+ * \returns the member type in string format
+ */
+std::string getMemberType(InstrMembers mb);
+
+/*!
+ * getMemberScalar returns a boolean containing if the member is a scalar value
+ * \param[in] mb is the enum of the member of interest
+ * \returns if the member is a scalar or not
+ */
+bool getMemberScalar(InstrMembers mb);
+
 } // end namespace dnn_lib
 
 #endif

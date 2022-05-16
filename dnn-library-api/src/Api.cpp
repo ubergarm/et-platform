@@ -155,7 +155,9 @@ bool getInstrConfig(const std::string& operatorName, instrConfig& instConfig) {
   instConfig.name = instConfigInt.name;
   instConfig.nrOutputTensors = instConfigInt.nrOutputTensors;
   instConfig.nrInputTensors = instConfigInt.nrInputTensors;
-  instConfig.members = instConfigInt.members;
+  for (auto member : instConfigInt.members) {
+    instConfig.members.push_back((InstrMembers)member);
+  }
   instConfig.templateMask = instConfigInt.templateMask;
   instConfig.versions = instConfigInt.versions;
   instConfig.stateL1 = instConfigInt.stateL1;
@@ -237,6 +239,75 @@ size_t getImplementation(const std::string& operatorName, const std::vector<Tens
     inOperandsConverted.push_back(std::move(libTensor));
   }
   return instConfig.implSel(outOperandsConvertedPtr, inOperandsConvertedPtr);
+}
+
+std::string getMemberName(InstrMembers mb) {
+// clang-format off
+#define SCALAR_MB_DEF(NAME, TYPE, GETTER) \
+  case instrMembers::mb##NAME:            \
+    ret = #NAME;                          \
+    break;
+#define VECTOR_MB_DEF(NAME, TYPE, GETTER) \
+  case instrMembers::mb##NAME:            \
+    ret = #NAME;                          \
+    break;
+  // clang-format on
+
+  std::string ret = "";
+  auto mbInt = (instrMembers)mb;
+  switch (mbInt) {
+#include "dnnLibraryApi/LibApiMembers.def"
+
+  default:
+    assert(false && "invalid member");
+  }
+  return ret;
+}
+
+std::string getMemberType(InstrMembers mb) {
+// clang-format off
+#define SCALAR_MB_DEF(NAME, TYPE, GETTER) \
+  case instrMembers::mb##NAME:            \
+    ret = #TYPE;                          \
+    break;
+#define VECTOR_MB_DEF(NAME, TYPE, GETTER) \
+  case instrMembers::mb##NAME:            \
+    ret = #TYPE;                          \
+    break;
+  // clang-format on
+
+  std::string ret = "";
+  auto mbInt = (instrMembers)mb;
+  switch (mbInt) {
+#include "dnnLibraryApi/LibApiMembers.def"
+
+  default:
+    assert(false && "invalid member");
+  }
+  return ret;
+}
+
+bool getMemberScalar(InstrMembers mb) {
+// clang-format off
+#define SCALAR_MB_DEF(NAME, TYPE, GETTER) \
+  case instrMembers::mb##NAME:            \
+    ret = true;                          \
+    break;
+#define VECTOR_MB_DEF(NAME, TYPE, GETTER) \
+  case instrMembers::mb##NAME:            \
+    ret = false;                          \
+    break;
+  // clang-format on
+
+  bool ret = false;
+  auto mbInt = (instrMembers)mb;
+  switch (mbInt) {
+#include "dnnLibraryApi/LibApiMembers.def"
+
+  default:
+    assert(false && "invalid member");
+  }
+  return ret;
 }
 
 } // end namespace dnn_lib
