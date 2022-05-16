@@ -102,6 +102,18 @@ static_assert(isPowerOfTwo(0) == false);
 static_assert(isPowerOfTwo(8) == true);
 static_assert(isPowerOfTwo(9) == false);
 
+constexpr size_t log2(size_t value) {
+  size_t result = 0;
+  while (value >>= 1) {
+    result++;
+  }
+  return result;
+}
+
+static_assert(log2(1) == 0);
+static_assert(log2(2) == 1);
+static_assert(log2(4) == 2);
+
 //  Compute 1.f / static_cast<float>(n) when n is a power of two without using divides
 INLINE_ATTR float rec(size_t n) {
   assert(isPowerOfTwo(n));
@@ -436,16 +448,21 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
   stack.restore(saved);
 }
 
-template <[[maybe_unused]] size_t flb = 0, [[maybe_unused]] size_t fcc = 0, [[maybe_unused]] size_t thread = 0>
 INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
 #ifndef FFT_HOST_TEST
+  constexpr size_t fcc = 0;
+  constexpr size_t thread = 0;
+
   size_t minionId = get_minion_id();
   size_t first = minionId & ~(range - 1);
   size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
-  // et_printf("barrier: mid=%d range=%d first=%d end=%d step=%d\n", minionId, range, firstLocal, endLocal, step);
-  if (flbarrier(firstLocal, range - 1)) {
+  size_t endLocal = firstLocal + range;
+  size_t flb = firstLocal >> log2(range);
+
+  et_printf("barrier: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
+
+  if (flbarrier(flb, range - 1)) {
     // size_t minionId = get_minion_id();
-    size_t endLocal = firstLocal + range;
     assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
     size_t mask = 0;
     for (size_t i = firstLocal; i < endLocal; i += step) {

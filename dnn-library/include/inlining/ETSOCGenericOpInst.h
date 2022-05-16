@@ -39,18 +39,6 @@ template <typename T> INLINE_ATTR T min(T a, T b) {
   return (a < b) ? a : b;
 }
 
-constexpr size_t log2(size_t value) {
-  size_t result = 0;
-  while (value >>= 1) {
-    result++;
-  }
-  return result;
-}
-
-static_assert(log2(1) == 0);
-static_assert(log2(2) == 1);
-static_assert(log2(4) == 2);
-
 void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]] size_t components, size_t height,
                size_t width, size_t numMinions, size_t& workBatchBits, size_t& workRowBits, size_t& workRowBranchBits,
                size_t& workColBits, size_t& workColBranchBits) {
