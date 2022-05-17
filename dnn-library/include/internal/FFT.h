@@ -137,7 +137,7 @@ INLINE_ATTR void w(size_t j, float recN, float& real, float& img) {
 
 INLINE_ATTR void twiddle_vector_small(size_t size, float real[], float img[]) {
   float recN = rec(size);
-  for (size_t i = 0; i < size; ++i) {
+  for (uint32_t i = 0; i < static_cast<uint32_t>(size); ++i) {
     w(i, recN, real[i], img[i]);
   }
 }
