@@ -64,6 +64,7 @@ public:
     T* result = reinterpret_cast<T*>(pointer);
     size_t baseElements = (sizeof(T) * elements + sizeof(EType) - 1) / sizeof(EType);
     pointer += baseElements;
+    assert(pointer <= start + elementsPerMinion);
     return result;
   }
 
