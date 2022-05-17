@@ -489,7 +489,7 @@ void sendCredit(size_t destMinionId) {
   size_t destShireId = destMinionId >> log2(SOC_MINIONS_PER_SHIRE);
   size_t destLocalMinionId = destMinionId & (SOC_MINIONS_PER_SHIRE - 1);
   size_t mask = 1 << destLocalMinionId;
-  // et_printf("sendCredit: srcMId=%d dstMId=%d dstSId=%d dstLMId=%d\n", get_minion_id();, destMinionId, destShireId,
+  // et_printf("sendCredit: srcMId=%d dstMId=%d dstSId=%d dstLMId=%d\n", get_minion_id(), destMinionId, destShireId,
   // destLocalMinionId);
   fcc_send(destShireId, thread, fcc, mask);
 #endif
@@ -752,6 +752,12 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
   barrier(numMinions, 1);
 
   if constexpr (pass2) {
+    // Storage for one column of input
+    float* column_real;
+    float* column_img;
+    column_real = stack.push<float>(height);
+    column_img = stack.push<float>(height);
+
     // Storage for one column of intermediate results
     float* result_column_real;
     float* result_column_img;
@@ -767,28 +773,35 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
       size_t minionId0 = minionId & ((1 << workColBranchBits) - 1);
       // et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d col=%d]\n", __func__, __LINE__, minionId, numMinions,
       //          minionOffset0, minionId0, col);
-      fft_threaded_with_precompute(workColBranchBits, minionOffset0, minionId0, stack, vert_base_twiddle_real,
-                                   vert_base_twiddle_img, fft16_twiddle_real, fft16_twiddle_img, result_real,
-                                   result_img, col, result_real_stride, height, result_column_real, result_column_img);
       for (size_t row = 0; row < height; ++row) {
 #ifndef FFT_HOST_TEST
-        fence_evict_va(0, 3,
-                       static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&result_real[row * result_real_stride + col])),
-                       0, CACHE_LINE_BYTES, 0);
-        fence_evict_va(0, 3,
-                       static_cast<uint64_t>(reinterpret_cast<uintptr_t>(&result_img[row * result_img_stride + col])),
-                       0, CACHE_LINE_BYTES, 0);
-        uint32_t value = *reinterpret_cast<uint32_t*>(&result_column_real[row]);
-        atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_real[row * result_real_stride + col]), value);
-        value = *reinterpret_cast<uint32_t*>(&result_column_img[row]);
-        atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_img[row * result_img_stride + col]), value);
+        *reinterpret_cast<uint32_t*>(&column_real[row]) = atomic_load_global_32(reinterpret_cast<uint32_t*>(&result_real[row * result_real_stride + col]));
+        *reinterpret_cast<uint32_t*>(&column_img[row]) = atomic_load_global_32(reinterpret_cast<uint32_t*>(&result_img[row * result_img_stride + col]));
 #else
-        result_real[row * result_real_stride + col] = result_column_real[row];
-        result_img[row * result_img_stride + col] = result_column_img[row];
+        column_real[row] = result_real[row * result_real_stride + col];
+        column_img[row] = result_img[row * result_img_stride + col];
 #endif
+      }
+      fft_threaded_with_precompute(workColBranchBits, minionOffset0, minionId0, stack, vert_base_twiddle_real,
+                                   vert_base_twiddle_img, fft16_twiddle_real, fft16_twiddle_img, column_real,
+                                   column_img, 0, 1, height, result_column_real, result_column_img);
+      if ((minionId & ((1 << workColBranchBits) - 1)) == 0) {
+        for (size_t row = 0; row < height; ++row) {
+#ifndef FFT_HOST_TEST
+          uint32_t value = *reinterpret_cast<uint32_t*>(&result_column_real[row]);
+          atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_real[row * result_real_stride + col]), value);
+          value = *reinterpret_cast<uint32_t*>(&result_column_img[row]);
+          atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_img[row * result_img_stride + col]), value);
+#else
+          result_real[row * result_real_stride + col] = result_column_real[row];
+          result_img[row * result_img_stride + col] = result_column_img[row];
+#endif
+        }
       }
     }
   }
+
+  barrier(numMinions, 1);  
 
   stack.restore(saved);
 }
