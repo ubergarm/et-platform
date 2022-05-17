@@ -581,8 +581,8 @@ INLINE_ATTR void fft_threaded(size_t workBranchBits, size_t minionOffset, size_t
     twiddle_vector_small(size, base_twiddle_real, base_twiddle_img);
 
   // Precompute twiddle vector for fft16_slice
-  float fft16_twiddle_real[16];
-  float fft16_twiddle_img[16];
+  float* fft16_twiddle_real = stack.push<float>(16);
+  float* fft16_twiddle_img = stack.push<float>(16);
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
 
   fft_threaded_with_precompute(workBranchBits, minionOffset, minionId, stack, base_twiddle_real, base_twiddle_img,
