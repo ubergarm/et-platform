@@ -45,11 +45,19 @@ void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]
 
   size_t log2NumMinions = log2(numMinions);
 
-  workRowBits = min(size_t(5), min(log2(height), log2(width)));
-  workRowBranchBits = 0;
-  workColBits = workRowBits;
-  workColBranchBits = workRowBranchBits;
-  workBatchBits = min(log2(batches), log2NumMinions - workRowBits - workRowBranchBits);
+  if constexpr (true) {
+    workRowBits = min(size_t(5), min(log2(height), log2(width)));
+    workRowBranchBits = 0;
+    workColBits = workRowBits;
+    workColBranchBits = workRowBranchBits;
+    workBatchBits = min(log2(batches), log2NumMinions - workRowBits - workRowBranchBits);
+  } else {
+    workBatchBits = 0;
+    workRowBits = 0;
+    workRowBranchBits = 4;
+    workColBits = 0;
+    workColBranchBits = 4;
+  }
 
   assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
   assert(workRowBits + workRowBranchBits <= 5);
