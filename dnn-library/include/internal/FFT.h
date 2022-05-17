@@ -686,8 +686,8 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
     twiddle_vector_small(height, vert_base_twiddle_real, vert_base_twiddle_img);
 
   // Precompute twiddle vector for FFT16
-  float fft16_twiddle_real[16];
-  float fft16_twiddle_img[16];
+  float* fft16_twiddle_real = stack.push<float>(16);
+  float* fft16_twiddle_img = stack.push<float>(16);
   twiddle_vector_big(16, fft16_twiddle_real, fft16_twiddle_img);
 
   if constexpr (pass1) {
