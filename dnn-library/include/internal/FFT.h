@@ -462,14 +462,16 @@ INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
 
   // et_printf("barrier: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
 
-  if (flbarrier(flb, range - 1)) {
-    // size_t minionId = get_minion_id();
-    assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
-    size_t mask = 0;
-    for (size_t i = firstLocal; i < endLocal; i += step) {
-      mask = mask | (1 << i);
+  if (range > 1) {
+    if (flbarrier(flb, range - 1)) {
+      assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
+      size_t mask = 0;
+      for (size_t i = firstLocal; i < endLocal; i += step) {
+        mask = mask | (1 << i);
+      }
+      fcc_send(SHIRE_OWN, thread, fcc, mask);
     }
-    fcc_send(SHIRE_OWN, thread, fcc, mask);
+    fcc_consume(fcc);
   }
   fcc_consume(fcc);
 #endif
