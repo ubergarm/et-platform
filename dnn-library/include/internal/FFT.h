@@ -460,7 +460,7 @@ INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
   size_t endLocal = firstLocal + range;
   size_t flb = firstLocal >> log2(range);
 
-  et_printf("barrier: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
+  // et_printf("barrier: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
 
   if (flbarrier(flb, range - 1)) {
     // size_t minionId = get_minion_id();
