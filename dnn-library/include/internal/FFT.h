@@ -473,6 +473,29 @@ INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
     }
     fcc_consume(fcc);
   }
+#endif
+}
+
+void sendCredit(size_t destMinionId) {
+#ifndef FFT_HOST_TEST
+  constexpr size_t fcc = 0;
+  constexpr size_t thread = 0;
+  size_t destShireId = destMinionId >> log2(SOC_MINIONS_PER_SHIRE);
+  size_t destLocalMinionId = destMinionId & (SOC_MINIONS_PER_SHIRE - 1);
+  size_t mask = 1 << destLocalMinionId;
+  // et_printf("sendCredit: srcMId=%d dstMId=%d dstSId=%d dstLMId=%d\n", get_minion_id();, destMinionId, destShireId,
+  // destLocalMinionId);
+  fcc_send(destShireId, thread, fcc, mask);
+#endif
+}
+
+void consumeCredit() {
+#ifndef FFT_HOST_TEST
+  constexpr size_t fcc = 0;
+  // size_t minionId = get_minion_id();
+  // size_t shireId = minionId >> log2(SOC_MINIONS_PER_SHIRE);
+  // size_t localMinionId = minionId & (SOC_MINIONS_PER_SHIRE - 1);
+  // et_printf("consumeCredit: mId=%d SId=%d LMId=%d\n", minionId, shireId, localMinionId);
   fcc_consume(fcc);
 #endif
 }
@@ -511,6 +534,8 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t mini
     isTemp = true;
   }
 
+  // et_printf("fft_w_p: minionId=%d start=%d step=%d size=%d numMinions=%d", minionId, start, step, size, numMinions);
+
   // Perform the FFT recursion branch assigne to the minion
   fft_with_precompute(stack, base_twiddle_real, base_twiddle_img, twiddle_step, fft16_twiddle_real, fft16_twiddle_img,
                       real, img, start, step, size, tmp_real, tmp_img);
@@ -534,14 +559,14 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t mini
   size_t minionStep = 1;
   assert((minionOffset & (numMinions - 1)) == 0);
 
-  for (size_t index = 0; index < workBranchBits; index++) {
-    barrier(numMinions, minionStep);
+  for (size_t index = 1; index <= workBranchBits; index++) {
     if ((minionId & minionStep) == 0) {
+      consumeCredit();
       float* even_real = tmp_real;
       float* even_img = tmp_img;
       float* odd_real = Stack::offset(tmp_real, minionStep);
       float* odd_img = Stack::offset(tmp_img, minionStep);
-      if (index == workBranchBits - 1) {
+      if (index == workBranchBits) {
         tmp_real = result_real;
         tmp_img = result_img;
       } else {
@@ -549,20 +574,31 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t mini
         tmp_img = stack.push<float>(2 * size);
       }
       twiddle_step >>= 1;
+#ifndef FFT_HOST_TEST
+      numLinesMinusOne = ((size * sizeof(float) + CACHE_LINE_BYTES - 1) >> LOG2_CACHE_LINE_BYTES) - 1;
+      fence_evict_va(0, dstLevel, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(odd_real)), numLinesMinusOne,
+                     CACHE_LINE_BYTES, 0);
+      fence_evict_va(0, dstLevel, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(odd_img)), numLinesMinusOne,
+                     CACHE_LINE_BYTES, 0);
+#endif
       reduce(base_twiddle_real, base_twiddle_img, twiddle_step, size, even_real, even_img, odd_real, odd_img, tmp_real,
              tmp_img);
 #ifndef FFT_HOST_TEST
+      numLinesMinusOne = ((2 * size * sizeof(float) + CACHE_LINE_BYTES - 1) >> LOG2_CACHE_LINE_BYTES) - 1;
       fence_evict_va(0, dstLevel, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(tmp_real)), numLinesMinusOne,
                      CACHE_LINE_BYTES, 0);
       fence_evict_va(0, dstLevel, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(tmp_img)), numLinesMinusOne,
                      CACHE_LINE_BYTES, 0);
 #endif
     } else {
+      sendCredit(minionId & ~((1 << index) - 1));
       break;
     }
     minionStep <<= 1;
     size <<= 1;
   }
+
+  barrier(1 << workBranchBits, 1);
 
   stack.restore(saved);
 }
