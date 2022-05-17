@@ -517,7 +517,7 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t mini
 
 #ifndef FFT_HOST_TEST
   uint64_t dstLevel = 3; // Evict all the way to on-chip DDR memory
-  size_t numLinesMinusOne = (size * sizeof(float) - 1) >> LOG2_CACHE_LINE_BYTES;
+  size_t numLinesMinusOne = ((size * sizeof(float) + CACHE_LINE_BYTES - 1) >> LOG2_CACHE_LINE_BYTES) - 1;
   fence_evict_va(0, dstLevel, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(tmp_real)), numLinesMinusOne,
                  CACHE_LINE_BYTES, 0);
   fence_evict_va(0, dstLevel, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(tmp_img)), numLinesMinusOne,
