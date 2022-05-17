@@ -10,6 +10,10 @@
 #define INLINE_ATTR __attribute__((always_inline)) inline
 #endif
 
+#ifndef CACHE_LINE_BYTES
+#define CACHE_LINE_BYTES 64
+#endif
+
 namespace dnn_lib {
 
 // Prototypes
@@ -32,6 +36,8 @@ private:
   using EType = uint32_t;
   static constexpr size_t elementsPerMinion = 16 * 1024;
   static constexpr size_t numMinions = 1024;
+  static constexpr size_t elementsPerCacheLine = CACHE_LINE_BYTES / sizeof(EType);
+  static_assert(CACHE_LINE_BYTES % sizeof(EType) == 0);
 
 public:
   Stack(size_t minionId) {
@@ -55,15 +61,15 @@ public:
 
   template <typename T, size_t elements = 1> T* push() {
     T* result = reinterpret_cast<T*>(pointer);
-    constexpr size_t baseElements = (sizeof(T) * elements + sizeof(EType) - 1) / sizeof(EType);
-    pointer += baseElements;
+    constexpr size_t cacheLines = (sizeof(T) * elements + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    pointer += cacheLines * elementsPerCacheLine;
     return result;
   }
 
   template <typename T> T* push(size_t elements) {
     T* result = reinterpret_cast<T*>(pointer);
-    size_t baseElements = (sizeof(T) * elements + sizeof(EType) - 1) / sizeof(EType);
-    pointer += baseElements;
+    size_t cacheLines = (sizeof(T) * elements + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    pointer += cacheLines * elementsPerCacheLine;
     assert(pointer <= start + elementsPerMinion);
     return result;
   }
