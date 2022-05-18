@@ -100,8 +100,8 @@ template <ElemKind elK>
 INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
-  const size_t cll = CACHE_LINE_BYTES / outT->getElementSize();
-  const size_t numDims = outT->ndims();
+  [[maybe_unused]] const size_t cll = CACHE_LINE_BYTES / outT->getElementSize();
+  [[maybe_unused]] const size_t numDims = outT->ndims();
   static_assert(elK == FloatTy or elK == Float16Ty or elK == BFloat16Ty);
   assert(inT->getElementType() == elK and outT->getElementType() == elK);
   assert(inT->ndims() == 2 and outT->ndims() == 2);
