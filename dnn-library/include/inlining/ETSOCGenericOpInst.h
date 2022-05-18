@@ -39,7 +39,7 @@ template <typename T> INLINE_ATTR T min(T a, T b) {
   return (a < b) ? a : b;
 }
 
-void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]] size_t components, size_t height,
+INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]] size_t components, size_t height,
                size_t width, size_t numMinions, size_t& workBatchBits, size_t& workRowBits, size_t& workRowBranchBits,
                size_t& workColBits, size_t& workColBranchBits) {
 
@@ -65,7 +65,7 @@ void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]
 
 template <bool inverse = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset,
-                     uint32_t numMinions, uint32_t minionId) {
+                     size_t numMinions, size_t minionId) {
 
   const dim_t* srcDims = inT->dims().data();
   const dim_t* dstDims = outT->dims().data();
@@ -109,7 +109,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
   assert(numMinions >= static_cast<size_t>(1 << (workBatchBits + workRowBits + workRowBranchBits)));
 
   // Use just as many minions as we can
-  numMinions = min(numMinions, static_cast<uint32_t>(1 << (workBatchBits + workRowBits + workRowBranchBits)));
+  numMinions = min(numMinions, 1UL << (workBatchBits + workRowBits + workRowBranchBits));
 
   // Unused minions return inmediately
   if ((minionId - minionOffset) >= numMinions) {
@@ -162,7 +162,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
 }
 
 INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
-                                       const uint32_t numMinions, uint32_t minionId) {
+                                       size_t numMinions, size_t minionId) {
   //  FIXME: just minon 0 does some work at the moment.
   if ((minionId - minionOffset) != 0) {
     return;

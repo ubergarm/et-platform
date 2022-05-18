@@ -405,9 +405,9 @@ void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twi
                          size_t start, size_t step, size_t size, float* result_real, float* result_img) {
   if (size == 16) {
 #ifndef FFT_HOST_TEST
-    vector_fft16_slice(real, img, start, step, size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
+    vector_fft16_slice(real, img, static_cast<int32_t>(start), static_cast<int32_t>(step), size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
 #else
-    fft16_slice(real, img, start, step, size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
+    fft16_slice(real, img, static_cast<int32_t>(start), static_cast<int32_t>(step), size, fft16_twiddle_real, fft16_twiddle_img, result_real, result_img);
 #endif
   } else if (size == 1) {
     result_real[0] = real[start];
@@ -481,8 +481,9 @@ INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
   }
 #endif
 }
+
 #ifndef FFT_HOST_TEST
-void sendCredit(size_t destMinionId) {
+INLINE_ATTR void sendCredit(size_t destMinionId) {
   constexpr size_t fcc = 0;
   constexpr size_t thread = 0;
   size_t destShireId = destMinionId >> log2(SOC_MINIONS_PER_SHIRE);
@@ -490,10 +491,10 @@ void sendCredit(size_t destMinionId) {
   size_t mask = 1 << destLocalMinionId;
   // et_printf("sendCredit: srcMId=%d dstMId=%d dstSId=%d dstLMId=%d\n", get_minion_id(), destMinionId, destShireId,
   // destLocalMinionId);
-  fcc_send(destShireId, thread, fcc, mask);
+  fcc_send(static_cast<uint32_t>(destShireId), thread, fcc, mask);
 }
 
-void consumeCredit() {
+INLINE_ATTR void consumeCredit() {
   constexpr size_t fcc = 0;
   // size_t minionId = get_minion_id();
   // size_t shireId = minionId >> log2(SOC_MINIONS_PER_SHIRE);
