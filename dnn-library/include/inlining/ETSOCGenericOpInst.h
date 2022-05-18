@@ -132,7 +132,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
     size_t minionOffset0 = (minionOffset + minionId) & ~((1 << (workColBits + workColBranchBits)) - 1);
     size_t minionId0 = minionId & ((1 << (workColBits + workColBranchBits)) - 1);
 
-    //et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions,
+    // et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions,
     //          minionOffset0, minionId0, batch);
 
     for (size_t channel = 0; channel < channels; ++channel) {

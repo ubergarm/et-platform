@@ -599,7 +599,7 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t mini
 #ifndef FFT_HOST_TEST
       size_t destMinion = get_minion_id() & ~((1 << index) - 1);
       sendCredit(destMinion);
-#endif      
+#endif
       break;
     }
     minionStep <<= 1;
@@ -745,10 +745,9 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
                                    horiz_base_twiddle_img, fft16_twiddle_real, fft16_twiddle_img,
                                    real + row * real_stride, img + row * img_stride, 0, 1, width,
                                    result_real + row * result_real_stride, result_img + row * result_img_stride);
-      barrier(numMinions, 1);  
+      barrier(numMinions, 1);
     }
   }
-
 
   if constexpr (pass2) {
     // Storage for one column of input
@@ -774,8 +773,10 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
       //          minionOffset0, minionId0, col);
       for (size_t row = 0; row < height; ++row) {
 #ifndef FFT_HOST_TEST
-        *reinterpret_cast<uint32_t*>(&column_real[row]) = atomic_load_global_32(reinterpret_cast<uint32_t*>(&result_real[row * result_real_stride + col]));
-        *reinterpret_cast<uint32_t*>(&column_img[row]) = atomic_load_global_32(reinterpret_cast<uint32_t*>(&result_img[row * result_img_stride + col]));
+        *reinterpret_cast<uint32_t*>(&column_real[row]) =
+          atomic_load_global_32(reinterpret_cast<uint32_t*>(&result_real[row * result_real_stride + col]));
+        *reinterpret_cast<uint32_t*>(&column_img[row]) =
+          atomic_load_global_32(reinterpret_cast<uint32_t*>(&result_img[row * result_img_stride + col]));
 #else
         column_real[row] = result_real[row * result_real_stride + col];
         column_img[row] = result_img[row * result_img_stride + col];
