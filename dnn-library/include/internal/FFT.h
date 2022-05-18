@@ -464,7 +464,7 @@ INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
   size_t first = minionId & ~(range - 1);
   size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
   size_t endLocal = firstLocal + range;
-  size_t flb = firstLocal >> log2(range);
+  size_t flb = first >> log2(range);
 
   // et_printf("barrier: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
 
@@ -481,9 +481,8 @@ INLINE_ATTR void barrier(size_t range, [[maybe_unused]] size_t step) {
   }
 #endif
 }
-
-void sendCredit(size_t destMinionId) {
 #ifndef FFT_HOST_TEST
+void sendCredit(size_t destMinionId) {
   constexpr size_t fcc = 0;
   constexpr size_t thread = 0;
   size_t destShireId = destMinionId >> log2(SOC_MINIONS_PER_SHIRE);
@@ -492,19 +491,17 @@ void sendCredit(size_t destMinionId) {
   // et_printf("sendCredit: srcMId=%d dstMId=%d dstSId=%d dstLMId=%d\n", get_minion_id(), destMinionId, destShireId,
   // destLocalMinionId);
   fcc_send(destShireId, thread, fcc, mask);
-#endif
 }
 
 void consumeCredit() {
-#ifndef FFT_HOST_TEST
   constexpr size_t fcc = 0;
   // size_t minionId = get_minion_id();
   // size_t shireId = minionId >> log2(SOC_MINIONS_PER_SHIRE);
   // size_t localMinionId = minionId & (SOC_MINIONS_PER_SHIRE - 1);
   // et_printf("consumeCredit: mId=%d SId=%d LMId=%d\n", minionId, shireId, localMinionId);
   fcc_consume(fcc);
-#endif
 }
+#endif
 
 INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t minionOffset, size_t minionId, Stack& stack,
                                               float* base_twiddle_real, float* base_twiddle_img,
@@ -567,7 +564,9 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t mini
 
   for (size_t index = 1; index <= workBranchBits; index++) {
     if ((minionId & minionStep) == 0) {
+#ifndef FFT_HOST_TEST
       consumeCredit();
+#endif
       float* even_real = tmp_real;
       float* even_img = tmp_img;
       float* odd_real = Stack::offset(tmp_real, minionStep);
@@ -597,14 +596,15 @@ INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t mini
                      CACHE_LINE_BYTES, 0);
 #endif
     } else {
-      sendCredit(minionId & ~((1 << index) - 1));
+#ifndef FFT_HOST_TEST
+      size_t destMinion = get_minion_id() & ~((1 << index) - 1);
+      sendCredit(destMinion);
+#endif      
       break;
     }
     minionStep <<= 1;
     size <<= 1;
   }
-
-  barrier(1 << workBranchBits, 1);
 
   stack.restore(saved);
 }
@@ -645,7 +645,6 @@ INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_str
   // Precompute twiddle vector for horizontal FFT
   float* horiz_base_twiddle_real = stack.push<float>(width);
   float* horiz_base_twiddle_img = stack.push<float>(width);
-
   if (width >= 16)
     twiddle_vector_big(width, horiz_base_twiddle_real, horiz_base_twiddle_img);
   else
@@ -746,10 +745,10 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
                                    horiz_base_twiddle_img, fft16_twiddle_real, fft16_twiddle_img,
                                    real + row * real_stride, img + row * img_stride, 0, 1, width,
                                    result_real + row * result_real_stride, result_img + row * result_img_stride);
+      barrier(numMinions, 1);  
     }
   }
 
-  barrier(numMinions, 1);
 
   if constexpr (pass2) {
     // Storage for one column of input
@@ -798,10 +797,9 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
 #endif
         }
       }
+      barrier(numMinions, 1);
     }
   }
-
-  barrier(numMinions, 1);  
 
   stack.restore(saved);
 }
