@@ -1,12 +1,14 @@
 include:
   - project: software/gitlab-ci-common
-    ref: c099f62aa1b24a883d5e6c5c6ce837370026a9c4
+    ref: 63d36bead3e7d23e58cffc81487d7e317895cc76
     file:
       - /rules/generic-workflow.yaml
       - /jobs/generic-k8s-job.yaml
       - /pods/nano-pod.yaml
       - /pods/medium-pod.yaml
       - /rules/exec_maybe_interactively.yaml
+      - /jobs/check-top-of-master.yaml
+      - /jobs/sw-platform-trigger.yaml
   - project: 'software/gitlab-ci-common'
     ref: master
     file:
@@ -21,6 +23,11 @@ stages:
 
 default:
   interruptible: true
+
+variables:
+  # These two variables are consumed by the jobs from /jobs/sw-platform-trigger.yaml
+  SW_PLATFORM_BRANCH: develop/ml-compiler
+  PIPELINE_CI_SUBPROJECT: dnnLibrary
 
 ###############################################################################
 ###############################################################################
@@ -80,15 +87,9 @@ build:conan:
 ###############################################################################
 
 # integration testing with sw-platform
-dnnlib-ci-pipeline:
-  stage: test
-  variables: 
-    PIPELINE_CI_SUBPROJECT: 'dnnLibrary'
-    SUBMODULE_BRANCH: ${CI_COMMIT_REF_NAME}
-  trigger:
-    project: software/sw-platform
-    branch: develop/ml-compiler
-    strategy: depend
+#
+# This is automatically done thanks to this included file:
+#   /jobs/sw-platform-trigger.yaml
 
 ###############################################################################
 ###############################################################################
@@ -103,7 +104,7 @@ on_success:promote:
   needs:
     - generate_build:conan
     - build:conan
-    - dnnlib-ci-pipeline
+    - meta-trigger
   variables:
     PYTHONIOENCODING: utf-8
     CMD_BUILD: |
