@@ -25,6 +25,15 @@
 
 namespace dnn_lib {
 
+// Enum with list of known members
+#define SCALAR_MB_DEF(NAME, TYPE) mb##NAME,
+#define VECTOR_MB_DEF(NAME, TYPE) mb##NAME,
+enum class instrMembers {
+  mbInvalid = 0,
+#include "LibApiMembers.def"
+  mbMaxMembers
+};
+
 // Instruction properties. This is the internal implementation. This needs to match
 // dnn_lib::libManager.py automatically generated initialization.
 struct InstrConfigInt {
@@ -243,20 +252,20 @@ size_t getImplementation(const std::string& operatorName, const std::vector<Tens
 
 std::string getMemberName(InstrMembers mb) {
 // clang-format off
-#define SCALAR_MB_DEF(NAME, TYPE, GETTER) \
-  case instrMembers::mb##NAME:            \
-    ret = #NAME;                          \
+#define SCALAR_MB_DEF(NAME, TYPE) \
+  case instrMembers::mb##NAME:    \
+    ret = #NAME;                  \
     break;
-#define VECTOR_MB_DEF(NAME, TYPE, GETTER) \
-  case instrMembers::mb##NAME:            \
-    ret = #NAME;                          \
+#define VECTOR_MB_DEF(NAME, TYPE) \
+  case instrMembers::mb##NAME:    \
+    ret = #NAME;                  \
     break;
   // clang-format on
 
   std::string ret = "";
   auto mbInt = (instrMembers)mb;
   switch (mbInt) {
-#include "dnnLibraryApi/LibApiMembers.def"
+#include "LibApiMembers.def"
 
   default:
     assert(false && "invalid member");
@@ -266,20 +275,20 @@ std::string getMemberName(InstrMembers mb) {
 
 std::string getMemberType(InstrMembers mb) {
 // clang-format off
-#define SCALAR_MB_DEF(NAME, TYPE, GETTER) \
-  case instrMembers::mb##NAME:            \
-    ret = #TYPE;                          \
+#define SCALAR_MB_DEF(NAME, TYPE) \
+  case instrMembers::mb##NAME:    \
+    ret = #TYPE;                  \
     break;
-#define VECTOR_MB_DEF(NAME, TYPE, GETTER) \
-  case instrMembers::mb##NAME:            \
-    ret = #TYPE;                          \
+#define VECTOR_MB_DEF(NAME, TYPE) \
+  case instrMembers::mb##NAME:    \
+    ret = #TYPE;                  \
     break;
   // clang-format on
 
   std::string ret = "";
   auto mbInt = (instrMembers)mb;
   switch (mbInt) {
-#include "dnnLibraryApi/LibApiMembers.def"
+#include "LibApiMembers.def"
 
   default:
     assert(false && "invalid member");
@@ -289,20 +298,20 @@ std::string getMemberType(InstrMembers mb) {
 
 bool getMemberScalar(InstrMembers mb) {
 // clang-format off
-#define SCALAR_MB_DEF(NAME, TYPE, GETTER) \
-  case instrMembers::mb##NAME:            \
-    ret = true;                          \
+#define SCALAR_MB_DEF(NAME, TYPE) \
+  case instrMembers::mb##NAME:    \
+    ret = true;                   \
     break;
-#define VECTOR_MB_DEF(NAME, TYPE, GETTER) \
-  case instrMembers::mb##NAME:            \
-    ret = false;                          \
+#define VECTOR_MB_DEF(NAME, TYPE) \
+  case instrMembers::mb##NAME:    \
+    ret = false;                  \
     break;
   // clang-format on
 
   bool ret = false;
   auto mbInt = (instrMembers)mb;
   switch (mbInt) {
-#include "dnnLibraryApi/LibApiMembers.def"
+#include "LibApiMembers.def"
 
   default:
     assert(false && "invalid member");

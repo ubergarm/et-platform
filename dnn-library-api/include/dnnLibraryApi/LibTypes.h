@@ -54,39 +54,7 @@ enum ElemKind {
   BoolTy,        // Bool type (bool)
 };
 
-// Enum with list of known members
-#define SCALAR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
-#define VECTOR_MB_DEF(NAME, TYPE, GETTER) mb##NAME,
-enum class InstrMembers {
-  mbInvalid = 0,
-#include "LibApiMembers.def"
-  mbMaxMembers
-};
-
-using instrMembers = InstrMembers;
-
-// Type and name maps
-template <dnn_lib::instrMembers mb> struct memberMap;
-
-// clang-format off
-#define SCALAR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
-  template <> struct memberMap<dnn_lib::instrMembers::mb##NAME> {                                                                    \
-    using type = TYPE;                                                                                                 \
-    static const std::string name() {                                                                                  \
-      return #NAME;                                                                                                    \
-    }                                                                                                                  \
-  };
-
-#define VECTOR_MB_DEF(NAME, TYPE, GETTER)                                                                              \
-  template <> struct memberMap<dnn_lib::instrMembers::mb##NAME> {                                                                    \
-    using type = std::vector<TYPE>;                                                                                    \
-    static const std::string name() {                                                                                  \
-      return #NAME;                                                                                                    \
-    }                                                                                                                  \
-  };
-// clang-format on
-
-#include "LibApiMembers.def"
+enum class InstrMembers;
 
 // Cache operand state after operation
 enum class operandState { dirty, clean, untouched };
