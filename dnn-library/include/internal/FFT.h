@@ -121,6 +121,22 @@ static_assert(log2(1) == 0);
 static_assert(log2(2) == 1);
 static_assert(log2(4) == 2);
 
+constexpr size_t countTrailingZeros(size_t value, size_t maxDigits) {
+  size_t result = 0;
+  size_t bit = 1;
+  while ((value & bit) == 0 and result < maxDigits) {
+    result++;
+    bit <<= 1;
+  }
+  return result;
+}
+
+static_assert(countTrailingZeros(1, 2) == 0);
+static_assert(countTrailingZeros(2, 0) == 0);
+static_assert(countTrailingZeros(2, 2) == 1);
+static_assert(countTrailingZeros(0, 2) == 2);
+static_assert(countTrailingZeros(6, 3) == 1);
+
 //  Compute 1.f / static_cast<float>(n) when n is a power of two without using divides
 INLINE_ATTR float rec(size_t n) {
   assert(isPowerOfTwo(n));
@@ -457,33 +473,6 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
   stack.restore(saved);
 }
 
-INLINE_ATTR void barrier([[maybe_unused]] size_t globalMinionOffset, size_t range, [[maybe_unused]] size_t step) {
-#ifndef FFT_HOST_TEST
-  constexpr size_t fcc = 0;
-  constexpr size_t thread = 0;
-
-  size_t minionId = get_minion_id();
-  size_t first = minionId & ~(range - 1);
-  size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
-  size_t endLocal = firstLocal + range;
-  size_t flb = first >> log2(range);
-
-  // et_printf("barrier: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
-
-  if (range > 1) {
-    if (flbarrier(flb, range - 1)) {
-      assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
-      size_t mask = 0;
-      for (size_t i = firstLocal; i < endLocal; i += step) {
-        mask = mask | (1 << i);
-      }
-      fcc_send(SHIRE_OWN, thread, fcc, mask);
-    }
-    fcc_consume(fcc);
-  }
-#endif
-}
-
 #ifndef FFT_HOST_TEST
 INLINE_ATTR void sendCredit(size_t destMinionId) {
   constexpr size_t fcc = 0;
@@ -492,7 +481,7 @@ INLINE_ATTR void sendCredit(size_t destMinionId) {
   size_t destLocalMinionId = destMinionId & (SOC_MINIONS_PER_SHIRE - 1);
   size_t mask = 1 << destLocalMinionId;
   // et_printf("sendCredit: srcMId=%d dstMId=%d dstSId=%d dstLMId=%d\n", get_minion_id(), destMinionId, destShireId,
-  // destLocalMinionId);
+  //          destLocalMinionId);
   fcc_send(static_cast<uint32_t>(destShireId), thread, fcc, mask);
 }
 
@@ -505,6 +494,73 @@ INLINE_ATTR void consumeCredit() {
   fcc_consume(fcc);
 }
 #endif
+
+INLINE_ATTR void barrier([[maybe_unused]] size_t globalMinionOffset, size_t range, [[maybe_unused]] size_t step) {
+#ifndef FFT_HOST_TEST
+  constexpr size_t fcc = 0;
+  constexpr size_t thread = 0;
+
+  size_t minionId = get_minion_id();
+  size_t clippedRange = std::min(range, static_cast<size_t>(SOC_MINIONS_PER_SHIRE));
+  size_t first = minionId & ~(clippedRange - 1);
+  size_t firstLocal = first & (SOC_MINIONS_PER_SHIRE - 1);
+  size_t log2ClippedRange = log2(clippedRange);
+  size_t endLocal = firstLocal + clippedRange;
+  size_t flb = first >> log2ClippedRange;
+  size_t log2Range = log2(range);
+
+  assert((endLocal & ~(SOC_MINIONS_PER_SHIRE - 1)) == 0);
+  assert(isPowerOfTwo(range));
+
+  if (range > 1) {
+
+    // Minion synchronization (within shire)
+    // et_printf("intra-shire: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
+    size_t mask = 0;
+    for (size_t i = firstLocal; i < endLocal; i += step) {
+      mask = mask | (1 << i);
+    }
+    if (flbarrier(flb, clippedRange - 1)) {
+      fcc_send(SHIRE_OWN, thread, fcc, mask);
+    }
+    fcc_consume(fcc);
+
+    // Shire synchronization (within ETSoC)
+    if (range >= SOC_MINIONS_PER_SHIRE) {
+      // First minion from each shire handles the ETSoC level synchronization
+      if ((minionId & (SOC_MINIONS_PER_SHIRE - 1)) == 0) {
+        // et_printf("etsoc-level: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
+        size_t treeLevels = log2Range - log2(SOC_MINIONS_PER_SHIRE);
+        size_t localShireId = (minionId - globalMinionOffset) >> log2(SOC_MINIONS_PER_SHIRE);
+        // Send credit from right to left shire, in steps of 1, 2, 4... up to 2^treeLevels
+        for (size_t index = 0; index < treeLevels; index++) {
+          size_t bit = 1 << index;
+          if ((localShireId & bit) == 0) {
+            consumeCredit();
+          } else {
+            size_t shireMask = (1 << (index + 1)) - 1;
+            size_t destShire = localShireId & ~shireMask;
+            sendCredit(destShire << log2(SOC_MINIONS_PER_SHIRE));
+            consumeCredit();
+            break;
+          }
+        }
+        // Wake up as many shires as trailing zeros in shireId
+        size_t wakeUps = countTrailingZeros(localShireId, treeLevels);
+        // et_printf("wakeups: localShireId=%d wakeUps=%d\n", localShireId, wakeUps);
+        for (int index = static_cast<int>(wakeUps) - 1; index >= 0; index--) {
+          size_t destShire = localShireId + (1 << index);
+          sendCredit(destShire << log2(SOC_MINIONS_PER_SHIRE));
+        }
+        // The first minion in shire sends a credit to all minions in the shire (including itself)
+        fcc_send(SHIRE_OWN, thread, fcc, mask);
+      }
+      // The whole shire sleeps until first minion in shire sends a credit
+      fcc_consume(fcc);
+    }
+  }
+#endif
+}
 
 INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t minionOffset, size_t minionId, Stack& stack,
                                               float* base_twiddle_real, float* base_twiddle_img,

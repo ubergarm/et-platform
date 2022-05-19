@@ -46,21 +46,28 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   size_t log2NumMinions = log2(numMinions);
 
   if constexpr (true) {
-    workRowBits = min(size_t(5), min(log2(height), log2(width)));
-    workRowBranchBits = 0;
-    workColBits = workRowBits;
-    workColBranchBits = workRowBranchBits;
-    workBatchBits = min(log2(batches), log2NumMinions - workRowBits - workRowBranchBits);
+    if (height == 256 and width == 256) {
+      workBatchBits = 0;
+      workRowBits = 8;
+      workRowBranchBits = 2;
+      workColBits = 8;
+      workColBranchBits = 2;
+    } else {
+      workRowBits = min(size_t(5), min(log2(height), log2(width)));
+      workRowBranchBits = 0;
+      workColBits = workRowBits;
+      workColBranchBits = workRowBranchBits;
+      workBatchBits = min(log2(batches), log2NumMinions - workRowBits - workRowBranchBits);
+    }
   } else {
     workBatchBits = 0;
-    workRowBits = 4;
-    workRowBranchBits = 0;
-    workColBits = 4;
-    workColBranchBits = 0;
+    workRowBits = 8;
+    workRowBranchBits = 2;
+    workColBits = 8;
+    workColBranchBits = 2;
   }
 
   assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
-  assert(workRowBits + workRowBranchBits <= 5);
 }
 
 template <bool inverse = false>
