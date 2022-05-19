@@ -39,9 +39,9 @@ template <typename T> INLINE_ATTR T min(T a, T b) {
   return (a < b) ? a : b;
 }
 
-INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]] size_t components, size_t height,
-               size_t width, size_t numMinions, size_t& workBatchBits, size_t& workRowBits, size_t& workRowBranchBits,
-               size_t& workColBits, size_t& workColBranchBits) {
+INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]] size_t components,
+                           size_t height, size_t width, size_t numMinions, size_t& workBatchBits, size_t& workRowBits,
+                           size_t& workRowBranchBits, size_t& workColBits, size_t& workColBranchBits) {
 
   size_t log2NumMinions = log2(numMinions);
 
@@ -54,9 +54,9 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   } else {
     workBatchBits = 0;
     workRowBits = 4;
-    workRowBranchBits = 1;
-    workColBits = 2;
-    workColBranchBits = 3;
+    workRowBranchBits = 0;
+    workColBits = 4;
+    workColBranchBits = 0;
   }
 
   assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
@@ -149,13 +149,13 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
       if constexpr (inverse) {
         constexpr bool pass1 = true;
         constexpr bool pass2 = true;
-        fft2d_inv_threaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset0,
-                                         minionId0, width, height, real, real_stride, img, img_stride, result_real,
-                                         result_real_stride, result_img, result_img_stride);
+        fft2d_inv_threaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset,
+                                         minionOffset0, minionId0, width, height, real, real_stride, img, img_stride,
+                                         result_real, result_real_stride, result_img, result_img_stride);
       } else {
-        fft2d_threaded(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset0, minionId0, width,
-                       height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img,
-                       result_img_stride);
+        fft2d_threaded(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset, minionOffset0,
+                       minionId0, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
+                       result_img, result_img_stride);
       }
     }
   }
