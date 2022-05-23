@@ -48,6 +48,7 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CrossEntropyLossInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CumSumInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/DequantizeInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/DenoiseMasks.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxSplatInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementBoolInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ElementImmLogic.h
@@ -57,6 +58,7 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagInst.h
 #  "${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/EmbeddingBagByteRowwiseOffsetsInst.h"
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ExtractTensorInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ETSOCGenericOpInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FlipInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FullyConnectedInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsSumInst.h

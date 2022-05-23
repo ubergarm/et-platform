@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/home/cgomez/repos/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/local/home/pmunt/sw-platform-2/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1138,6 +1138,16 @@ extern template void fwdLibTransposeInstAligned32Bytes<Int8QTy>(LibTensor* out0,
 extern template void fwdLibTransposeInstAligned32Bytes<Int64ITy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibTransposeInstAligned32Bytes<Int32ITy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibTransposeInstAligned32Bytes<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
+*  ETSOCGenericOp implementations
+****************************************************************************/
+// declarations
+template <ElemKind out0Type>
+void fwdLibETSOCGenericOpInst(LibTensor* out0, LibTensor* in0, const uint32_t GenericOperation, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibETSOCGenericOpInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint32_t GenericOperation, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // namespace dnn_lib
 
 #endif // LIB_NODES_H

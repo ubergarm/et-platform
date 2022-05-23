@@ -2,7 +2,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/home/cgomez/repos/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/local/home/pmunt/sw-platform-2/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1893,4 +1893,23 @@ template void fwdLibTransposeInstAligned32Bytes<Int8QTy>(LibTensor* out0, LibTen
 template void fwdLibTransposeInstAligned32Bytes<Int64ITy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibTransposeInstAligned32Bytes<Int32ITy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibTransposeInstAligned32Bytes<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+  // 
+  // Section: ETSOCGenericOp
+  //
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type>
+  void fwdLibETSOCGenericOpInst(LibTensor* out0, LibTensor* in0, const uint32_t GenericOperation, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibETSOCGenericOpInst<out0Type>(out0, in0, GenericOperation, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibETSOCGenericOpInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint32_t GenericOperation, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 } // dnn_lib 

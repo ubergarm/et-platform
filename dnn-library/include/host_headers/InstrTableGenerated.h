@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/home/cgomez/repos/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/local/home/pmunt/sw-platform-2/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1422,6 +1422,25 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
         {operandState::untouched, operandState::untouched}}},
     {0x0, 0x0}, // evict available mask
     {0x0, 0x0}  // global store mask
+  },
+
+  // ET_etsocgenericop
+  {
+    "ETSOCGenericOp", // name
+    1, // # outs
+    1,  // # ins
+    {instrMembers::mbGenericOperation}, // members
+    1, // template param mask
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::untouched}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::untouched}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   } 
 }; 
 #endif // INSTR_TABLE_GENERATED_H
