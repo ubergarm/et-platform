@@ -17,7 +17,8 @@
 
 #define INLINE_ATTR __attribute__((always_inline)) inline
 
-#define CACHE_LINE_BYTES 64
+#define LOG2_CACHE_LINE_BYTES 6
+#define CACHE_LINE_BYTES (1 << LOG2_CACHE_LINE_BYTES)
 
 #define VLEN 256
 #define VREG_BYTES (VLEN / 8)
