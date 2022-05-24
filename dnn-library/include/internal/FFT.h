@@ -322,7 +322,7 @@ INLINE_ATTR void vector_fft16_round(const float* twiddle_real, const float* twid
     : "memory");
 }
 
-INLINE_ATTR void vector_fft16_slice(float* real, float* img, int32_t start, int32_t step, size_t size,
+INLINE_ATTR void vector_fft16_slice(float* real, float* img, int32_t start, int32_t step, [[maybe_unused]] size_t size,
                                     const float* twiddle_real, const float* twiddle_img, float res_real[16],
                                     float res_img[16]) {
   assert(size == 16);
@@ -390,7 +390,7 @@ INLINE_ATTR void fft16_round(const float* twiddle_real, const float* twiddle_img
   }
 }
 
-INLINE_ATTR void fft16_slice(float* real, float* img, int32_t start, int32_t step, size_t size,
+INLINE_ATTR void fft16_slice(float* real, float* img, int32_t start, int32_t step, [[maybe_unused]] size_t size,
                              const float* twiddle_real, const float* twiddle_img, float res_real[16],
                              float res_img[16]) {
 
@@ -582,11 +582,11 @@ INLINE_ATTR void barrier([[maybe_unused]] size_t globalMinionOffset, size_t rang
 #endif
 }
 
-INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, size_t minionOffset, size_t minionId, Stack& stack,
-                                              float* base_twiddle_real, float* base_twiddle_img,
-                                              const float* fft16_twiddle_real, const float* fft16_twiddle_img,
-                                              float* real, float* img, size_t start, size_t step, size_t size,
-                                              float* result_real, float* result_img) {
+INLINE_ATTR void fft_threaded_with_precompute(size_t workBranchBits, [[maybe_unused]] size_t minionOffset,
+                                              size_t minionId, Stack& stack, float* base_twiddle_real,
+                                              float* base_twiddle_img, const float* fft16_twiddle_real,
+                                              const float* fft16_twiddle_img, float* real, float* img, size_t start,
+                                              size_t step, size_t size, float* result_real, float* result_img) {
   auto saved = stack.current();
 
   // Set start, step, size and twiddle_step for minionId

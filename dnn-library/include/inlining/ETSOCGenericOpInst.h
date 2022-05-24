@@ -75,7 +75,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
                      size_t numMinions, size_t minionId) {
 
   const dim_t* srcDims = inT->dims().data();
-  const dim_t* dstDims = outT->dims().data();
+  [[maybe_unused]] const dim_t* dstDims = outT->dims().data();
   const dim_t* srcStrides = inT->strides().data();
   const dim_t* dstStrides = outT->strides().data();
 
