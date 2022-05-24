@@ -22,15 +22,6 @@
 
 namespace dnn_lib {
 
-// Prototypes
-
-INLINE_ATTR void fft_inv(size_t size, float* real, float* img, float* result_real, float* result_img);
-
-INLINE_ATTR void fft2d_inv(size_t width, size_t height, float* real, size_t real_stride, float* img, size_t img_stride,
-                           float* result_real, size_t result_real_stride, float* result_img, size_t result_img_stride);
-
-// Implementation
-
 class Stack {
 private:
   using EType = uint32_t;
@@ -431,11 +422,6 @@ INLINE_ATTR void reduce(const float* base_twiddle_real, const float* base_twiddl
     twiddle_index += twiddle_step;
   }
 }
-
-static void fft_with_precompute(Stack& stack, const float* base_twiddle_real, const float* base_twiddle_img,
-                                size_t twiddle_step, const float* fft16_twiddle_real, const float* fft16_twiddle_img,
-                                float* real, float* img, size_t start, size_t step, size_t size, float* result_real,
-                                float* result_img);
 
 static void fft_with_precompute(Stack& stack, const float* base_twiddle_real, const float* base_twiddle_img,
                                 size_t twiddle_step, const float* fft16_twiddle_real, const float* fft16_twiddle_img,
@@ -1085,6 +1071,7 @@ void test3() {
 }
 
 void test4() {
+
   std::cout << "\n>>>> Test 4\n";
 
   size_t size = 32;
