@@ -181,24 +181,30 @@ INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t
   (void)minionOffset;
   (void)numMinions;
 
-  et_assert(inT->dims()[0] == 2);
+  auto images = inT->dims()[0];
+  auto channels = inT->dims()[1];
+  auto planes = inT->dims()[2];
+  auto height = inT->dims()[3];
+  auto width = inT->dims()[4];
 
-  auto w = inT->dims()[1];
-  auto h = inT->dims()[2];
   auto inH = inT->getHandle<float>();
   auto outH = outT->getHandle<float>();
   // elementwise product of real and imaginary planes with the mask.
   // it is just  a PoC. it can probably be just fused with fft.
   // (Evey real or imaginary output emited or not based on mask
   // also SIMD mask's can be used ot skip when fft is vectorized.
-  for (dim_t n = 0; n < w; n++) {
-    for (dim_t m = 0; m < h; m++) {
-      std::array<dim_t, 3> posReal = {0, m, n};
-      std::array<dim_t, 3> posImg = {1, m, n};
-      auto mask = denoiseMask[m * w + n];
 
-      outH.at(posReal) = inH.at(posReal) * mask;
-      outH.at(posImg) = inH.at(posImg) * mask;
+  for (size_t image = 0; image < images; image++) {
+    for (size_t channel = 0; channel < channels; channel++) {
+      for (size_t plane = 0; plane < planes; plane++) {
+        for (size_t i = 0; i < height; i++) {
+          for (size_t j = 0; j < width; j++) {
+            std::array<dim_t, 5> pos = {image, channel, plane, i, j};
+            auto mask = denoiseMask[i * width + j];
+            outH.at(pos) = inH.at(pos) * mask;
+          }
+        }
+      }
     }
   }
 }
