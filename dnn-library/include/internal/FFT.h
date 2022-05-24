@@ -438,13 +438,15 @@ INLINE_ATTR void reduce(float* base_twiddle_real, float* base_twiddle_img, size_
   }
 }
 
-void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
-                         const float* fft16_twiddle_real, const float* fft16_twiddle_img, float* real, float* img,
-                         size_t start, size_t step, size_t size, float* result_real, float* result_img);
+static void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
+                                const float* fft16_twiddle_real, const float* fft16_twiddle_img, float* real,
+                                float* img, size_t start, size_t step, size_t size, float* result_real,
+                                float* result_img);
 
-void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
-                         const float* fft16_twiddle_real, const float* fft16_twiddle_img, float* real, float* img,
-                         size_t start, size_t step, size_t size, float* result_real, float* result_img) {
+static void fft_with_precompute(Stack& stack, float* base_twiddle_real, float* base_twiddle_img, size_t twiddle_step,
+                                const float* fft16_twiddle_real, const float* fft16_twiddle_img, float* real,
+                                float* img, size_t start, size_t step, size_t size, float* result_real,
+                                float* result_img) {
   if (size == 16) {
 #ifndef FFT_HOST_TEST
     vector_fft16_slice(real, img, static_cast<int32_t>(start), static_cast<int32_t>(step), size, fft16_twiddle_real,
