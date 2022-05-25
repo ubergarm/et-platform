@@ -20,6 +20,12 @@
 #define likely(expr) __builtin_expect(!!(expr), 1)
 #endif
 
+namespace {
+
+constexpr size_t kImageDefaultFFTSize = 256;
+
+}
+
 namespace dnn_lib {
 
 class Stack {
@@ -201,19 +207,22 @@ INLINE_ATTR void twiddle_vector_big(size_t n, float real[], float img[]) {
 
 INLINE_ATTR void twiddle_vector(Stack& stack, size_t n, float*& real, float*& img) {
 
-  if (likely(n == 256)) {
+  assert(isPowerOfTwo(n));
+
+  if (likely(n == kImageDefaultFFTSize)) {
     real = const_cast<float*>(tReal);
     img = const_cast<float*>(tImg);
-  } else if (n > 256) {
+  } else if (n > kImageDefaultFFTSize) {
     real = stack.push<float>(n);
     img = stack.push<float>(n);
     twiddle_vector_big(n, real, img);
-  } else { // (n < 256)
+  } else { // (n < kImageDefaultFFTSize)
+    size_t n2nbits2 = log2(n);
     real = stack.push<float>(n);
     img = stack.push<float>(n);
     for (size_t i = 0; i < n; i++) {
-      real[i] = (tReal[(256 / n) * i]);
-      img[i] = (tImg[(256 / n) * i]);
+      real[i] = (tReal[(kImageDefaultFFTSize >> n2nbits2) * i]);
+      img[i] = (tImg[(kImageDefaultFFTSize >> n2nbits2) * i]);
     }
   }
 }
