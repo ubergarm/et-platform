@@ -43,23 +43,43 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
                            size_t height, size_t width, size_t numMinions, size_t& workBatchBits, size_t& workRowBits,
                            size_t& workRowBranchBits, size_t& workColBits, size_t& workColBranchBits) {
 
-  size_t log2NumMinions = log2(numMinions);
+  // About to assign all the bits
+  size_t availableBits = log2(numMinions);
 
-  if constexpr (true) {
-    if (height == 256 and width == 256) {
-      workBatchBits = 0;
-      workRowBits = 8;
-      workRowBranchBits = 2;
-      workColBits = 8;
-      workColBranchBits = 2;
-    } else {
-      workRowBits = min(size_t(5), min(log2(height), log2(width)));
-      workRowBranchBits = 0;
-      workColBits = workRowBits;
-      workColBranchBits = workRowBranchBits;
-      workBatchBits = min(log2(batches), log2NumMinions - workRowBits - workRowBranchBits);
-    }
+  // Assign as many bits as possible in the batch element dimension
+  workBatchBits = min(log2(batches), availableBits);
+  availableBits -= workBatchBits;
+
+  if (height >= width) {
+    // Assign as many bits as possible in the rows dimension
+    workRowBits = min(log2(height), availableBits);
+    availableBits -= workRowBits;
+
+    // Assign the remaiming bits on the row branches dimension
+    workRowBranchBits = min(log2(width), availableBits);
+
+    // Assign as many minion bits for the columns dimension as
+    // done for the rows dimension. If the columns dimension is
+    // not as big then do tiling also on branches.
+    workColBits = min(log2(width), workRowBits);
+    workColBranchBits = workRowBits + workRowBranchBits - workColBits;
   } else {
+    // Assign as many bits as possible in the rows dimension
+    workColBits = min(log2(width), availableBits);
+    availableBits -= workColBits;
+
+    // Assign the remaiming bits on the row branches dimension
+    workColBranchBits = min(log2(height), availableBits);
+
+    // Assign as many minion bits for the columns dimension as
+    // done for the rows dimension. If the columns dimension is
+    // not as big then do tiling also on branches.
+    workRowBits = min(log2(height), workColBits);
+    workRowBranchBits = workColBits + workColBranchBits - workRowBits;
+  }
+
+  // Overriding tiling?
+  if constexpr (false) {
     workBatchBits = 0;
     workRowBits = 8;
     workRowBranchBits = 2;
@@ -68,6 +88,7 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   }
 
   assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
+  assert(workBatchBits + workRowBits + workRowBranchBits <= log2(numMinions));
 }
 
 template <bool inverse = false>
