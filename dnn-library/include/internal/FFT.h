@@ -815,8 +815,8 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
   assert(result_real_stride == result_img_stride);
 
   // Precompute twiddle vector for horizontal FFT
-  float* horiz_base_twiddle_real = nullptr; // stack.push<float>(width);
-  float* horiz_base_twiddle_img = nullptr;  // stack.push<float>(width);
+  float* horiz_base_twiddle_real = nullptr;
+  float* horiz_base_twiddle_img = nullptr;
 
   twiddle_vector(stack, width, horiz_base_twiddle_real, horiz_base_twiddle_img);
 
@@ -949,7 +949,7 @@ INLINE_ATTR void fft2d_inv_threaded([[maybe_unused]] size_t workRowBits, [[maybe
 
 // Build and run a test on the host as:
 //
-//   cp FFT.h /tmp/fft.cpp && g++ -DFFT_HOST_TEST=1 /tmp/fft.cpp -g && ./a.out
+//   cp FFT.h /tmp/fft.cpp && g++ -DFFT_HOST_TEST=1 /tmp/fft.cpp -I . -std=c++17 -g && ./a.out
 
 #include <iostream>
 
