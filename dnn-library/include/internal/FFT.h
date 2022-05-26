@@ -532,8 +532,8 @@ INLINE_ATTR void fft(size_t size, float* real, float* img, float* result_real, f
 }
 
 #ifndef FFT_HOST_TEST
-INLINE_ATTR void sendCredit(size_t destMinionId) {
-  constexpr size_t fcc = 0;
+template <size_t fcc = 0> INLINE_ATTR void sendCredit(size_t destMinionId) {
+
   constexpr size_t thread = 0;
   size_t destShireId = destMinionId >> log2(SOC_MINIONS_PER_SHIRE);
   size_t destLocalMinionId = destMinionId & (SOC_MINIONS_PER_SHIRE - 1);
@@ -543,8 +543,7 @@ INLINE_ATTR void sendCredit(size_t destMinionId) {
   fcc_send(static_cast<uint32_t>(destShireId), thread, fcc, mask);
 }
 
-INLINE_ATTR void consumeCredit() {
-  constexpr size_t fcc = 0;
+template <size_t fcc = 0> INLINE_ATTR void consumeCredit() {
   // size_t minionId = get_minion_id();
   // size_t shireId = minionId >> log2(SOC_MINIONS_PER_SHIRE);
   // size_t localMinionId = minionId & (SOC_MINIONS_PER_SHIRE - 1);
@@ -685,7 +684,9 @@ INLINE_ATTR void fft_rev_threaded_with_precompute(size_t workBranchBits, [[maybe
   for (size_t index = 1; index <= workBranchBits; index++) {
     if ((minionId & minionStep) == 0) {
 #ifndef FFT_HOST_TEST
-      consumeCredit();
+      size_t destMinion = (get_minion_id() & ~((1 << index) - 1)) + minionStep;
+      sendCredit<0>(destMinion);
+      consumeCredit<1>();
 #endif
       float* even_real = tmp_real;
       float* even_img = tmp_img;
@@ -717,8 +718,9 @@ INLINE_ATTR void fft_rev_threaded_with_precompute(size_t workBranchBits, [[maybe
 #endif
     } else {
 #ifndef FFT_HOST_TEST
+      consumeCredit<0>();
       size_t destMinion = get_minion_id() & ~((1 << index) - 1);
-      sendCredit(destMinion);
+      sendCredit<1>(destMinion);
 #endif
       break;
     }
