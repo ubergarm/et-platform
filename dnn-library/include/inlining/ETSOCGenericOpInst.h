@@ -30,10 +30,11 @@ enum class Operation {
   FFT = 0,
   IFFT,
   NOISE_FILTER_1,
+  FFT_FILTER_FUSED,
   COUNT,
 };
 
-static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1"};
+static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1", "FFT_FILTER_FUSED"};
 
 template <typename T> INLINE_ATTR T min(T a, T b) {
   return (a < b) ? a : b;
@@ -91,7 +92,7 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   assert(workBatchBits + workRowBits + workRowBranchBits <= log2(numMinions));
 }
 
-template <bool inverse = false>
+template <bool inverse = false, bool freqDomainFilterFusion = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset,
                      size_t numMinions, size_t minionId) {
 
@@ -174,16 +175,16 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
       float* result_img = result_real + dstStrides[2];
       size_t result_img_stride = dstStrides[3];
 
+      constexpr bool pass1 = true;
+      constexpr bool pass2 = true;
       if constexpr (inverse) {
-        constexpr bool pass1 = true;
-        constexpr bool pass2 = true;
         fft2d_inv_threaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset,
                                          minionOffset0, minionId0, width, height, real, real_stride, img, img_stride,
                                          result_real, result_real_stride, result_img, result_img_stride);
       } else {
-        fft2d_threaded(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset, minionOffset0,
-                       minionId0, width, height, real, real_stride, img, img_stride, result_real, result_real_stride,
-                       result_img, result_img_stride);
+        fft2d_threaded<pass1, pass2, false, freqDomainFilterFusion>(
+          workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset, minionOffset0, minionId0, width,
+          height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img, result_img_stride);
       }
     }
   }
@@ -249,6 +250,8 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
   switch (Operation(op)) {
   case Operation::FFT:
     return fft<false>(outT, inT, flags, minionOffset, numMinions, minionId);
+  case Operation::FFT_FILTER_FUSED:
+    return fft<false, true>(outT, inT, flags, minionOffset, numMinions, minionId);
   case Operation::IFFT:
     return fft<true>(outT, inT, flags, minionOffset, numMinions, minionId);
   case Operation::NOISE_FILTER_1:
