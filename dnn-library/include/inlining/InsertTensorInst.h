@@ -187,7 +187,6 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   /* maintain compatibility through the new Iface Libtensor */
   auto dst = outT->getRawDataPointer<void>();
   auto src = inT->getRawDataPointer<void>();
-  const dim_t *dstPitch = outT->strides().data();
 
   dim_t dstDimNum = outT->ndims();
   auto typeSize = static_cast<int32_t>(getsize<srcType>());
@@ -196,8 +195,15 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
 
   const dim_t *dstIndex = outT->dims().data();
+  const dim_t* dstPitch = outT->strides().data();
   const dim_t *actIndex = inT->dims().data();
   const dim_t *actPitch = inT->strides().data();
+
+  // Compute virtual pitches of the input, as if it had no padding.
+  // This is a trick to avoid bug [SW-11828] when some pitch has been set to 0
+  // to make use of the broadcast property.
+  dim_array_t actStridesNoPadding = inT->stridesNoPadding();
+  const dim_t* actNonPaddingPitch = actStridesNoPadding.data();
 
   // We compute the offset address: offset in the output tensor where first copy/slice starts (counting is in elements)
   size_t offsetNum = coord[0] * dstPitch[0];
@@ -220,10 +226,10 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
                               7 * typeSize};
 
   // Taking the number of elements in the input last dimension (contiguous elements), we compute how many lanes will be
-  // used and the reminder elements when performing a copy of this last dimension chunk size
+  // used and the remainder elements when performing a copy of this last dimension chunk size
   std::pair<int, int> lanes = getLanesResFromNElements<srcType>(static_cast<uint32_t>(actIndex[lastDim]));
 
-  // Setup masks m1 and m2 to enable lanes and remining elements to be processed per last dim chunk operation
+  // Setup masks m1 and m2 to enable lanes and remaining elements to be processed per last dim chunk operation
   uint32_t mask = (1 << (((lanes.first - 1) % 8) + 1)) - 1;
   __asm__ __volatile__ ("mov.m.x m1, %[mask], 0x0 \n"
                         :
@@ -232,12 +238,12 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
   __asm__ __volatile__("mov.m.x m2, %[mask], 0x0 \n" : : [ mask ] "r"(mask));
 
   if (axis != lastDim) {
-    // Compute number or rows taking into account the count parameter
+    // Compute number of rows taking into account the count parameter
     size_t auxNRows = count * actIndex[0];
-    for (dim_t i = 1; i < lastDim; i++) {
-      auxNRows *= actIndex[i];
+    if (lastDim > 1) {
+      auxNRows *= actNonPaddingPitch[0] / actNonPaddingPitch[dimRow];
     }
-    // Compute rows per minion and reminder to distribute among the first assigned minions
+    // Compute rows per minion and remainder to distribute among the first assigned minions
     size_t mRows = auxNRows / activeMinions;
     size_t mod = auxNRows - activeMinions * mRows;
     if (minionId < mod) {
@@ -255,7 +261,7 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
     // jump according to the count index (counting is in elements)
     offsetNum += jump * aux;
     // offset in the input (counting in elements): (total output offset - count times rows per count) times stride
-    size_t initialAddrIn = ((mod + mRows * minionId) - aux * auxNRows) * actPitch[dimRow];
+    size_t initialAddrIn = ((mod + mRows * minionId) - aux * auxNRows) * actNonPaddingPitch[dimRow];
     // output start offset (counting is in elements)
     size_t initialAddr = offsetNum;
 
@@ -263,7 +269,7 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
     dim_t k;
     dim_array_t offsetIn = {0};
     dim_array_t offsetOut = {0};
-    getNonPaddingCoordinates(offsetIn, initialAddrIn, dstDimNum, actPitch, actIndex, k);
+    getCoordinates(offsetIn, initialAddrIn, dstDimNum, actNonPaddingPitch);
     getNonPaddingCoordinates(offsetOut, initialAddr, dstDimNum, dstPitch, dstIndex, k);
 
     // translate offsets from elements to elements with padding
@@ -303,20 +309,20 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
     // efficient
     // Compute number or rows *not* taking into account the count parameter
     dim_t auxNRows = actIndex[0];
-    for (dim_t i = 1; i < lastDim; i++) {
-      auxNRows *= actIndex[i];
+    if (lastDim > 1) {
+      auxNRows *= actNonPaddingPitch[0] / actNonPaddingPitch[dimRow];
     }
 
-    // Compute rows per minion and reminder to distribute among the first assigned minions
+    // Compute rows per minion and remainder to distribute among the first assigned minions
     dim_t mRows = auxNRows / activeMinions;
     dim_t mod = auxNRows - activeMinions * mRows;
     size_t initialAddrIn;
     // offset in the input (counting in elements):
     if (minionId < mod) {
       ++mRows;
-      initialAddrIn = mRows * actPitch[dimRow] * minionId;
+      initialAddrIn = mRows * actNonPaddingPitch[dimRow] * minionId;
     } else {
-      initialAddrIn = (mod + minionId * mRows) * actPitch[dimRow];
+      initialAddrIn = (mod + minionId * mRows) * actNonPaddingPitch[dimRow];
     }
     if (unlikely(mRows == 0)) {
       return; // No work to do
@@ -326,7 +332,7 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
     dim_t k;
     dim_array_t offsetIn = {0};
     dim_array_t offsetOut = {0};
-    getNonPaddingCoordinates(offsetIn, initialAddrIn, dstDimNum, actPitch, actIndex, k);
+    getCoordinates(offsetIn, initialAddrIn, dstDimNum, actNonPaddingPitch);
     getNonPaddingCoordinates(offsetOut, offsetNum, dstDimNum, dstPitch, dstIndex, k);
 
     // translate offsets from elements to elements with padding
