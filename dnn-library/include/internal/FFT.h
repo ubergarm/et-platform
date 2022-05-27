@@ -805,7 +805,7 @@ INLINE_ATTR void fft2d(size_t width, size_t height, float* real, size_t real_str
   stack.restore(saved);
 }
 
-template <bool pass1 = true, bool pass2 = true, bool inverse = false>
+template <bool pass1 = true, bool pass2 = true, bool inverse = false, bool freqDomainFilterFusion = false>
 INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, size_t workColBits,
                                 size_t workColBranchBits, size_t globalMinionOffset, size_t minionOffset,
                                 size_t minionId, size_t width, size_t height, float* real, size_t real_stride,
@@ -911,10 +911,17 @@ INLINE_ATTR void fft2d_threaded(size_t workRowBits, size_t workRowBranchBits, si
             img_value *= minus_reciprocal;
           }
 #ifndef FFT_HOST_TEST
-          uint32_t value = *reinterpret_cast<uint32_t*>(&real_value);
-          atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_real[row * result_real_stride + col]), value);
-          value = *reinterpret_cast<uint32_t*>(&img_value);
-          atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_img[row * result_img_stride + col]), value);
+          uint32_t valueReal = *reinterpret_cast<uint32_t*>(&real_value);
+          uint32_t valueImg = *reinterpret_cast<uint32_t*>(&img_value);
+
+          if constexpr (!inverse and freqDomainFilterFusion) {
+            // Fusing freqDomain filter if requested
+            auto mask = dnn_lib::inlining::denoiseMask[row * width + col];
+            valueReal *= mask;
+            valueImg *= mask;
+          }
+          atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_real[row * result_real_stride + col]), valueReal);
+          atomic_store_global_32(reinterpret_cast<uint32_t*>(&result_img[row * result_img_stride + col]), valueImg);
 #else
           result_real[row * result_real_stride + col] = real_value;
           result_img[row * result_img_stride + col] = img_value;
