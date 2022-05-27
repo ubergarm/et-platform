@@ -91,6 +91,9 @@ template <> constexpr std::size_t getsize<bfloat16>() {
  * the offset corresponds to a padding position, the returned coordinates will
  * point this padding position in the matrix (outside the dimensions).
  *
+ * @warning The function cannot be used with broadcast tensors (which have some
+ * pitch equal to 0).
+ *
  * @param[out] coord Vector that will be filled with the coordinates of the
  *  offset in the tensor.
  * @param[in] offset Unsigned integer referring to a position in a tensor.
@@ -105,6 +108,7 @@ void getCoordinates(unsigned int *coord, unsigned int offset,
                     unsigned int dimNum, const T *pitch) {
   unsigned int rm = offset;
   for (unsigned int i = 0; i < dimNum; i++) {
+    assert((pitch[i] != 0) and "Broadcast pitch 0 not supported");
     coord[i] = rm / pitch[i];
     rm = rm - coord[i] * pitch[i];
   }
@@ -116,6 +120,7 @@ inline __attribute__((always_inline)) void getCoordinates(dim_array_t& coord, si
                                                           const T* pitch) {
   auto rm = offset;
   for (dim_t i = 0; i < dimNum; i++) {
+    assert((pitch[i] != 0) and "Broadcast pitch 0 not supported");
     coord[i] = rm / pitch[i];
     rm = rm - coord[i] * pitch[i];
   }
@@ -127,6 +132,9 @@ inline __attribute__((always_inline)) void getCoordinates(dim_array_t& coord, si
  * This function takes into account the padding that the tensor might have, and if
  * the offset corresponds to a padding position, the returned coordinates will
  * point the next position in the tensor that doesn't correspond to padding.
+ *
+ * @warning The function cannot be used with broadcast tensors (which have some
+ * pitch equal to 0).
  *
  * @param[out] coord Vector that will be filled with the coordinates of the
  *  offset in the tensor.
