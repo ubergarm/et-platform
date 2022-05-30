@@ -167,24 +167,24 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
     for (size_t channel = 0; channel < channels; ++channel) {
 
       float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
-      size_t real_stride = srcStrides[3];
+      size_t realStride = srcStrides[3];
       float* img = real + srcStrides[2];
-      size_t img_stride = srcStrides[3];
-      float* result_real = out + dstStrides[0] * batch + dstStrides[1] * channel;
-      size_t result_real_stride = dstStrides[3];
-      float* result_img = result_real + dstStrides[2];
-      size_t result_img_stride = dstStrides[3];
+      size_t imgStride = srcStrides[3];
+      float* resultReal = out + dstStrides[0] * batch + dstStrides[1] * channel;
+      size_t resultRealStride = dstStrides[3];
+      float* resultImg = resultReal + dstStrides[2];
+      size_t resultImgStride = dstStrides[3];
 
       constexpr bool pass1 = true;
       constexpr bool pass2 = true;
       if constexpr (inverse) {
-        fft2d_inv_threaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset,
-                                         minionOffset0, minionId0, width, height, real, real_stride, img, img_stride,
-                                         result_real, result_real_stride, result_img, result_img_stride);
+        fft2DInvThreaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset,
+                                       minionOffset0, minionId0, width, height, real, realStride, img, imgStride,
+                                       resultReal, resultRealStride, resultImg, resultImgStride);
       } else {
-        fft2d_threaded<pass1, pass2, false, freqDomainFilterFusion>(
+        fft2dThreaded<pass1, pass2, false, freqDomainFilterFusion>(
           workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset, minionOffset0, minionId0, width,
-          height, real, real_stride, img, img_stride, result_real, result_real_stride, result_img, result_img_stride);
+          height, real, realStride, img, imgStride, resultReal, resultRealStride, resultImg, resultImgStride);
       }
     }
   }
