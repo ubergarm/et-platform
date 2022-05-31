@@ -235,6 +235,68 @@ INLINE_ATTR void sub(float x, float y, float u, float v, float& real, float& img
   img = y - v;
 }
 
+constexpr size_t twiddleIndex(size_t round, size_t i) {
+  return i & ((8 + 16 + 32 + 64 + 128) >> round); // TODO: make this function to work for sizes 512 and beyond!
+}
+
+INLINE_ATTR void fft16Round(const float* twiddleReal, const float* twiddleImg, float XReal[16], float XImg[16],
+                            int32_t round, float resultReal[16], float resultImg[16], const int32_t selectMultSecond[8],
+                            const int32_t selectAddOrSubFirst[8]) {
+  // This loop is suitable for vectorizing
+  for (size_t i = 0; i < 8; ++i) {
+    size_t tidx = twiddleIndex(round, i);
+    size_t sidx = selectMultSecond[i];
+    size_t fidx = selectAddOrSubFirst[i];
+    float termReal, termImg;
+    mult(twiddleReal[tidx], twiddleImg[tidx], XReal[sidx], XImg[sidx], termReal, termImg);
+    add(XReal[fidx], XImg[fidx], termReal, termImg, resultReal[i], resultImg[i]);
+    sub(XReal[fidx], XImg[fidx], termReal, termImg, resultReal[i + 8], resultImg[i + 8]);
+  }
+}
+
+INLINE_ATTR void fft16Slice(float* real, float* img, int32_t start, int32_t step, [[maybe_unused]] size_t size,
+                            const float* twiddleReal, const float* twiddleImg, float resReal[16], float resImg[16]) {
+
+  assert(size == 16);
+  float tmpReal[16];
+  float tmpImg[16];
+
+  int32_t selectMultSecond[8] = {8, 12, 10, 14, 9, 13, 11, 15};
+  int32_t selectAddOrSubFirst[8] = {0, 4, 2, 6, 1, 5, 3, 7};
+
+  // This loop is suitable for vectorizing
+  for (size_t i = 0; i < 8; ++i) {
+    selectMultSecond[i] = start + step * selectMultSecond[i];
+    selectAddOrSubFirst[i] = start + step * selectAddOrSubFirst[i];
+  }
+
+  fft16Round(twiddleReal, twiddleImg, real, img, 0, tmpReal, tmpImg, selectMultSecond, selectAddOrSubFirst);
+
+  constexpr int32_t selectMultSecond2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+  constexpr int32_t selectAddOrSubFirst2[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+
+  fft16Round(twiddleReal, twiddleImg, tmpReal, tmpImg, 1, resReal, resImg, selectMultSecond2, selectAddOrSubFirst2);
+
+  fft16Round(twiddleReal, twiddleImg, resReal, resImg, 2, tmpReal, tmpImg, selectMultSecond2, selectAddOrSubFirst2);
+
+  fft16Round(twiddleReal, twiddleImg, tmpReal, tmpImg, 3, resReal, resImg, selectMultSecond2, selectAddOrSubFirst2);
+}
+
+INLINE_ATTR void reduce(const float* baseTwiddleReal, const float* baseTwiddleImg, size_t twiddleStep, size_t halfSize,
+                        float* tmpRealEven, float* tmpImgEven, float* tmpRealOdd, float* tmpImgOdd, float* resultReal,
+                        float* resultImg) {
+  size_t twiddleIndex = 0;
+  for (size_t j = 0; j < halfSize; ++j) {
+    float twiddleReal = baseTwiddleReal[twiddleIndex];
+    float twiddleImg = baseTwiddleImg[twiddleIndex];
+    float termReal, termImg;
+    mult(twiddleReal, twiddleImg, tmpRealOdd[j], tmpImgOdd[j], termReal, termImg);
+    add(tmpRealEven[j], tmpImgEven[j], termReal, termImg, resultReal[j], resultImg[j]);
+    sub(tmpRealEven[j], tmpImgEven[j], termReal, termImg, resultReal[j + (halfSize)], resultImg[j + (halfSize)]);
+    twiddleIndex += twiddleStep;
+  }
+}
+
 #ifndef FFT_HOST_TEST
 
 INLINE_ATTR void vectorFft16Round(const float* twiddleReal, const float* twiddleImg, float XReal[16], float XImg[16],
@@ -308,9 +370,118 @@ INLINE_ATTR void vectorFft16Round(const float* twiddleReal, const float* twiddle
     : "memory");
 }
 
-INLINE_ATTR void vectorfft16Slice(float* real, float* img, int32_t start, int32_t step, [[maybe_unused]] size_t size,
+INLINE_ATTR void fastVectorFft16Round(const float* twiddle_real, const float* twiddle_img, float const X_real[16],
+                                      const float X_img[16], int32_t round, float result_real[16], float result_img[16],
+                                      const int32_t* vI, const f32x8 mulIndices, const f32x8 addsubIndices) {
+
+  constexpr int32_t mask = 8 + 16 + 32 + 64 + 128; // 0x000000F8
+  f32x8 twReal, twImg, xRealMul, xImgMul, xRealAdd, xImgAdd;
+  f32x8 termReal, termImg;
+  f32x8 tmp0, tmp1, twIndices;
+
+  __asm__ __volatile__(
+
+    // compute twiddle gather indices
+    "flw.ps     %[tmp1], %[vI]\n"                      // tmp1 <- load(*vI);
+    "fbcx.ps    %[twIndices], %[mask]\n"               // twIndices <- 248;
+    "fbcx.ps    %[tmp0], %[round]\n"                   //
+    "fsra.pi    %[twIndices], %[twIndices], %[tmp0]\n" // twIndices <- twIndices >> round;
+    "fand.pi    %[twIndices], %[twIndices], %[tmp1]\n" // twIndices[i] <- twIndices[i] * i;
+    // gather twiddle values
+    "fslli.pi   %[twIndices], %[twIndices], 2\n"            // twIndices << 2
+    "fgw.ps     %[twReal], %[twIndices](%[twiddle_real])\n" // twReal <- gather(@twiddle_real, vTwiddle);
+    "fgw.ps     %[twImg], %[twIndices](%[twiddle_img])\n"   // twImg <- gather(@twiddle_img, vTwiddle);
+    // gather x_real multiply values
+    "fgw.ps     %[xRealMul], %[mulIndices](%[X_real])\n" // xRealMul <- gather(@X_real, mulIndices);
+    "fgw.ps     %[xImgMul], %[mulIndices](%[X_img])\n"   // xImgMul <- gather(@X_img, mulIndices);
+    // gather x_real add/sub values
+    "fgw.ps     %[xRealAdd], %[addsubIndices](%[X_real])\n" // xRealAdd <- gather(@X_real, addsubIndices);
+    "fgw.ps     %[xImgAdd], %[addsubIndices](%[X_img])\n"   // xImgAdd <- gather(@X_img, addsubIndices);
+
+    // multiply op
+    // real
+    "fmul.ps    %[termReal], %[twImg], %[xImgMul]\n"                // (twImg * xImgMul)
+    "fmsub.ps   %[termReal], %[twReal], %[xRealMul], %[termReal]\n" // term_real <- twReal * xRealMul - (twImg *
+                                                                    // xImgMul);
+    // img
+    "fmul.ps    %[termImg], %[twReal], %[xImgMul]\n"             // (twReal * xImgMul)
+    "fmadd.ps   %[termImg], %[twImg], %[xRealMul], %[termImg]\n" // term_img <- twImg * xRealMul + (twImg * xImgMul);
+
+    // add
+    "fadd.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // tmp0 <- xRealAdd + termReal;
+    "fadd.ps    %[tmp1], %[xImgAdd], %[termImg]\n"   // tmp1 <- xImgAdd + termImg;
+    // store added elems
+    "fsw.ps     %[tmp0], (%[result_real])\n"
+    "fsw.ps     %[tmp1], (%[result_img])\n"
+
+    // sub
+    "fsub.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // real <- xRealAdd - termReal;
+    "fsub.ps    %[tmp1], %[xImgAdd], %[termImg]\n"   // img <- xImgAdd - termImg;
+    // store sub elems
+    "fsw.ps     %[tmp0], 32(%[result_real])\n"
+    "fsw.ps     %[tmp1], 32(%[result_img])\n"
+
+    : [ twIndices ] "=&f"(twIndices), [ twReal ] "=&f"(twReal), [ twImg ] "=&f"(twImg), [ xRealMul ] "=&f"(xRealMul),
+      [ xImgMul ] "=&f"(xImgMul), [ xRealAdd ] "=&f"(xRealAdd), [ xImgAdd ] "=&f"(xImgAdd),
+      [ termReal ] "=&f"(termReal), [ termImg ] "=&f"(termImg), [ tmp0 ] "=&f"(tmp0), [ tmp1 ] "=&f"(tmp1)
+    : [ round ] "r"(round), [ mask ] "r"(mask), [ twiddle_real ] "r"(twiddle_real), [ twiddle_img ] "r"(twiddle_img),
+      [ X_real ] "r"(X_real), [ X_img ] "r"(X_img), [ result_real ] "r"(result_real), [ result_img ] "r"(result_img),
+      [ mulIndices ] "f"(mulIndices), [ addsubIndices ] "f"(addsubIndices), [ vI ] "m"(*(const int32_t(*)[8])vI)
+    : "memory");
+}
+
+INLINE_ATTR void fastVectorFft16Slice(float* real, float* img, size_t start, size_t step, [[maybe_unused]] size_t size,
+                                      const float* twiddleReal, const float* twiddleImg, float resReal[16],
+                                      float resImg[16], [[maybe_unused]] const int32_t* vI,
+                                      [[maybe_unused]] const int32_t* mulIndices,
+                                      [[maybe_unused]] const int32_t* addsubIndices,
+                                      [[maybe_unused]] const int32_t* mulIndices2,
+                                      [[maybe_unused]] const int32_t* addsubIndices2) {
+  assert(size == 16);
+  float tmp0, tmp1, mi, si;
+  float tmpReal[16];
+  float tmpImg[16];
+
+  __asm__ __volatile__("flw.ps     %[mi], %[mulIndices]\n"    // mi <- load(*mulIndices);
+                       "flw.ps     %[si], %[addsubIndices]\n" // si <- load(*addsubIndices);
+
+                       "fbcx.ps    %[tmp0], %[start]\n" // tmp0 <- broadcast(start);
+                       "fbcx.ps    %[tmp1], %[step]\n"  // tmp1 <- broadcast(step);
+
+                       "fmul.pi    %[mi], %[tmp1], %[mi]\n" // mi <- vmul(step, mi);
+                       "fadd.pi    %[mi], %[tmp0], %[mi]\n" // mi <- vadd(start, mi);
+                       "fmul.pi    %[si], %[tmp1], %[si]\n" // si <- vmul(step, si);
+                       "fadd.pi    %[si], %[tmp0], %[si]\n" // si <- vadd(start, si);
+
+                       "fslli.pi   %[mi], %[mi], 2\n" // mi << 2 # FP 32
+                       "fslli.pi   %[si], %[si], 2\n" // si << 2 # FP 32
+                       : [ mi ] "=&f"(mi), [ si ] "=&f"(si), [ tmp0 ] "=&f"(tmp0), [ tmp1 ] "=&f"(tmp1)
+                       : [ start ] "r"(start), [ step ] "r"(step), [ mulIndices ] "m"(*(const int32_t(*)[8])mulIndices),
+                         [ addsubIndices ] "m"(*(const int32_t(*)[8])addsubIndices)
+                       : "memory");
+
+  fastVectorFft16Round(twiddleReal, twiddleImg, real, img, 0, tmpReal, tmpImg, vI, mi, si);
+
+  __asm__ __volatile__("flw.ps     %[mi], %[mulIndices2]\n"    // mi <- load(*mulIndices2);
+                       "flw.ps     %[si], %[addsubIndices2]\n" // si <- load(*addsubIndices2);
+                       "fslli.pi   %[mi], %[mi], 2\n"          // mi << 2 # FP 32
+                       "fslli.pi   %[si], %[si], 2\n"          // si << 2 # FP 32
+                       : [ mi ] "=f"(mi), [ si ] "=f"(si)
+                       : [ mulIndices2 ] "m"(*(const int32_t(*)[8])mulIndices2),
+                         [ addsubIndices2 ] "m"(*(const int32_t(*)[8])addsubIndices2)
+                       : "memory");
+
+  fastVectorFft16Round(twiddleReal, twiddleImg, tmpReal, tmpImg, 1, resReal, resImg, vI, mi, si);
+
+  fastVectorFft16Round(twiddleReal, twiddleImg, resReal, resImg, 2, tmpReal, tmpImg, vI, mi, si);
+
+  fastVectorFft16Round(twiddleReal, twiddleImg, tmpReal, tmpImg, 3, resReal, resImg, vI, mi, si);
+}
+
+INLINE_ATTR void vectorFft16Slice(float* real, float* img, int32_t start, int32_t step, [[maybe_unused]] size_t size,
                                   const float* twiddleReal, const float* twiddleImg, float resReal[16],
                                   float resImg[16]) {
+
   assert(size == 16);
   float tmpReal[16];
   float tmpImg[16];
@@ -337,7 +508,7 @@ INLINE_ATTR void vectorfft16Slice(float* real, float* img, int32_t start, int32_
     : [ start ] "r"(start), [ step ] "r"(step), [ mulSecond ] "m"(*(const int32_t(*)[8])selectMultSecond),
       [ addSubFirst ] "m"(*(const int32_t(*)[8])selectAddOrSubFirst)
     : "memory");
-  // TODO: pass vector register as a parameter instead of dumping back to memory
+
   vectorFft16Round(twiddleReal, twiddleImg, real, img, 0, tmpReal, tmpImg, selectMultSecond, selectAddOrSubFirst);
 
   constexpr int32_t selectMultSecond2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
@@ -355,77 +526,17 @@ INLINE_ATTR void vectorfft16Slice(float* real, float* img, int32_t start, int32_
 
 #endif
 
-constexpr size_t twiddleIndex(size_t round, size_t i) {
-  return i & ((8 + 16 + 32 + 64 + 128) >> round); // TODO: make this function to work for sizes 512 and beyond!
-}
+static void fftWithPrecomputeAndIndices(Stack& stack, const float* baseTwiddleReal, const float* baseTwiddleImg,
+                                        size_t twiddleStep, const float* fft16TwiddleReal, const float* fft16TwiddleImg,
+                                        float* real, float* img, size_t start, size_t step, size_t size,
+                                        float* resultReal, float* resultImg, const int32_t* vI,
+                                        const int32_t* mulIndices, const int32_t* addsubIndices,
+                                        const int32_t* mulIndices2, const int32_t* addsubIndices2) {
 
-INLINE_ATTR void fft16Round(const float* twiddleReal, const float* twiddleImg, float XReal[16], float XImg[16],
-                            int32_t round, float resultReal[16], float resultImg[16], const int32_t selectMultSecond[8],
-                            const int32_t selectAddOrSubFirst[8]) {
-
-  // This loop is suitable for vectorizing
-  for (size_t i = 0; i < 8; ++i) {
-    size_t tidx = twiddleIndex(round, i);
-    size_t sidx = selectMultSecond[i];
-    size_t fidx = selectAddOrSubFirst[i];
-    float termReal, termImg;
-    mult(twiddleReal[tidx], twiddleImg[tidx], XReal[sidx], XImg[sidx], termReal, termImg);
-    add(XReal[fidx], XImg[fidx], termReal, termImg, resultReal[i], resultImg[i]);
-    sub(XReal[fidx], XImg[fidx], termReal, termImg, resultReal[i + 8], resultImg[i + 8]);
-  }
-}
-
-INLINE_ATTR void fft16Slice(float* real, float* img, int32_t start, int32_t step, [[maybe_unused]] size_t size,
-                            const float* twiddleReal, const float* twiddleImg, float resReal[16], float resImg[16]) {
-
-  assert(size == 16);
-  float tmpReal[16];
-  float tmpImg[16];
-
-  int32_t selectMultSecond[8] = {8, 12, 10, 14, 9, 13, 11, 15};
-  int32_t selectAddOrSubFirst[8] = {0, 4, 2, 6, 1, 5, 3, 7};
-
-  // This loop is suitable for vectorizing
-  for (size_t i = 0; i < 8; ++i) {
-    selectMultSecond[i] = start + step * selectMultSecond[i];
-    selectAddOrSubFirst[i] = start + step * selectAddOrSubFirst[i];
-  }
-
-  fft16Round(twiddleReal, twiddleImg, real, img, 0, tmpReal, tmpImg, selectMultSecond, selectAddOrSubFirst);
-
-  constexpr int32_t selectMultSecond2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
-  constexpr int32_t selectAddOrSubFirst2[8] = {0, 2, 4, 6, 8, 10, 12, 14};
-
-  fft16Round(twiddleReal, twiddleImg, tmpReal, tmpImg, 1, resReal, resImg, selectMultSecond2, selectAddOrSubFirst2);
-
-  fft16Round(twiddleReal, twiddleImg, resReal, resImg, 2, tmpReal, tmpImg, selectMultSecond2, selectAddOrSubFirst2);
-
-  fft16Round(twiddleReal, twiddleImg, tmpReal, tmpImg, 3, resReal, resImg, selectMultSecond2, selectAddOrSubFirst2);
-}
-
-INLINE_ATTR void reduce(const float* baseTwiddleReal, const float* baseTwiddleImg, size_t twiddleStep, size_t halfSize,
-                        float* tmpRealEven, float* tmpImgEven, float* tmpRealOdd, float* tmpImgOdd, float* resultReal,
-                        float* resultImg) {
-  size_t twiddleIndex = 0;
-  for (size_t j = 0; j < halfSize; ++j) {
-    float twiddleReal = baseTwiddleReal[twiddleIndex];
-    float twiddleImg = baseTwiddleImg[twiddleIndex];
-    float termReal, termImg;
-    mult(twiddleReal, twiddleImg, tmpRealOdd[j], tmpImgOdd[j], termReal, termImg);
-    add(tmpRealEven[j], tmpImgEven[j], termReal, termImg, resultReal[j], resultImg[j]);
-    sub(tmpRealEven[j], tmpImgEven[j], termReal, termImg, resultReal[j + (halfSize)], resultImg[j + (halfSize)]);
-    twiddleIndex += twiddleStep;
-  }
-}
-
-static void fftWithPrecompute(Stack& stack, const float* baseTwiddleReal, const float* baseTwiddleImg,
-                              size_t twiddleStep, const float* fft16TwiddleReal, const float* fft16TwiddleImg,
-                              float* real, float* img, size_t start, size_t step, size_t size, float* resultReal,
-                              float* resultImg) {
   if (size == 16) {
 #ifndef FFT_HOST_TEST
-    vectorfft16Slice(real, img, static_cast<int32_t>(start), static_cast<int32_t>(step), size, fft16TwiddleReal,
-                     fft16TwiddleImg, resultReal, resultImg);
+    fastVectorFft16Slice(real, img, start, step, size, fft16TwiddleReal, fft16TwiddleImg, resultReal, resultImg, vI,
+                         mulIndices, addsubIndices, mulIndices2, addsubIndices2);
 #else
     fft16Slice(real, img, static_cast<int32_t>(start), static_cast<int32_t>(step), size, fft16TwiddleReal,
                fft16TwiddleImg, resultReal, resultImg);
@@ -438,16 +549,35 @@ static void fftWithPrecompute(Stack& stack, const float* baseTwiddleReal, const 
     auto saved = stack.current();
     float* tmpRealEven = stack.push<float>(halfSize);
     float* tmpImgEven = stack.push<float>(halfSize);
-    fftWithPrecompute(stack, baseTwiddleReal, baseTwiddleImg, 2 * twiddleStep, fft16TwiddleReal, fft16TwiddleImg, real,
-                      img, start, 2 * step, halfSize, tmpRealEven, tmpImgEven);
+    fftWithPrecomputeAndIndices(stack, baseTwiddleReal, baseTwiddleImg, 2 * twiddleStep, fft16TwiddleReal,
+                                fft16TwiddleImg, real, img, start, 2 * step, halfSize, tmpRealEven, tmpImgEven, vI,
+                                mulIndices, addsubIndices, mulIndices2, addsubIndices2);
     float* tmpRealOdd = stack.push<float>(halfSize);
     float* tmpImgOdd = stack.push<float>(halfSize);
-    fftWithPrecompute(stack, baseTwiddleReal, baseTwiddleImg, 2 * twiddleStep, fft16TwiddleReal, fft16TwiddleImg, real,
-                      img, start + step, 2 * step, halfSize, tmpRealOdd, tmpImgOdd);
+    fftWithPrecomputeAndIndices(stack, baseTwiddleReal, baseTwiddleImg, 2 * twiddleStep, fft16TwiddleReal,
+                                fft16TwiddleImg, real, img, start + step, 2 * step, halfSize, tmpRealOdd, tmpImgOdd, vI,
+                                mulIndices, addsubIndices, mulIndices2, addsubIndices2);
     reduce(baseTwiddleReal, baseTwiddleImg, twiddleStep, halfSize, tmpRealEven, tmpImgEven, tmpRealOdd, tmpImgOdd,
            resultReal, resultImg);
     stack.restore(saved);
   }
+}
+
+static void fftWithPrecompute(Stack& stack, const float* baseTwiddleReal, const float* baseTwiddleImg,
+                              size_t twiddleStep, const float* fft16TwiddleReal, const float* fft16TwiddleImg,
+                              float* real, float* img, const size_t start, const size_t step, size_t size,
+                              float* resultReal, float* resultImg) {
+
+  // Preload indices
+  constexpr int32_t i[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+  constexpr int32_t mulIndices[8] = {8, 12, 10, 14, 9, 13, 11, 15};
+  constexpr int32_t addsubIndices[8] = {0, 4, 2, 6, 1, 5, 3, 7};
+  constexpr int32_t mulIndices2[8] = {1, 3, 5, 7, 9, 11, 13, 15};
+  constexpr int32_t addsubIndices2[8] = {0, 2, 4, 6, 8, 10, 12, 14};
+
+  fftWithPrecomputeAndIndices(stack, baseTwiddleReal, baseTwiddleImg, twiddleStep, fft16TwiddleReal, fft16TwiddleImg,
+                              real, img, start, step, size, resultReal, resultImg, i, mulIndices, addsubIndices,
+                              mulIndices2, addsubIndices2);
 }
 
 template <bool negateInputImg, bool normalizeOutput>
