@@ -649,7 +649,7 @@ INLINE_ATTR void fftReversibleWithPrecomputeThreaded(size_t workBranchBits, [[ma
                                                                step, size, tmpReal, tmpImg);
 
 #ifndef FFT_HOST_TEST
-  uint64_t dstLevel = 3; // Evict all the way to on-chip DDR memory
+  constexpr auto dstLevel = uint64_t(cop_dest::to_L3); // Evict all the way to L3 cache
   size_t numLinesMinusOne = ((size * sizeof(float) + CACHE_LINE_BYTES - 1) >> LOG2_CACHE_LINE_BYTES) - 1;
   fence_evict_va(0, dstLevel, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(tmpReal)), numLinesMinusOne,
                  CACHE_LINE_BYTES, 0);
