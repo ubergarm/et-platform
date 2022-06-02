@@ -14,6 +14,7 @@
 
 #include "DenoiseMasks.h"
 #include "FFT.h"
+#include "ImageConditioning.h"
 #include "LibTensor.h"
 #include "utils.h"
 #include <assert.h>
@@ -31,10 +32,13 @@ enum class Operation {
   IFFT,
   NOISE_FILTER_1,
   FFT_FILTER_FUSED,
+  RESNET_CONDITION,
+  RESNET_CONDITION_QUANTIZE_FUSED,
   COUNT,
 };
 
-static constexpr const char* Op2String[] = {"FFT", "IFFT", "NOISE_FILTER_1", "FFT_FILTER_FUSED"};
+static constexpr const char* Op2String[] = {
+  "FFT", "IFFT", "NOISE_FILTER_1", "FFT_FILTER_FUSED", "CONDITION", "CONDITION_QUANTIZE_FUSED"};
 
 template <typename T> INLINE_ATTR T min(T a, T b) {
   return (a < b) ? a : b;
@@ -256,6 +260,9 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
     return fft<true>(outT, inT, flags, minionOffset, numMinions, minionId);
   case Operation::NOISE_FILTER_1:
     return freqDomainNoiseFilter(outT, inT, flags, minionOffset, numMinions, minionId);
+  case Operation::RESNET_CONDITION:
+    return resnetImageCondition(outT, inT, flags, minionOffset, numMinions, minionId);
+  case Operation::RESNET_CONDITION_QUANTIZE_FUSED:
   case Operation::COUNT:
   default:
     et_assert("unsupported operation");
