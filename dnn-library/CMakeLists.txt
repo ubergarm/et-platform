@@ -65,6 +65,7 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/GatherInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/GatherRangesInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ImageConditioning.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/InsertTensorInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/IntLookupTableInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/LengthsRangeFillInst.h
