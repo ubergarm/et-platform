@@ -7,7 +7,7 @@ import re
 
 class DnnLibraryApiConan(ConanFile):
     name = "dnnLibraryApi"
-    version = "0.1.0"
+    version = "0.2.0"
     url = "https://gitlab.esperanto.ai/software/dnn-library-api.git"
     license = "Esperanto Technologies"
 
