@@ -3,24 +3,16 @@ from conan.tools.cmake import CMake, CMakeToolchain,CMakeDeps
 from conans import tools
 from conans.errors import ConanInvalidConfiguration
 import os
-import re
+
 
 class DnnLibraryApiConan(ConanFile):
     name = "dnnLibraryApi"
-    version = "0.2.0"
     url = "https://gitlab.esperanto.ai/software/dnn-library-api.git"
-    license = "Esperanto Technologies"
-
     description = "DnnLibrary Host API"
     topics = ("dnnLibraryApi", "dnnLibrary", "neuralizer")
-    settings = "os", "arch", "compiler", "build_type"
+    license = "Esperanto Technologies"
 
-    scm = {
-        "type": "git",
-        "url": "git@gitlab.esperanto.ai:software/dnn-library-api.git",
-        "revision": "auto",
-    }
-    generators = "CMakeDeps"
+    settings = "os", "arch", "compiler", "build_type"
 
     options = {
         "shared": [True, False],
@@ -33,24 +25,38 @@ class DnnLibraryApiConan(ConanFile):
         "enable_warnings_as_errors": False,
     }
 
-    exports_sources = [ "CMakeLists.txt", "include/*", "src/*", "dnnLibraryApiConfig.cmake.in" ]
+    scm = {
+        "type": "git",
+        "url": "git@gitlab.esperanto.ai:software/dnn-library-api.git",
+        "revision": "auto",
+    }
+    generators = "CMakeDeps"
+
 
     python_requires = "conan-common/[>=0.5.0 <1.0.0]"
 
     def set_version(self):
-        self.version = self.python_requires["conan-common"].module.get_version_from_cmake_project(self, "dnnLibraryApi")       
+        self.version = self.python_requires["conan-common"].module.get_version_from_cmake_project(self, self.name)       
 
     def configure(self):
         if self.options.shared:
             del self.options.fPIC
 
+    def requirements(self):
+        self.requires("dnnLibrary/0.2.0", private=True)
+    
     def validate(self):
-        if self.settings.os != "Linux":
-            raise ConanInvalidConfiguration("dnnLibraryApi is only supported on Linux")
-
         check_req_min_cppstd = self.python_requires["conan-common"].module.check_req_min_cppstd
         check_req_min_cppstd(self, "17")
 
+        if self.settings.os != "Linux":
+            raise ConanInvalidConfiguration("dnnLibraryApi is only supported on Linux")
+
+        dnn_library = self.dependencies["dnnLibrary"]
+        dnn_library_flag = "with_host_headers"
+        if not dnn_library.options.get_safe(dnn_library_flag):
+            raise ConanInvalidConfiguration("{0} requires {1} package with '-o {1}:{2}'".format(self.name, "dnnLibrary", dnn_library_flag))
+    
     def generate(self):
         tc = CMakeToolchain(self)
         tc.variables["ENABLE_WARNINGS_AS_ERRORS"] = self.options.enable_warnings_as_errors

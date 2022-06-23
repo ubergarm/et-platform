@@ -11,6 +11,6 @@ add_executable(${PROJECT_NAME} test_package.cpp)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${PROJECT_NAME} PRIVATE dnnLibraryApi::dnnLibraryApi)
 
-message("dnnLibraryApi package found and available")
+message(STATUS "dnnLibraryApi package found and available")
 
 
