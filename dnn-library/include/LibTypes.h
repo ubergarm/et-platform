@@ -36,6 +36,9 @@ using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
 
+// Vector datatypes
+using f32x8 = float;
+
 /// An enum representing the type used by the elements of a tensor. The types of
 /// Handles for these tensors should match the element kind.
 enum ElemKind : unsigned char {
