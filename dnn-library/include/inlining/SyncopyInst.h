@@ -135,8 +135,11 @@ fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, [[maybe_unu
     }
   }
 
-  // Evicts read data from L2
-  evict_va_multi(0x2, srcAddrOrig, minionCacheLinesOrig);
+  // Evicts read data from L2 if not L2scp
+  if ((srcAddrOrig >> 31) != 1U) { // TODO : get parameter from neuralizer and use constexpr
+    evict_va_multi(uint64_t(cop_dest::to_L3), srcAddrOrig, minionCacheLinesOrig);
+  }
+
   WAIT_CACHEOPS;
 
   // Barrier to get all minions thread0 here
