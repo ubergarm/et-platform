@@ -22,7 +22,7 @@ namespace dnn_lib {
 
 namespace inlining {
 
-template <class T> static INLINE_ATTR T conditionPixel(float inputPixel, size_t channel) {
+template <class T, size_t channel> static INLINE_ATTR T conditionPixel(float inputPixel) {
 
   constexpr auto min = float(std::numeric_limits<uint8_t>::min());
   constexpr auto max = float(std::numeric_limits<uint8_t>::max());
@@ -47,16 +47,8 @@ __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibT
 __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibTensor* inT, uint64_t flags,
                                                            const uint32_t minionOffset, size_t numMinions,
                                                            size_t minionId) {
-  //  FIXME: just minon 0 does some work at the moment.
-  if ((minionId - minionOffset) != 0) {
-    return;
-  }
-
-  et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
 
   (void)flags;
-  (void)minionOffset;
-  (void)numMinions;
 
   // Receives an input tensor of
   //  float <batch x channels x 2 x 256 x 256 >
@@ -84,12 +76,61 @@ __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibT
   et_assert(inHeight >= outHeight);
   et_assert(inWidth >= outWidth);
   et_assert(inPlanes == 2);
+
+  size_t relativeMinionId = minionId - minionOffset;
+
+  // Assert the ad-hoc tiling applies
+  et_assert(outWidth == 224);
+  et_assert(outHeight == 224);
+  et_assert(numMinions == 1024);
+
+  // Assign 4 minions per row
+  size_t row0 = (relativeMinionId >> 2);
+  size_t numRows = 1;
+  if (row0 >= outHeight) {
+    return;
+  }
+  size_t lastRow = row0 + numRows;
+
+  // Split a row between the 4 assigned minions
+  size_t line0;
+  size_t lines;
+  switch (relativeMinionId & 3) {
+  case 0:
+    line0 = 0;
+    lines = 4;
+    break;
+  case 1:
+    line0 = 4;
+    lines = 4;
+    break;
+  case 2:
+    line0 = 8;
+    lines = 3;
+    break;
+  case 3:
+    line0 = 11;
+    lines = 3;
+    break;
+  default:
+    et_assert(false);
+    line0 = 0;
+    lines = 0;
+    break;
+  }
+  constexpr size_t elemsPerCacheLine = 16;
+  size_t col0 = line0 * elemsPerCacheLine;
+  size_t numCols = lines * elemsPerCacheLine;
+  size_t lastCol = col0 + numCols;
+
+  et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
+
   auto inH = inT->getHandle<float>();
   auto outH = outT->getHandle<float>();
 
   for (size_t image = 0; image < outImages; image++) {
-    for (size_t i = 0; i < outHeight; i++) {
-      for (size_t j = 0; j < outWidth; j++) {
+    for (size_t i = row0; i < lastRow; i++) {
+      for (size_t j = col0; j < lastCol; j++) {
         // rgb to bgr TODO: find faster ways if needed: (transpose, slicing,...)
         std::array<dim_t, 5> inPosR = {image, 0, 0, i, j};
         std::array<dim_t, 5> inPosG = {image, 1, 0, i, j};
@@ -98,9 +139,9 @@ __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibT
         std::array<dim_t, 4> outPosG = {image, 1, i, j};
         std::array<dim_t, 4> outPosB = {image, 2, i, j};
 
-        outH.at(outPosB) = conditionPixel<float>(inH.at(inPosR), 0);
-        outH.at(outPosG) = conditionPixel<float>(inH.at(inPosG), 1);
-        outH.at(outPosR) = conditionPixel<float>(inH.at(inPosB), 2);
+        outH.at(outPosB) = conditionPixel<float, 0>(inH.at(inPosR));
+        outH.at(outPosG) = conditionPixel<float, 1>(inH.at(inPosG));
+        outH.at(outPosR) = conditionPixel<float, 2>(inH.at(inPosB));
       }
     }
   }
