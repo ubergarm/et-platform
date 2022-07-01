@@ -157,6 +157,20 @@ __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibT
         outH.at(outPosG) = conditionPixel<float, 1>(inH.at(inPosG));
         outH.at(outPosR) = conditionPixel<float, 2>(inH.at(inPosB));
       }
+
+      // Evict to L3 the produced lines
+      constexpr auto destination = cop_dest::to_L3;
+      std::array<dim_t, 4> outPosR = {image, 0, i, col0};
+      std::array<dim_t, 4> outPosG = {image, 1, i, col0};
+      std::array<dim_t, 4> outPosB = {image, 2, i, col0};
+
+      uintptr_t blueAddress = reinterpret_cast<uintptr_t>(&outH.at(outPosB));
+      uintptr_t greenAddress = reinterpret_cast<uintptr_t>(&outH.at(outPosG));
+      uintptr_t redAddress = reinterpret_cast<uintptr_t>(&outH.at(outPosR));
+
+      evict_va_multi(destination, blueAddress, lines);
+      evict_va_multi(destination, greenAddress, lines);
+      evict_va_multi(destination, redAddress, lines);
     }
   }
 }
