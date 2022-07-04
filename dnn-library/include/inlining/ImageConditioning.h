@@ -82,41 +82,55 @@ __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibT
   // Assert the ad-hoc tiling applies
   et_assert(outWidth == 224);
   et_assert(outHeight == 224);
-  et_assert(numMinions == 1024);
+  et_assert(numMinions == 1024 or numMinions == 256);
+
+  size_t colBits;
+  if (numMinions == 256) {
+    colBits = 0;
+  } else {
+    colBits = 2;
+  }
 
   // Assign 4 minions per row
-  size_t row0 = (relativeMinionId >> 2);
+  size_t row0 = (relativeMinionId >> colBits);
   size_t numRows = 1;
   if (row0 >= outHeight) {
     return;
   }
   size_t lastRow = row0 + numRows;
 
-  // Split a row between the 4 assigned minions
+  // Split the row between the assigned minions (either 1 or 4 minions)
   size_t line0;
   size_t lines;
-  switch (relativeMinionId & 3) {
-  case 0:
+  if (numMinions == 256) {
+    // 14 lines per minion
     line0 = 0;
-    lines = 4;
-    break;
-  case 1:
-    line0 = 4;
-    lines = 4;
-    break;
-  case 2:
-    line0 = 8;
-    lines = 3;
-    break;
-  case 3:
-    line0 = 11;
-    lines = 3;
-    break;
-  default:
-    et_assert(false);
-    line0 = 0;
-    lines = 0;
-    break;
+    lines = 14;
+  } else {
+    // Split a row between the 4 assigned minions
+    switch (relativeMinionId & 3) {
+    case 0:
+      line0 = 0;
+      lines = 4;
+      break;
+    case 1:
+      line0 = 4;
+      lines = 4;
+      break;
+    case 2:
+      line0 = 8;
+      lines = 3;
+      break;
+    case 3:
+      line0 = 11;
+      lines = 3;
+      break;
+    default:
+      et_assert(false);
+      line0 = 0;
+      lines = 0;
+      break;
+    }
   }
   constexpr size_t elemsPerCacheLine = 16;
   size_t col0 = line0 * elemsPerCacheLine;
@@ -143,6 +157,20 @@ __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibT
         outH.at(outPosG) = conditionPixel<float, 1>(inH.at(inPosG));
         outH.at(outPosR) = conditionPixel<float, 2>(inH.at(inPosB));
       }
+
+      // Evict to L3 the produced lines
+      constexpr auto destination = cop_dest::to_L3;
+      std::array<dim_t, 4> outPosR = {image, 0, i, col0};
+      std::array<dim_t, 4> outPosG = {image, 1, i, col0};
+      std::array<dim_t, 4> outPosB = {image, 2, i, col0};
+
+      uintptr_t blueAddress = reinterpret_cast<uintptr_t>(&outH.at(outPosB));
+      uintptr_t greenAddress = reinterpret_cast<uintptr_t>(&outH.at(outPosG));
+      uintptr_t redAddress = reinterpret_cast<uintptr_t>(&outH.at(outPosR));
+
+      evict_va_multi(destination, blueAddress, lines);
+      evict_va_multi(destination, greenAddress, lines);
+      evict_va_multi(destination, redAddress, lines);
     }
   }
 }
