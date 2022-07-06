@@ -1039,7 +1039,7 @@ INLINE_ATTR void fft2dThreaded(size_t workRowBits, size_t workRowBranchBits, siz
                                size_t workColBranchBits, size_t globalMinionOffset, size_t minionOffset,
                                size_t minionId, size_t width, size_t height, float* real, size_t realStride, float* img,
                                size_t imgStride, float* resultReal, size_t resultRealStride, float* resultImg,
-                               size_t resultImgStride) {
+                               size_t resultImgStride, [[maybe_unused]] size_t filterIndex = 0) {
 
   assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
 
@@ -1145,7 +1145,7 @@ INLINE_ATTR void fft2dThreaded(size_t workRowBits, size_t workRowBranchBits, siz
 
           if constexpr (!inverse and freqDomainFilterFusion) {
             // Fusing freqDomain filter if requested
-            auto mask = dnn_lib::inlining::denoiseMask[row * width + col];
+            auto mask = dnn_lib::inlining::denoiseMask[filterIndex][row * width + col];
             valueReal *= mask;
             valueImg *= mask;
           }

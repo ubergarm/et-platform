@@ -96,6 +96,14 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   assert(workBatchBits + workRowBits + workRowBranchBits <= log2(numMinions));
 }
 
+INLINE_ATTR size_t getFilterIndex(LibTensor* inT) {
+  // By convention filter_index is passed s the first 32 bits of img plane on inputTensor, (batch 0, img 0). This is
+  // 0,0,1,0.0.
+  auto inH = inT->getHandle<uint32_t>();
+  std::array<dim_t, 5> filterIndexPos = {0, 0, 1, 0, 0};
+  return size_t(inH.at(filterIndexPos));
+}
+
 template <bool inverse = false, bool freqDomainFilterFusion = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset,
                      size_t numMinions, size_t minionId) {
@@ -157,6 +165,9 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
 
   size_t batchElemsGroupSize = 1 << workBatchBits;
 
+  // get filterIndex from host.
+  [[maybe_unused]] auto filterIndex = getFilterIndex(inT);
+
   for (size_t batch0 = 0; batch0 < batches; batch0 += batchElemsGroupSize) {
 
     size_t batchMinionGroupId =
@@ -188,7 +199,8 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
       } else {
         fft2dThreaded<pass1, pass2, false, freqDomainFilterFusion>(
           workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset, minionOffset0, minionId0, width,
-          height, real, realStride, img, imgStride, resultReal, resultRealStride, resultImg, resultImgStride);
+          height, real, realStride, img, imgStride, resultReal, resultRealStride, resultImg, resultImgStride,
+          filterIndex);
       }
     }
   }
@@ -220,13 +232,15 @@ INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t
   // (Evey real or imaginary output emited or not based on mask
   // also SIMD mask's can be used ot skip when fft is vectorized.
 
+  auto filterIndex = getFilterIndex(inT);
+
   for (size_t image = 0; image < images; image++) {
     for (size_t channel = 0; channel < channels; channel++) {
       for (size_t plane = 0; plane < planes; plane++) {
         for (size_t i = 0; i < height; i++) {
           for (size_t j = 0; j < width; j++) {
             std::array<dim_t, 5> pos = {image, channel, plane, i, j};
-            auto mask = denoiseMask[i * width + j];
+            auto mask = denoiseMask[filterIndex][i * width + j];
             outH.at(pos) = inH.at(pos) * mask;
           }
         }
