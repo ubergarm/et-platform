@@ -371,7 +371,7 @@ INLINE_ATTR void vectorReduce(const float* baseTwiddleReal, const float* baseTwi
       "fbcx.ps     %[tmp0], %[twiddleStride]\n"
       "fadd.pi     %[twiddleIndex], %[twiddleIndex], %[tmp0]\n"
 
-      : [ twiddleIndex ] "=&f"(twiddleIndexArray), [ tmp0 ] "=&f"(tmp0), [ tmp1 ] "=&f"(tmp1), [ tmp2 ] "=&f"(tmp2),
+      : [ twiddleIndex ] "+&f"(twiddleIndexArray), [ tmp0 ] "=&f"(tmp0), [ tmp1 ] "=&f"(tmp1), [ tmp2 ] "=&f"(tmp2),
         [ tmp3 ] "=&f"(tmp3), [ tmp4 ] "=&f"(tmp4), [ twiddleReal ] "=&f"(twiddleReal),
         [ twiddleImg ] "=&f"(twiddleImg), [ tmpAddReal ] "=&f"(tmpAddReal), [ tmpAddImg ] "=&f"(tmpAddImg),
         [ tmpSubReal ] "=&f"(tmpSubReal), [ tmpSubImg ] "=&f"(tmpSubImg), [ termReal ] "=&f"(termReal),
