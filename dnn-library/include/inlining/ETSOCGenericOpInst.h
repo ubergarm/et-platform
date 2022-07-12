@@ -45,8 +45,9 @@ template <typename T> INLINE_ATTR T min(T a, T b) {
 }
 
 INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[maybe_unused]] size_t components,
-                           size_t height, size_t width, size_t numMinions, size_t& workBatchBits, size_t& workRowBits,
-                           size_t& workRowBranchBits, size_t& workColBits, size_t& workColBranchBits) {
+                           size_t height, size_t width, size_t numMinions, size_t& workBatchBits,
+                           size_t& workChannelBits, size_t& workRowBits, size_t& workRowBranchBits, size_t& workColBits,
+                           size_t& workColBranchBits) {
 
   // About to assign all the bits
   size_t availableBits = log2(numMinions);
@@ -84,12 +85,15 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   }
 
   // Overriding tiling?
-  if constexpr (false) {
+  if constexpr (true) {
+    // Temporary tiling for denoiseDemo
+    // TODO: Include workChannelBits in the partitioning logic
     workBatchBits = 0;
+    workChannelBits = 2;
     workRowBits = 8;
-    workRowBranchBits = 2;
+    workRowBranchBits = 0;
     workColBits = 8;
-    workColBranchBits = 2;
+    workColBranchBits = 0;
   }
 
   assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
@@ -136,21 +140,22 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
 
   // Mapping from minion dimensions to compute dimensions
   size_t workBatchBits;
+  size_t workChannelBits;
   size_t workRowBits, workRowBranchBits;
   size_t workColBits, workColBranchBits;
-  fftTiling(batches, channels, components, height, width, numMinions, workBatchBits, workRowBits, workRowBranchBits,
-            workColBits, workColBranchBits);
+  fftTiling(batches, channels, components, height, width, numMinions, workBatchBits, workChannelBits, workRowBits,
+            workRowBranchBits, workColBits, workColBranchBits);
 
   if (minionId - minionOffset == 0) {
-    et_printf("bBits=%d rBits=%d rBrBits=%d cBits=%d cBrBits=%d", workBatchBits, workRowBits, workRowBranchBits,
-              workColBits, workColBranchBits);
+    et_printf("bBits=%d chBits=%d rBits=%d rBrBits=%d cBits=%d cBrBits=%d", workBatchBits, workChannelBits, workRowBits,
+              workRowBranchBits, workColBits, workColBranchBits);
   }
 
   // Ensure we got assigned at least as many minions as we can use
-  assert(numMinions >= static_cast<size_t>(1 << (workBatchBits + workRowBits + workRowBranchBits)));
+  assert(numMinions >= static_cast<size_t>(1 << (workBatchBits + workChannelBits + workRowBits + workRowBranchBits)));
 
   // Use just as many minions as we can
-  numMinions = min(numMinions, 1UL << (workBatchBits + workRowBits + workRowBranchBits));
+  numMinions = min(numMinions, 1UL << (workBatchBits + workChannelBits + workRowBits + workRowBranchBits));
 
   // Unused minions return inmediately
   if ((minionId - minionOffset) >= numMinions) {
@@ -164,23 +169,37 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
   float* out = outT->getRawDataPointer<float>();
 
   size_t batchElemsGroupSize = 1 << workBatchBits;
+  size_t channelElemsGroupSize = 1 << workChannelBits;
 
   // get filterIndex from host.
   [[maybe_unused]] auto filterIndex = getFilterIndex(inT);
 
   for (size_t batch0 = 0; batch0 < batches; batch0 += batchElemsGroupSize) {
 
+    // Get the batch group id based on the top 'workBatchBits', ignoring the rest
     size_t batchMinionGroupId =
-      (minionId & ((1 << (workBatchBits + workColBits + workColBranchBits)) - 1)) >> (workColBits + workColBranchBits);
+      (minionId & ((1 << (workBatchBits + workChannelBits + workColBits + workColBranchBits)) - 1)) >>
+      (workChannelBits + workColBits + workColBranchBits);
+
+    // Get which batch this minion will perform computation on
     size_t batch = batch0 + batchMinionGroupId;
+
     size_t minionOffset0 = (minionOffset + minionId) & ~((1 << (workColBits + workColBranchBits)) - 1);
     size_t minionId0 = minionId & ((1 << (workColBits + workColBranchBits)) - 1);
 
     // et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions,
     //          minionOffset0, minionId0, batch);
 
-    for (size_t channel = 0; channel < channels; ++channel) {
+    for (size_t channel0 = 0; channel0 < channels; channel0 += channelElemsGroupSize) {
 
+      // Get the channel group id based only on the 'workChannelBits', ignoring the rest
+      size_t channelMinionGroupId = (minionId & ((1 << (workChannelBits + workColBits + workColBranchBits)) - 1)) >>
+                                    (workColBits + workColBranchBits);
+
+      // Get which channel the minion will perform computation on
+      size_t channel = channel0 + channelMinionGroupId;
+
+      // Get pointers to input and output data structures based on 'batch' and 'channel'
       float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
       size_t realStride = srcStrides[3];
       float* img = real + srcStrides[2];
@@ -192,18 +211,22 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
 
       constexpr bool pass1 = true;
       constexpr bool pass2 = true;
-      if constexpr (inverse) {
-        fft2DInvThreaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset,
-                                       minionOffset0, minionId0, width, height, real, realStride, img, imgStride,
-                                       resultReal, resultRealStride, resultImg, resultImgStride);
-      } else {
-        fft2dThreaded<pass1, pass2, false, freqDomainFilterFusion>(
-          workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset, minionOffset0, minionId0, width,
-          height, real, realStride, img, imgStride, resultReal, resultRealStride, resultImg, resultImgStride,
-          filterIndex);
+
+      if (channel < channels) { // TODO: verify if this ward is redudant
+        if constexpr (inverse) {
+          fft2DInvThreaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset,
+                                         minionOffset0, minionId0, width, height, real, realStride, img, imgStride,
+                                         resultReal, resultRealStride, resultImg, resultImgStride);
+        } else {
+          fft2dThreaded<pass1, pass2, false, freqDomainFilterFusion>(
+            workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset, minionOffset0, minionId0,
+            width, height, real, realStride, img, imgStride, resultReal, resultRealStride, resultImg, resultImgStride,
+            filterIndex);
+        }
       }
     }
   }
+  barrier(minionOffset, numMinions, 1);
 }
 
 INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
