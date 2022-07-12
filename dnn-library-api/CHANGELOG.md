@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [[_TOC_]]
 
+## Unreleased
+
+### Added
+- Added conan CI
+### Changed
+- Updated conanfile
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
 ## [0.1.0]
 
 - Initial version of the dnnLibraryApi component.
