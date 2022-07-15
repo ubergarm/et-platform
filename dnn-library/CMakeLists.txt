@@ -104,6 +104,16 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/PackedBufferProxy.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/utils.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/0_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/1_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/2_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/3_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/4_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/5_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/6_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/7_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/8_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/9_filterMask.h
 )
 
 
