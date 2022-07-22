@@ -12,7 +12,8 @@
 
 
 #include "LibTensor.h"
-#include "inlining.h"
+#include "GenericHeaders.h"
+#include "SpecificHeaders.h"
 
 namespace dnn_lib {
 static constexpr size_t default_kernels_size = 2;
