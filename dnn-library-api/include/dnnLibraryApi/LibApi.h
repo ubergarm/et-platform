@@ -79,6 +79,20 @@ std::string getMemberType(InstrMembers mb);
  */
 bool getMemberScalar(InstrMembers mb);
 
+/*!
+ * getGenericOperatorIncludes returns generic includes needed for this op
+ * \param[in] operator to be queried
+ * \returns generic include collection
+ */
+std::vector<std::string> getGenericOperatorIncludes(const std::string& operatorName);
+
+/*!
+ * getSpecificOperatorIncludes returns specific includes needed for this op
+ * \param[in] operator to be queried
+ * \returns specific include collection
+ */
+std::vector<std::string> getSpecificOperatorIncludes(const std::string& operatorName);
+
 } // end namespace dnn_lib
 
 #endif

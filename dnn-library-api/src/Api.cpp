@@ -19,6 +19,7 @@
 #include <cctype>
 #include <cmath>
 #include <cstring>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -317,6 +318,27 @@ bool getMemberScalar(InstrMembers mb) {
     assert(false && "invalid member");
   }
   return ret;
+}
+
+// Granular include selection:
+// General idea for now is inlining.h has "almost everything" with the exception of the ops
+// pulling huge static data structures challenging the compiler.
+// TODO: avoid inlining.h and implement full-granular include mapping through automatic-code-gen.
+std::vector<std::string> getGenericOperatorIncludes(const std::string& operatorName) {
+  (void)operatorName;
+  return {"inlining.h", "LibCommon.h", "LibTypes.h", "LibTensor.h", "Float16.h"};
+}
+
+std::vector<std::string> getSpecificOperatorIncludes(const std::string& operatorName) {
+  static std::map<std::string, std::vector<std::string>> op2Headers{{"ETSOCGenericOp", {"ETSOCGenericOpInst.h"}}};
+
+  dnn_lib::instrConfig conf;
+  auto found = getInstrConfig(operatorName, conf);
+
+  if (not found or op2Headers.count(conf.name) == 0) {
+    return {};
+  }
+  return op2Headers[conf.name];
 }
 
 } // end namespace dnn_lib
