@@ -56,44 +56,63 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   workBatchBits = min(log2(batches), availableBits);
   availableBits -= workBatchBits;
 
+  // If 3 channels, roundup to 4
+  if (channels == 3) {
+    ++channels;
+  }
+
+  // Assign as many (of the remaining) bits as possible in the channel dimension
+  workChannelBits = min(log2(channels), availableBits);
+  availableBits -= workChannelBits;
+
   if (height >= width) {
-    // Assign as many bits as possible in the rows dimension
+    // Assign as many (of the remaining) bits as possible in the rows dimension
     workRowBits = min(log2(height), availableBits);
     availableBits -= workRowBits;
 
     // Assign the remaiming bits on the row branches dimension
     workRowBranchBits = min(log2(width), availableBits);
 
-    // Assign as many minion bits for the columns dimension as
+    // Assign as many (of the remaining) minion bits for the columns dimension as
     // done for the rows dimension. If the columns dimension is
     // not as big then do tiling also on branches.
     workColBits = min(log2(width), workRowBits);
     workColBranchBits = workRowBits + workRowBranchBits - workColBits;
   } else {
-    // Assign as many bits as possible in the rows dimension
+    // Assign as many (of the remaining) bits as possible in the rows dimension
     workColBits = min(log2(width), availableBits);
     availableBits -= workColBits;
 
     // Assign the remaiming bits on the row branches dimension
     workColBranchBits = min(log2(height), availableBits);
 
-    // Assign as many minion bits for the columns dimension as
+    // Assign as many (of the remaining) minion bits for the columns dimension as
     // done for the rows dimension. If the columns dimension is
     // not as big then do tiling also on branches.
     workRowBits = min(log2(height), workColBits);
     workRowBranchBits = workColBits + workColBranchBits - workRowBits;
   }
 
-  // Overriding tiling?
-  if constexpr (true) {
-    // Temporary tiling for denoiseDemo
-    // TODO: Include workChannelBits in the partitioning logic
+  // Overriding tiling?      
+  if constexpr (false) {
     workBatchBits = 0;
     workChannelBits = 2;
     workRowBits = 8;
     workRowBranchBits = 0;
     workColBits = 8;
     workColBranchBits = 0;
+  }
+
+  // Irrespective of whatever we do for tiling, the optimal configuration
+  // must be produced for the denoise demo or we make it crash here rather
+  // than allowing the demo to run with a regressed peformance.
+  if (batches == 1 and channels == 3 and height == 256 and width == 256) {    
+    assert(workBatchBits == 0);
+    assert(workChannelBits == 2);
+    assert(workRowBits == 8);
+    assert(workRowBranchBits == 0);
+    assert(workColBits == 8);
+    assert(workColBranchBits == 0);
   }
 
   assert(workRowBits + workRowBranchBits == workColBits + workColBranchBits);
