@@ -803,7 +803,7 @@ INLINE_ATTR void barrier([[maybe_unused]] size_t globalMinionOffset, size_t rang
   if (range > 1) {
 
     // Minion synchronization (within shire)
-    // et_printf("intra-shire: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
+    //et_printf("intra-shire: mid=%d range=%d clpRange=%d flb=%d end=%d step=%d\n", minionId, range, clippedRange, flb, endLocal, step);
     size_t mask = 0;
     for (size_t i = firstLocal; i < endLocal; i += step) {
       mask = mask | (1 << i);
@@ -814,7 +814,7 @@ INLINE_ATTR void barrier([[maybe_unused]] size_t globalMinionOffset, size_t rang
     fcc_consume(fcc);
 
     // Shire synchronization (within ETSoC)
-    if (range >= SOC_MINIONS_PER_SHIRE) {
+    if (range > SOC_MINIONS_PER_SHIRE) {
       // First minion from each shire handles the ETSoC level synchronization
       if ((minionId & (SOC_MINIONS_PER_SHIRE - 1)) == 0) {
         // et_printf("etsoc-level: mid=%d range=%d flb=%d end=%d step=%d\n", minionId, range, flb, endLocal, step);
