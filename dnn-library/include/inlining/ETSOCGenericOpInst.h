@@ -174,64 +174,66 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
   assert(numMinions >= static_cast<size_t>(1 << (workBatchBits + workChannelBits + workRowBits + workRowBranchBits)));
 
   // Use just as many minions as we can
-  numMinions = min(numMinions, 1UL << (workBatchBits + workChannelBits + workRowBits + workRowBranchBits));
+  size_t usedMinions = min(numMinions, 1UL << (workBatchBits + workChannelBits + workRowBits + workRowBranchBits));
 
-  // Unused minions return inmediately
-  if ((minionId - minionOffset) >= numMinions) {
-    return;
-  }
+  // Only used minions get work
+  if (minionId - minionOffset < usedMinions) {
 
-  // et_printf("%s(%d) [minionOffset=%d numMinions=%d minionId=%d]\n", __func__, __LINE__, minionOffset, numMinions,
-  // minionId);
+    // et_printf("%s(%d) [minionOffset=%d numMinions=%d minionId=%d]\n", __func__, __LINE__, minionOffset, numMinions,
+    // minionId);
 
-  float* in = inT->getRawDataPointer<float>();
-  float* out = outT->getRawDataPointer<float>();
+    float* in = inT->getRawDataPointer<float>();
+    float* out = outT->getRawDataPointer<float>();
 
-  size_t batchElemsGroupSize = 1 << workBatchBits;
-  size_t channelElemsGroupSize = 1 << workChannelBits;
+    size_t batchElemsGroupSize = 1 << workBatchBits;
+    size_t channelElemsGroupSize = 1 << workChannelBits;
 
-  // get filterIndex from host.
-  [[maybe_unused]] auto filterIndex = getFilterIndex(inT);
+    // get filterIndex from host.
+    [[maybe_unused]] auto filterIndex = getFilterIndex(inT);
 
-  for (size_t batch0 = 0; batch0 < batches; batch0 += batchElemsGroupSize) {
+    for (size_t batch0 = 0; batch0 < batches; batch0 += batchElemsGroupSize) {
 
-    // Get the batch group id based on the top 'workBatchBits', ignoring the rest
-    size_t batchMinionGroupId =
-      (minionId & ((1 << (workBatchBits + workChannelBits + workColBits + workColBranchBits)) - 1)) >>
-      (workChannelBits + workColBits + workColBranchBits);
+      // Get the batch group id based on the top 'workBatchBits', ignoring the rest
+      size_t batchMinionGroupId =
+        (minionId & ((1 << (workBatchBits + workChannelBits + workColBits + workColBranchBits)) - 1)) >>
+        (workChannelBits + workColBits + workColBranchBits);
 
-    // Get which batch this minion will perform computation on
-    size_t batch = batch0 + batchMinionGroupId;
+      // Get which batch this minion will perform computation on
+      size_t batch = batch0 + batchMinionGroupId;
 
-    size_t minionOffset0 = (minionOffset + minionId) & ~((1 << (workColBits + workColBranchBits)) - 1);
-    size_t minionId0 = minionId & ((1 << (workColBits + workColBranchBits)) - 1);
+      size_t minionOffset0 = (minionOffset + minionId) & ~((1 << (workColBits + workColBranchBits)) - 1);
+      size_t minionId0 = minionId & ((1 << (workColBits + workColBranchBits)) - 1);
 
-    // et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions,
-    //          minionOffset0, minionId0, batch);
+      // et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d batch=%d]\n", __func__, __LINE__, minionId, numMinions,
+      //          minionOffset0, minionId0, batch);
 
-    for (size_t channel0 = 0; channel0 < channels; channel0 += channelElemsGroupSize) {
+      for (size_t channel0 = 0; channel0 < channels; channel0 += channelElemsGroupSize) {
 
-      // Get the channel group id based only on the 'workChannelBits', ignoring the rest
-      size_t channelMinionGroupId = (minionId & ((1 << (workChannelBits + workColBits + workColBranchBits)) - 1)) >>
-                                    (workColBits + workColBranchBits);
+        // Get the channel group id based only on the 'workChannelBits', ignoring the rest
+        size_t channelMinionGroupId = (minionId & ((1 << (workChannelBits + workColBits + workColBranchBits)) - 1)) >>
+                                      (workColBits + workColBranchBits);
 
-      // Get which channel the minion will perform computation on
-      size_t channel = channel0 + channelMinionGroupId;
+        // Get which channel the minion will perform computation on
+        size_t channel = channel0 + channelMinionGroupId;
 
-      // Get pointers to input and output data structures based on 'batch' and 'channel'
-      float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
-      size_t realStride = srcStrides[3];
-      float* img = real + srcStrides[2];
-      size_t imgStride = srcStrides[3];
-      float* resultReal = out + dstStrides[0] * batch + dstStrides[1] * channel;
-      size_t resultRealStride = dstStrides[3];
-      float* resultImg = resultReal + dstStrides[2];
-      size_t resultImgStride = dstStrides[3];
+        if (channel >= channels) {
+          // Checking this condition is needed because channels get rounded up
+          continue;
+        }
 
-      constexpr bool pass1 = true;
-      constexpr bool pass2 = true;
+        // Get pointers to input and output data structures based on 'batch' and 'channel'
+        float* real = in + srcStrides[0] * batch + srcStrides[1] * channel;
+        size_t realStride = srcStrides[3];
+        float* img = real + srcStrides[2];
+        size_t imgStride = srcStrides[3];
+        float* resultReal = out + dstStrides[0] * batch + dstStrides[1] * channel;
+        size_t resultRealStride = dstStrides[3];
+        float* resultImg = resultReal + dstStrides[2];
+        size_t resultImgStride = dstStrides[3];
 
-      if (channel < channels) { // TODO: verify if this ward is redudant
+        constexpr bool pass1 = true;
+        constexpr bool pass2 = true;
+
         if constexpr (inverse) {
           fft2DInvThreaded<pass1, pass2>(workRowBits, workRowBranchBits, workColBits, workColBranchBits, minionOffset,
                                          minionOffset0, minionId0, width, height, real, realStride, img, imgStride,
@@ -245,6 +247,19 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
       }
     }
   }
+
+  // Synchronize all minions, for when using some shire only partially
+  constexpr size_t flb = 31;
+  constexpr size_t thread = 0;
+  constexpr size_t fcc = 0;
+  constexpr size_t allMinionsMask = (1ULL << SOC_MINIONS_PER_SHIRE) - 1;
+  // Minion zero sends a credit to all the minions in the shire
+  if (flbarrier(flb, SOC_MINIONS_PER_SHIRE - 1)) {
+    fcc_send(SHIRE_OWN, thread, fcc, allMinionsMask);
+  }
+  fcc_consume(fcc);  
+
+  // Synchronize all the shires, for when not using them all
   barrier(minionOffset, numMinions, 1);
 }
 
