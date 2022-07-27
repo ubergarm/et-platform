@@ -93,7 +93,7 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
     workRowBranchBits = workColBits + workColBranchBits - workRowBits;
   }
 
-  // Overriding tiling?      
+  // Overriding tiling?
   if constexpr (false) {
     workBatchBits = 0;
     workChannelBits = 0;
@@ -106,7 +106,7 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   // Irrespective of whatever we do for tiling, the optimal configuration
   // must be produced for the denoise demo or we make it crash here rather
   // than allowing the demo to run with a regressed peformance.
-  if (batches == 1 and channels == 3 and height == 256 and width == 256) {    
+  if (batches == 1 and channels == 3 and height == 256 and width == 256) {
     assert(workBatchBits == 0);
     assert(workChannelBits == 2);
     assert(workRowBits == 8);
@@ -130,7 +130,7 @@ INLINE_ATTR size_t getFilterIndex(LibTensor* inT) {
 template <bool inverse = false, bool freqDomainFilterFusion = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset,
                      size_t numMinions, size_t minionId) {
-  
+
   const dim_t* srcDims = inT->dims().data();
   [[maybe_unused]] const dim_t* dstDims = outT->dims().data();
   const dim_t* srcStrides = inT->strides().data();
@@ -257,7 +257,7 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
   if (flbarrier(flb, SOC_MINIONS_PER_SHIRE - 1)) {
     fcc_send(SHIRE_OWN, thread, fcc, allMinionsMask);
   }
-  fcc_consume(fcc);  
+  fcc_consume(fcc);
 
   // Synchronize all the shires, for when not using them all
   barrier(minionOffset, numMinions, 1);
