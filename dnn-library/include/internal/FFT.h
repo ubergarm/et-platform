@@ -668,10 +668,19 @@ static void fftWithPrecomputeAndIndices(Stack& stack, const float* baseTwiddleRe
     fftWithPrecomputeAndIndices(stack, baseTwiddleReal, baseTwiddleImg, 2 * twiddleStep, fft16TwiddleReal,
                                 fft16TwiddleImg, real, img, start + step, 2 * step, halfSize, tmpRealOdd, tmpImgOdd, vI,
                                 mulIndices, addsubIndices, mulIndices2, addsubIndices2);
-    vectorReduce(baseTwiddleReal, baseTwiddleImg, twiddleStep, halfSize, tmpRealEven, tmpImgEven, tmpRealOdd, tmpImgOdd,
-                 resultReal, resultImg, vI);
-    // reduce(baseTwiddleReal, baseTwiddleImg, twiddleStep, halfSize, tmpRealEven, tmpImgEven, tmpRealOdd, tmpImgOdd,
-    //        resultReal, resultImg);
+#ifndef FFT_HOST_TEST
+    bool useVectorReduce = (halfSize & 7) == 0;
+#else
+    constexpr bool useVectorReduce = false;
+#endif
+    if (useVectorReduce) {
+      vectorReduce(baseTwiddleReal, baseTwiddleImg, twiddleStep, halfSize, tmpRealEven, tmpImgEven, tmpRealOdd, tmpImgOdd,
+                   resultReal, resultImg, vI);
+    }
+    else {
+      reduce(baseTwiddleReal, baseTwiddleImg, twiddleStep, halfSize, tmpRealEven, tmpImgEven, tmpRealOdd, tmpImgOdd,
+            resultReal, resultImg);
+    }
     stack.restore(saved);
   }
 }
@@ -801,7 +810,7 @@ INLINE_ATTR void barrier([[maybe_unused]] size_t globalMinionOffset, size_t rang
   assert(isPowerOfTwo(range));
 
   if (range > 1) {
-
+    
     // Minion synchronization (within shire)
     //et_printf("intra-shire: mid=%d range=%d clpRange=%d flb=%d end=%d step=%d\n", minionId, range, clippedRange, flb, endLocal, step);
     size_t mask = 0;
@@ -1077,7 +1086,7 @@ INLINE_ATTR void fft2dThreaded(size_t workRowBits, size_t workRowBranchBits, siz
       // et_printf("%s(%d) [mId=%d nMins=%d mOfs0=%d mId0=%d row=%d]\n", __func__, __LINE__, minionId, numMinions,
       //          minionOffset0, minionId0, row);
       constexpr bool negateInputImg = inverse;
-      constexpr bool normalizeOutput = false;
+      constexpr bool normalizeOutput = false; 
       fftReversibleWithPrecomputeThreaded<negateInputImg, normalizeOutput>(
         workRowBranchBits, minionOffset0, minionId0, stack, horizBaseTwiddleReal, horizBaseTwiddleImg, tFft16Real,
         tFft16Img, real + row * realStride, img + row * imgStride, 0, 1, width, resultReal + row * resultRealStride,

@@ -96,10 +96,10 @@ INLINE_ATTR void fftTiling(size_t batches, [[maybe_unused]] size_t channels, [[m
   // Overriding tiling?      
   if constexpr (false) {
     workBatchBits = 0;
-    workChannelBits = 2;
-    workRowBits = 8;
+    workChannelBits = 0;
+    workRowBits = 0;
     workRowBranchBits = 0;
-    workColBits = 8;
+    workColBits = 0;
     workColBranchBits = 0;
   }
 
@@ -130,7 +130,7 @@ INLINE_ATTR size_t getFilterIndex(LibTensor* inT) {
 template <bool inverse = false, bool freqDomainFilterFusion = false>
 INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset,
                      size_t numMinions, size_t minionId) {
-
+  
   const dim_t* srcDims = inT->dims().data();
   [[maybe_unused]] const dim_t* dstDims = outT->dims().data();
   const dim_t* srcStrides = inT->strides().data();
