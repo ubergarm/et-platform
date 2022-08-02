@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py
-//  cwd=/local/home/pmunt/sw-platform-2/host-software/dnnLibrary/scripts
+//  cwd=/local/home/pmunt/sw-platform-5/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -643,7 +643,7 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     1, // # outs
     4,  // # ins
     {instrMembers::mbHasEndOffset}, // members
-    1, // template param mask
+    5, // template param mask
     {}, // impl versions
     implSel::defaultSel<1>, // custom impl selector
     // L1 states per impl

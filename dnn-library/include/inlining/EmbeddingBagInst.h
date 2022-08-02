@@ -17,6 +17,7 @@
 #include <fenv.h>
 #include <limits>
 #include <string.h>
+#include <type_traits>
 
 #include "Float16.h"
 #include "utils.h" // From include/internal path
@@ -203,16 +204,17 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
   }
 }
 
-template <ElemKind elK>
-inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T,
-                                                                LibTensor* in3T, LibTensor* in4T, bool hasEndOffset,
-                                                                uint64_t flags, const uint32_t minionOffset = 0,
-                                                                const uint32_t assignedMinions = 0) {
+template <ElemKind outElK, ElemKind weightsElK>
+INLINE_ATTR typename std::enable_if_t<(weightsElK == FloatTy || weightsElK == Float16Ty), void>
+fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
+                       bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
+                       const uint32_t assignedMinions = 0) {
+  // in This instantiation, in and out forcibly match.
+  static_assert(weightsElK == outElK);
+  constexpr bool float32Dst = (outElK == FloatTy);
+  constexpr bool float16Dst = (outElK == Float16Ty);
 
-  constexpr bool float32Dst = (elK == FloatTy);
-  constexpr bool float16Dst = (elK == Float16Ty);
-
-  static_assert(elK == FloatTy || elK == Float16Ty);
+  static_assert(outElK == FloatTy || outElK == Float16Ty);
   // Get size of the output element.
   const uintptr_t elemSize = float32Dst ? 4 : 2;
   // Get first ID for the first minion assigned to this operation.
@@ -570,7 +572,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
       );
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-        embeddingBagsTailVectorized<elK>(
+        embeddingBagsTailVectorized<outElK>(
           minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, in1T->strides()[0] * elemSize,
           (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize, tWInput, dst_ptr, destAlignedVreg);
         dst_ptr += dstVRegElems * elemSize;
@@ -583,7 +585,7 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
         : [tail_mask] "r" (dstRowTailVRegMask)
       );
 
-      embeddingBagsTailVectorized<elK>(
+      embeddingBagsTailVectorized<outElK>(
         minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, in1T->strides()[0] * elemSize,
         (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize, tWInput, dst_ptr,
         destAlignedVreg);
@@ -597,6 +599,84 @@ inline __attribute((always_inline)) void fwdLibEmbeddingBagInst(LibTensor* outT,
       getNextSegment(minionCurrSegment);
 
       dst_ptr = tOutput + minionCurrSegment * outputStrideZeroBytes + minionCurrRowGroup * dstGroupElems * elemSize;
+    }
+  }
+}
+
+//////////// Int8QTy weights instantiation for EmbeddingBag
+
+template <ElemKind outElK, ElemKind weightsElK>
+INLINE_ATTR typename std::enable_if_t<(weightsElK == Int8QTy), void>
+fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices, LibTensor* offsets,
+                       bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
+                       const uint32_t assignedMinions = 0) {
+
+  (void)flags;
+  (void)assignedMinions;
+
+  static_assert(outElK == FloatTy);
+
+  using outType = typename elemKind2elemTy<outElK>::type;
+  using weightsType = typename elemKind2elemTy<weightsElK>::type;
+
+  auto minionId = get_minion_id();
+  //  FIXME: just minon 0 does some work at the moment.
+  if ((minionId - minionOffset) != 0) {
+    return;
+  }
+
+  auto scale = weights->getScale();
+  auto offset = weights->getOffset();
+
+  et_printf("%s() weights Int8QTy \n", __func__);
+  et_printf("%s() w scale: %f offset: %d \n", __func__, double(scale), offset);
+
+  auto IH = indices->getHandle<int64_t>();
+  auto OFFH = offsets->getHandle<int64_t>();
+
+  // If an end offset is present to mark the end of the last segment then this
+  // must be subtracted to get the correct number of segments
+  size_t segments = hasEndOffset ? offsets->dims()[0] - 1 : offsets->dims()[0];
+  size_t numIndices = indices->dims()[0];
+
+  size_t lineSize = data->size() / data->dims()[0];
+
+  auto DH = data->getHandle<outType>();
+  auto WH = weights->getHandle<weightsType>();
+  auto OH = out->getHandle<outType>();
+
+  OH.zero();
+
+  dim_t curIdx = 0;
+  for (dim_t i = 0; i < segments; i++) {
+    dim_t start = OFFH.raw(i);
+    dim_t end;
+    if (!hasEndOffset) {
+      // Note that in this case we have to use numIndices to find the end of
+      // the last segment. This is an issue though because it relies on knowing
+      // the total length of the indices tensor which may not be possible.
+      // Future implementations of this operator should always give an end
+      // offset so eventually this case should be removed.
+      end = i == segments - 1 ? numIndices : OFFH.raw(i + 1);
+    } else {
+      end = OFFH.raw(i + 1);
+    }
+    if (start == end) {
+      continue;
+    } else if (start > end) {
+      break;
+    }
+    for (dim_t j = start; j < end; j++) {
+      // Convert weight to float from int8Ty before using.
+      int8_t quantizedWeight = WH.raw(curIdx);
+      auto weight = dequantize(quantizedWeight, scale, offset);
+
+      dim_t offsetIn = IH.raw(curIdx++) * lineSize;
+      dim_t offsetOut = i * lineSize;
+      for (dim_t k = 0; k < lineSize; k++) {
+        OH.raw(offsetOut++) += DH.raw(offsetIn++) * weight;
+        // et_printf("%f %f %d",  double(OH.raw(offsetOut-1)), double(weight), quantizedWeight);
+      }
     }
   }
 }
