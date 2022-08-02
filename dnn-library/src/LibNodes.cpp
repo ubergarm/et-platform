@@ -854,10 +854,10 @@ template void fwdLibElementSubInst<Int64ITy>(LibTensor* out0, LibTensor* in0, Li
   // Forward call to corresponding dnn_lib::inlining implementations
   ////////////////////////////////////////////////////////////////////////////////
  
-  template <ElemKind out0Type, ElemKind in1Type>
+  template <ElemKind out0Type, ElemKind in0Type>
   void fwdLibEmbeddingBagInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
   {
-    dnn_lib::inlining::fwdLibEmbeddingBagInst<out0Type, in1Type>(out0, in0, in1, in2, in3, HasEndOffset, flags, minionOffset, assignedMinions);
+    dnn_lib::inlining::fwdLibEmbeddingBagInst<out0Type, in0Type>(out0, in0, in1, in2, in3, HasEndOffset, flags, minionOffset, assignedMinions);
   }
 
   ////////////////////////////////////////////////////////////////////////////////

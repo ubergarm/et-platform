@@ -528,7 +528,7 @@ extern template void fwdLibElementSubInst<Int64ITy>(LibTensor* out0, LibTensor* 
 *  EmbeddingBag implementations
 ****************************************************************************/
 // declarations
-template <ElemKind out0Type, ElemKind in1Type>
+template <ElemKind out0Type, ElemKind in0Type>
 void fwdLibEmbeddingBagInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, LibTensor* in3, const bool HasEndOffset, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
