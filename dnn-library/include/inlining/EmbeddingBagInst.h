@@ -204,13 +204,13 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
   }
 }
 
-template <ElemKind outElK, ElemKind weightsElK>
-INLINE_ATTR typename std::enable_if_t<(weightsElK == FloatTy || weightsElK == Float16Ty), void>
+template <ElemKind outElK, ElemKind in1ElK>
+INLINE_ATTR typename std::enable_if_t<(in1ElK == FloatTy || in1ElK == Float16Ty), void>
 fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
                        bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
                        const uint32_t assignedMinions = 0) {
   // in This instantiation, in and out forcibly match.
-  static_assert(weightsElK == outElK);
+  static_assert(in1ElK == outElK);
   constexpr bool float32Dst = (outElK == FloatTy);
   constexpr bool float16Dst = (outElK == Float16Ty);
 
@@ -603,10 +603,11 @@ fwdLibEmbeddingBagInst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTen
   }
 }
 
-//////////// Int8QTy weights instantiation for EmbeddingBag
+//////////// Int8QTy "data" instantiation for EmbeddingBag
+// Beware of occupied semantics: "data" from the operator PoV is typically considered a "weight" from dlrm model PoV.
 
-template <ElemKind outElK, ElemKind weightsElK>
-INLINE_ATTR typename std::enable_if_t<(weightsElK == Int8QTy), void>
+template <ElemKind outElK, ElemKind dataElK>
+INLINE_ATTR typename std::enable_if_t<(dataElK == Int8QTy), void>
 fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices, LibTensor* offsets,
                        bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
                        const uint32_t assignedMinions = 0) {
@@ -617,7 +618,7 @@ fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibT
   static_assert(outElK == FloatTy);
 
   using outType = typename elemKind2elemTy<outElK>::type;
-  using weightsType = typename elemKind2elemTy<weightsElK>::type;
+  using dataType = typename elemKind2elemTy<dataElK>::type;
 
   auto minionId = get_minion_id();
   //  FIXME: just minon 0 does some work at the moment.
@@ -625,11 +626,11 @@ fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibT
     return;
   }
 
-  auto scale = weights->getScale();
-  auto offset = weights->getOffset();
+  auto scale = data->getScale();
+  auto offset = data->getOffset();
 
-  et_printf("%s() weights Int8QTy \n", __func__);
-  et_printf("%s() w scale: %f offset: %d \n", __func__, double(scale), offset);
+  et_printf("%s() data Int8QTy \n", __func__);
+  et_printf("%s() scale: %f offset: %d \n", __func__, double(scale), offset);
 
   auto IH = indices->getHandle<int64_t>();
   auto OFFH = offsets->getHandle<int64_t>();
@@ -641,8 +642,8 @@ fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibT
 
   size_t lineSize = data->size() / data->dims()[0];
 
-  auto DH = data->getHandle<outType>();
-  auto WH = weights->getHandle<weightsType>();
+  auto DH = data->getHandle<dataType>();
+  auto WH = weights->getHandle<outType>();
   auto OH = out->getHandle<outType>();
 
   OH.zero();
@@ -667,15 +668,14 @@ fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibT
       break;
     }
     for (dim_t j = start; j < end; j++) {
-      // Convert weight to float from int8Ty before using.
-      int8_t quantizedWeight = WH.raw(curIdx);
-      auto weight = dequantize(quantizedWeight, scale, offset);
+      auto weight = WH.raw(curIdx);
 
       dim_t offsetIn = IH.raw(curIdx++) * lineSize;
       dim_t offsetOut = i * lineSize;
       for (dim_t k = 0; k < lineSize; k++) {
-        OH.raw(offsetOut++) += DH.raw(offsetIn++) * weight;
-        // et_printf("%f %f %d",  double(OH.raw(offsetOut-1)), double(weight), quantizedWeight);
+        // data is int8QTy. Convert data to float before use.
+        int8_t quantizedData = DH.raw(offsetIn++);
+        OH.raw(offsetOut++) += dequantize(quantizedData, scale, offset) * weight;
       }
     }
   }
