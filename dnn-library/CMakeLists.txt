@@ -166,6 +166,7 @@ target_compile_options(dnn_lib
         -Werror=parentheses
         -Werror=unused-local-typedefs
         -Werror=sign-compare
+        -Werror=narrowing
 )
 target_link_libraries(dnn_lib
     PRIVATE

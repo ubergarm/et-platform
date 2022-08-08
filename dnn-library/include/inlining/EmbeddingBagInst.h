@@ -20,10 +20,11 @@
 #include <type_traits>
 
 #include "Float16.h"
-#include "utils.h" // From include/internal path
-#include "LibTypes.h"
-#include "LibTensor.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "etsoc/isa/atomic.h"
+#include "utils.h" // From include/internal path
 
 /**
  * @brief packs 8 fp16s into a contiguous region of the f reg and and stores it to global mem
@@ -629,9 +630,6 @@ fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibT
   auto scale = data->getScale();
   auto offset = data->getOffset();
 
-  et_printf("%s() data Int8QTy \n", __func__);
-  et_printf("%s() scale: %f offset: %d \n", __func__, double(scale), offset);
-
   auto IH = indices->getHandle<int64_t>();
   auto OFFH = offsets->getHandle<int64_t>();
 
@@ -646,7 +644,17 @@ fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibT
   auto WH = weights->getHandle<outType>();
   auto OH = out->getHandle<outType>();
 
-  OH.zero();
+  // clean the ouput-tensor. We should not clean the padding, so using
+  // explicit indexed writes.
+  // et_assert(ndims = 2)
+  for (dim_t d0 = 0; d0 < out->dims()[0]; d0++) {
+    for (dim_t d1 = 0; d1 < out->dims()[1]; d1++) {
+      std::array<dim_t, 2> pos = {d0, d1};
+      auto address = (uint32_t*)&OH.at(pos);
+      float zeroF = 0;
+      atomic_store_global_32(address, *reinterpret_cast<uint32_t*>(&zeroF));
+    }
+  }
 
   dim_t curIdx = 0;
   for (dim_t i = 0; i < segments; i++) {
@@ -669,13 +677,27 @@ fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibT
     }
     for (dim_t j = start; j < end; j++) {
       auto weight = WH.raw(curIdx);
+      size_t dataLine = IH.raw(curIdx);
+      curIdx++;
 
-      dim_t offsetIn = IH.raw(curIdx++) * lineSize;
-      dim_t offsetOut = i * lineSize;
+      // prepare data pos for dataLine.
+      std::array<dim_t, 2> inPos = {dataLine, 0};
+
+      // prepare and output pos for ith-line.
+      std::array<dim_t, 2> outPos = {i, 0};
+
       for (dim_t k = 0; k < lineSize; k++) {
         // data is int8QTy. Convert data to float before use.
-        int8_t quantizedData = DH.raw(offsetIn++);
-        OH.raw(offsetOut++) += dequantize(quantizedData, scale, offset) * weight;
+        int8_t quantizedData = DH.at(inPos);
+        auto outAddress = (uint32_t*)&OH.at(outPos);
+        // increment innder dims
+        inPos[1]++;
+        outPos[1]++;
+
+        auto currValRaw = atomic_load_global_32(outAddress);
+        auto currVal = *reinterpret_cast<float*>(&currValRaw);
+        auto newVal = currVal + dequantize(quantizedData, scale, offset) * weight;
+        atomic_store_global_32(outAddress, *(reinterpret_cast<uint32_t*>(&newVal)));
       }
     }
   }
