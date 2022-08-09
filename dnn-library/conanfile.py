@@ -107,9 +107,10 @@ class DnnLibraryConan(ConanFile):
             if self.options.with_host_headers and not self.options.with_device_headers:
                 self.copy("InstrTableGenerated.h", src=os.path.join(self.source_folder, "include", "host_headers"), dst=host_headers_dst)
             else:
-                self.copy("*", src=os.path.join(self.source_folder, "include"), dst=os.path.join("include", "dnn_lib"))
-                src = os.path.join(self.package_folder, "include", "dnn_lib", "host_headers", "InstrTableGenerated.h")
+                self.copy("*", src=os.path.join(self.source_folder, "include"), dst=os.path.join("include", "dnn_lib"), keep_path=False)
+                src = os.path.join(self.package_folder, "include", "dnn_lib", "InstrTableGenerated.h")
                 dst = os.path.join(self.package_folder, "include", "dnn_lib", "host_headers", "dnn_lib", "InstrTableGenerated.h")
+                os.mkdir(os.path.join(self.package_folder, "include", "dnn_lib", "host_headers"))
                 os.mkdir(os.path.join(self.package_folder, "include", "dnn_lib", "host_headers", "dnn_lib"))
                 shutil.move(src, dst)
         else:
