@@ -163,4 +163,9 @@ size_t implSel::AvgPool(std::vector<LibTensor*>& outTensors, std::vector<LibTens
   return (inTensors[0]->ndims() == 5) ? 0 : 1;
 }
 
+size_t implSel::EmbeddingBag([[maybe_unused]] std::vector<LibTensor*>& outTensors,
+                             [[maybe_unused]] std::vector<LibTensor*>& inTensors) {
+  return 1;
+}
+
 } // end namespace dnn_lib

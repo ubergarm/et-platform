@@ -99,6 +99,11 @@ public:
   //   0: base implementation
   //   1: Threaded
   static size_t AvgPool(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
+
+  // Best implementation selector for operator EmbeddingBag. Return values are:
+  //   0: base implementation
+  //   1: Threaded
+  static size_t EmbeddingBag(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
 };
 
 } // namespace dnn_lib
