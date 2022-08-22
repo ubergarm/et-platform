@@ -217,7 +217,6 @@ embeddingBagsTailVectorized(dim_t minionCurrIndex, dim_t currSegmentStart, dim_t
   constexpr int32_t simdWidth = 8;
   using outType = typename elemKind2elemTy<outElK>::type;
   using dataType = typename elemKind2elemTy<dataElK>::type;
-  (void)alignedStores; //  Assume aligned stores
 
   // Clear vector accumulator at the start.
   f32x8 accum;
@@ -241,7 +240,7 @@ embeddingBagsTailVectorized(dim_t minionCurrIndex, dim_t currSegmentStart, dim_t
     // Dequantize
     __asm__ __volatile__(
       // Load 1x8 Int8QTy elements of data into 1x8 Int32Qty
-      "fgbl.ps %[dataValues], %[int8Offsets](%[data_ptr])\n"
+      "fgb.ps %[dataValues], %[int8Offsets](%[data_ptr])\n"
       // Broadcast scale and offset
       "fbcx.ps %[offsetVector], %[offset]\n"
       "fbcx.ps %[scaleVector], %[scale]\n"
@@ -264,9 +263,17 @@ embeddingBagsTailVectorized(dim_t minionCurrIndex, dim_t currSegmentStart, dim_t
       : [ dataValues ] "f"(dataValues), [ weightValues ] "f"(weightValues)
       :);
   }
-
   // Store accumulated results.
-  __asm__ __volatile__("fswg.ps %[accum], (%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr), [ accum ] "f"(accum) :);
+  if (alignedStores) {
+    __asm__ __volatile__("fswg.ps %[accum], (%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr), [ accum ] "f"(accum) :);
+  } else {
+    f32x8 fp32Offsets;
+    __asm__ __volatile__("fslli.pi %[fp32Offsets], %[int8Offsets], 2\n"
+                         "fscwg.ps %[accum], %[int8Offsets](%[dst_ptr])\n"
+                         : [ fp32Offsets ] "=&f"(fp32Offsets)
+                         : [ dst_ptr ] "r"(dst_ptr), [ accum ] "f"(accum), [ int8Offsets ] "f"(int8Offsets)
+                         :);
+  }
 }
 
 INLINE_ATTR bool getNextSegment(const dim_t segment, const dim_t segments, const dim_t numIndices,
@@ -739,7 +746,6 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
   if (minionId >= activeMinions) {
     return;
   }
-
   assert(weights->getElementType() == out->getElementType());
   assert((indices->getElementType() == Int64ITy) && (indices->getElementType() == offsets->getElementType()));
 
@@ -810,7 +816,6 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
                        ((out->strides()[0] * outElemSize % VREG_BYTES) == 0) &&
                        (!out->getUntouchable() || (((uint64_t)out->dims()[1] % simdWidth) == 0));
 
-  assert(alignedStores);
 
   // Compute the first output row (segment) assigned to the Minion.
   dim_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
@@ -905,8 +910,8 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
         // Load and dequantize
         __asm__ __volatile__(
           // Load 2x8 Int8QTy elements of data into 2x8 Int32Qty
-          "fgbl.ps   %[dataValues1],   %[int8Offsets](%[data_ptr1])\n"
-          "fgbl.ps   %[dataValues2],   %[int8Offsets](%[data_ptr2])\n"
+          "fgb.ps   %[dataValues1],   %[int8Offsets](%[data_ptr1])\n"
+          "fgb.ps   %[dataValues2],   %[int8Offsets](%[data_ptr2])\n"
 
           // Broadcast scale and offset
           "fbcx.ps %[offsetVector], %[offset]\n"
@@ -963,7 +968,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
       }
     } else {
       for (dim_t k = 0; k < dstRowTailVRegs; k++) {
-        if (k == dstRowTailVRegs - 1) {
+        if (k == (dstRowTailVRegs - 1)) {
           // Set tail mask for last VReg op of the segment.
           __asm__ __volatile__("mov.m.x m0, %[tail_mask], 0x0\n" : : [ tail_mask ] "r"(dstRowTailVRegMask));
         }
