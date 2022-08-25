@@ -136,7 +136,9 @@ install (TARGETS dnn_lib_host_generated_headers
 
 add_library(dnn_lib STATIC
     src/LibNodes.cpp
+    src/DummyLogCode.cpp
 )
+
 add_library(dnnLibrary::dnn_lib ALIAS dnn_lib)
 target_include_directories(dnn_lib
     PUBLIC
