@@ -25,6 +25,14 @@
 
 #define MIN_PER_SHIRE 32
 
+#ifndef NUM_HARTS
+// FIXME, need to properly modify build-system to  include system/layout.h from et-common-libs
+#define NUM_SHIRES 33
+#define HARTS_PER_SHIRE 32 * 2
+#define MIN_PER_SHIRE 32
+#define NUM_HARTS (NUM_SHIRES * HARTS_PER_SHIRE)
+#endif
+
 //#define DIM_T_32
 namespace dnn_lib {
 

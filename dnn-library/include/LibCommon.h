@@ -24,6 +24,9 @@
 #include "LibTensor.h"
 
 #include <etsoc/isa/tensors.h>
+// Shall match wrappers in UberKernel.cc
+extern void log_enter_user_region_wrapper(uint64_t ptr, uint16_t regionId);
+extern void log_exit_user_region_wrapper(uint64_t ptr, uint16_t regionId);
 
 namespace dnn_lib {
 
@@ -273,6 +276,54 @@ using UintSelector =
       >::type
     >::type
   >::type;
+
+// TODO: [SW-13991]
+// nullptr global initialized pointers are emitted to bss, and as
+// of today, bss is not 0-initialized on etsoc, so program semantics
+// is not preserved, we can't invalidate pointers here with nullptr
+static void* invalidPtr = (void*)0x1;
+
+/* 1 pointer enty per cache-line*/
+struct alignas(CACHE_LINE_BYTES) HartLog {
+  void* ptr_ = invalidPtr;
+};
+
+// define  DNNLIB_PROFILING
+#ifdef DNNLIB_PROFILING
+
+/**
+ * per-hart array singleton of log pointers
+ */
+[[maybe_unused]] alignas(CACHE_LINE_BYTES) extern HartLog hartLogs[NUM_HARTS];
+
+/**
+ * @brief dnnlib adapter to  log_enter_user_region
+ * @param regionId: numeric id of the regiion.
+ */
+INLINE_ATTR void logEnterUserRegion(uint16_t regionId) {
+  auto logPtr = hartLogs[get_hart_id()].ptr_;
+  if (logPtr != invalidPtr) {
+    ::log_enter_user_region_wrapper(uint64_t(logPtr), regionId);
+  }
+}
+
+/**
+ * @brief dnnlib adapter to  log_exit_user_region
+ * @param regionId: numeric id of the region.
+ */
+INLINE_ATTR void logExitUserRegion(uint16_t regionId) {
+  auto logPtr = hartLogs[get_hart_id()].ptr_;
+  if (logPtr != invalidPtr) {
+    ::log_exit_user_region_wrapper(uint64_t(logPtr), regionId);
+  }
+}
+
+#else
+INLINE_ATTR void logEnterUserRegion([[maybe_unused]] uint16_t regionId) {
+}
+INLINE_ATTR void logExitUserRegion([[maybe_unused]] uint16_t regionId) {
+}
+#endif
 
 } // namespace dnn_lib
 
