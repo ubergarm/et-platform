@@ -288,7 +288,7 @@ struct alignas(CACHE_LINE_BYTES) HartLog {
   void* ptr_ = invalidPtr;
 };
 
-// define  DNNLIB_PROFILING
+#define DNNLIB_PROFILING
 #ifdef DNNLIB_PROFILING
 
 /**
