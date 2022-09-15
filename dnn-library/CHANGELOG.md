@@ -3,13 +3,45 @@
 [[_TOC_]]
 
 ## Unreleased
-
 ### Added
 ### Changed
-- Updated conanfile
 ### Deprecated
 ### Removed
 ### Fixed
+### Security
+
+
+## [0.2.0]
+### Added
+### Changed
+- [SW-12785] FFT avoid repeated load and stores
+- [SW-13180] Prevent evict_va for L2scp addresses in syncopy
+- [SW-13174] Parallelize resnet image conditioning
+- [SW-13174] Support a tiling of 256 minions on resnet image conditioning
+- [SW-13174] Evict to L3 on the resnet image conditioning operator
+- [SW-12786] Vectorize reduce() routine
+- [SW-13093] support multiple noises in dnnLib
+- [SW-13095] 10 different noises for fft freq-dom filter 
+- [SW-12786] Fixed wrong ASM param constraint
+- [SW-12793] Threading over channel. Using fixed tiling params
+- [SW-11367] Add header_only, with_host_headers, with_device_headers options to conanfile options
+- [SW-13438] Make denoise filter bank human-radable
+- [SW-13532] remove ETSOCGenericOp from inlining
+- [SW-13430] Automatic tiling in channels for FFT
+- [SW-13430] When not using a full shire, synchronize also with unused minions
+- [SW-13430] Clang-format fixes 
+- [SW-13621] Support Quantized-weights in EmbeddingBag 
+- [SW-13621] dequantie data instead of weights 
+- [SW-13621] use global stores in quantized EB
+- [SW-13675] Added support for quantized data in the EmbeddingBag vectorized version
+- [SW-13675] Fixed quantized version unaligned stores and replaced fgbl loads
+- [SW-13963] dnnlib adapters to profiling code
+- [SW-13963] enable profiling calls by default
+### Deprecated
+### Removed
+### Fixed
+- [SW-13430] Fixed a synchronization corner case 
+- [SW-13430] Fixed a bug on the FFT reduce code 
 ### Security
 
 
