@@ -7,11 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [[_TOC_]]
 
 ## Unreleased
-
 ### Added
-- Added conan CI
 ### Changed
-- Updated conanfile
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
+## [0.2.0]
+### Added
+- [SW-13385] Add conan ci
+### Changed
+- [SW-13385] Update dnnLibraryApi recipe
+- [SW-13532] Interface to allow granular dnnlib includes in neuralizer
+- [SW-13675] Added EmbeddingBag impl selector
 ### Deprecated
 ### Removed
 ### Fixed
