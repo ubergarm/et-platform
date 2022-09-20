@@ -165,6 +165,7 @@ size_t implSel::AvgPool(std::vector<LibTensor*>& outTensors, std::vector<LibTens
 
 size_t implSel::EmbeddingBag([[maybe_unused]] std::vector<LibTensor*>& outTensors,
                              [[maybe_unused]] std::vector<LibTensor*>& inTensors) {
+
   return 1;
 }
 

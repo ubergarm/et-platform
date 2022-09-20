@@ -14,6 +14,18 @@
 namespace dnn_lib {
 
 Type::Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
+           const float scale, const int32_t offset, const bool hasSingleValue, const float singleValue)
+  : sizes_(dims)
+  , strides_(strides)
+  , elementType_(elk)
+  , numSizes_(numSizes)
+  , scale_(scale)
+  , offset_(offset)
+  , hasSingleValue_(hasSingleValue)
+  , singleValue_(singleValue) {
+}
+
+Type::Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
            const float scale, const int32_t offset)
   : sizes_(dims)
   , strides_(strides)
@@ -115,6 +127,15 @@ bool Type::isIndexElemKind() const {
   return (elementType_ == dnn_lib::ElemKind::Int32ITy) or (elementType_ == dnn_lib::ElemKind::Int64ITy);
 }
 
+bool Type::hasSingleValue() const {
+  return hasSingleValue_;
+}
+
+float Type::getSingleValue() const {
+  assert(hasSingleValue() and "Single value can only be obtained when it is set");
+  return singleValue_;
+}
+
 // end Type class
 
 ///////
@@ -178,7 +199,8 @@ LibTensor::LibTensor(const Type&& type, void* const rawdata, const bool untouch)
 
 LibTensor::LibTensor(const Tensor& tensor)
   : ptrData_(reinterpret_cast<char*>(tensor.alignOffset))
-  , type_(tensor.elementType, tensor.numDims, tensor.sizes, tensor.strides, tensor.scale, tensor.offset)
+  , type_(tensor.elementType, tensor.numDims, tensor.sizes, tensor.strides, tensor.scale, tensor.offset,
+          tensor.hasSingleValue, tensor.singleValue)
   , untouch_(tensor.untouchablePadding) {
 }
 
@@ -196,6 +218,14 @@ size_t LibTensor::getElementSize() const {
 
 bool LibTensor::getUntouchable() const {
   return untouch_;
+}
+
+bool LibTensor::hasSingleValue() const {
+  return type_.hasSingleValue();
+}
+
+float LibTensor::getSingleValue() const {
+  return type_.getSingleValue();
 }
 
 // end LibTensor class

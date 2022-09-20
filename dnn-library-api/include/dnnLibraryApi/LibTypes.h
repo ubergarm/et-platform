@@ -69,6 +69,8 @@ struct Tensor {
   int32_t offset;          // Quantization offset
   uint64_t alignOffset;    // Offset within an initial address that might unalign the tensor
   bool untouchablePadding; // If the padding of the tensor is untouchable
+  bool hasSingleValue;     // If all the values of the tensor are the same
+  float singleValue;       // Repeated value if hasSingleValue is set
 };
 
 // Instruction properties struct

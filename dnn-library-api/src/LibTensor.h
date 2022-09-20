@@ -25,6 +25,11 @@ namespace dnn_lib {
 
 class Type {
 public:
+  /*@brief Initialize a new type with broadcast information
+   */
+  Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
+       const float scale, const int32_t offset, const bool hasSingleValue, const float singleValue);
+
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
@@ -71,6 +76,14 @@ public:
   template <class ElemTy> bool isType() const {
     return isType<ElemTy>(elementType_);
   }
+
+  /*@brief When the tensor is fully broadcast, it may have a single value registered.
+   */
+  bool hasSingleValue() const;
+
+  /*@brief If hasSingleValue_ is true, contains the value fully broadcasted across the Tensor
+   */
+  float getSingleValue() const;
 
   /*@brief returns true if the templated parameter \p ElemKind matches the type
    *that's specified by the parameter \p Ty.
@@ -198,6 +211,14 @@ private:
    */
   const int32_t offset_{};
 
+  /*@brief When the tensor is fully broadcast, it may have a single value registered.
+   */
+  const bool hasSingleValue_ = false;
+
+  /*@brief If hasSingleValue_ is true, contains the value fully broadcasted across the Tensor
+   */
+  const float singleValue_ = 0.0;
+
 }; // class Type
 
 class LibTensor final {
@@ -265,6 +286,10 @@ public:
   size_t getElementSize() const;
 
   bool getUntouchable() const;
+
+  bool hasSingleValue() const;
+
+  float getSingleValue() const;
 };
 
 } // namespace dnn_lib
