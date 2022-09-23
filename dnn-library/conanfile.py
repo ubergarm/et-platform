@@ -9,7 +9,6 @@ import shutil
 
 class DnnLibraryConan(ConanFile):
     name = "dnnLibrary"
-    version = "0.2.0"
     license = "Esperanto Technologies"
     author = "Pau Farre <pau.farre@esperantotech.com>" # recipe author
     url = "https://gitlab.esperanto.ai/software/dnn-library"
