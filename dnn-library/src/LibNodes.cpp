@@ -1,8 +1,8 @@
 // clang-format off
 
 // File automatically generated with:
-//  ./libManager.py --swplatform-root /home/nivard/sw-platform --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/nivard/sw-platform/host-software/dnnLibrary/scripts
+//  ./libManager.py
+//  cwd=/home/cgomez/repos/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
