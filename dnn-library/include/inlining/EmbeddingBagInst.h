@@ -104,6 +104,27 @@ namespace inlining {
  *  type of evict required.
  */
 
+inline __attribute((always_inline)) void pack_and_global_store_fp16x16(f32x8 src0, const f32x8 src1, void* dstPtr) {
+  __asm__ __volatile__("mov.m.x  m0, zero, 0x0F \n"
+                       "fpackreph.pi %[src0], %[src0]\n" /* pack 8 fp16s in the lower half */
+                       "mov.m.x  m0, zero, 0xF0 \n"
+                       "fpackreph.pi %[src0], %[src1]\n" /* pack 8 fp16s in the higher half */
+                       "mov.m.x  m0, zero, 0xFF \n"      /* restore mask */
+                       "fswg.ps %[src0], (%[dst_ptr])\n" /* global store the whole  256 bits reg */
+                       : [ dst_ptr ] "+&r"(dstPtr), [ src0 ] "+&f"(src0)
+                       : [ src1 ] "f"(src1)
+                       :);
+}
+
+INLINE_ATTR uint32_t getVMask(int64_t n) {
+  // VLEN is 8.
+  // If n >= 31, return a mask with all ones (0xFFFFFFFF), otherwise, a mask with n 1's set.
+
+  uint32_t gvl = n > 31 ? ~0u : (1 << n) - 1;
+  gvl = n < 0 ? 0 : gvl; // if n is negative, mask is 0x0000000
+  return gvl;
+}
+
 template <ElemKind elK>
 inline __attribute((always_inline)) void
 embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStart, uintptr_t currSegmentEnd,
@@ -341,7 +362,7 @@ INLINE_ATTR std::pair<dim_t, dim_t> getWorkDistribution(size_t minionId, size_t 
   return {minionWorkUnits, minionFirstWorkUnit};
 }
 
-template <ElemKind outElK, ElemKind in1ElK>
+template <ElemKind outElK, ElemKind in1ElK, bool fastpath>
 INLINE_ATTR typename std::enable_if_t<(in1ElK == FloatTy || in1ElK == Float16Ty), void>
 fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
                                  bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
@@ -719,16 +740,16 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   }
 }
 
-// FP32 and Quantized
-template <ElemKind outElK, ElemKind dataElK>
-INLINE_ATTR typename std::enable_if_t<(dataElK == Int8QTy && (outElK == FloatTy || outElK == Float16Ty)), void>
-fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
-                                 LibTensor* offsets, bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
-                                 const uint32_t assignedMinions = 0) {
+template <ElemKind outElK, ElemKind dataElK, bool fastpath>
+INLINE_ATTR
+  typename std::enable_if_t<(fastpath == false && dataElK == Int8QTy && (outElK == FloatTy || outElK == Float16Ty)),
+                            void>
+  fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
+                                   LibTensor* offsets, bool hasEndOffset, uint64_t flags,
+                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
 
   using outType = typename elemKind2elemTy<outElK>::type;
-  using dataType = typename elemKind2elemTy<dataElK>::type;
-  const dim_t outElemSize = sizeof(outType);
+  using inType = typename elemKind2elemTy<dataElK>::type;
 
   // If Minion is outside the group assigned to this Node get out.
   size_t minionId = get_minion_id();
@@ -740,253 +761,303 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
   minionId -= minionOffset;
 
   // Get number of Minions assigned to this Node.
-  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
 
   // If Minion is outside the group assigned to this Node get out.
   if (minionId >= activeMinions) {
     return;
   }
-  assert(weights->getElementType() == out->getElementType());
-  assert((indices->getElementType() == Int64ITy) && (indices->getElementType() == offsets->getElementType()));
+  et_assert(weights->getElementType() == out->getElementType());
+  et_assert((indices->getElementType() == Int64ITy) && (indices->getElementType() == offsets->getElementType()));
 
   auto offH = offsets->getHandle<int64_t>();
-  auto tOutput = out->getRawDataPointer<outType>();
-  auto tAInput = data->getRawDataPointer<dataType>();
   auto tWInput = weights->getRawDataPointer<outType>();
-  auto tIndices = indices->getRawDataPointer<int64_t>();
 
-  const dim_t segments = hasEndOffset ? (offsets->dims()[0] - 1) : offsets->dims()[0];
-  const dim_t numIndices = indices->dims()[0];
+  // Work partitioning is based on output tensor 'segments'
+  auto numSegments = out->dims()[0];
+  // If the EB input data has 1 dimension x = n, is equivalent to a EB 2D where (x,y) = n,1
+  dim_t segmentLen = out->ndims() > 1 ? out->dims()[1] : static_cast<dim_t>(1UL);
 
-  // Compute the number of elements per data row (first tensor dimension).
-  const dim_t dstRowElemSize = out->dims()[1];
-
-  // Assign work to Minions:
-  //
-  // NOTE: Each Minion gets assigned at least an output cache line for
-  // historical reasons although Global stores are in use.
-  //
-  // NOTE: NOT IMPLEMENTED!!!
-  // If the row is smaller than a cache line then multiple rows need to
-  // be assigned to a single Minion.
-
-  // Compute the number of 8-element vectors (VRegs) per output cache line
-  // (a Minion must be assigned a full cache line to avoid coherence issues
-  // when writing).
-  // This correspond with a group (one or more VRegs).
-  const dim_t simdWidth = 8; // SIMD/Vector length  in elements
-  const dim_t dstGroupElems = CACHE_LINE_BYTES / outElemSize;
-  const dim_t dstGroupVRegs = CACHE_LINE_BYTES / (outElemSize * simdWidth);
-
-  // Compute the number of groups per output row (rounded up).
-  const dim_t dstRowGroups = ((dstRowElemSize - 1) / dstGroupElems) + 1;
-
-  // Computes if there's a tail
-  bool dstRowHasTail = ((dstRowElemSize % dstGroupElems) != 0);
-
-  // Compute the number of 8-element vectors in the tail of the row
-  // (number of VRegs not multiple of Group VRegs).
-  dim_t dstRowTailVRegs = (((dstRowElemSize - 1) / simdWidth) + 1) % dstGroupVRegs;
-  if (dstRowTailVRegs == 0) {
-    dstRowTailVRegs += dstGroupVRegs;
-  }
-
-  // Compute the element mask for the last VReg in the row.
-  sdim_t dstRowTailVRegMask = (1 << (dstRowElemSize % simdWidth)) - 1;
-  // If 0, it means all the lanes need to be enabled in last pass
-  if (dstRowTailVRegMask == 0) {
-    dstRowTailVRegMask = (1 << simdWidth) - 1;
-  }
-
-  auto totalWorkUnits = dstRowGroups * out->dims()[0];
-  auto [minionWorkUnits, minionFirstWorkUnit] = getWorkDistribution(minionId, activeMinions, totalWorkUnits);
-
-  // No work for this Minion.
-  if (minionWorkUnits == 0) {
+  dim_t numSegmentsPerMinion = std::max(((numSegments + activeMinions - 1) / activeMinions), 1UL);
+  // This minion gets assigned to compute from startSegment to endSegment
+  dim_t startSegment = numSegmentsPerMinion * minionId;
+  if (startSegment >= numSegments) {
     return;
   }
+  auto endSegment = std::min(startSegment + numSegmentsPerMinion, numSegments);
 
-  // Computes if the output segments are correctly aligned to simdWidth and contiguous stores
-  // can be used instead of scatters.
-  // Need both the dest starting address being VReg aligned as well as the pitch for
-  // the smallest dimension
-  // The padding must be touchable or the number of elements multiple of simdWidth size
-  // NOTE: if not correctly aligned it will fail, pending to implement
-  bool alignedStores = (((uint64_t)tOutput % VREG_BYTES) == 0) &&
-                       ((out->strides()[0] * outElemSize % VREG_BYTES) == 0) &&
-                       (!out->getUntouchable() || (((uint64_t)out->dims()[1] % simdWidth) == 0));
+  // Handles
+  auto IH = indices->getHandle<int64_t>();
+  auto DH = data->getHandle<inType>();
+  auto OH = out->getHandle<outType>();
+  // Get the sizes to iterate
+  et_assert(reinterpret_cast<uint64_t>(out->getRawDataPointer<uint64_t>()) % 64 ==
+            0); // Assert output tensor is aligned to 8 bytes
 
-
-  // Compute the first output row (segment) assigned to the Minion.
-  dim_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
-  // Compute current group in row assigned to the Minion.
-  dim_t minionFirstRowGroup = minionFirstWorkUnit % dstRowGroups;
-
-  // Get the first index assigned to the Minion.
-  dim_t minionFirstIndex = 0;
-  dim_t currSegmentStart = 0;
-  dim_t currSegmentEnd = 0;
-
-  if (offH.raw(0) == 0) {
-    // fast path, offests start at 0, we can have a direct access to minionFirstIndex
-    minionFirstIndex = offH.raw(minionFirstSegment);
-    getNextSegment(minionFirstSegment, segments, numIndices, offH, hasEndOffset, currSegmentStart, currSegmentEnd);
-
-  } else {
-    // slow path, offests do not start at 0, offets need traveral to get to minionFirstIndex
-    bool minionEmptySegment = false;
-    for (dim_t s = 0; s <= minionFirstSegment; s++) {
-      if (not minionEmptySegment) {
-        minionFirstIndex += (currSegmentEnd - currSegmentStart);
-      }
-      minionEmptySegment =
-        getNextSegment(s, segments, numIndices, offH, hasEndOffset, currSegmentStart, currSegmentEnd);
-    }
-  }
-
-  // Initialize indices.
-  dim_t minionCurrIndex = minionFirstIndex;
-  dim_t minionCurrSegment = minionFirstSegment;
-  dim_t minionCurrRowGroup = minionFirstRowGroup;
-
-  // Initialize output pointer.
-  auto dst_ptr = tOutput + minionCurrSegment * out->strides()[0] + minionCurrRowGroup * dstGroupElems;
-
+  // Pre-compute the indices used in gather/scatter operations
+  // load gather for quantized Int8QTy data values
+  // store scatter for FP16/FP32 accumulated results
   int32_t gather_offsets8[8] = {0, 1, 2, 3, 4, 5, 6, 7};
-  f32x8 int8Offsets;
-
+  f32x8 int8Offsets, fp16Offsets, fp32Offsets;
   const int32_t offset = data->getOffset();
   const float scale = data->getScale();
-
   __asm__ __volatile__("flw.ps  %[int8Offsets], %[gather_offsets8]\n"
-                       : [ int8Offsets ] "=&f"(int8Offsets)
+                       "fslli.pi  %[fp16Offsets], %[int8Offsets], 1\n"
+                       "fslli.pi  %[fp32Offsets], %[fp16Offsets], 1\n"
+                       : [ int8Offsets ] "=&f"(int8Offsets), [ fp16Offsets ] "=&f"(fp16Offsets),
+                         [ fp32Offsets ] "=&f"(fp32Offsets)
                        : [ gather_offsets8 ] "m"(*(const int32_t(*)[8])gather_offsets8)
                        :);
 
-  // START COMPUTING
-  for (dim_t i = 0; i < minionWorkUnits; i++) {
-    f32x8 accum1;
-    f32x8 accum2;
+  // Broadcast scale and offset used in dequantization
+  f32x8 offsetVector;
+  f32x8 scaleVector;
+  __asm__ __volatile__("fbcx.ps %[offsetVector], %[offset]\n"
+                       "fbcx.ps %[scaleVector], %[scale]\n"
+                       : [ offsetVector ] "=&f"(offsetVector), [ scaleVector ] "=&f"(scaleVector)
+                       : [ offset ] "r"(offset), [ scale ] "r"(scale)
+                       :);
 
-    // Initialize mask to clear upper bytes from input load
-    __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
+  // Main loop
+  for (dim_t s = startSegment; s < endSegment; s++) {
+    f32x8 dataValues0;
+    f32x8 accum0;
 
-    // Detect row tail
-    bool dstGroupNotInRowTail = !dstRowHasTail || (minionCurrRowGroup != (dstRowGroups - 1));
-
-    if (dstGroupNotInRowTail) {
-      // Initialize vector mask
-      // Clear vector registers that will be used for accumulation
-      // Initialize mask to clear upper bytes from input load
-      __asm__ __volatile__("fxor.pi %[accum1], %[accum1], %[accum1]\n"
-                           "fxor.pi %[accum2], %[accum2], %[accum2]\n"
-                           : [ accum1 ] "=&f"(accum1), [ accum2 ] "=&f"(accum2)
-                           :
-                           :);
-
-      // For all sparse input rows
-      for (dim_t j = currSegmentStart, currIndex = minionCurrIndex; j < currSegmentEnd; j++, currIndex++) {
-        // For each row in currentSegment
-        dataType* dataPtr = &tAInput[tIndices[currIndex] * data->strides()[0] + minionCurrRowGroup * dstGroupElems];
-        outType* weightPtr = &tWInput[currIndex];
-
-        f32x8 weightValues;
-        __asm__ __volatile__("fbc.ps  %[weightValues], 0x0(%[weightPtr])\n"
-                             : [ weightValues ] "=&f"(weightValues)
-                             : [ weightPtr ] "r"(weightPtr)
-                             :);
-
-        // if (j < currSegmentEnd - 1) {
-        //   dataType* data_ptr_next =
-        //     tAInput + (tIndices[currIndex + 1] * data->strides()[0] + minionCurrRowGroup * dstGroupElems);
-        //   // Prefetch next index of current segment
-        //   __asm__ __volatile__("ld          x0, (%[data_ptr_next])\n" : : [ data_ptr_next ] "r"(data_ptr_next) :);
-        // }
-
-        f32x8 dataValues1;
-        f32x8 dataValues2;
-        f32x8 offsetVector;
-        f32x8 scaleVector;
-        // Load and dequantize
-        __asm__ __volatile__(
-          // Load 2x8 Int8QTy elements of data into 2x8 Int32Qty
-          "fgb.ps   %[dataValues1],   %[int8Offsets](%[data_ptr1])\n"
-          "fgb.ps   %[dataValues2],   %[int8Offsets](%[data_ptr2])\n"
-
-          // Broadcast scale and offset
-          "fbcx.ps %[offsetVector], %[offset]\n"
-          "fbcx.ps %[scaleVector], %[scale]\n"
-
-          // Dequantize: scale * (float)( (int32) input - (int32_t)offset )
-          "fsub.pi %[dataValues1], %[dataValues1], %[offsetVector]\n"
-          "fsub.pi %[dataValues2], %[dataValues2], %[offsetVector]\n"
-          // convert to float
-          "fcvt.ps.pw %[dataValues1], %[dataValues1]\n"
-          "fcvt.ps.pw %[dataValues2], %[dataValues2]\n"
-          // Mul by scale
-          "fmul.ps %[dataValues1], %[dataValues1], %[scaleVector]\n"
-          "fmul.ps %[dataValues2], %[dataValues2], %[scaleVector]\n"
-          : [ offsetVector ] "=&f"(offsetVector), [ scaleVector ] "=&f"(scaleVector),
-            [ dataValues1 ] "=&f"(dataValues1), [ dataValues2 ] "=&f"(dataValues2)
-          : [ int8Offsets ] "f"(int8Offsets), [ data_ptr1 ] "r"(dataPtr), [ data_ptr2 ] "r"(dataPtr + 8),
-            [ offset ] "r"(offset), [ scale ] "r"(scale)
-          :);
-
-        // Multipy datavalues by weight and accumulate to prev value
-        __asm__ __volatile__("fmadd.ps %[accum1], %[dataValues1], %[weightValues], %[accum1]\n"
-                             "fmadd.ps %[accum2], %[dataValues2], %[weightValues], %[accum2]\n"
-                             : [ accum1 ] "+&f"(accum1), [ accum2 ] "+&f"(accum2)
-                             : [ dataValues1 ] "f"(dataValues1), [ dataValues2 ] "f"(dataValues2),
-                               [ weightValues ] "f"(weightValues)
-                             :);
-      }
-
-      // Store accumulated results.
-      __asm__ __volatile__("fswg.ps %[accum1],  (%[dst_ptr])\n"
-                           "addi    %[dst_ptr], %[dst_ptr], 32\n"
-                           "fswg.ps %[accum2],  (%[dst_ptr])\n"
-                           "addi    %[dst_ptr], %[dst_ptr], 32\n"
-                           : [ dst_ptr ] "+&r"(dst_ptr)
-                           : [ accum1 ] "f"(accum1), [ accum2 ] "f"(accum2)
-                           :);
-
-      // Check if this group is the last in the segment
-      if (minionCurrRowGroup != (dstRowGroups - 1)) {
-        minionCurrRowGroup++;
-      } else {
-        // Advance to next segment.
-        minionCurrSegment++;
-        minionCurrRowGroup = 0;
-
-        if (currSegmentEnd > currSegmentStart) {
-          minionCurrIndex += (currSegmentEnd - currSegmentStart);
-        }
-
-        getNextSegment(minionCurrSegment, segments, numIndices, offH, hasEndOffset, currSegmentStart, currSegmentEnd);
-
-        dst_ptr = &tOutput[minionCurrSegment * out->strides()[0]];
-      }
+    // Get start and end offset of this segment
+    auto startOffset = offH.raw(s);
+    int64_t endOffset;
+    if (s == (numSegments - 1UL)) {
+      endOffset = hasEndOffset ? static_cast<int64_t>(offH.raw(s + 1)) : static_cast<int64_t>(indices->dims()[0]);
     } else {
-      for (dim_t k = 0; k < dstRowTailVRegs; k++) {
-        if (k == (dstRowTailVRegs - 1)) {
-          // Set tail mask for last VReg op of the segment.
-          __asm__ __volatile__("mov.m.x m0, %[tail_mask], 0x0\n" : : [ tail_mask ] "r"(dstRowTailVRegMask));
-        }
+      endOffset = static_cast<int64_t>(offH.raw(s + 1));
+    }
 
-        embeddingBagsTailVectorized<outElK, dataElK>(
-          minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, scale, offset, tIndices, data->strides()[0],
-          (minionCurrRowGroup * dstGroupElems + k * simdWidth), tWInput, dst_ptr, alignedStores, int8Offsets);
-        dst_ptr += simdWidth;
+    // Get the destination pointer to write results
+    std::array<dim_t, 2> segmentCoord = {s, 0};
+    auto dstPtr = &OH.at(segmentCoord);
+
+    // Enable all bits in mask
+    __asm__ __volatile__("mov.m.x m0, zero, 0xff\n" : :);
+
+    if constexpr (outElK == Float16Ty) {
+      // 16 x FP16 elements on each iteration
+      constexpr int64_t vlen = 16;
+      f32x8 dataValues1;
+      f32x8 accum1;
+
+      int64_t i = 0;
+      for (; i < (static_cast<int64_t>(segmentLen) - (vlen - 1LL)); i += vlen) {
+        // Clear vector registers that will be used for accumulation
+        __asm__ __volatile__("fxor.pi %[accum0], %[accum0], %[accum0]\n"
+                             "fxor.pi %[accum1], %[accum1], %[accum1]\n"
+                             : [ accum0 ] "=&f"(accum0), [ accum1 ] "=&f"(accum1)
+                             :
+                             :);
+
+        // For every row in the segment
+        for (int64_t j = startOffset; j < endOffset; j++) {
+
+          // Load and broadcast weight and convert to FP32
+          outType* weightPtr = tWInput + j;
+          f32x8 weightValues;
+          __asm__ __volatile__("fbc.ps  %[weightValues], 0x0(%[weightPtr])\n"
+                               "fcvt.ps.f16 %[weightValues], %[weightValues]\n"
+                               : [ weightValues ] "=&f"(weightValues)
+                               : [ weightPtr ] "r"(weightPtr)
+                               :);
+
+          // Get the data source pointer
+          auto rowIndex = static_cast<dim_t>(IH.raw(j));
+          std::array<dim_t, 2> rowCoord = {rowIndex, static_cast<dim_t>(i)};
+          auto srcPtr = reinterpret_cast<char*>(&DH.at(rowCoord));
+
+          // Load 16 x Int8QTy data elements (srcPtr) and dequantize to FP32
+          __asm__ __volatile__(
+            "fgb.ps %[dataValues0],   %[int8Offsets](%[srcPtr])\n"
+            "addi %[srcPtr], %[srcPtr], 8\n"
+            "fgb.ps %[dataValues1],   %[int8Offsets](%[srcPtr])\n"
+            "addi %[srcPtr], %[srcPtr], 8\n"
+            // Dequantize: scale * (float)( (¡) input - (int32_t)offset )
+            "fsub.pi %[dataValues0], %[dataValues0], %[offsetVector]\n"
+            "fsub.pi %[dataValues1], %[dataValues1], %[offsetVector]\n"
+            // convert to fp32
+            "fcvt.ps.pw %[dataValues0], %[dataValues0]\n"
+            "fcvt.ps.pw %[dataValues1], %[dataValues1]\n"
+            // Mul by scale
+            "fmul.ps %[dataValues0], %[dataValues0], %[scaleVector]\n"
+            "fmul.ps %[dataValues1], %[dataValues1], %[scaleVector]\n"
+            : [ dataValues0 ] "=&f"(dataValues0), [ dataValues1 ] "=&f"(dataValues1), [ srcPtr ] "+&r"(srcPtr)
+            : [ int8Offsets ] "f"(int8Offsets), [ offsetVector ] "f"(offsetVector), [ scaleVector ] "f"(scaleVector)
+            :);
+
+          // Mutiply by weight and Accumulate with previous value
+          __asm__ __volatile__("fmadd.ps %[accum0], %[dataValues0], %[weightValues], %[accum0]\n"
+                               "fmadd.ps %[accum1], %[dataValues1], %[weightValues], %[accum1]\n"
+                               : [ accum0 ] "+&f"(accum0), [ accum1 ] "+&f"(accum1)
+                               : [ dataValues0 ] "f"(dataValues0), [ dataValues1 ] "f"(dataValues1),
+                                 [ weightValues ] "f"(weightValues)
+                               :);
+        }
+        // Convert to FP16 before storing
+        __asm__ __volatile__("fcvt.f16.ps %[accum0], %[accum0]\n"
+                             "fcvt.f16.ps %[accum1], %[accum1]\n"
+                             : [ accum0 ] "+&f"(accum0), [ accum1 ] "+&f"(accum1)
+                             :
+                             :);
+        pack_and_global_store_fp16x16(accum0, accum1, dstPtr);
+        dstPtr += vlen;
       }
 
-      minionCurrIndex += (currSegmentEnd - currSegmentStart);
-      // Move from row tail to next row.
-      minionCurrSegment++;
-      minionCurrRowGroup = 0;
-      getNextSegment(minionCurrSegment, segments, numIndices, offH, hasEndOffset, currSegmentStart, currSegmentEnd);
+      if (i < segmentLen) { // This is the epilogue
+        uint32_t mask0 = getVMask(static_cast<int64_t>(segmentLen) - i);
+        uint32_t mask1 = mask0 & 0xFF00u; // Get bits [8:15] from mask0 to create mask1
 
-      dst_ptr = &tOutput[minionCurrSegment * out->strides()[0]];
+        // reset mask before clearing accumulation registers
+        __asm__ __volatile__("mov.m.x m0, zero, 0xff\n" : :);
+        // clear accumulation registers
+        __asm__ __volatile__("fxor.pi %[accum0], %[accum0], %[accum0]\n"
+                             "fxor.pi %[accum1], %[accum1], %[accum1]\n"
+                             : [ accum0 ] "=&f"(accum0), [ accum1 ] "=&f"(accum1)
+                             :
+                             :);
+
+        // For every row in the segment
+        for (int64_t j = startOffset; j < endOffset; j++) {
+
+          // reset mask before loading weights
+          __asm__ __volatile__("mov.m.x m0, zero, 0xff\n" : :);
+
+          // Load and broadcast weight and convert to FP32
+          outType* weightPtr = tWInput + j;
+          f32x8 weightValues;
+          __asm__ __volatile__("fbc.ps  %[weightValues], 0x0(%[weightPtr])\n"
+                               "fcvt.ps.f16 %[weightValues], %[weightValues]\n"
+                               : [ weightValues ] "=&f"(weightValues)
+                               : [ weightPtr ] "r"(weightPtr)
+                               :);
+
+          // Get the data source pointer
+          auto rowIndex = static_cast<dim_t>(IH.raw(j));
+          std::array<dim_t, 2> rowCoord = {rowIndex, static_cast<dim_t>(i)};
+          auto srcPtr = &DH.at(rowCoord);
+
+          // Load 16 x Int8QTy data elements (srcPtr) and dequantize to FP32, accumulate in FP32.
+          __asm__ __volatile__( // set mask0
+            "mov.m.x m0, %[mask0], 0x0\n"
+            "fgb.ps %[dataValues0],   %[int8Offsets](%[srcPtr])\n"
+            "addi %[srcPtr], %[srcPtr], 8\n"
+            "fsub.pi %[dataValues0], %[dataValues0], %[offsetVector]\n"
+            "fcvt.ps.pw %[dataValues0], %[dataValues0]\n"
+            "fmul.ps %[dataValues0], %[dataValues0], %[scaleVector]\n"
+            "fmadd.ps %[accum0], %[dataValues0], %[weightValues], %[accum0]\n"
+            // set mask1
+            "mov.m.x m0, %[mask1], 0x0\n"
+            "fgb.ps %[dataValues1],   %[int8Offsets](%[srcPtr])\n"
+            "addi %[srcPtr], %[srcPtr], 8\n"
+            "fsub.pi %[dataValues1], %[dataValues1], %[offsetVector]\n"
+            "fcvt.ps.pw %[dataValues1], %[dataValues1]\n"
+            "fmul.ps %[dataValues1], %[dataValues1], %[scaleVector]\n"
+            "fmadd.ps %[accum1], %[dataValues1], %[weightValues], %[accum1]\n"
+            : [ dataValues0 ] "=&f"(dataValues0), [ dataValues1 ] "=&f"(dataValues1), [ srcPtr ] "+&r"(srcPtr),
+              [ accum0 ] "+&f"(accum0), [ accum1 ] "+&f"(accum1)
+            : [ int8Offsets ] "f"(int8Offsets), [ offsetVector ] "f"(offsetVector), [ scaleVector ] "f"(scaleVector),
+              [ weightValues ] "f"(weightValues), [ mask0 ] "r"(mask0), [ mask1 ] "r"(mask1)
+            :);
+        }
+
+        // store and convert before storing
+        __asm__ __volatile__("mov.m.x m0, %[mask0], 0x0\n"
+                             "fcvt.f16.ps %[accum0], %[accum0]\n"
+                             "fschg.ps %[accum0], %[fp16Offsets](%[dst_ptr0])\n"
+                             "mov.m.x m0, %[mask1], 0x0\n"
+                             "fcvt.f16.ps %[accum1], %[accum1]\n"
+                             "fschg.ps %[accum1], %[fp16Offsets](%[dst_ptr1])\n"
+                             :
+                             : [ dst_ptr0 ] "r"(dstPtr), [ dst_ptr1 ] "r"(dstPtr + 16), [ accum0 ] "f"(accum0),
+                               [ accum1 ] "f"(accum1), [ fp16Offsets ] "f"(fp16Offsets), [ mask0 ] "r"(mask0),
+                               [ mask1 ] "r"(mask1)
+                             :);
+      }
+
+    } else {
+      // 8 x FP32 elements on each iteration
+      constexpr int64_t vlen = 8;
+      for (dim_t i = 0; i < segmentLen; i += vlen) {
+        // Set vector length mask
+        uint32_t gvlmask = getVMask(segmentLen - i);
+        __asm__ __volatile__("mov.m.x m0, %[gvl], 0x0\n" : : [ gvl ] "r"(gvlmask));
+
+        // Clear vector registers that will be used for accumulation
+        __asm__ __volatile__("fxor.pi %[accum0], %[accum0], %[accum0]\n" : [ accum0 ] "=&f"(accum0) : :);
+
+        // For every data row in the segment
+        for (int64_t j = startOffset; j < endOffset; j++) {
+
+          // Load and broadcast weight
+          outType* weightPtr = tWInput + j;
+          f32x8 weightValues;
+          __asm__ __volatile__("fbc.ps  %[weightValues], 0x0(%[weightPtr])\n"
+                               : [ weightValues ] "=&f"(weightValues)
+                               : [ weightPtr ] "r"(weightPtr)
+                               :);
+
+          // Get the data source pointer
+          auto rowIndex = static_cast<dim_t>(IH.raw(j));
+          std::array<dim_t, 2> rowCoord = {rowIndex, static_cast<dim_t>(i)};
+          auto srcPtr = &DH.at(rowCoord);
+
+          // Load 8 x Int8QTy data elements (srcPtr) and dequantize to FP32
+          __asm__ __volatile__("fgb.ps %[dataValues0],   %[int8Offsets](%[srcPtr])\n"
+                               // Dequantize: scale * (float)( (¡) input - (int32_t)offset )
+                               "fsub.pi %[dataValues0], %[dataValues0], %[offsetVector]\n"
+                               // convert to fp32
+                               "fcvt.ps.pw %[dataValues0], %[dataValues0]\n"
+                               // Mul by scale
+                               "fmul.ps %[dataValues0], %[dataValues0], %[scaleVector]\n"
+                               : [ dataValues0 ] "=&f"(dataValues0)
+                               : [ int8Offsets ] "f"(int8Offsets), [ offsetVector ] "f"(offsetVector),
+                                 [ scaleVector ] "f"(scaleVector), [ srcPtr ] "r"(srcPtr)
+                               :);
+
+          // Mutiply by weight and Accumulate with previous value
+          __asm__ __volatile__("fmadd.ps %[accum0], %[dataValues0], %[weightValues], %[accum0]\n"
+                               : [ accum0 ] "+&f"(accum0)
+                               : [ dataValues0 ] "f"(dataValues0), [ weightValues ] "f"(weightValues)
+                               :);
+        }
+
+        // Store
+        if (gvlmask >= 0xFF) {
+          // Elements remaining >= 8
+          __asm__ __volatile__("fswg.ps %[accum0], (%[dst_ptr])\n"
+                               :
+                               : [ dst_ptr ] "r"(dstPtr), [ accum0 ] "f"(accum0)
+                               :);
+        } else {
+          // Elements remaining is < 8.
+          // NOTE: This is necessary because fswg.ps does not support masking yet.
+          __asm__ __volatile__("fscwg.ps %[accum0], %[fp32Offsets](%[dst_ptr])\n"
+                               :
+                               : [ dst_ptr ] "r"(dstPtr), [ accum0 ] "f"(accum0), [ fp32Offsets ] "f"(fp32Offsets)
+                               :);
+        }
+        dstPtr += vlen;
+      }
     }
+  }
+}
+
+template <ElemKind outElK, ElemKind dataElK>
+INLINE_ATTR void fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* weights,
+                                                  LibTensor* indices, LibTensor* offsets, bool hasEndOffset,
+                                                  uint64_t flags, const uint32_t minionOffset = 0,
+                                                  const uint32_t assignedMinions = 0) {
+  if constexpr (false) {
+    fwdLibEmbeddingBagInstVectorized<outElK, dataElK, true>(out, data, weights, indices, offsets, hasEndOffset, flags,
+                                                            minionOffset, assignedMinions);
+  } else {
+    fwdLibEmbeddingBagInstVectorized<outElK, dataElK, false>(out, data, weights, indices, offsets, hasEndOffset, flags,
+                                                             minionOffset, assignedMinions);
   }
 }
 
