@@ -54,6 +54,26 @@ struct Type final {
    */
   const int32_t offset_{};
 
+  /*@brief When the tensor is fully broadcast, it may have a single value registered.
+   */
+  const bool hasSingleValue_ = false;
+
+  /*@brief If hasSingleValue_ is true, contains the value fully broadcasted across the Tensor.
+   */
+  const float singleValue_ = 0.0;
+
+  /*@brief If isCounter_ is true, the values of the tensor are contiguous with the same stride.
+   */
+  const bool isCounter_ = false;
+
+  /*@brief Starting value of the counter.
+   */
+  const int64_t counterOffset_ = 0;
+
+  /*@brief Stride between values of the counter.
+   */
+  const int64_t counterStride_ = 0;
+
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
   template <size_t numSizes>
@@ -373,6 +393,35 @@ struct Type final {
     __builtin_unreachable();
   }
 
+  /*@brief When the tensor is fully broadcast, it may have a single value registered.
+   */
+  bool hasSingleValue() const {
+    return hasSingleValue_;
+  }
+
+  /*@brief If hasSingleValue() is true, returns the value that is repeated
+   */
+  float getSingleValue() const {
+    assert(hasSingleValue() and "Single value can only be obtained when it is set");
+    return singleValue_;
+  }
+
+  /*@brief If isCounter_ is true, the values of the tensor are contiguous with the same stride
+   */
+  bool isCounter() const {
+    return isCounter_;
+  }
+
+  int64_t getCounterOffset() const {
+    assert(isCounter() and "Counter offset can only be obtained when tensor is a counter");
+    return counterOffset_;
+  }
+
+  int64_t getCounterStride() const {
+    assert(isCounter() and "Counter stride can only be obtained when tensor is a counter");
+    return counterStride_;
+  }
+
   // /// Given a string \p str containing the name of an ElemKind from
   // /// Type::getElementName, returns the corresponding ElemKind or Error if a
   // /// mapping couldn't be found.
@@ -553,6 +602,34 @@ public:
    */
   uint64_t getSizeInBytes() const {
     return type_.getSizeInBytes();
+  }
+
+  bool hasSingleValue() const {
+    return type_.hasSingleValue();
+  }
+
+  /*@brief If hasSingleValue() is true, returns the value that is repeated
+   */
+  float getSingleValue() const {
+    return type_.getSingleValue();
+  }
+
+  /*@brief If isCounter_ is true, the values of the tensor are contiguous with the same stride.
+   */
+  bool isCounter() const {
+    return type_.isCounter();
+  }
+
+  /*@brief Starting value of the counter.
+   */
+  int64_t getCounterOffset() const {
+    return type_.getCounterOffset();
+  }
+
+  /*@brief Stride between values of the counter.
+   */
+  int64_t getCounterStride() const {
+    return type_.getCounterStride();
   }
 
   // constructor for quant types
@@ -757,7 +834,7 @@ public:
         valid  = number of valid elements in the current row starting at outPtr
         computeArgs = any extra parameters that will just be forwared
 
-   */
+  */
   template <typename dstType, typename srcType = dstType, dim_t step = 8, bool doEvicts = true, typename compute_t,
             typename... computeArgs_t>
   INLINE_ATTR void partitionLoop(const size_t minionId, const size_t activeMinions, const uint64_t flags,
