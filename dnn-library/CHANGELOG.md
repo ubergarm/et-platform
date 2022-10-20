@@ -10,6 +10,15 @@
 ### Fixed
 ### Security
 
+## [0.3.0]
+### Added
+### Changed
+- [SW-14405] Refactor Embedding Bag, Int8 to FP32 and new FP16.
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 
 ## [0.2.0]
 ### Added
