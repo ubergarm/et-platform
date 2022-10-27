@@ -1,8 +1,6 @@
-# Sample GitLab Project
+# Description
 
-This sample project shows how a project in GitLab looks for demonstration purposes. It contains issues, merge requests and Markdown files in many branches,
-named and filled with lorem ipsum.
-
-You can look around to get an idea how to structure your project and, when done, you can safely delete this project.
-
-[Learn more about creating GitLab projects.](https://docs.gitlab.com/ee/gitlab-basics/create-project.html)
+This project contains General-purpose-sdk specific code and tools. it involves  the needed material (libs, docs, exampless), to allow a customer to:
+###Write, debug and profile a standalone compute Kernel 
+###Execute on EtSoC
+###Recover results
