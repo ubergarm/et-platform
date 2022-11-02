@@ -243,7 +243,8 @@ void GenericLauncher::dumpTracesToFile() {
   runtime_->memcpyDeviceToHost(traceStreams_[devIdx_], traceDeviceBuffer_, deviceTrace.data(), deviceTrace.size());
   // serialize traces to disck
   runtime_->waitForStream(traceStreams_[devIdx_]);
-  // traces have been copied.. we can remove them from device.
+  // traces have been copied.. we can remove them from device. 
+  // FIXME: decouple removal from here to reuse trace-buffer across kernel launches.
   runtime_->freeDevice(devices_[devIdx_], traceDeviceBuffer_);
 
   auto tracePath =
@@ -253,14 +254,12 @@ void GenericLauncher::dumpTracesToFile() {
 }
 
 void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
-  // TODO: need a specific wait from GenericLauncher PoV
   auto success = runtime_->waitForStream(defaultStreams_[devIdx_], timeout);
   if (success) {
     return;
   }
-
   // Kernel did not complete on the expected time. let's abort the stream in which
-  // the ckernel is running.
+  // the kernel is running.
   std::cout << "[TIMEOUT] " << __func__ << "() Wait for Stream command exceeded " << int(timeout.count())
             << " seconds.  Aborting stream\n";
   auto event = runtime_->abortStream(defaultStreams_[devIdx_]);
@@ -278,7 +277,7 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
 
 void GenericLauncher::kernelLaunch() {
   // TODO   make shire-mask config-aware.
-  // Alloc space on device to get user traces. TODO: split into prep work so we can leverae across launches.
+  // Alloc space on device to get user traces. TODO: split into prep work so we can leverage across launches.
   if (enableKernelTraces) {
     traceDeviceBuffer_ = runtime_->mallocDevice(devices_[devIdx_], kTraceBufferSize);
   }
