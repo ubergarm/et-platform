@@ -55,10 +55,6 @@ public:
   void kernelLaunch();
   void waitKernelCompletion(std::chrono::seconds timeout);
 
-  virtual void performDeviceAllocs() = 0;
-  virtual void programHost2DevCopies() = 0;
-  virtual void programDev2HostCopies() = 0;
-  virtual void freeDeviceAllocs() = 0;
   virtual void prepareKernelArguments() = 0;
 
   inline static Mode mode_ = Mode::SYSEMU;
@@ -67,7 +63,7 @@ public:
 private:
   rt::KernelId loadKernel(const std::string& kernelName, uint32_t deviceIdx = 0);
   std::vector<std::byte> readFile(const std::string& path);
-  // just to enable glog-logger on runtime.
+  // FIXME: just to enable glog-logger on runtime.
   logging::LoggerDefault loggerDefault_;
 
 protected:
@@ -77,13 +73,13 @@ protected:
   std::vector<rt::DeviceId> devices_;
   std::vector<rt::StreamId> defaultStreams_;
   std::vector<rt::StreamId> traceStreams_;
-
+  
   std::byte* traceDeviceBuffer_;
   // todo: support loading multiple kernels and launch named kernels.
   rt::KernelId kernel_;
   std::byte* kernelArgs_;
   size_t kernelArgsSize_;
-  // FIXME: multi-dev design.
+  // TODO: multi-dev design.
   size_t devIdx_ = 0;
 };
 

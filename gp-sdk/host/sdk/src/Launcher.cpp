@@ -8,41 +8,72 @@
 // agreement/contract under which the program(s) have been supplied.
 //------------------------------------------------------------------------------
 
-#include "Launcher.h"
+#include "GenericLauncher.h"
 #include "llvm/Support/CommandLine.h"
 
-void Launcher::performDeviceAllocs() {
-  dSrc1_ = runtime_->mallocDevice(devices_[devIdx_], hSrc1_.size() * sizeof(int));
-  dSrc2_ = runtime_->mallocDevice(devices_[devIdx_], hSrc2_.size() * sizeof(int));
-  dDst_ = runtime_->mallocDevice(devices_[devIdx_], hDst_.size() * sizeof(int));
-}
+// Shared with device:
+// FIXME: move to a public header.
+// bewware of void * and use fixed-with instead.
+struct Params {
+  void* src1;
+  void* src2;
+  void* dst;
+  int elements;
+} __attribute__((packed));
 
-void Launcher::programHost2DevCopies() {
-  runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], reinterpret_cast<std::byte*>(hSrc1_.data()), dSrc1_,
-                               hSrc1_.size() * sizeof(int));
-  runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], reinterpret_cast<std::byte*>(hSrc2_.data()), dSrc2_,
-                               hSrc2_.size() * sizeof(int));
-}
+// Specific kernel lancuher class.
+class Launcher : public GenericLauncher {
+public:
+  Launcher() = delete;
+  Launcher(const Config& config)
+    : GenericLauncher(config){};
 
-void Launcher::programDev2HostCopies() {
-  runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_], dDst_, reinterpret_cast<std::byte*>(hDst_.data()),
-                               hDst_.size() * sizeof(int));
-}
-void Launcher::freeDeviceAllocs() {
-  runtime_->freeDevice(devices_[devIdx_], dSrc1_);
-  runtime_->freeDevice(devices_[devIdx_], dSrc2_);
-  runtime_->freeDevice(devices_[devIdx_], dDst_);
-}
+  void performDeviceAllocs() {
+    dSrc1_ = runtime_->mallocDevice(devices_[devIdx_], hSrc1_.size() * sizeof(int));
+    dSrc2_ = runtime_->mallocDevice(devices_[devIdx_], hSrc2_.size() * sizeof(int));
+    dDst_ = runtime_->mallocDevice(devices_[devIdx_], hDst_.size() * sizeof(int));
+  }
 
-void Launcher::prepareKernelArguments() {
-  params_.src1 = dSrc1_;
-  params_.src2 = dSrc2_;
-  params_.dst = dDst_;
-  params_.elements = int(hSrc1_.size());
+  void programHost2DevCopies() {
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], reinterpret_cast<std::byte*>(hSrc1_.data()), dSrc1_,
+                                 hSrc1_.size() * sizeof(int));
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], reinterpret_cast<std::byte*>(hSrc2_.data()), dSrc2_,
+                                 hSrc2_.size() * sizeof(int));
+  }
 
-  kernelArgs_ = (std::byte*)&params_;
-  kernelArgsSize_ = sizeof(params_);
-}
+  void programDev2HostCopies() {
+    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_], dDst_, reinterpret_cast<std::byte*>(hDst_.data()),
+                                 hDst_.size() * sizeof(int));
+  }
+
+  void freeDeviceAllocs() {
+    runtime_->freeDevice(devices_[devIdx_], dSrc1_);
+    runtime_->freeDevice(devices_[devIdx_], dSrc2_);
+    runtime_->freeDevice(devices_[devIdx_], dDst_);
+  }
+
+  void prepareKernelArguments() override {
+    params_.src1 = dSrc1_;
+    params_.src2 = dSrc2_;
+    params_.dst = dDst_;
+    params_.elements = int(hSrc1_.size());
+
+    kernelArgs_ = (std::byte*)&params_;
+    kernelArgsSize_ = sizeof(params_);
+  }
+
+private:
+  static constexpr size_t numElems_ = 150;
+  std::vector<int> hSrc1_ = std::vector<int>(numElems_);
+  std::vector<int> hSrc2_ = std::vector<int>(numElems_);
+  std::vector<int> hDst_ = std::vector<int>(numElems_);
+  std::byte* dSrc1_;
+  std::byte* dSrc2_;
+  std::byte* dDst_;
+  Params params_;
+};
+
+
 
 int main(int argc, char** argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv, "Basic ET-SoC1 host kernel launcher app\n\n");
