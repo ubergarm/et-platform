@@ -50,13 +50,13 @@ class GpSdkHostConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
-
+    
     def export(self):
         git = Git(self, self.recipe_folder)
         if not git.is_dirty():
             _, scm_commit = git.get_url_and_commit()
         else:
-            scm_commit = "HEAD"
+            scm_commit = None
         # we store the current url and commit in conandata.yml
         update_conandata(self, {"sources": {"commit": scm_commit, "url": self.url, "is_dirty": git.is_dirty()}})
 
@@ -76,7 +76,9 @@ class GpSdkHostConan(ConanFile):
             pass
 
     def layout(self):
-        cmake_layout(self, src_folder="src")
+        self.folders.root = ".."
+        self.folders.subproject = "host"
+        cmake_layout(self)
     
     def requirements(self):
         self.requires("deviceApi/0.6.0")
@@ -105,20 +107,19 @@ class GpSdkHostConan(ConanFile):
         # self.tool_requires("tool/x.y.z")
         pass
     
-    def source(self):
-        # if sources are not dirty --> clean build --> git clone from url
-        # otherwise                --> local build --> copy from cwd
-        sources = self.conan_data["sources"]
-        if not sources["is_dirty"]:
-            # we recover the saved url and commit from conandata.yml and use them to get sources
-            git = Git(self)
-            git.clone(url=sources["url"], target=".")
-            git.checkout(commit=sources["commit"])
+    def export_sources(self):
+        git = Git(self, self.recipe_folder)
+        
+        if not git.is_dirty():
+            # CLEAN BUILD
+            scm_url, scm_commit = git.get_url_and_commit()
+            git = Git(self, self.export_sources_folder)
+            git.clone(url=scm_url, target=".")
+            git.checkout(commit=scm_commit)
         else:
-            # copy(self, "*", src=os.getcwd(), dst=self.source_folder)
-            git = Git(self)
-            git.clone(url=sources["url"], target=".")
-            git.checkout(commit="HEAD")
+            # LOCAL BUILD from current folder
+            source_folder = os.path.join(self.recipe_folder, "..")
+            copy(self, "*", source_folder, self.export_sources_folder)
     
     def generate(self):
         # BUILD_SHARED_LIBS and POSITION_INDEPENDENT_CODE are automatically parsed when self.options.shared or self.options.fPIC exist
