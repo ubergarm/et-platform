@@ -13,6 +13,8 @@ include:
 
 stages:
   - build
+  - test
+  - dist
   
 default:
   interruptible: true
@@ -46,3 +48,25 @@ build:host:
       cd build
       cmake .. -DCMAKE_TOOLCHAIN_FILE=generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
       cmake --build .
+
+generate-sdk:
+  extends:
+    - .pod_large
+    - .template_job
+    - .template-conan-linux-ubuntu18.04-gcc7
+  stage: dist
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    TIMEOUT: 2h
+    CMD_BUILD: |
+      BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
+      sudo apt install ninja-build
+      cd host
+      conan create . -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --build missing
+      cd ..
+      conan install gp-sdk-host/0.1.0@ -if=gp-sdk-host-0.1.0 -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release
+      tar -czf gp-sdk-host-0.1.0.tar.gz gp-sdk-host-0.1.0/
+  artifacts:
+    expire_in: 1d 
+    paths:
+      - gp-sdk-host-0.1.0.tar.gz

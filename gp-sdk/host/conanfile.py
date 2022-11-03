@@ -180,3 +180,9 @@ class GpSdkHostConan(ConanFile):
         self.buildenv_info.append("PATH", bin_folder)
         # In case need to find packaged tools at runtime
         self.runenv_info.append("PATH", bin_folder)
+
+    def deploy(self):
+        self.copy("*", src="bin", dst="bin")
+        self.copy_deps("sys_emu", src="bin", dst="bin") # only sys_emu is delivered
+        self.copy_deps("*", src="include", dst="include")
+        self.copy_deps("*", src="lib", dst="lib")
