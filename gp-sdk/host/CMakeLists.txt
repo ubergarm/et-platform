@@ -5,6 +5,7 @@ option(USE_CONAN "Use connan packages" OFF)
 option(BUILD_TESTS "Build tests (adds gtest dependency)" OFF)
 
 
+include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -49,8 +50,6 @@ if (NOT USE_CONAN)
   message(STATUS "runtime_DIR is " ${runtime_DIR})
 
 endif()
-
-
 
 add_subdirectory(sdk)
 if (BUILD_TESTS)
