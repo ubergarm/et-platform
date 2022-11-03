@@ -1,0 +1,48 @@
+include:
+  - project: 'software/gitlab-ci-common'
+    ref: 65f50069493bf125f770dc052b0a90b8be2d305c
+    file:
+      - rules/generic-workflow-conan.yaml
+      - pods/large-pod.yaml
+      - jobs/generic-k8s-job.yaml
+      - rules/exec_maybe_interactively.yaml
+  - project: 'software/gitlab-ci-common'
+    ref: master
+    file:
+      - 'jobs/conan-jobs.yaml'
+
+stages:
+  - build
+  
+default:
+  interruptible: true
+
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+# Smoke job that executes unit-tests in Release/Debug to capture problems early
+build:host:
+  extends:
+    - .pod_large
+    - .template_job
+    - .template-conan-linux-ubuntu18.04-gcc7
+  stage: build
+  parallel:
+    matrix:
+      - BUILD_TYPE: [ Release, Debug ]
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    TIMEOUT: 2h
+
+    CMD_BUILD: |
+      BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
+      sudo apt install ninja-build
+      cd host
+      rm -rf build
+      mkdir build
+      conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --build missing
+      cd build
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
+      cmake --build .

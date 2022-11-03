@@ -23,22 +23,23 @@
 enum class Mode { PCIE, SYSEMU, FAKE, LAST };
 
 static inline std::string to_string(Mode m) {
-  const std::vector<std::string> modes = {"Hardware", "Emulator", "Fake"};
+  const std::vector<std::string> modes = {"silicon", "sysemu", "fake"};
   return m >= Mode::LAST ? "unknown" : modes[int(m)];
 }
 
-class Config {
-public:
+static inline Mode modeFromString(std::string m) {
+  std::map<std::string, Mode> modeFromStr = {{"sysemu", Mode::SYSEMU}, {"fake", Mode::FAKE}, {"silicon", Mode::PCIE}};
+  return modeFromStr.count(m) ? modeFromStr[m] : Mode::LAST;
+}
+
+struct Config {
   void dump() const {
     std::cout << "Selected options:\n";
     std::cout << "  Device type: " << to_string(mode_) << "\n";
-    std::cout << "  Runtime install prefix: " << runtimeInstallPrefix_ << "\n";
     std::cout << "  Device count: " << numDevices_ << "\n";
   }
 
-private:
   Mode mode_{Mode::SYSEMU};
-  std::string runtimeInstallPrefix_{ET_INSTALL_DIR};
   size_t numDevices_{1};
 };
 
@@ -56,9 +57,6 @@ public:
   void waitKernelCompletion(std::chrono::seconds timeout);
 
   virtual void prepareKernelArguments() = 0;
-
-  inline static Mode mode_ = Mode::SYSEMU;
-  inline static uint32_t numDevices_ = 1;
 
 private:
   rt::KernelId loadKernel(const std::string& kernelName, uint32_t deviceIdx = 0);

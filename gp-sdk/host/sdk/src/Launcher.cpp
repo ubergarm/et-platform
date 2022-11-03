@@ -7,9 +7,8 @@
 // in accordance with the terms and conditions stipulated in the
 // agreement/contract under which the program(s) have been supplied.
 //------------------------------------------------------------------------------
-
 #include "GenericLauncher.h"
-#include "llvm/Support/CommandLine.h"
+#include <gflags/gflags.h>
 
 // Shared with device:
 // FIXME: move to a public header.
@@ -73,11 +72,11 @@ private:
   Params params_;
 };
 
-
+DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
 
 int main(int argc, char** argv) {
-  llvm::cl::ParseCommandLineOptions(argc, argv, "Basic ET-SoC1 host kernel launcher app\n\n");
-  Config config;
+  GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
+  Config config{modeFromString(FLAGS_device_type), 1};
   config.dump();
 
   Launcher launcher(config);
