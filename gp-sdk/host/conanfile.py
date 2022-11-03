@@ -123,6 +123,7 @@ class GpSdkHostConan(ConanFile):
     def generate(self):
         # BUILD_SHARED_LIBS and POSITION_INDEPENDENT_CODE are automatically parsed when self.options.shared or self.options.fPIC exist
         tc = CMakeToolchain(self)
+        tc.variables["USE_CONAN"] = True
         tc.variables["CMAKE_INSTALL_LIBDIR"] = "lib"
         tc.generate()
 
