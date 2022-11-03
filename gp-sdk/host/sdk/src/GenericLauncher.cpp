@@ -12,8 +12,11 @@
 #include <esperanto/et-trace/encoder.h>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <runtime/DeviceLayerFake.h>
 #include <sw-sysemu/SysEmuOptions.h>
+
+#include <gflags/gflags.h>
 
 #if __has_include("filesystem")
 #include <filesystem>
@@ -25,59 +28,48 @@ namespace filesystem = std::experimental::filesystem;
 #endif
 
 #include "GenericLauncher.h"
-#include "llvm/Support/CommandLine.h"
-namespace {
-static const std::string KERNELS_DIR = "/sw-platform-riscv-sysroot/lib/esperanto-fw/kernels";
 
-llvm::cl::OptionCategory GeneralCat("General Options");
-llvm::cl::OptionCategory SysemuCat("Sysemu Options");
+static const std::string KERNELS_DIR = "/lib/esperanto-fw/kernels";
 
-llvm::cl::opt<Mode> deviceType{
-  "device-type", llvm::cl::desc("Device Type to be used"),
-  llvm::cl::values(clEnumValN(Mode::SYSEMU, "sysemu", "ET-SoC-1 software instruction simulator"),
-                   clEnumValN(Mode::FAKE, "fake", "Loopback fake devoce"),
-                   clEnumValN(Mode::PCIE, "silicon", "Single ETSOC-1 SOC")),
-  llvm::cl::init(Mode::SYSEMU), llvm::cl::cat(GeneralCat)};
+#ifdef ET_INSTALL_DIR
+std::string defaultInstallDir = ET_INSTALL_DIR + std::string("/sw-platform-riscv-sysroot/");
+#else
+std::string defaultInstallDir = "";
+#endif
 
 // FIXME: following options are just to speed up  debug-cycle. long-term we should default to void.
-std::string defaultKernel = ET_INSTALL_DIR + KERNELS_DIR + "/trace.elf";
+DEFINE_string(gp_sdk_device_installdir, defaultInstallDir, "Path to gp-sdk-device installation directory");
+std::string defaultKernel = FLAGS_gp_sdk_device_installdir + KERNELS_DIR + "/trace.elf";
 // std::string defaultKernel =  "./kernels.elf";
-std::string defaultSimParams = "-l -lm 0";
 
-const llvm::cl::opt<std::string> kernelPath("kernelPath", llvm::cl::desc("ET-SoC-1 kernel and filename"),
-                                            llvm::cl::init(defaultKernel), llvm::cl::cat(GeneralCat));
-
-const llvm::cl::opt<std::string>
-  simParams("simulator-params", llvm::cl::desc("Hyperparameters to pass to simulator, overrides default values"),
-            llvm::cl::init(defaultSimParams), llvm::cl::cat(SysemuCat));
-
+DEFINE_string(kernel_path, defaultKernel, "ET-SoC-1 kernel path and filename");
+DEFINE_string(simulator_params, "-l -lm 0", "Hyperparameters to pass to simulator, overrides default values");
+DEFINE_string(simulator_installdir, "", "Path to simulator installation directory");
 // TODO "runtime-install-prefix", "num-devices"
-} // namespace
 
 emu::SysEmuOptions getDefaultOptions() {
 
   static const std::string BOOTROM_TRAMPOLINE_TO_BL2_ELF =
-    "/sw-platform-riscv-sysroot/lib/esperanto-fw/BootromTrampolineToBL2/BootromTrampolineToBL2.elf";
+    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/BootromTrampolineToBL2/BootromTrampolineToBL2.elf";
   static const std::string BL2_ELF =
-    "/sw-platform-riscv-sysroot/lib/esperanto-fw/ServiceProcessorBL2/fast-boot/ServiceProcessorBL2_fast-boot.elf";
+    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/ServiceProcessorBL2/fast-boot/ServiceProcessorBL2_fast-boot.elf";
   static const std::string MASTER_MINION_ELF =
-    "/sw-platform-riscv-sysroot/lib/esperanto-fw/MasterMinion/MasterMinion.elf";
+    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/MasterMinion/MasterMinion.elf";
   static const std::string MACHINE_MINION_ELF =
-    "/sw-platform-riscv-sysroot/lib/esperanto-fw/MachineMinion/MachineMinion.elf";
+    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/MachineMinion/MachineMinion.elf";
   static const std::string WORKER_MINION_ELF =
-    "/sw-platform-riscv-sysroot/lib/esperanto-fw/WorkerMinion/WorkerMinion.elf";
-  static const std::string SYSEMU_INSTALL_DIR = "";
+    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/WorkerMinion/WorkerMinion.elf";
 
   constexpr uint64_t kSysEmuMaxCycles = std::numeric_limits<uint64_t>::max();
   constexpr uint64_t kSysEmuMinionShiresMask = 0x1FFFFFFFFu;
 
   emu::SysEmuOptions sysEmuOptions;
-  sysEmuOptions.bootromTrampolineToBL2ElfPath = std::string(ET_INSTALL_DIR) + BOOTROM_TRAMPOLINE_TO_BL2_ELF;
-  sysEmuOptions.spBL2ElfPath = std::string(ET_INSTALL_DIR) + BL2_ELF;
-  sysEmuOptions.machineMinionElfPath = std::string(ET_INSTALL_DIR) + MACHINE_MINION_ELF;
-  sysEmuOptions.masterMinionElfPath = std::string(ET_INSTALL_DIR) + MASTER_MINION_ELF;
-  sysEmuOptions.workerMinionElfPath = std::string(ET_INSTALL_DIR) + WORKER_MINION_ELF;
-  sysEmuOptions.executablePath = std::string(SYSEMU_INSTALL_DIR) + "sys_emu";
+  sysEmuOptions.bootromTrampolineToBL2ElfPath = BOOTROM_TRAMPOLINE_TO_BL2_ELF;
+  sysEmuOptions.spBL2ElfPath = BL2_ELF;
+  sysEmuOptions.machineMinionElfPath = MACHINE_MINION_ELF;
+  sysEmuOptions.masterMinionElfPath = MASTER_MINION_ELF;
+  sysEmuOptions.workerMinionElfPath = WORKER_MINION_ELF;
+  sysEmuOptions.executablePath = FLAGS_simulator_installdir + "bin/sys_emu";
   sysEmuOptions.runDir = std::filesystem::current_path();
   sysEmuOptions.maxCycles = kSysEmuMaxCycles;
   sysEmuOptions.minionShiresMask = kSysEmuMinionShiresMask;
@@ -88,7 +80,7 @@ emu::SysEmuOptions getDefaultOptions() {
   sysEmuOptions.startGdb = false;
 
   // Pass the sysemu parameters from command line
-  auto cmd = simParams.getValue();
+  auto cmd = FLAGS_simulator_params;
   std::istringstream iss{cmd};
   sysEmuOptions.additionalOptions =
     std::vector<std::string>{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
@@ -111,7 +103,7 @@ std::vector<std::byte> GenericLauncher::readFile(const std::string& path) {
 void GenericLauncher::initialize() {
 
   auto options = rt::getDefaultOptions();
-  switch (mode_) {
+  switch (config_.mode_) {
   case Mode::PCIE:
     std::cout << "Running tests with PCIE deviceLayer";
     deviceLayer_ = dev::IDeviceLayer::createPcieDeviceLayer();
@@ -120,7 +112,7 @@ void GenericLauncher::initialize() {
     std::cout << "Running tests with SYSEMU deviceLayer";
     auto opts = getDefaultOptions();
     std::vector<decltype(opts)> vopts;
-    for (auto i = 0; i < numDevices_; ++i) {
+    for (auto i = 0; i < config_.numDevices_; ++i) {
       vopts.emplace_back(opts);
       vopts.back().logFile += std::to_string(i);
     }
@@ -131,7 +123,13 @@ void GenericLauncher::initialize() {
     std::cout << "Running tests with FAKE deviceLayer";
     deviceLayer_ = std::make_unique<dev::DeviceLayerFake>();
     options.checkDeviceApiVersion_ = false;
+    break;
+  case Mode::LAST:
+    std::cout << "Unsupported device \n";
+    exit(-1);
+    break;
   }
+
   runtime_ = rt::IRuntime::create(deviceLayer_.get(), options);
   devices_ = runtime_->getDevices();
 
@@ -165,7 +163,7 @@ void GenericLauncher::initialize() {
   runtime_->setOnKernelAbortedErrorCallback(abortedKernelHandler);
 
   // load the kernel on the device.
-  kernel_ = loadKernel(kernelPath.getValue());
+  kernel_ = loadKernel(FLAGS_kernel_path);
 }
 
 void GenericLauncher::deInitialize() {

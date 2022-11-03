@@ -1,4 +1,4 @@
 [submodule "samples"]
 	path = samples
-	url = git@gitlab.esperanto.ai:software/samples.git
+	url = ../samples.git
 	branch = main
