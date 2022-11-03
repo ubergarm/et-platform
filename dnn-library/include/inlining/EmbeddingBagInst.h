@@ -854,7 +854,6 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
 
         // For every row in the segment
         for (int64_t j = startOffset; j < endOffset; j++) {
-
           // Load and broadcast weight and convert to FP32
           outType* weightPtr = tWInput + j;
           f32x8 weightValues;
@@ -1075,9 +1074,8 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
 
   // Work partitioning is based on output tensor 'segments'
   auto numSegments = out->dims()[0];
-  // If the EB input data has 1 dimension x = n, is equivalent to a EB 2D where (x,y) = n,1
+  // If the EB input data is 1D (x=n), is equivalent to a EB 2D with dims(x=n,y=1)
   dim_t segmentLen = out->ndims() > 1 ? out->dims()[1] : static_cast<dim_t>(1UL);
-
   dim_t numSegmentsPerMinion = std::max(((numSegments + activeMinions - 1) / activeMinions), 1UL);
   // This minion gets assigned to compute from startSegment to endSegment
   dim_t startSegment = numSegmentsPerMinion * minionId;
@@ -1124,7 +1122,6 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
 
   // Main loop
   for (dim_t s = startSegment; s < endSegment; s++) {
-    f32x8 dataValues0;
     // Get start and end offset of this segment
     auto startOffset = offH.raw(s);
     auto rowIndex = static_cast<dim_t>(IH.raw(startOffset));
@@ -1141,8 +1138,20 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
       std::array<dim_t, 2> rowCoord = {rowIndex, static_cast<dim_t>(i)};
       auto srcPtr = reinterpret_cast<char*>(&DH.at(rowCoord));
 
-      if constexpr (outElK == Float16Ty) {
+      if constexpr (outElK == Int8QTy) {
+        f32x8 dataValues0;
+
+        // Load 16 x Int8QTy data elements (srcPtr) and dequantize to FP32
+        __asm__ __volatile__("flgw.ps %[dataValues0], (%[srcPtr])\n"
+                             "fsgw.ps %[dataValues0], (%[dstPtr])\n"
+                             : [ dataValues0 ] "=&f"(dataValues0)
+                             : [ srcPtr ] "r"(srcPtr), [ dstPtr ] "r"(dstPtr)
+                             :);
+        // NOTE(1): We assume destination scale is the same.
+
+      } else if constexpr (outElK == Float16Ty) {
         // 16 x FP16 elements on each iteration
+        f32x8 dataValues0;
         f32x8 dataValues1;
         // Load 16 x Int8QTy data elements (srcPtr) and dequantize to FP32
         __asm__ __volatile__(
@@ -1172,7 +1181,7 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
         pack_and_global_store_fp16x16(dataValues0, dataValues1, dstPtr);
       } else {
         // 8 x FP32 elements on each iteration
-
+        f32x8 dataValues0;
         // Load 8 x Int8QTy data elements (srcPtr) and dequantize to FP32
         __asm__ __volatile__("fgb.ps %[dataValues0],   %[int8Offsets](%[srcPtr])\n"
                              // Dequantize: scale * (float)( (¡) input - (int32_t)offset )
