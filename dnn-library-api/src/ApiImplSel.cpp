@@ -166,7 +166,23 @@ size_t implSel::AvgPool(std::vector<LibTensor*>& outTensors, std::vector<LibTens
 size_t implSel::EmbeddingBag([[maybe_unused]] std::vector<LibTensor*>& outTensors,
                              [[maybe_unused]] std::vector<LibTensor*>& inTensors) {
 
-  return 1;
+  constexpr float epsilon_i8 = 2.0f / 256.0f;
+  LibTensor* dataT = inTensors[0];
+  LibTensor* weightT = inTensors[1];
+  LibTensor* offsetT = inTensors[3];
+
+  bool isCounter = offsetT->isCounter() && offsetT->getCounterOffset() == 0 && offsetT->getCounterStride() == 1;
+  bool isDataQuantized = dataT->getElementType() == ElemKind::Int8QTy;
+  bool isWeightFloatOne = weightT->hasSingleValue() && weightT->getSingleValue() == 1.0f;
+  bool isWeightQuantizedOne = weightT->hasSingleValue() && weightT->getElementType() == ElemKind::Int8QTy &&
+                              (std::abs(weightT->getSingleValue() - 1.0f) < epsilon_i8);
+  bool isWeightOne = isWeightFloatOne || isWeightQuantizedOne;
+
+  if (isCounter && isWeightOne && isDataQuantized) {
+    return 2;
+  } else {
+    return 1;
+  }
 }
 
 } // end namespace dnn_lib

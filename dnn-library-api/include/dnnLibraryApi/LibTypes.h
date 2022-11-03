@@ -71,6 +71,9 @@ struct Tensor {
   bool untouchablePadding; // If the padding of the tensor is untouchable
   bool hasSingleValue;     // If all the values of the tensor are the same
   float singleValue;       // Repeated value if hasSingleValue is set
+  bool isCounter;          // If the tensor is a counter of increasing numbers with same stride
+  int64_t counterOffset;   // Starting value of the counter
+  int64_t counterStride;   // Stride between values of the counter
 };
 
 // Instruction properties struct

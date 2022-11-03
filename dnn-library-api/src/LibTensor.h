@@ -28,7 +28,8 @@ public:
   /*@brief Initialize a new type with broadcast information
    */
   Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
-       const float scale, const int32_t offset, const bool hasSingleValue, const float singleValue);
+       const float scale, const int32_t offset, const bool hasSingleValue, const float singleValue,
+       const bool isCounter, const int64_t counterOffset, const int64_t counterStride);
 
   /*@brief Initialize a new quantized type with \p scale an \p offset.
    */
@@ -84,6 +85,14 @@ public:
   /*@brief If hasSingleValue_ is true, contains the value fully broadcasted across the Tensor
    */
   float getSingleValue() const;
+
+  /*@brief When the tensor is fully broadcast, it may have a single value registered.
+   */
+  bool isCounter() const;
+
+  int64_t getCounterOffset() const;
+
+  int64_t getCounterStride() const;
 
   /*@brief returns true if the templated parameter \p ElemKind matches the type
    *that's specified by the parameter \p Ty.
@@ -219,6 +228,12 @@ private:
    */
   const float singleValue_ = 0.0;
 
+  const bool isCounter_ = false;
+
+  const int64_t counterOffset_ = 0;
+
+  const int64_t counterStride_ = 0;
+
 }; // class Type
 
 class LibTensor final {
@@ -290,6 +305,12 @@ public:
   bool hasSingleValue() const;
 
   float getSingleValue() const;
+
+  bool isCounter() const;
+
+  int64_t getCounterOffset() const;
+
+  int64_t getCounterStride() const;
 };
 
 } // namespace dnn_lib

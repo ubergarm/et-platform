@@ -14,7 +14,8 @@
 namespace dnn_lib {
 
 Type::Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
-           const float scale, const int32_t offset, const bool hasSingleValue, const float singleValue)
+           const float scale, const int32_t offset, const bool hasSingleValue, const float singleValue,
+           const bool isCounter, const int64_t counterOffset, const int64_t counterStride)
   : sizes_(dims)
   , strides_(strides)
   , elementType_(elk)
@@ -22,7 +23,10 @@ Type::Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t
   , scale_(scale)
   , offset_(offset)
   , hasSingleValue_(hasSingleValue)
-  , singleValue_(singleValue) {
+  , singleValue_(singleValue)
+  , isCounter_(isCounter)
+  , counterOffset_(counterOffset)
+  , counterStride_(counterStride) {
 }
 
 Type::Type(const dnn_lib::ElemKind elk, const size_t numSizes, const dim_array_t& dims, const dim_array_t& strides,
@@ -136,6 +140,18 @@ float Type::getSingleValue() const {
   return singleValue_;
 }
 
+bool Type::isCounter() const {
+  return isCounter_;
+}
+
+int64_t Type::getCounterOffset() const {
+  return counterOffset_;
+}
+
+int64_t Type::getCounterStride() const {
+  return counterStride_;
+}
+
 // end Type class
 
 ///////
@@ -200,7 +216,7 @@ LibTensor::LibTensor(const Type&& type, void* const rawdata, const bool untouch)
 LibTensor::LibTensor(const Tensor& tensor)
   : ptrData_(reinterpret_cast<char*>(tensor.alignOffset))
   , type_(tensor.elementType, tensor.numDims, tensor.sizes, tensor.strides, tensor.scale, tensor.offset,
-          tensor.hasSingleValue, tensor.singleValue)
+          tensor.hasSingleValue, tensor.singleValue, tensor.isCounter, tensor.counterOffset, tensor.counterStride)
   , untouch_(tensor.untouchablePadding) {
 }
 
@@ -226,6 +242,18 @@ bool LibTensor::hasSingleValue() const {
 
 float LibTensor::getSingleValue() const {
   return type_.getSingleValue();
+}
+
+bool LibTensor::isCounter() const {
+  return type_.isCounter();
+}
+
+int64_t LibTensor::getCounterOffset() const {
+  return type_.getCounterOffset();
+}
+
+int64_t LibTensor::getCounterStride() const {
+  return type_.getCounterStride();
 }
 
 // end LibTensor class
