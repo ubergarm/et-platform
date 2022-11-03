@@ -362,7 +362,7 @@ INLINE_ATTR std::pair<dim_t, dim_t> getWorkDistribution(size_t minionId, size_t 
   return {minionWorkUnits, minionFirstWorkUnit};
 }
 
-template <ElemKind outElK, ElemKind in1ElK, bool fastpath>
+template <ElemKind outElK, ElemKind in1ElK>
 INLINE_ATTR typename std::enable_if_t<(in1ElK == FloatTy || in1ElK == Float16Ty), void>
 fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
                                  bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
@@ -740,13 +740,11 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   }
 }
 
-template <ElemKind outElK, ElemKind dataElK, bool fastpath>
-INLINE_ATTR
-  typename std::enable_if_t<(fastpath == false && dataElK == Int8QTy && (outElK == FloatTy || outElK == Float16Ty)),
-                            void>
-  fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
-                                   LibTensor* offsets, bool hasEndOffset, uint64_t flags,
-                                   const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+template <ElemKind outElK, ElemKind dataElK>
+INLINE_ATTR typename std::enable_if_t<(dataElK == Int8QTy && (outElK == FloatTy || outElK == Float16Ty)), void>
+fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
+                                 LibTensor* offsets, bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
+                                 const uint32_t assignedMinions = 0) {
 
   using outType = typename elemKind2elemTy<outElK>::type;
   using inType = typename elemKind2elemTy<dataElK>::type;
@@ -908,7 +906,7 @@ INLINE_ATTR
         dstPtr += vlen;
       }
 
-      if (i < segmentLen) { // This is the epilogue
+      if (i < static_cast<int64_t>(segmentLen)) { // This is the epilogue
         uint32_t mask0 = getVMask(static_cast<int64_t>(segmentLen) - i);
         uint32_t mask1 = mask0 & 0xFF00u; // Get bits [8:15] from mask0 to create mask1
 
@@ -1048,16 +1046,154 @@ INLINE_ATTR
 }
 
 template <ElemKind outElK, ElemKind dataElK>
-INLINE_ATTR void fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* weights,
-                                                  LibTensor* indices, LibTensor* offsets, bool hasEndOffset,
-                                                  uint64_t flags, const uint32_t minionOffset = 0,
-                                                  const uint32_t assignedMinions = 0) {
-  if constexpr (false) {
-    fwdLibEmbeddingBagInstVectorized<outElK, dataElK, true>(out, data, weights, indices, offsets, hasEndOffset, flags,
-                                                            minionOffset, assignedMinions);
-  } else {
-    fwdLibEmbeddingBagInstVectorized<outElK, dataElK, false>(out, data, weights, indices, offsets, hasEndOffset, flags,
-                                                             minionOffset, assignedMinions);
+INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
+                                                LibTensor* offsets, bool hasEndOffset, uint64_t flags,
+                                                const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  (void)hasEndOffset;
+  et_assert(data->getElementType() == Int8QTy);
+  using outType = typename elemKind2elemTy<outElK>::type;
+  using inType = typename elemKind2elemTy<dataElK>::type;
+
+  // If Minion is outside the group assigned to this Node get out.
+  size_t minionId = get_minion_id();
+  if (minionId < minionOffset) {
+    return;
+  }
+
+  // Rebase minion ID.
+  minionId -= minionOffset;
+  // Get number of Minions assigned to this Node.
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  // If Minion is outside the group assigned to this Node get out.
+  if (minionId >= activeMinions) {
+    return;
+  }
+  et_assert(weights->getElementType() == out->getElementType());
+  et_assert((indices->getElementType() == Int64ITy) && (indices->getElementType() == offsets->getElementType()));
+
+  auto offH = offsets->getHandle<int64_t>();
+
+  // Work partitioning is based on output tensor 'segments'
+  auto numSegments = out->dims()[0];
+  // If the EB input data has 1 dimension x = n, is equivalent to a EB 2D where (x,y) = n,1
+  dim_t segmentLen = out->ndims() > 1 ? out->dims()[1] : static_cast<dim_t>(1UL);
+
+  dim_t numSegmentsPerMinion = std::max(((numSegments + activeMinions - 1) / activeMinions), 1UL);
+  // This minion gets assigned to compute from startSegment to endSegment
+  dim_t startSegment = numSegmentsPerMinion * minionId;
+  if (startSegment >= numSegments) {
+    return;
+  }
+  auto endSegment = std::min(startSegment + numSegmentsPerMinion, numSegments);
+
+  // Handles
+  auto IH = indices->getHandle<int64_t>();
+  auto DH = data->getHandle<inType>();
+  auto OH = out->getHandle<outType>();
+  // Get the sizes to iterate
+  et_assert(reinterpret_cast<uint64_t>(out->getRawDataPointer<uint64_t>()) % 64 ==
+            0); // Assert output tensor is aligned to 8 bytes
+
+  // Pre-compute the indices used in gather/scatter operations
+  // load gather for quantized Int8QTy data values
+  // store scatter for FP16/FP32 accumulated results
+  int32_t gather_offsets8[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+  f32x8 int8Offsets, fp16Offsets, fp32Offsets;
+  const int32_t offset = data->getOffset();
+  const float scale = data->getScale();
+  __asm__ __volatile__("flw.ps  %[int8Offsets], %[gather_offsets8]\n"
+                       "fslli.pi  %[fp16Offsets], %[int8Offsets], 1\n"
+                       "fslli.pi  %[fp32Offsets], %[fp16Offsets], 1\n"
+                       : [ int8Offsets ] "=&f"(int8Offsets), [ fp16Offsets ] "=&f"(fp16Offsets),
+                         [ fp32Offsets ] "=&f"(fp32Offsets)
+                       : [ gather_offsets8 ] "m"(*(const int32_t(*)[8])gather_offsets8)
+                       :);
+
+  // Broadcast scale and offset used in dequantization
+  f32x8 offsetVector;
+  f32x8 scaleVector;
+  __asm__ __volatile__("fbcx.ps %[offsetVector], %[offset]\n"
+                       "fbcx.ps %[scaleVector], %[scale]\n"
+                       : [ offsetVector ] "=&f"(offsetVector), [ scaleVector ] "=&f"(scaleVector)
+                       : [ offset ] "r"(offset), [ scale ] "r"(scale)
+                       :);
+
+  // vlen is the number of elements to read/write on each 256-bit stride.
+  // e.g: 32x8-bit, 16x16-bit or 8x32-bit
+  constexpr int64_t vlen = 32 / sizeof(outType);
+
+  // Main loop
+  for (dim_t s = startSegment; s < endSegment; s++) {
+    f32x8 dataValues0;
+    // Get start and end offset of this segment
+    auto startOffset = offH.raw(s);
+    auto rowIndex = static_cast<dim_t>(IH.raw(startOffset));
+
+    // Get the destination pointer to write results
+    std::array<dim_t, 2> segmentCoord = {s, 0};
+    auto dstPtr = &OH.at(segmentCoord);
+
+    // Enable all bits in mask
+    __asm__ __volatile__("mov.m.x m0, zero, 0xff\n" : :);
+
+    for (dim_t i = 0; i < segmentLen; i += vlen) {
+      // Get the data source pointer
+      std::array<dim_t, 2> rowCoord = {rowIndex, static_cast<dim_t>(i)};
+      auto srcPtr = reinterpret_cast<char*>(&DH.at(rowCoord));
+
+      if constexpr (outElK == Float16Ty) {
+        // 16 x FP16 elements on each iteration
+        f32x8 dataValues1;
+        // Load 16 x Int8QTy data elements (srcPtr) and dequantize to FP32
+        __asm__ __volatile__(
+          "fgb.ps %[dataValues0],   %[int8Offsets](%[srcPtr])\n"
+          "addi %[srcPtr], %[srcPtr], 8\n"
+          "fgb.ps %[dataValues1],   %[int8Offsets](%[srcPtr])\n"
+          "addi %[srcPtr], %[srcPtr], 8\n"
+          // Dequantize: scale * (float)( (¡) input - (int32_t)offset )
+          "fsub.pi %[dataValues0], %[dataValues0], %[offsetVector]\n"
+          "fsub.pi %[dataValues1], %[dataValues1], %[offsetVector]\n"
+          // convert to fp32
+          "fcvt.ps.pw %[dataValues0], %[dataValues0]\n"
+          "fcvt.ps.pw %[dataValues1], %[dataValues1]\n"
+          // Mul by scale
+          "fmul.ps %[dataValues0], %[dataValues0], %[scaleVector]\n"
+          "fmul.ps %[dataValues1], %[dataValues1], %[scaleVector]\n"
+          : [ dataValues0 ] "=&f"(dataValues0), [ dataValues1 ] "=&f"(dataValues1), [ srcPtr ] "+&r"(srcPtr)
+          : [ int8Offsets ] "f"(int8Offsets), [ offsetVector ] "f"(offsetVector), [ scaleVector ] "f"(scaleVector)
+          :);
+
+        // Convert to FP16 before storing
+        __asm__ __volatile__("fcvt.f16.ps %[dataValues0], %[dataValues0]\n"
+                             "fcvt.f16.ps %[dataValues1], %[dataValues1]\n"
+                             : [ dataValues0 ] "+&f"(dataValues0), [ dataValues1 ] "+&f"(dataValues1)
+                             :
+                             :);
+        pack_and_global_store_fp16x16(dataValues0, dataValues1, dstPtr);
+      } else {
+        // 8 x FP32 elements on each iteration
+
+        // Load 8 x Int8QTy data elements (srcPtr) and dequantize to FP32
+        __asm__ __volatile__("fgb.ps %[dataValues0],   %[int8Offsets](%[srcPtr])\n"
+                             // Dequantize: scale * (float)( (¡) input - (int32_t)offset )
+                             "fsub.pi %[dataValues0], %[dataValues0], %[offsetVector]\n"
+                             // convert to fp32
+                             "fcvt.ps.pw %[dataValues0], %[dataValues0]\n"
+                             // Mul by scale
+                             "fmul.ps %[dataValues0], %[dataValues0], %[scaleVector]\n"
+                             : [ dataValues0 ] "=&f"(dataValues0)
+                             : [ int8Offsets ] "f"(int8Offsets), [ offsetVector ] "f"(offsetVector),
+                               [ scaleVector ] "f"(scaleVector), [ srcPtr ] "r"(srcPtr)
+                             :);
+
+        // Store
+        __asm__ __volatile__("fswg.ps %[dataValues0], (%[dst_ptr])\n"
+                             :
+                             : [ dst_ptr ] "r"(dstPtr), [ dataValues0 ] "f"(dataValues0)
+                             :);
+      }
+      dstPtr += vlen;
+    }
   }
 }
 
@@ -1074,7 +1210,7 @@ INLINE_ATTR void fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTens
 
   static_assert(outElK == FloatTy || outElK == Float16Ty);
   static_assert((dataElK == FloatTy && outElK == FloatTy) || (dataElK == Float16Ty && outElK == Float16Ty) ||
-                (dataElK == Int8QTy && (outElK == FloatTy)));
+                (dataElK == Int8QTy && (outElK == FloatTy)) || (dataElK == Int8QTy && (outElK == Float16Ty)));
 
   using outType = typename elemKind2elemTy<outElK>::type;
   using dataType = typename elemKind2elemTy<dataElK>::type;
@@ -1164,16 +1300,18 @@ INLINE_ATTR void fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTens
           float fp32tmp;
 
           // Load current value and convert to FP32
-          auto rawValue = atomic_load_global_16(outAddress);
-          convertFp16ToFp32(rawValue, currVal);
+          auto fp16Value = atomic_load_global_16(outAddress);
+          convertFp16ToFp32(fp16Value, currVal);
 
           // Load data value and convert to FP32 before use.
           dataType value = DH.at(inPos);
-          convertFp16ToFp32(value, fp32tmp);
-
-          // Compute new value
-          newVal = currVal + fp32tmp * weight;
-
+          if constexpr (dataElK == Int8QTy) {
+            newVal = currVal + dequantize(value, data->getScale(), data->getOffset()) * weight;
+          } else {
+            convertFp16ToFp32(value, fp32tmp);
+            // Compute new value
+            newVal = currVal + fp32tmp * weight;
+          }
           // Write
           convertFp32ToFp16(newVal, fp16tmp);
           atomic_store_global_16(outAddress, *(reinterpret_cast<outGlobalType*>(&fp16tmp)));
