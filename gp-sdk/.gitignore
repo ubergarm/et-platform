@@ -1,8 +1,11 @@
 .idea
 build
+*.tar.gz
 
 # conan
 conan.lock
 conanbuildinfo.txt
 conaninfo.txt
 graph_info.json
+deploy_manifest.txt
+*.lock

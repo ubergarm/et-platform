@@ -14,6 +14,7 @@ include:
 stages:
   - build
   - test
+  - package
   - dist
   
 default:
@@ -25,7 +26,7 @@ default:
 ###############################################################################
 
 # Smoke job that executes unit-tests in Release/Debug to capture problems early
-build:host:
+build:
   extends:
     - .pod_large
     - .template_job
@@ -49,24 +50,49 @@ build:host:
       cmake .. -DCMAKE_TOOLCHAIN_FILE=generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
       cmake --build .
 
-generate-sdk:
+# generate sdk packages 
+# - we'll generate packages directly to conan-develop skiping conan-tmp -> conan-develop promotion
+package:
+  extends:
+    - .pod_large
+    - .template_job
+    - .template-conan-linux-ubuntu18.04-gcc7
+  stage: package
+  parallel:
+    matrix:
+      - BUILD_TYPE: [ Release, Debug ]
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    TIMEOUT: 2h
+    CMD_BUILD: |
+      sudo apt install ninja-build
+      cd host
+      conan lock create conanfile.py -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --build missing --lockfile-out gp-sdk-host.lock
+      conan create . --build missing --lockfile gp-sdk-host.lock --lockfile-out ../gp-sdk-host.lock
+      conan user ${CONAN_LOGIN_USERNAME} -p ${CONAN_PASSWORD} -r conan-develop
+      conan upload gp-sdk-host/* --all --check --confirm --parallel --retry 5 --retry-wait 120 -r conan-develop
+  artifacts:
+    expire_in: 1d
+    paths:
+      - gp-sdk-host.lock
+
+# create tarballs
+dist-tarball:
   extends:
     - .pod_large
     - .template_job
     - .template-conan-linux-ubuntu18.04-gcc7
   stage: dist
+  needs:
+    - package
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     TIMEOUT: 2h
     CMD_BUILD: |
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
       sudo apt install ninja-build
-      cd host
-      conan create . -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --build missing
-      cd ..
-      conan install gp-sdk-host/0.1.0@ -if=gp-sdk-host-0.1.0 -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release
-      tar -czf gp-sdk-host-0.1.0.tar.gz gp-sdk-host-0.1.0/
+      ./create-sdk-tarball.sh
   artifacts:
     expire_in: 1d 
     paths:
-      - gp-sdk-host-0.1.0.tar.gz
+      - gp-sdk-0.1.0.tar.gz
