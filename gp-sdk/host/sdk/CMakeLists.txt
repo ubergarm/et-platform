@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
-
 
 find_package(deviceApi REQUIRED)
 find_package(deviceLayer REQUIRED)
@@ -14,10 +12,12 @@ find_package(gflags REQUIRED)
 # compile generic_launcher app
 #
 
-add_executable(generic_launcher src/GenericLauncher.cpp
-                                src/Launcher.cpp)
+add_executable(generic_launcher
+    src/GenericLauncher.cpp
+    src/Launcher.cpp
+)
 
-target_link_libraries(generic_launcher
+target_link_libraries(generic_launcher PRIVATE
     deviceLayer::deviceLayer
     runtime::etrt
     esperantoTrace::et_trace
@@ -25,4 +25,9 @@ target_link_libraries(generic_launcher
     gflags::gflags
 )
 
-
+install(TARGETS generic_launcher
+    RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)

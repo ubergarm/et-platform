@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 3.5)
 project(gp-sdk-host VERSION 0.1.0 LANGUAGES C CXX)
 
-option (USE_CONAN "Use connan packages" OFF)
+option(USE_CONAN "Use connan packages" OFF)
 option(BUILD_TESTS "Build tests (adds gtest dependency)" OFF)
 
 
+include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 17)
 
 message(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 
-if(NOT USE_CONAN)
-
+if (NOT USE_CONAN)
   # gp-sdkk build on the ML build tree
   # 
 
@@ -50,8 +50,6 @@ if(NOT USE_CONAN)
   message(STATUS "runtime_DIR is " ${runtime_DIR})
 
 endif()
-
-
 
 add_subdirectory(sdk)
 if (BUILD_TESTS)
