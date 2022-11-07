@@ -241,7 +241,7 @@ void GenericLauncher::dumpTracesToFile() {
   runtime_->memcpyDeviceToHost(traceStreams_[devIdx_], traceDeviceBuffer_, deviceTrace.data(), deviceTrace.size());
   // serialize traces to disck
   runtime_->waitForStream(traceStreams_[devIdx_]);
-  // traces have been copied.. we can remove them from device. 
+  // traces have been copied.. we can remove them from device.
   // FIXME: decouple removal from here to reuse trace-buffer across kernel launches.
   runtime_->freeDevice(devices_[devIdx_], traceDeviceBuffer_);
 

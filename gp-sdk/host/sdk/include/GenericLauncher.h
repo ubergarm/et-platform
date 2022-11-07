@@ -71,7 +71,7 @@ protected:
   std::vector<rt::DeviceId> devices_;
   std::vector<rt::StreamId> defaultStreams_;
   std::vector<rt::StreamId> traceStreams_;
-  
+
   std::byte* traceDeviceBuffer_;
   // todo: support loading multiple kernels and launch named kernels.
   rt::KernelId kernel_;
