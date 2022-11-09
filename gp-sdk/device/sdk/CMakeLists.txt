@@ -24,7 +24,7 @@ target_include_directories(crt_shared
 )
 
 target_link_libraries(crt_shared
-    PRIVATE
+    PUBLIC
     et-common-libs::cm-umode
 )
 

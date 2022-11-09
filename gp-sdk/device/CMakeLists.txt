@@ -29,12 +29,5 @@ set(etsoc_hal_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/etsoc_ha
 set(esperantoTrace_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/esperantoTrace)
 set(dnnLibrary_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/dnnLibrary)
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  add_compile_options(-O0 -g)
-  message(STATUS "Disabling all the optimizations in debug build")
-else()
-  message(STATUS "Not overriding any options")
-endif()
-
 add_subdirectory(sdk)
 add_subdirectory(tests)
