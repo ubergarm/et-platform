@@ -171,12 +171,19 @@ void GenericLauncher::deInitialize() {
 }
 
 void GenericLauncher::tearDown() {
+  auto timeout = std::chrono::seconds(1);
   for (auto s : defaultStreams_) {
-    runtime_->waitForStream(s);
+    auto success = runtime_->waitForStream(s, timeout);
+    if (!success) {
+      std::cout << __func__ << "() default stream " << uint32_t(s) << " wait timeout\n";
+    }
     runtime_->destroyStream(s);
   }
   for (auto s : traceStreams_) {
-    runtime_->waitForStream(s);
+    auto success = runtime_->waitForStream(s, timeout);
+    if (!success) {
+      std::cout << __func__ << "() traces stream " << uint32_t(s) << " wait timeout\n";
+    }
     runtime_->destroyStream(s);
   }
   runtime_.reset();
@@ -239,11 +246,18 @@ void GenericLauncher::dumpTracesToFile() {
   // geting device traces.
   std::vector<std::byte> deviceTrace(kTraceBufferSize);
   runtime_->memcpyDeviceToHost(traceStreams_[devIdx_], traceDeviceBuffer_, deviceTrace.data(), deviceTrace.size());
-  // serialize traces to disck
-  runtime_->waitForStream(traceStreams_[devIdx_]);
+  // serialize traces to disk
+  auto tracesTimeout = std::chrono::seconds(10);
+  auto success = runtime_->waitForStream(traceStreams_[devIdx_], tracesTimeout);
+
   // traces have been copied.. we can remove them from device.
   // FIXME: decouple removal from here to reuse trace-buffer across kernel launches.
   runtime_->freeDevice(devices_[devIdx_], traceDeviceBuffer_);
+
+  if (!success) {
+    std::cout << __func__ << "() timeout extracting traces from device\n";
+    return;
+  }
 
   auto tracePath =
     std::filesystem::current_path() / std::filesystem::path("traceKernels_dev" + std::to_string(devIdx_) + ".bin");
@@ -258,18 +272,19 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   }
   // Kernel did not complete on the expected time. let's abort the stream in which
   // the kernel is running.
-  std::cout << "[TIMEOUT] " << __func__ << "() Wait for Stream command exceeded " << int(timeout.count())
+  std::cout << "[TIMEOUT] " << __func__ << "() Wait for Stream command exceeded " << std::dec << int(timeout.count())
             << " seconds.  Aborting stream\n";
   auto event = runtime_->abortStream(defaultStreams_[devIdx_]);
-  // Wait for the abort to complete. (runtime will be in aborting state
-  success = runtime_->waitForEvent(event);
+  // Wait for the abort to complete.
+  auto abortTimeout = std::chrono::seconds(10);
+  success = runtime_->waitForEvent(event, abortTimeout);
   if (success) {
-    std::cout << "[        ] " << __func__ << "() stream aborted correctly " << int(defaultStreams_[devIdx_]) << "\n";
+    std::cout << "[        ] " << __func__ << "() stream aborted correctly \n" << int(defaultStreams_[devIdx_]) << "\n";
     return;
   }
 
   // could not complete the abort.
-  std::cout << "[TIMEOUT] " << __func__ << "() timeout aborting stream " << int(defaultStreams_[devIdx_]) << "\n";
+  std::cout << "[TIMEOUT] " << __func__ << "() timeout aborting stream \n" << int(defaultStreams_[devIdx_]) << "\n";
   // TODO: we failed to abort the stream. place any mitigation / defensive code here.
 }
 
