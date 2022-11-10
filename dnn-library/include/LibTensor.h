@@ -790,7 +790,6 @@ public:
 
   dim_array_t offset2Coord(size_t offset) const {
     dim_array_t coords = {0};
-    assert(strides()[ndims() - 1] == 1);
     uint32_t rm = static_cast<uint32_t>(offset); // operations in uint32_t.. division is faster
     for (size_t i = 0; i < ndims(); i++) {
       coords[i] = rm / static_cast<uint32_t>(strides()[i]);

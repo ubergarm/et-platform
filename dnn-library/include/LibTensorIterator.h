@@ -74,9 +74,8 @@ public:
 
   // increment
   HandleIterator& operator++( ) {
-    assert(strides_[ndims_-1] == 1);
-    offset_++;
-    coords_[ndims_ -1]++;
+    offset_ += strides_[ndims_ - 1];
+    coords_[ndims_ - 1]++;
     wrap1(ndims_ - 1);
     return *this;
   }
@@ -92,13 +91,12 @@ public:
     wrap1(dim);
     return *this;
   }
-  
-  // increment.. if going past a dimension, points to start of next dimension
+
+  // increment.. consider only valid elements
   HandleIterator& operator+=(difference_type x) {
-    offset_ +=x;
-    assert(strides_[ndims_-1] == 1);
-    coords_[ndims_-1]+=x;
-    wrapN(ndims_-1);
+    offset_ += x * strides_[ndims_ - 1];
+    coords_[ndims_ - 1] += x;
+    wrapN(ndims_ - 1);
     return *this;
   }
   
@@ -155,11 +153,13 @@ private:
   void wrapN(size_t dim){
     if (dim == 0) return;
     if (coords_[dim] >= dims_[dim]){
-      offset_+= strides_[dim-1] - coords_[dim];
-      coords_[dim]=0;
-      coords_[dim-1]++;
+      offset_ -= coords_[dim] * strides_[dim];
+      dim_t carry = coords_[dim] / dims_[dim];
+      coords_[dim] = coords_[dim] % dims_[dim];
+      coords_[dim - 1] += carry;
+      offset_ += coords_[dim] * strides_[dim] + carry * strides_[dim - 1];
     }
-    wrap1(dim-1);
+    wrapN(dim - 1);
   }
 };
   
