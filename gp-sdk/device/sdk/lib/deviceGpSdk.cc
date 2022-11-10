@@ -9,23 +9,8 @@
 #include <etsoc/common/utils.h>
 #include "SyncComputeNode.h"
 #include "kernel_arguments.h"
-#include "usermain.h"
+#include "entryPoint.h"
 #include "inst_pref_decls.h"
-
-extern "C" void startMainGpSdk(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info);
-
-extern "C" int main_gpsdk(kernelArguments * layer_dyn_info) {
-  uint32_t hart = get_hart_id();
-  uint32_t threadId = hart & 1;
-  uint32_t minionId = hart >> 1;
-  uint32_t shireId = minionId >> 5;
-  minionId = minionId & 0x1F;
-
-  startMainGpSdk(shireId, minionId, layer_dyn_info);
-  return 0;
-
-}
-
 
 #define _UNIQUE_CALL(function, ...)\
  do { \
@@ -54,16 +39,22 @@ extern "C" int main_gpsdk(kernelArguments * layer_dyn_info) {
     #function "_return_point:" : : : );\
 }
 
-extern "C" __attribute((noclone , noinline)) void startMainGpSdk(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info){
-
+extern "C" int deviceGpSdkEntry(kernelArguments * layer_dyn_info) {
+  uint32_t hart = get_hart_id();
+  uint32_t threadId = hart & 1;
+  uint32_t minionId = hart >> 1;
+  uint32_t shireId = minionId >> 5;
+  minionId = minionId & 0x1F;
   uint32_t globalMinionId = shireId * 32 + minionId;
 
-  _UNIQUE_CALL(usermain, layer_dyn_info)
+  if ((shireId < 32) && (threadId == 0)) {
+    _UNIQUE_CALL(entryPoint, layer_dyn_info);
+    // SyncComputeNode(minionId, shireId, 32, false, true, 0);
+    //try to flush caches transparent to the user not called them from entryPoint user program.
+  }
 
-    //SyncComputeNode(minionId, shireId, 32, false, true, 0);
-
+  return 0;
 }
-
 
 extern "C" __attribute((noclone , noinline)) void SyncMinionsCode(uint32_t minionId, uint32_t threadId, uint32_t nComputeShires, uint32_t syncThread0Mask, uint32_t syncThread1Mask, kernelArguments * layer_dyn_info) {
   if (threadId & 0x1) {

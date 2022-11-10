@@ -13,7 +13,7 @@
 #include "SyncComputeNode.h"
 #include "inst_pref_decls.h"
 
-#include "usermain.h"
+#include "entryPoint.h"
 
 #include "kernel_arguments.h"
 
@@ -22,7 +22,7 @@ typedef int8_t i8;
 
 
 __attribute__((noinline))
-int usermain(kernelArguments * layer_dyn_info) {
+int entryPoint(kernelArguments * layer_dyn_info) {
   //    fcc(FCC_0);
 
 

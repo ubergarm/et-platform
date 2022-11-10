@@ -36,7 +36,7 @@
 #include <etsoc/isa/syscall.h>
 #include <stdio.h>
 
-#include "UberKernelCommon.h"
+#include "crtCommon.h"
 
 // Some defines
 #define THREAD_0 0

@@ -13,9 +13,9 @@ find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 find_package(dnnLibrary REQUIRED)
 
 add_library(crt_shared STATIC
-  lib/genmain_gpsdk.cc
+  lib/deviceGpSdk.cc
   lib/SyncComputeNode.cc
-  lib/uberKernel_crt.S
+  lib/crt0.S
 )
 
 target_include_directories(crt_shared

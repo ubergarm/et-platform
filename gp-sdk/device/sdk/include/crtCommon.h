@@ -11,8 +11,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef UBER_KERNEL_COMMON_H
-#define UBER_KERNEL_COMMON_H
+#ifndef _CRT_COMMON_H
+#define _CRT_COMMON_H
 
 #include <inttypes.h>
 
@@ -34,4 +34,4 @@ static inline uint64_t getSyncThreadsMask(int activeShires) {
   return ((1ULL << activeShires) - 1ULL) << (FIRST_SYNC_MINION * 2);
 }
 
-#endif // UBER_KERNEL_COMMON_H
+#endif // CRT_COMMON_H

@@ -60,7 +60,7 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES)
   )
 
   add_custom_target("GenLinker_${DEBUG_TARGET}"
-    COMMAND sed '0,/0x00000001/s//${ADDRESS}/' ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld > ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/debug_linker.ld    
+    COMMAND sed '0,/0x00000001/s//${DEBUG_ADDRESS}/' ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld > ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/debug_linker.ld    
   )
 
   add_dependencies(${DEBUG_TARGET} "GenLinker_${DEBUG_TARGET}")

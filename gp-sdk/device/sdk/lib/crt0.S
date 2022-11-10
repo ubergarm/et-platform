@@ -8,7 +8,7 @@ _start:
 .option norelax
 .option pop
 
-  call  main_gpsdk
+  call  deviceGpSdkEntry
 
   li    a2, KERNEL_RETURN_SUCCESS
   mv    a1, a0
