@@ -1,2 +1,12 @@
 [requires]
-ss/0.11.0
+et-common-libs/0.12.0
+dnnLibrary/0.4.0
+
+[generators]
+CMakeToolchain
+CMakeDeps
+VirtualBuildEnv
+VirtualRunEnv
+
+[layout]
+cmake_layout

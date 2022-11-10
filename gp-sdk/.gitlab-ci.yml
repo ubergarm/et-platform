@@ -25,7 +25,9 @@ default:
 ###############################################################################
 ###############################################################################
 
-# Smoke job that executes unit-tests in Release/Debug to capture problems early
+# Smoke job that:
+# - compiles device kernels
+# - compiles host tools & executes host unit-tests in Release/Debug to capture problems early
 build:
   extends:
     - .pod_large
@@ -38,17 +40,56 @@ build:
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     TIMEOUT: 2h
-
     CMD_BUILD: |
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
       sudo apt install ninja-build
+      cd device
+      conan install . -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop
+      source build/generators/conanbuild.sh
+      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
+      cmake --build --preset release
+      cd -
+
       cd host
-      rm -rf build
-      mkdir build
-      conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --build missing
-      cd build
-      cmake .. -DCMAKE_TOOLCHAIN_FILE=generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
-      cmake --build .
+      conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --update --remote conan-develop --build missing
+      cmake --preset ${BUILD_TYPE_LOWER} -G Ninja
+      cmake --build --preset ${BUILD_TYPE_LOWER}
+
+# same as 'bulid' job + execute a kernel in a silicon machine
+tests:silicon:
+  extends:
+    - .pod_large
+    - .template_job
+  stage: test
+  image:
+    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.5.6
+    entrypoint: [""]
+  tags:
+    - silicon
+    - mv-eap03
+  parallel:
+    matrix:
+      - BUILD_TYPE: [ Debug ]
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    TIMEOUT: 2h
+    CMD_BUILD: |
+      BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
+      sudo apt install ninja-build
+      cd device
+      conan install . -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop
+      source build/generators/conanbuild.sh
+      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
+      cmake --build --preset release
+      cd -
+
+      cd host
+      conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --update --remote conan-develop --build missing
+      cmake --preset ${BUILD_TYPE_LOWER} -G Ninja
+      cmake --build --preset ${BUILD_TYPE_LOWER}
+
+      ./build/${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../device/build/Release/tests/print/print -device-type=silicon
+  allow_failure: true
 
 # generate sdk packages 
 # - we'll generate packages directly to conan-develop skiping conan-tmp -> conan-develop promotion

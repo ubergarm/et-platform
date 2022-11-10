@@ -17,22 +17,19 @@ add_library(crt_shared STATIC
   lib/SyncComputeNode.cc
   lib/crt0.S
 )
-
 target_include_directories(crt_shared
-  PUBLIC
-  ${CMAKE_CURRENT_LIST_DIR}/include/
+    PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/include
 )
-
+set_target_properties(crt_shared PROPERTIES 
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
 target_link_libraries(crt_shared
     PUBLIC
-    et-common-libs::cm-umode
+        et-common-libs::cm-umode
 )
 
-
-# Set the version property.
-set_target_properties(crt_shared PROPERTIES VERSION ${PROJECT_VERSION})
-# Set the shared object version property to the project's major version.
-set_target_properties(crt_shared PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR})
 
 #set(LINKER_SCRIPT_ABS_PATH ${CMAKE_CURRENT_LIST_DIR}/lib/linker.ld)
 

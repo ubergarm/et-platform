@@ -83,7 +83,7 @@ class GpSdkHostConan(ConanFile):
     def requirements(self):
         self.requires("deviceApi/0.6.0")
         self.requires("deviceLayer/1.1.0")
-        self.requires("runtime/0.6.0")
+        self.requires("runtime/0.6.2")
         self.requires("esperantoTrace/0.6.0")
     
         self.requires("gflags/2.2.2")

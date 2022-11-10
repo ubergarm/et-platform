@@ -9,25 +9,32 @@
 #------------------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.5)
-
 project(gp-sdk-device VERSION 0.1.0 LANGUAGES C CXX ASM)
 
-if (NOT ET_SWPLATFORM_DIR)
-  set(ET_SWPLATFORM_DIR ${CMAKE_SOURCE_DIR}/../../../)
+option(USE_CONAN "Use connan packages" OFF)
+
+if (NOT USE_CONAN)
+  if (NOT ET_SWPLATFORM_DIR)
+    set(ET_SWPLATFORM_DIR ${CMAKE_SOURCE_DIR}/../../../)
+  endif()
+
+  if (NOT ET_INSTALL_DIR)
+    set(ET_INSTALL_DIR ${ET_SWPLATFORM_DIR}/build/install-staging)
+  endif()
+
+  if (NOT CMAKE_MODULE_PATH)
+    set (CMAKE_MODULE_PATH ${ET_SWPLATFORM_DIR}/cmake)
+  endif()
+      
+  set(et-common-libs_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/et-common-libs)
+  set(etsoc_hal_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/etsoc_hal)
+  set(esperantoTrace_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/esperantoTrace)
+  set(dnnLibrary_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/dnnLibrary)
 endif()
 
-if (NOT ET_INSTALL_DIR)
-  set(ET_INSTALL_DIR ${ET_SWPLATFORM_DIR}/build/install-staging)
+if (NOT ADDRESS)
+  message(FATAL_ERROR "ADRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8005b35000")
 endif()
-
-if (NOT CMAKE_MODULE_PATH)
-  set (CMAKE_MODULE_PATH ${ET_SWPLATFORM_DIR}/cmake)
-endif()
-    
-set(et-common-libs_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/et-common-libs)
-set(etsoc_hal_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/etsoc_hal)
-set(esperantoTrace_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/esperantoTrace)
-set(dnnLibrary_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/dnnLibrary)
 
 add_subdirectory(sdk)
 add_subdirectory(tests)

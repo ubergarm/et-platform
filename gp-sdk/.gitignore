@@ -2,6 +2,12 @@
 build
 *.tar.gz
 
+# traces
+*.bin
+# sysemu logs
+*.log
+*.log*
+
 # conan
 conan.lock
 conanbuildinfo.txt
@@ -9,3 +15,4 @@ conaninfo.txt
 graph_info.json
 deploy_manifest.txt
 *.lock
+CMakeUserPresets.json
