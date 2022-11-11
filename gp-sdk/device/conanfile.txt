@@ -2,6 +2,9 @@
 et-common-libs/0.12.0
 dnnLibrary/0.4.0
 
+# overrides
+deviceApi/0.8.0
+
 [generators]
 CMakeToolchain
 CMakeDeps

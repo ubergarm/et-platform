@@ -44,7 +44,7 @@ build:
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
       sudo apt install ninja-build
       cd device
-      conan install . -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop
+      conan install . -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop --build missing
       source build/generators/conanbuild.sh
       cmake --preset release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
       cmake --build --preset release
@@ -88,7 +88,10 @@ tests:silicon:
       cmake --preset ${BUILD_TYPE_LOWER} -G Ninja
       cmake --build --preset ${BUILD_TYPE_LOWER}
 
-      ./build/${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../device/build/Release/tests/print/print -device-type=silicon
+      ./build/${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../device/build/Release/tests/print2/print2 -device-type=silicon
+      conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
+      source conanrun.sh
+      dt2json traceKernels_dev0.bin -t
   allow_failure: true
 
 # generate sdk packages 

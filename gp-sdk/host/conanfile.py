@@ -81,10 +81,10 @@ class GpSdkHostConan(ConanFile):
         cmake_layout(self)
     
     def requirements(self):
-        self.requires("deviceApi/0.6.0")
+        self.requires("deviceApi/0.8.0")
         self.requires("deviceLayer/1.1.0")
         self.requires("runtime/0.6.2")
-        self.requires("esperantoTrace/0.6.0")
+        self.requires("esperantoTrace/0.7.0")
     
         self.requires("gflags/2.2.2")
     
