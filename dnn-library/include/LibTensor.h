@@ -860,59 +860,41 @@ public:
     const dim_t endOffset = first + count;
 
     const srcType* const srcP = inT->getRawDataPointer<srcType>();
+    const dim_t srcLastPitch = inT->strides()[N - 1];
     dstType* const dstP = getRawDataPointer<dstType>();
+    const dim_t dstLastPitch = strides()[N - 1];
+
+    bool consecutiveFeatures = (dstLastPitch == 1) and (srcLastPitch == 1);
+    dim_t iterationStep =
+      (consecutiveFeatures ? step : 1); // When features are not consecutive, we need to operate element by element
 
     ////////////////////////////////////////////////////////////////////////////////
     // simpler loop if there is just one dimension
     ////////////////////////////////////////////////////////////////////////////////
-    if (N == 1) {
+    if ((N == 1) and consecutiveFeatures) {
       // simplification: just 1 loop, and offset in elements is the same for all the tensors
-      dim_t offset = first;
-      while (offset < endOffset) {
-        dim_t elems = step;
-        elems = std::min<dim_t>(elems, lastDim - offset);
+      for (dim_t offset = first; offset < endOffset; offset += step) {
+        dim_t elems = std::min<dim_t>(step, lastDim - offset);
         elems = std::min<dim_t>(elems, endOffset - offset);
         compute(reinterpret_cast<uintptr_t>(dstP + offset), reinterpret_cast<uintptr_t>(srcP + offset), elems,
                 std::forward<computeArgs_t>(computeArgs)...);
-        offset += step;
       }
     } else {
       ////////////////////////////////////////////////////////////////////////////////
       // Loops for more than 1 dim
       ////////////////////////////////////////////////////////////////////////////////
-      // get iterators to loop through all the dimensions except the last one
+      // get iterators to loop through all the dimensions
       auto out = getHandle<dstType>().getIterator(first);
       auto in = inT->getHandle<srcType>().getIterator(out.coords());
 
-      dim_t oOffset = out.offset();
-      dim_t iOffset = in.offset();
-
-      if (out.coords()[N - 1] != 0) {
-        // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
-        // the row)
+      for (dim_t oOffset = out.offset(); oOffset < endOffset; oOffset = out.offset()) {
+        dim_t iOffset = in.offset();
         size_t stop = std::min(lastDim - out.coords()[N - 1], endOffset - oOffset);
-        for (size_t i = 0; i < stop; i += step) {
-          // Clips min values
-          dim_t elems = std::min<dim_t>(step, stop - i);
-          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)), reinterpret_cast<uintptr_t>(srcP + (iOffset + i)),
-                  elems, std::forward<computeArgs_t>(computeArgs)...);
-        }
-        out += stop;
-        in += stop;
-      }
-
-      // Then, complete the remaining iterations
-      for (; out.offset() < endOffset; out.step(N - 2), in.step(N - 2)) { // step 2n outer dimension
-        assume(out.coords()[N - 1] == 0 && in.coords()[N - 1] == 0);
-        oOffset = out.offset();
-        iOffset = in.offset();
-        size_t stop = std::min(lastDim, endOffset - oOffset);
-        for (size_t i = 0; i < stop; i += step) {
-          // Clips min values
-          dim_t elems = std::min<dim_t>(step, stop - i);
-          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)), reinterpret_cast<uintptr_t>(srcP + (iOffset + i)),
-                  elems, std::forward<computeArgs_t>(computeArgs)...);
-        }
+        dim_t elems = std::min<dim_t>(iterationStep, stop);
+        compute(reinterpret_cast<uintptr_t>(dstP + oOffset), reinterpret_cast<uintptr_t>(srcP + iOffset), elems,
+                std::forward<computeArgs_t>(computeArgs)...);
+        out += elems;
+        in += elems;
       }
     }
 
@@ -964,64 +946,44 @@ public:
     const dim_t endOffset = first + count;
 
     const auto srcPs = std::make_tuple(std::get<idx>(inT)->template getRawDataPointer<srcTypes>()...);
+    const auto srcLastPitches = std::make_tuple(std::get<idx>(inT)->strides()[N - 1]...);
     dstType* const dstP = getRawDataPointer<dstType>();
+    const auto dstLastPitch = strides()[N - 1];
+
+    bool consecutiveFeatures = (dstLastPitch == 1) and ((std::get<idx>(srcLastPitches) == 1) and ...);
+    dim_t iterationStep =
+      (consecutiveFeatures ? step : 1); // When features are not consecutive, we need to operate element by element
 
     ////////////////////////////////////////////////////////////////////////////////
     // simpler loop if there is just one dimension
     ////////////////////////////////////////////////////////////////////////////////
-    if (N == 1) {
+    if ((N == 1) and consecutiveFeatures) {
       // simplification: just 1 loop, and offset in elements is the same for all the tensors
-      dim_t offset = first;
-      while (offset < endOffset) {
-        dim_t elems = step;
-        elems = std::min<dim_t>(elems, lastDim - offset);
+      for (dim_t offset = first; offset < endOffset; offset += step) {
+        dim_t elems = std::min<dim_t>(step, lastDim - offset);
         elems = std::min<dim_t>(elems, endOffset - offset);
         compute(reinterpret_cast<uintptr_t>(dstP + offset),
                 reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + offset)..., elems,
                 std::forward<computeArgs_t>(computeArgs)...);
-        offset += step;
       }
     } else {
       ////////////////////////////////////////////////////////////////////////////////
       // Loops for more than 1 dim
       ////////////////////////////////////////////////////////////////////////////////
 
-      // get iterators to loop through all the dimensions except the last one
+      // get iterators to loop through all the dimensions
       auto out = getHandle<dstType>().getIterator(first);
-      dim_t oOffset = out.offset();
       auto in = std::make_tuple(std::get<idx>(inT)->template getHandle<srcTypes>().getIterator(out.coords())...);
-      std::array<dim_t, nrInputs> iOffsets = {(std::get<idx>(in)).offset()...};
 
-      if (out.coords()[N - 1] != 0) {
-        // First iterate until completing the first feature dimension (in case initial coordinates are in the middle of
-        // the row)
+      for (dim_t oOffset = out.offset(); oOffset < endOffset; oOffset = out.offset()) {
+        std::array<dim_t, nrInputs> iOffsets = {(std::get<idx>(in)).offset()...};
         size_t stop = std::min(lastDim - out.coords()[N - 1], endOffset - oOffset);
-        for (size_t i = 0; i < stop; i += step) {
-          // Clips min values
-          dim_t elems = std::min<dim_t>(step, stop - i);
-          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)),
-                  reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + (iOffsets[idx] + i))..., elems,
-                  std::forward<computeArgs_t>(computeArgs)...);
-        }
-        out += stop;
-        (std::get<idx>(in).operator+=(stop), ...);
-      }
-
-      // Then, complete the remaining iterations
-      for (; out.offset() < endOffset;
-           out.step(N - 2), (std::get<idx>(in).step(N - 2), ...)) { // step 2n outer dimension
-        assume(out.coords()[N - 1] == 0);
-
-        oOffset = out.offset();
-        iOffsets = {(std::get<idx>(in)).offset()...};
-        size_t stop = std::min(lastDim, endOffset - oOffset);
-        for (size_t i = 0; i < stop; i += step) {
-          // Clips min values
-          dim_t elems = std::min<dim_t>(step, stop - i);
-          compute(reinterpret_cast<uintptr_t>(dstP + (oOffset + i)),
-                  reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + (iOffsets[idx] + i))..., elems,
-                  std::forward<computeArgs_t>(computeArgs)...);
-        }
+        dim_t elems = std::min<dim_t>(iterationStep, stop);
+        compute(reinterpret_cast<uintptr_t>(dstP + oOffset),
+                reinterpret_cast<uintptr_t>(std::get<idx>(srcPs) + iOffsets[idx])..., elems,
+                std::forward<computeArgs_t>(computeArgs)...);
+        out += elems;
+        (std::get<idx>(in).operator+=(elems), ...);
       }
     }
 
