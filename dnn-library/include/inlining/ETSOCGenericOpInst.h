@@ -319,7 +319,7 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
   size_t minionId = get_minion_id();
 
   if (minionId == 0) {
-    et_printf("%s(%d) [numMinions=%d op=%s]\n", __func__, __LINE__, numMinions, Op2String[op]);
+    et_printf("%s(%d) [numMinions=%d op=%d]\n", __func__, __LINE__, numMinions, op);
   }
 
   switch (Operation(op)) {
