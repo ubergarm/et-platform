@@ -134,47 +134,31 @@ install (TARGETS dnn_lib_host_generated_headers
          EXPORT dnnLibraryTargets
          PUBLIC_HEADER DESTINATION  ${CMAKE_INSTALL_INCLUDEDIR}/dnn_lib/host_headers/dnn_lib) 
 
-add_library(dnn_lib STATIC
-    src/LibNodes.cpp
-    src/DummyLogCode.cpp
+add_library(dnn_lib INTERFACE) #interface only libraries
+         
+target_link_libraries(dnn_lib
+  INTERFACE
+   et-common-libs::cm-umode
 )
 
 add_library(dnnLibrary::dnn_lib ALIAS dnn_lib)
 target_include_directories(dnn_lib
-    PUBLIC
+    INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/inlining>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/internal>
-        $<INSTALL_INTERFACE:include/dnn_lib>
+        $<INSTALL_INTERFACE:include>
 )
-target_compile_features(dnn_lib PRIVATE cxx_std_17)
+      
+target_compile_features(dnn_lib INTERFACE cxx_std_17)
 target_compile_options(dnn_lib
-    PRIVATE
+  INTERFACE
         -Wall
         $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
         # Even w/o treating all warnings as arrors, there are some warnings we don't
         # allow at this compilation stage. This list wil grow as categories are cleaned up.
-        -Werror=shadow 
-        -Werror=ignored-qualifiers 
-        -Werror=div-by-zero
-        -Werror=unused-but-set-parameter
-        -Werror=unused-but-set-variable
-        -Werror=unused-parameter
-        -Werror=unused-variable
-        -Werror=float-conversion
-        -Werror=double-promotion
-        -Werror=cast-align
-        -Werror=maybe-uninitialized
-        -Werror=parentheses
-        -Werror=unused-local-typedefs
-        -Werror=sign-compare
-        -Werror=narrowing
 )
-target_link_libraries(dnn_lib
-    PRIVATE
-        et-common-libs::cm-umode
-)
-
+      
 set_target_properties(dnn_lib PROPERTIES
     PUBLIC_HEADER "${LIB_DNN_PUBLIC_HEADERS}"
 )
@@ -211,3 +195,36 @@ install(FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/dnnLibrary
 )
 
+add_executable(dnnlibraryDummyExecutable
+  src/LibNodes.cpp
+  src/DummyLogCode.cpp
+  src/main.cpp
+)
+
+target_link_libraries(dnnlibraryDummyExecutable
+  PRIVATE
+    dnn_lib
+)
+  
+target_compile_options(dnnlibraryDummyExecutable
+      PRIVATE
+        -Wall
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
+        # Even w/o treating all warnings as arrors, there are some warnings we don't
+        # allow at this compilation stage. This list wil grow as categories are cleaned up.
+        -Werror=shadow 
+        -Werror=ignored-qualifiers 
+        -Werror=div-by-zero
+        -Werror=unused-but-set-parameter
+        -Werror=unused-but-set-variable
+        -Werror=unused-parameter
+        -Werror=unused-variable
+        -Werror=float-conversion
+        -Werror=double-promotion
+        -Werror=cast-align
+        -Werror=maybe-uninitialized
+        -Werror=parentheses
+        -Werror=unused-local-typedefs
+        -Werror=sign-compare
+        -Werror=narrowing
+      )
