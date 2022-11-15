@@ -1,18 +1,17 @@
-SW_PLATFORM := ../../../../../../
+SW_PLATFORM := ../../../../../../build
 APP_NAME := fft_kernel
-INSTALL_PATH := $(SW_PLATFORM)/build/host-software/$(APP_DIR)/nonMlKernels/
 OBJ := ../obj/
 SRC := ../src/
-INC := -I../ -I../inc -I../inc/dnnlib_subset  -I$(SW_PLATFORM)/build/install-staging/sw-platform-riscv-sysroot/cm-umode/include -I$(SW_PLATFORM)/build/install-staging/sw-platform-riscv-sysroot/include/esperanto
+INC := -I../ -I../inc -I../inc/dnnlib_subset  -I$(SW_PLATFORM)/install-staging/sw-platform-riscv-sysroot/cm-umode/include -I$(SW_PLATFORM)/install-staging/sw-platform-riscv-sysroot/include/esperanto
 CC := riscv64-unknown-elf-g++
 CFLAGS := -mcmodel=medany -DNDEBUG -g3 -O3 -falign-functions=64 -std=gnu++17 -fno-exceptions -fstack-usage
 ASFLAGS := -mcmodel=medany
 LD := riscv64-unknown-elf-gcc
 LDFLAGS := -Tlinker.ld -nostartfiles -nostdlib
-LIB := -L$(SW_PLATFORM)/build/install-staging/sw-platform-riscv-sysroot/cm-umode/lib -lcm-umode -lm -lgcc
+LIB := -L$(SW_PLATFORM)/install-staging/sw-platform-riscv-sysroot/cm-umode/lib -lcm-umode -lm -lgcc
 LD_relink := riscv64-unknown-elf-gcc
 LDFLAGS_relink := -Tlinker.relink.ld -nostartfiles -nostdlib
-LIB_relink := -L$(SW_PLATFORM)/build/install-staging/sw-platform-riscv-sysroot/cm-umode/lib -lcm-umode -lm -lgcc
+LIB_relink := -L$(SW_PLATFORM)/install-staging/sw-platform-riscv-sysroot/cm-umode/lib -lcm-umode -lm -lgcc
 
 all : ../bin/$(APP_NAME).elf ../bin/$(APP_NAME).relink.elf ../bin/$(APP_NAME).S ../bin/$(APP_NAME).relink.S install
 clean :
@@ -21,10 +20,10 @@ clean :
 install:
 	 
 
-../bin/$(APP_NAME).elf : ../obj/testOperator_compute.o ../obj/SyncComputeNode.o ../obj/uberKernel_crt.o ../obj/uberKernel.o
+../bin/$(APP_NAME).elf : ../obj/testOperator_compute.o  ../obj/uberKernel_crt.o ../obj/uberKernel.o
 	$(LD) $(LDFLAGS) -e _start -o $@ $^ $(LIB)
 
-../bin/$(APP_NAME).relink.elf : ../obj/testOperator_compute.o ../obj/SyncComputeNode.o ../obj/uberKernel_crt.o ../obj/uberKernel.o
+../bin/$(APP_NAME).relink.elf : ../obj/testOperator_compute.o ../obj/uberKernel_crt.o ../obj/uberKernel.o
 	$(LD_relink) $(LDFLAGS_relink) -e _start -o $@ $^ $(LIB)
 
 $(OBJ)%.o: $(SRC)%.cc

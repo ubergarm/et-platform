@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2022, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
+
 // clang-format off
 
 
@@ -8,7 +19,6 @@
 #include <etsoc/isa/barriers.h>
 #include <etsoc/isa/cacheops-umode.h>
 #include <etsoc/common/utils.h>
-#include "SyncComputeNode.h"
 #include "kernel_arguments.h"
 #include "testOperator_compute.h"
 
@@ -38,10 +48,5 @@ extern "C" int uberKernel_RAWKERNEL_entry_point(kernelArguments * layer_dyn_info
 
 extern "C" __attribute((noclone , noinline)) void startUberKernelComputes(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info){
 
-  uint32_t globalMinionId = shireId * 32 + minionId;
-
   _UNIQUE_CALL(testOperator_compute, layer_dyn_info)
-
-  //SyncComputeNode(minionId, shireId, 32, false, true, 0);
-
 }

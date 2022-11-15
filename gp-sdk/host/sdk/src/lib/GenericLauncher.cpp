@@ -11,12 +11,11 @@
 #include <cassert>
 #include <esperanto/et-trace/encoder.h>
 #include <fstream>
+#include <gflags/gflags.h>
 #include <iostream>
 #include <iterator>
 #include <runtime/DeviceLayerFake.h>
 #include <sw-sysemu/SysEmuOptions.h>
-
-#include <gflags/gflags.h>
 
 #if __has_include("filesystem")
 #include <filesystem>

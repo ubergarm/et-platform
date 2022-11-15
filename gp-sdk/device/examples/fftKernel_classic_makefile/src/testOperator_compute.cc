@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2022, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
+
 // clang-format off
 
 
@@ -8,7 +19,6 @@
 #include <dnn_lib/LibCommon.h>
 #include <dnn_lib/LibTypes.h>
 #include <dnn_lib/LibTensor.h>
-#include "SyncComputeNode.h"
 
 #include "testOperator_compute.h"
 

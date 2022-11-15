@@ -35,6 +35,8 @@ target_link_libraries(basic_launcher etsoc_gpsdk
 add_executable(fft_launcher src/fft_launcher/FFTLauncher.cpp)
 target_link_libraries(fft_launcher etsoc_gpsdk
                                gflags::gflags)
+#fftw3f needed for FFT_VERIFICATION
+#target_link_libraries (fft_launcher fftw3f)
 
 install(TARGETS basic_launcher fft_launcher etsoc_gpsdk
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
