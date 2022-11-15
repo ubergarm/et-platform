@@ -87,7 +87,10 @@ class GpSdkHostConan(ConanFile):
         self.requires("esperantoTrace/0.7.0")
     
         self.requires("gflags/2.2.2")
-    
+
+        # overrides
+        self.requires("sw-sysemu/0.5.0")
+
     def validate(self):
         # validate the minimum cpp standard supported. For C++ projects only
         if self.info.settings.compiler.cppstd:
