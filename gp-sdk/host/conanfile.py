@@ -22,10 +22,12 @@ class GpSdkHostConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
+        "device_api_version": ["0.6.0", "0.7.0", "0.8.0"]
     }
     default_options = {
         "shared": False,
         "fPIC": True,
+        "device_api_version": "0.8.0"
     }
 
     python_requires = "conan-common/[>=0.5.0 <1.0.0]"
@@ -81,7 +83,7 @@ class GpSdkHostConan(ConanFile):
         cmake_layout(self)
     
     def requirements(self):
-        self.requires("deviceApi/0.8.0")
+        self.requires(f"deviceApi/{self.options.device_api_version}")
         self.requires("deviceLayer/1.1.0")
         self.requires("runtime/0.6.2")
         self.requires("esperantoTrace/0.7.0")
