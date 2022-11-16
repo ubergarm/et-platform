@@ -12,6 +12,9 @@
 #include "entryPoint.h"
 #include "inst_pref_decls.h"
 
+extern uint64_t _bss_end;
+extern uint64_t _bss_start;
+
 #define _UNIQUE_CALL(function, ...)\
  do { \
   function( __VA_ARGS__ ); \
@@ -20,11 +23,9 @@
     #function "_return_point:" : : : );\
 } while(0);
 
-
 #define _UNIQUE_CALL_PARALLEL(function, param) {\
   function( param ); \
 }
-
 
 #define _UNIQUE_CALL_PARALLEL_RETURN(function_name) {\
   __asm__ __volatile__ (\
@@ -32,11 +33,30 @@
     #function_name "_return_point:" : : : );\
 }
 
-
 #define _UNIQUE_LBL(function, param) {\
   __asm__ __volatile__ (\
     ".global " #function "_return_point\n"\
     #function "_return_point:" : : : );\
+}
+
+void resetBSS() {
+  uint64_t *bss_end = &_bss_end;
+  uint64_t *bss_start = &_bss_start;
+  uint64_t bssSize = (bss_end - bss_start) / sizeof(uint64_t);
+  constexpr size_t stride = 4;
+
+  // et_printf("bss[%x-%x], bssSize %llu\n", bss_start, bss_end, bssSize);
+  float zeroVector;
+  __asm__ __volatile__("fbcx.ps %[zeroVector], x0\n"
+                       : [ zeroVector ] "=&f" (zeroVector)
+                       :);
+
+  for (size_t i = 0; i < bssSize; i += stride) {
+    __asm__ __volatile__( "fswg.ps %[zeroVector], (%[dst])\n"
+                           :  
+                           : [ dst ] "r"(bss_start + i), [ zeroVector ] "f" (zeroVector)
+                           :); 
+  }
 }
 
 extern "C" int deviceGpSdkEntry(kernelArguments * layer_dyn_info) {
@@ -47,10 +67,13 @@ extern "C" int deviceGpSdkEntry(kernelArguments * layer_dyn_info) {
   minionId = minionId & 0x1F;
   uint32_t globalMinionId = shireId * 32 + minionId;
 
+  // Reset .bss section on each kernel launch
+  resetBSS();
+
   if ((shireId < 32) && (threadId == 0)) {
     _UNIQUE_CALL(entryPoint, layer_dyn_info);
     // SyncComputeNode(minionId, shireId, 32, false, true, 0);
-    //try to flush caches transparent to the user not called them from entryPoint user program.
+    // try to flush caches transparent to the user not called them from entryPoint user program.
   }
 
   return 0;

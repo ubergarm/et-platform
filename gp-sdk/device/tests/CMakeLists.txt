@@ -17,3 +17,4 @@ message(STATUS "address used for Debugging-> ${DEBUG_ADDRESS}")
 
 add_etsoc_riscv_executable(print print/print.cc)
 add_etsoc_riscv_executable(print2 print2/print2.cc)
+add_etsoc_riscv_executable(bss kernelLaunch/resetBSS.cc)
