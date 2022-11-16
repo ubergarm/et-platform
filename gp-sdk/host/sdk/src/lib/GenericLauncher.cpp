@@ -25,6 +25,7 @@ namespace std {
 namespace filesystem = std::experimental::filesystem;
 }
 #endif
+namespace fs = std::filesystem;
 
 #include "GenericLauncher.h"
 
@@ -44,20 +45,29 @@ std::string defaultKernel = FLAGS_gp_sdk_device_installdir + KERNELS_DIR + "/tra
 DEFINE_string(kernel_path, defaultKernel, "ET-SoC-1 kernel path and filename");
 DEFINE_string(simulator_params, "-l -lm 0", "Hyperparameters to pass to simulator, overrides default values");
 DEFINE_string(simulator_installdir, "", "Path to simulator installation directory");
+DEFINE_bool(simulator_start_gdb, false, "Enable sysemu gdb");
 // TODO "runtime-install-prefix", "num-devices"
 
-emu::SysEmuOptions getDefaultOptions() {
+std::tuple<fs::path, fs::path> getDeviceArtifactsBasePaths() {
+  fs::path device_bootloader_path = FLAGS_gp_sdk_device_installdir;
+  fs::path device_minion_rt_path = FLAGS_gp_sdk_device_installdir;
+#ifdef WITH_CONAN
+  device_bootloader_path /= "device-bootloaders";
+  device_minion_rt_path /= "device-minion-runtime";
+#endif
+  fs::path postfix = "lib/esperanto-fw";
+  device_bootloader_path /= postfix;
+  device_minion_rt_path /= postfix;
+  return {device_bootloader_path, device_minion_rt_path};
+}
 
-  static const std::string BOOTROM_TRAMPOLINE_TO_BL2_ELF =
-    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/BootromTrampolineToBL2/BootromTrampolineToBL2.elf";
-  static const std::string BL2_ELF =
-    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/ServiceProcessorBL2/fast-boot/ServiceProcessorBL2_fast-boot.elf";
-  static const std::string MASTER_MINION_ELF =
-    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/MasterMinion/MasterMinion.elf";
-  static const std::string MACHINE_MINION_ELF =
-    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/MachineMinion/MachineMinion.elf";
-  static const std::string WORKER_MINION_ELF =
-    FLAGS_gp_sdk_device_installdir + "lib/esperanto-fw/WorkerMinion/WorkerMinion.elf";
+emu::SysEmuOptions getDefaultOptions() {
+  auto [device_bootloader_path, device_minion_rt_path] = getDeviceArtifactsBasePaths();
+  const fs::path BOOTROM_TRAMPOLINE_TO_BL2_ELF = device_bootloader_path / "BootromTrampolineToBL2/BootromTrampolineToBL2.elf";
+  const fs::path BL2_ELF                       = device_bootloader_path / "ServiceProcessorBL2/fast-boot/ServiceProcessorBL2_fast-boot.elf";
+  const fs::path MASTER_MINION_ELF             = device_minion_rt_path / "MasterMinion/MasterMinion.elf";
+  const fs::path MACHINE_MINION_ELF            = device_minion_rt_path / "MachineMinion/MachineMinion.elf";
+  const fs::path WORKER_MINION_ELF             = device_minion_rt_path / "WorkerMinion/WorkerMinion.elf";
 
   constexpr uint64_t kSysEmuMaxCycles = std::numeric_limits<uint64_t>::max();
   constexpr uint64_t kSysEmuMinionShiresMask = 0x1FFFFFFFFu;
@@ -76,7 +86,7 @@ emu::SysEmuOptions getDefaultOptions() {
   sysEmuOptions.puUart1Path = sysEmuOptions.runDir + "/pu_uart1_tx.log";
   sysEmuOptions.spUart0Path = sysEmuOptions.runDir + "/spio_uart0_tx.log";
   sysEmuOptions.spUart1Path = sysEmuOptions.runDir + "/spio_uart1_tx.log";
-  sysEmuOptions.startGdb = false;
+  sysEmuOptions.startGdb = FLAGS_simulator_start_gdb;
 
   // Pass the sysemu parameters from command line
   auto cmd = FLAGS_simulator_params;

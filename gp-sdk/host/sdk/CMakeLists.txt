@@ -13,14 +13,15 @@ find_package(gflags REQUIRED)
 
 add_library(etsoc_gpsdk STATIC src/lib/GenericLauncher.cpp)
 target_include_directories(etsoc_gpsdk PUBLIC include)
+target_compile_definitions(etsoc_gpsdk PRIVATE $<$<BOOL:${USE_CONAN}>:WITH_CONAN>)
 target_link_libraries(etsoc_gpsdk 
     PUBLIC 
-    deviceLayer::deviceLayer
-    runtime::etrt
+        deviceLayer::deviceLayer
+        runtime::etrt
     PRIVATE
-    esperantoTrace::et_trace
-    $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0.0>>:stdc++fs>
-    gflags::gflags
+        esperantoTrace::et_trace
+        $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0.0>>:stdc++fs>
+        gflags::gflags
 )
 
 # 
@@ -33,10 +34,12 @@ target_link_libraries(basic_launcher etsoc_gpsdk
 
 
 add_executable(fft_launcher src/fft_launcher/FFTLauncher.cpp)
-target_link_libraries(fft_launcher etsoc_gpsdk
-                               gflags::gflags)
-#fftw3f needed for FFT_VERIFICATION
-#target_link_libraries (fft_launcher fftw3f)
+target_link_libraries(fft_launcher
+    PRIVATE
+        etsoc_gpsdk
+        gflags::gflags
+        #fftw3f needed for FFT_VERIFICATION
+)
 
 install(TARGETS basic_launcher fft_launcher etsoc_gpsdk
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
