@@ -22,7 +22,7 @@ class GpSdkHostConan(ConanFile):
     options = {
         "shared": [True, False],
         "fPIC": [True, False],
-        "device_api_version": ["0.6.0", "0.7.0", "0.8.0"]
+        "device_api_version": ["0.6.0", "0.7.0", "0.8.0", "0.9.0"]
     }
     default_options = {
         "shared": False,

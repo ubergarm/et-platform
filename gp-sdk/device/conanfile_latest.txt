@@ -1,0 +1,16 @@
+[requires]
+et-common-libs/0.12.0
+dnnLibrary/0.4.0
+
+# overrides
+deviceApi/0.9.0
+esperantoTrace/0.8.0
+
+[generators]
+CMakeToolchain
+CMakeDeps
+VirtualBuildEnv
+VirtualRunEnv
+
+[layout]
+cmake_layout
