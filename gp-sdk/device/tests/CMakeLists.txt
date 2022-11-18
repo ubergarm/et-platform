@@ -9,12 +9,14 @@
 #------------------------------------------------------------------------------
 
 find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
+find_package(dnnLibrary)
 
 include(tests.cmake)
 
 math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
 message(STATUS "address used for Debugging-> ${DEBUG_ADDRESS}")
 
+#Adding test
 add_etsoc_riscv_executable(print print/print.cc)
 add_etsoc_riscv_executable(print2 print2/print2.cc)
 add_etsoc_riscv_executable(bss kernelLaunch/resetBSS.cc)
