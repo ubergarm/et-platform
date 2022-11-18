@@ -9,6 +9,11 @@
 #------------------------------------------------------------------------------
 
 cmake_minimum_required(VERSION 3.5)
+
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/ToolchainGpsdk-gcc-riscv.cmake.in
+               ${CMAKE_CURRENT_BINARY_DIR}/ToolchainGpsdk-gcc-riscv.cmake
+               @ONLY)
+
 project(gp-sdk-device VERSION 0.1.0 LANGUAGES C CXX ASM)
 
 option(USE_CONAN "Use connan packages" OFF)
@@ -35,6 +40,13 @@ endif()
 if (NOT ADDRESS)
   message(FATAL_ERROR "ADRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8005b35000")
 endif()
+    
+set(et-common-libs_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/et-common-libs)
+set(etsoc_hal_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/etsoc_hal)
+set(esperantoTrace_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/esperantoTrace)
+set(dnnLibrary_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/dnnLibrary)
 
 add_subdirectory(sdk)
 add_subdirectory(tests)
+
+add_definitions("-DCMAKE_TOOLCHAIN_FILE=ToolchainGpsdk-gcc-riscvGpsdk.cmake")
