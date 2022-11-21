@@ -91,7 +91,7 @@ class GpSdkHostConan(ConanFile):
         self.requires("gflags/2.2.2")
 
         # overrides
-        self.requires("sw-sysemu/0.5.0")
+        self.requires("sw-sysemu/0.6.0")
 
     def validate(self):
         # validate the minimum cpp standard supported. For C++ projects only
