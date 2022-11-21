@@ -89,8 +89,8 @@ tests:silicon:
     - mv-eap03
   parallel:
     matrix:
-      - SW_PLATFORM_RELEASE: [ 'v0.12.1' ]
-        DEVICE_API: [ '0.6.0' ]
+      - SW_PLATFORM_RELEASE: [ 'v0.14.2' ]
+        DEVICE_API: [ '0.8.0' ]
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     TIMEOUT: 2h
