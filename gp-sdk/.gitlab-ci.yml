@@ -55,6 +55,24 @@ build:
       cmake --preset ${BUILD_TYPE_LOWER} -G Ninja
       cmake --build --preset ${BUILD_TYPE_LOWER}
 
+tests:sw-sysemu:
+  extends:
+    - .pod_large
+    - .template_job
+    - .template-conan-linux-ubuntu18.04-gcc7
+  stage: test
+  parallel:
+    matrix:
+      - SW_PLATFORM_RELEASE: [ 'v0.12.1' ]
+        DEVICE_API: [ '0.6.0' ]
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    TIMEOUT: 2h
+    CMD_BUILD: |
+      sudo apt install ninja-build
+      
+      ./build.sh -v ${SW_PLATFORM_RELEASE} -d ${DEVICE_API} -r sysemu
+
 # same as 'bulid' job + execute a kernel in a silicon machine
 tests:silicon:
   extends:
@@ -69,29 +87,16 @@ tests:silicon:
     - mv-eap03
   parallel:
     matrix:
-      - BUILD_TYPE: [ Debug ]
+      - SW_PLATFORM_RELEASE: [ 'v0.12.1' ]
+        DEVICE_API: [ '0.6.0' ]
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     TIMEOUT: 2h
     CMD_BUILD: |
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
       sudo apt install ninja-build
-      cd device
-      conan install . -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop
-      source build/generators/conanbuild.sh
-      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
-      cmake --build --preset release
-      cd -
-
-      cd host
-      conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --update --remote conan-develop --build missing
-      cmake --preset ${BUILD_TYPE_LOWER} -G Ninja
-      cmake --build --preset ${BUILD_TYPE_LOWER}
-
-      ./build/${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../device/build/Release/tests/print2/print2 -device-type=silicon
-      conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
-      source conanrun.sh
-      dt2json traceKernels_dev0.bin -t
+      
+      ./build.sh -v ${SW_PLATFORM_RELEASE} -d ${DEVICE_API} -r silicon
   allow_failure: true
 
 # generate sdk packages 
