@@ -44,15 +44,14 @@ cmake --preset release -G Ninja
 cmake --preset debug -G Ninja
 cmake --build --preset release
 cmake --build --preset debug
-cd -
 
+cd build
 
 if [[ "$device_type" == "sysemu" ]]
 then
   extra_flags="-gp_sdk_device_installdir=./device_artifacts/"
 
   # install sysemu device artifacts
-  cd host/build
   rm -rf device_artifacts
   mkdir device_artifacts
   cd device_artifacts
@@ -60,9 +59,16 @@ then
   cd ..
 fi
 
+# install dt2json
+conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
+source conanrun.sh
+
 # execute test
 
 ./Release/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2/print2 -device-type=${device_type} $extra_flags
+
+# parse trace
+dt2json traceKernels_dev0.bin -t
 
 end_time=$(date +%s)
 # elapsed time with second resolution
