@@ -9,6 +9,7 @@
 //------------------------------------------------------------------------------
 #ifndef GENERIC_LAUNCHER_H
 #define GENERIC_LAUNCHER_H
+#include <AbortManager.h>
 #include <device-layer/IDeviceLayer.h>
 #include <runtime/IRuntime.h>
 
@@ -141,11 +142,16 @@ private:
   // just to enable glog-logger on runtime.
   logging::LoggerDefault loggerDefault_;
   void doKernelLaunch(rt::KernelId, std::byte * params, size_t size, uint64_t shireMask);
-  
+  void reportUserException(const rt::StreamError& error) const;
+  void createRuntime(bool enableCoreDump, rt::Options options);
+  void resetRuntime(bool enableCoreDump);
+  AbortManager abortManager_;
+
 protected:
   const Config& config_;
   std::unique_ptr<dev::IDeviceLayer> deviceLayer_;
   rt::RuntimePtr runtime_;
+  rt::RuntimePtr runtimeBase_;
   std::vector<rt::DeviceId> devices_;
   std::vector<rt::StreamId> defaultStreams_;
   std::vector<rt::StreamId> traceStreams_;

@@ -1,0 +1,125 @@
+//******************************************************************************
+// Copyright (C) 2018-2023, Esperanto Technologies Inc.
+// The copyright to the computer program(s) herein is the
+// property of Esperanto Technologies, Inc. All Rights Reserved.
+// The program(s) may be used and/or copied only with
+// the written permission of Esperanto Technologies and
+// in accordance with the terms and conditions stipulated in the
+// agreement/contract under which the program(s) have been supplied.
+//------------------------------------------------------------------------------
+
+#include <cassert>
+#include <glog/logging.h>
+
+#include "RuntimeImpWithCoreDump.h"
+
+std::vector<rt::DeviceId> RuntimeImpWithCoreDump::doGetDevices() {
+  return this->runtime_->getDevices();
+}
+
+std::byte* RuntimeImpWithCoreDump::doMallocDevice(rt::DeviceId device, size_t size, uint32_t alignment) {
+  auto ptr = this->runtime_->mallocDevice(device, size, alignment);
+  if (ptr) {
+    abortManager_->registerData(ptr, size, device);
+  }
+  return ptr;
+}
+
+void RuntimeImpWithCoreDump::doFreeDevice(rt::DeviceId device, std::byte* buffer) {
+  this->runtime_->freeDevice(device, buffer);
+  abortManager_->unregisterData(buffer, device);
+}
+
+rt::StreamId RuntimeImpWithCoreDump::doCreateStream(rt::DeviceId device) {
+  return this->runtime_->createStream(device);
+}
+
+void RuntimeImpWithCoreDump::doDestroyStream(rt::StreamId stream) {
+  this->runtime_->destroyStream(stream);
+}
+
+rt::LoadCodeResult RuntimeImpWithCoreDump::doLoadCode(rt::StreamId stream, const std::byte* elf, size_t elf_size) {
+  auto res = this->runtime_->loadCode(stream, elf, elf_size);
+  runtime_->waitForEvent(res.event_);
+
+  if (res.loadAddress_) {
+    auto deviceId = abortManager_->getDeviceIdFromStreamId(stream);
+    abortManager_->registerCode(res.loadAddress_, elf_size, res.kernel_, deviceId);
+  }
+
+  return res;
+}
+
+void RuntimeImpWithCoreDump::doUnloadCode(rt::KernelId kernel) {
+  this->runtime_->unloadCode(kernel);
+  abortManager_->unregisterCode(kernel);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doKernelLaunch(rt::StreamId stream, rt::KernelId kernel,
+                                                   const std::byte* kernel_args, size_t kernel_args_size,
+                                                   uint64_t shire_mask, bool barrier, bool flushL3,
+                                                   std::optional<rt::UserTrace> userTraceConfig) {
+  return this->runtime_->kernelLaunch(stream, kernel, kernel_args, kernel_args_size, shire_mask, barrier, flushL3,
+                                      userTraceConfig);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doMemcpyHostToDevice(rt::StreamId stream, const std::byte* h_src, std::byte* d_dst,
+                                                         size_t size, bool barrier,
+                                                         const rt::CmaCopyFunction& cmaCopyFunction) {
+  return this->runtime_->memcpyHostToDevice(stream, h_src, d_dst, size, barrier, cmaCopyFunction);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doMemcpyDeviceToHost(rt::StreamId stream, const std::byte* d_src, std::byte* h_dst,
+                                                         size_t size, bool barrier,
+                                                         const rt::CmaCopyFunction& cmaCopyFunction) {
+  return this->runtime_->memcpyDeviceToHost(stream, d_src, h_dst, size, barrier, cmaCopyFunction);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doMemcpyHostToDevice(rt::StreamId stream, rt::MemcpyList memcpyList, bool barrier,
+                                                         const rt::CmaCopyFunction& cmaCopyFunction) {
+  return this->runtime_->memcpyHostToDevice(stream, memcpyList, barrier, cmaCopyFunction);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doMemcpyDeviceToHost(rt::StreamId stream, rt::MemcpyList memcpyList, bool barrier,
+                                                         const rt::CmaCopyFunction& cmaCopyFunction) {
+  return this->runtime_->memcpyDeviceToHost(stream, memcpyList, barrier, cmaCopyFunction);
+}
+
+bool RuntimeImpWithCoreDump::doWaitForEvent(rt::EventId event, std::chrono::seconds timeout) {
+  return this->runtime_->waitForEvent(event, timeout);
+}
+
+bool RuntimeImpWithCoreDump::doWaitForStream(rt::StreamId stream, std::chrono::seconds timeout) {
+  return this->runtime_->waitForStream(stream, timeout);
+}
+
+std::vector<rt::StreamError> RuntimeImpWithCoreDump::doRetrieveStreamErrors(rt::StreamId stream) {
+  return this->runtime_->retrieveStreamErrors(stream);
+}
+
+void RuntimeImpWithCoreDump::doSetOnStreamErrorsCallback(rt::StreamErrorCallback callback) {
+  this->runtime_->setOnStreamErrorsCallback(callback);
+}
+
+rt::DeviceProperties RuntimeImpWithCoreDump::doGetDeviceProperties(rt::DeviceId device) const {
+  return this->runtime_->getDeviceProperties(device);
+}
+
+void RuntimeImpWithCoreDump::doSetOnKernelAbortedErrorCallback(const rt::KernelAbortedCallback& callback) {
+  this->runtime_->setOnKernelAbortedErrorCallback(callback);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doAbortCommand(rt::EventId commandId, std::chrono::milliseconds timeout) {
+  return this->runtime_->abortCommand(commandId, timeout);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doAbortStream(rt::StreamId streamId) {
+  return this->runtime_->abortStream(streamId);
+}
+
+rt::DmaInfo RuntimeImpWithCoreDump::doGetDmaInfo(rt::DeviceId deviceId) const {
+  return this->runtime_->getDmaInfo(deviceId);
+}
+
+RuntimeImpWithCoreDump::~RuntimeImpWithCoreDump() {
+}

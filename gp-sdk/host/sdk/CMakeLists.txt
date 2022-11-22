@@ -1,10 +1,22 @@
+# 
+# create abort_manager lib
+#
 
+add_library(abort_manager STATIC 
+    lib/AbortManager/AbortManager.cpp
+    lib/AbortManager/CoreDumper.cpp
+)
+target_include_directories (abort_manager PUBLIC lib/AbortManager)
+target_link_libraries(abort_manager PUBLIC runtime::etrt)
 
 # 
 # compile generic_launcher lib
 #
 
-add_library(etsoc_gpsdk STATIC src/lib/GenericLauncher.cpp)
+add_library(etsoc_gpsdk STATIC 
+    src/lib/GenericLauncher.cpp 
+    src/lib/RuntimeImpWithCoreDump.cpp
+)
 target_include_directories(etsoc_gpsdk PUBLIC include)
 target_compile_definitions(etsoc_gpsdk PRIVATE $<$<BOOL:${USE_CONAN}>:WITH_CONAN>)
 target_link_libraries(etsoc_gpsdk 
@@ -16,6 +28,8 @@ target_link_libraries(etsoc_gpsdk
         $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0.0>>:stdc++fs>
         gflags::gflags
 )
+
+target_link_libraries(etsoc_gpsdk PUBLIC abort_manager)
 
 # 
 # compile specific launcher apps.

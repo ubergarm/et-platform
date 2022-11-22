@@ -20,6 +20,12 @@ target_link_libraries(bss.elf etsoc_crt0)
 add_etsoc_riscv_executable(data.elf kernelLaunch/resetData.cc)
 target_link_libraries(data.elf etsoc_crt0)
 
+add_etsoc_riscv_executable(hang.elf hang/hang.cc)
+target_link_libraries(hang.elf etsoc_crt0)
+
+add_etsoc_riscv_executable(exception.elf exception/exception.cc)
+target_link_libraries(exception.elf etsoc_crt0)
+
 add_etsoc_riscv_executable(saxpy_scalar.elf saxpy/saxpy.cpp)
 target_link_libraries(saxpy_scalar.elf etsoc_crt0)
 target_include_directories(saxpy_scalar.elf INTERFACE .)

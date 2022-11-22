@@ -17,6 +17,10 @@
 #include <runtime/DeviceLayerFake.h>
 #include <sw-sysemu/SysEmuOptions.h>
 
+#include <cstdint>
+#include <tuple>
+#include <unistd.h>
+
 #if __has_include("filesystem")
 #include <filesystem>
 #elif __has_include("experimental/filesystem")
@@ -28,10 +32,13 @@ namespace filesystem = std::experimental::filesystem;
 namespace fs = std::filesystem;
 
 #include "GenericLauncher.h"
+#include "RuntimeImpWithCoreDump.h"
 
 DEFINE_string(gp_sdk_device_installdir, "", "Path to gp-sdk-device installation directory");
 
 DEFINE_string(simulator_params, "", "Hyperparameters to pass to simulator, overrides default values");
+
+DEFINE_bool(enableCoreDump, false, "Enable core dump");
 
 // Trace Buffer realted constants.
 constexpr size_t kTraceBytesPerHart = 4096;
@@ -57,11 +64,12 @@ std::tuple<fs::path, fs::path> getDeviceArtifactsBasePaths() {
 emu::SysEmuOptions getDefaultOptions() {
 #ifdef WITH_SYSEMU_PATHS
   auto [device_bootloader_path, device_minion_rt_path] = getDeviceArtifactsBasePaths();
-  const fs::path BOOTROM_TRAMPOLINE_TO_BL2_ELF = device_bootloader_path / "BootromTrampolineToBL2/BootromTrampolineToBL2.elf";
-  const fs::path BL2_ELF                       = device_bootloader_path / "ServiceProcessorBL2/fast-boot/ServiceProcessorBL2_fast-boot.elf";
-  const fs::path MASTER_MINION_ELF             = device_minion_rt_path / "MasterMinion/MasterMinion.elf";
-  const fs::path MACHINE_MINION_ELF            = device_minion_rt_path / "MachineMinion/MachineMinion.elf";
-  const fs::path WORKER_MINION_ELF             = device_minion_rt_path / "WorkerMinion/WorkerMinion.elf";
+  const fs::path BOOTROM_TRAMPOLINE_TO_BL2_ELF =
+    device_bootloader_path / "BootromTrampolineToBL2/BootromTrampolineToBL2.elf";
+  const fs::path BL2_ELF = device_bootloader_path / "ServiceProcessorBL2/fast-boot/ServiceProcessorBL2_fast-boot.elf";
+  const fs::path MASTER_MINION_ELF = device_minion_rt_path / "MasterMinion/MasterMinion.elf";
+  const fs::path MACHINE_MINION_ELF = device_minion_rt_path / "MachineMinion/MachineMinion.elf";
+  const fs::path WORKER_MINION_ELF = device_minion_rt_path / "WorkerMinion/WorkerMinion.elf";
 #endif
   constexpr uint64_t kSysEmuMaxCycles = std::numeric_limits<uint64_t>::max();
   constexpr uint64_t kSysEmuMinionShiresMask = 0x1FFFFFFFFu;
@@ -134,12 +142,15 @@ void GenericLauncher::initialize() {
     break;
   }
 
-  runtime_ = rt::IRuntime::create(deviceLayer_.get(), options);
+  createRuntime(FLAGS_enableCoreDump, options);
+
   devices_ = runtime_->getDevices();
 
   for (auto i = 0U; i < static_cast<uint32_t>(deviceLayer_->getDevicesCount()); ++i) {
     defaultStreams_.emplace_back(runtime_->createStream(devices_[i]));
     traceStreams_.emplace_back(runtime_->createStream(devices_[i]));
+
+    abortManager_.registerStream(defaultStreams_[i], devices_[i]);
   }
 
   // Program callbacks for error management.
@@ -157,12 +168,38 @@ void GenericLauncher::initialize() {
   };
 
   // Program callback when we want kernel aborts (due to a timeout) to dump corefiles
-  auto abortedKernelHandler = [this](rt::EventId id, std::byte const* context, size_t size,
-                                     std::function<void()> freeResources) {
+  auto abortedKernelHandler = [this, rt = runtime_.get()](rt::EventId id, std::byte const* context, size_t size,
+                                                          std::function<void()> freeResources) {
     std::cout << "abortedKernelHandler"
               << " () rt reports that a kernel has been aborted (EventId: " << static_cast<int>(id) << ")\n";
-    // TODO: complete abort management. leverage glow coredump infra
     kernelAbort_++;
+
+    // Wait until the kernel has been fully aborted so that further commands
+    // are not aborted
+    abortManager_.waitKernelLaunchAborted(id);
+    if (FLAGS_enableCoreDump) {
+      // Retrieve the error context from the device and handle the error
+      auto error = abortManager_.retrieveErrorContext(rt, id, context, size);
+      if (error.has_value()) {
+        reportUserException(error.value());
+        CoreDumper::dumpCore(abortManager_, rt, id, error.value());
+      } else {
+        LOG(WARNING) << "Device error (core dump not enabled)";
+      }
+    }
+    else {
+      LOG(WARNING) << "Device error (core dump not enabled)";
+    }
+
+    // Release the runtime resources before allowing the aborter thread to
+    // continue
+    freeResources();
+
+    // Allow the aborter thread to continue
+    abortManager_.notifyDeviceAbortCallback(id);
+
+    LOG(FATAL) << "Kernel aborted. GP SDK cannot recover from this, "
+                  "finishing the execution";
   };
 
   runtime_->setOnStreamErrorsCallback(streamErrorHandler);
@@ -187,7 +224,9 @@ void GenericLauncher::tearDown() {
   auto timeout = std::chrono::seconds(1);
   for (auto s : defaultStreams_) {
     auto success = runtime_->waitForStream(s, timeout);
-    if (!success) {
+    if (success) {
+      abortManager_.clearKernelLaunches(s);
+    } else {
       std::cout << __func__ << "() default stream " << uint32_t(s) << " wait timeout\n";
     }
     runtime_->destroyStream(s);
@@ -199,7 +238,8 @@ void GenericLauncher::tearDown() {
     }
     runtime_->destroyStream(s);
   }
-  runtime_.reset();
+
+  resetRuntime(FLAGS_enableCoreDump);
   defaultStreams_.clear();
   traceStreams_.clear();
   devices_.clear();
@@ -216,6 +256,7 @@ rt::KernelId GenericLauncher::loadKernel(const std::string& kernelName, uint32_t
   auto res = runtime_->loadCode(st, kernelContent.data(), kernelContent.size());
   runtime_->waitForEvent(res.event_);
   std::cout << __func__ << "() kernel " << int(res.kernel_) << " loaded at " << std::hex << res.loadAddress_ << "\n";
+
   return res.kernel_;
 }
 
@@ -273,18 +314,34 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) 
 
 void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   auto success = runtime_->waitForStream(defaultStreams_[devIdx_], timeout);
+
   if (success) {
+    abortManager_.clearKernelLaunches(defaultStreams_[devIdx_]);
     return;
   }
   // Kernel did not complete on the expected time. let's abort the stream in which
   // the kernel is running.
   std::cout << "[TIMEOUT] " << __func__ << "() Wait for Stream command exceeded " << std::dec << int(timeout.count())
             << " seconds.  Aborting stream\n";
+
+  std::vector<rt::EventId> abortedKernelLaunchEventIds;
+  abortedKernelLaunchEventIds =
+    abortManager_.prepareKernelLaunchAbort(devices_[devIdx_], defaultStreams_[devIdx_], *runtime_);
   auto event = runtime_->abortStream(defaultStreams_[devIdx_]);
   // Wait for the abort to complete.
   auto abortTimeout = std::chrono::seconds(10);
   success = runtime_->waitForEvent(event, abortTimeout);
   if (success) {
+    // Allow the callbacks to proceed
+    for (auto const& kernelEventId : abortedKernelLaunchEventIds) {
+      abortManager_.notifyKernelLaunchAborted(kernelEventId);
+    }
+
+    // Wait until the callbacks have been received to avoid destructing the
+    // runtime too early
+    for (auto const& kernelEventId : abortedKernelLaunchEventIds) {
+      abortManager_.waitDeviceAbortCallback(kernelEventId);
+    }
     std::cout << "[        ] " << __func__ << "() stream aborted correctly \n" << int(defaultStreams_[devIdx_]) << "\n";
     return;
   }
@@ -295,10 +352,44 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
 }
 
 void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte * params, size_t size, uint64_t shireMask) {
+  // This promise is used to avoid a race condition where the RT responds with
+  // an abort before the core dumper has registered the event id
+  std::promise<rt::EventId> promisedEventId;
+  promisedEventId = abortManager_.registerKernelLaunch(defaultStreams_[devIdx_], kernel_);
+
   std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_, kTraceBufferSize);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
-  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3,
+  auto eventId = runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3,
                          optUserTrace);
+
+  promisedEventId.set_value(eventId);
+}
+
+void GenericLauncher::reportUserException(const rt::StreamError& error) const {
+  LOG(INFO) << "Exception found, need to dump the execution context";
+  // Dump execution context into a file
+  auto path = std::experimental::filesystem::current_path();
+  auto filename = "device_execution_context.txt";
+  std::ofstream out(path / filename);
+  out << error.getString();
+  out << "\n---\n";
+  out.close();
+}
+
+void GenericLauncher::createRuntime(bool enableCoreDump, rt::Options options) {
+  if (enableCoreDump) {
+    runtimeBase_ = rt::IRuntime::create(deviceLayer_.get(), options);
+    runtime_ = std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_);
+  } else {
+    runtime_ = rt::IRuntime::create(deviceLayer_.get(), options);
+  }
+}
+
+void GenericLauncher::resetRuntime(bool enableCoreDump) {
+    if (enableCoreDump) {
+    runtimeBase_.reset();
+  }
+  runtime_.reset();
 }
 
