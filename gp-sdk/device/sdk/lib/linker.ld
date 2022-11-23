@@ -22,17 +22,18 @@ SECTIONS
       _data_ro_copy into _data */
     . = ALIGN(64);
     _data_start = .;
-    *(.data) ;
+    *(.data* .sdata .sdata.*)  ;
+    . = ALIGN(64);
     _data_end = .;
     _data_ro_copy_start = .;
     . +=(_data_end - _data_start);
     _data_ro_copy_end = .;
     . = ALIGN(64);
   }
-  .sdata          :
+  .sdata :
   {
     *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
-    *(.sdata .sdata.* .gnu.linkonce.s.*)
+    *(.gnu.linkonce.s.* )
   }
   .bss(NOLOAD) :
   {

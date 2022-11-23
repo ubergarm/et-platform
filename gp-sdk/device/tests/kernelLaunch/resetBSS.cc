@@ -3,7 +3,6 @@
 
 #include <array>
 #include <stdio.h>
-//#include <device_common.h>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/fcc.h>
 #include <etsoc/isa/hart.h>
@@ -12,13 +11,8 @@
 
 #include "SyncComputeNode.h"
 #include "inst_pref_decls.h"
-
 #include "entryPoint.h"
-
 #include "kernel_arguments.h"
-
-
-typedef int8_t i8;
 
 constexpr size_t size = 256ULL;
 
@@ -36,12 +30,9 @@ int entryPoint(kernelArguments * layer_dyn_info) {
       }
     }
 
-    if (errorFound) {
-      et_printf("Error: .bss is different than zero\n");
-    }
-    else {
-      et_printf(".bss initialized correctly\n");
-    }
+    et_assert(!errorFound && "Error: .bss section is not set to 0\n");
+
+    if (!errorFound) et_printf("Results are correct.");
   }
   
   return 0;

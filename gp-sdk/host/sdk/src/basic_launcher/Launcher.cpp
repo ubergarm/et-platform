@@ -73,6 +73,8 @@ private:
 };
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
+DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
+DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
 
 int main(int argc, char** argv) {
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
@@ -82,15 +84,21 @@ int main(int argc, char** argv) {
   Launcher launcher(config);
   launcher.initialize();
   launcher.performDeviceAllocs();
-  launcher.programHost2DevCopies();
-  launcher.prepareKernelArguments();
-  launcher.kernelLaunch();
-  launcher.programDev2HostCopies();
 
-  auto timeout = std::chrono::seconds(10);
-  launcher.waitKernelCompletion(timeout);
+  for (size_t i = 0; i < FLAGS_num_launches; i++) {
+    launcher.programHost2DevCopies();
+    launcher.prepareKernelArguments();
+    launcher.kernelLaunch();
+    launcher.programDev2HostCopies();
+    auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
+    launcher.waitKernelCompletion(timeout);
+    launcher.dumpTracesToFile(i);
 
-  launcher.dumpTracesToFile();
+    if (launcher.kernelError_ || launcher.kernelAbort_) {
+      return -1;
+    }
+  }
+
   launcher.freeDeviceAllocs();
   launcher.deInitialize();
   launcher.tearDown();

@@ -148,7 +148,7 @@ void GenericLauncher::initialize() {
   }
 
   // Program callbacks for error management.
-  auto streamErrorHandler = [&]([[maybe_unused]] rt::EventId id, const rt::StreamError& error) {
+  auto streamErrorHandler = [&, this]([[maybe_unused]] rt::EventId id, const rt::StreamError& error) {
     // TO IMPROVE: Currently we don't have the deviceId related to this error.
     std::cout << "streamErrorHandler "
               << "() rt reports an error on a stream command(EventId: " << static_cast<int>(id) << "):\n"
@@ -158,14 +158,16 @@ void GenericLauncher::initialize() {
       std::cout << std::to_string(error.errorCode_) << " Errors during aborts are expected, ignoring";
       return;
     }
+    kernelError_++;
   };
 
   // Program callback when we want kernel aborts (due to a timeout) to dump corefiles
-  auto abortedKernelHandler = [](rt::EventId id, std::byte const* context, size_t size,
-                                 std::function<void()> freeResources) {
+  auto abortedKernelHandler = [this](rt::EventId id, std::byte const* context, size_t size,
+                                     std::function<void()> freeResources) {
     std::cout << "abortedKernelHandler"
               << " () rt reports that a kernel has been aborted (EventId: " << static_cast<int>(id) << ")\n";
     // TODO: complete abort management. leverage glow coredump infra
+    kernelAbort_++;
   };
 
   runtime_->setOnStreamErrorsCallback(streamErrorHandler);
@@ -211,7 +213,7 @@ rt::KernelId GenericLauncher::loadKernel(const std::string& kernelName, uint32_t
   auto st = defaultStreams_[deviceIdx];
   auto res = runtime_->loadCode(st, kernelContent.data(), kernelContent.size());
   runtime_->waitForEvent(res.event_);
-  std::cout << __func__ << "() kernnel " << int(res.kernel_) << " loaded at " << std::hex << res.loadAddress_ << "\n";
+  std::cout << __func__ << "() kernel " << int(res.kernel_) << " loaded at " << std::hex << res.loadAddress_ << "\n";
   return res.kernel_;
 }
 
@@ -248,7 +250,7 @@ std::optional<rt::UserTrace> getKernelTraceParams(std::byte* deviceTraceBuffer, 
   return traceParams;
 }
 
-void GenericLauncher::dumpTracesToFile() {
+void GenericLauncher::dumpTracesToFile(uint64_t fileIdx) {
   if (not enableKernelTraces) {
     return;
   }
@@ -269,7 +271,8 @@ void GenericLauncher::dumpTracesToFile() {
   }
 
   auto tracePath =
-    std::filesystem::current_path() / std::filesystem::path("traceKernels_dev" + std::to_string(devIdx_) + ".bin");
+    std::filesystem::current_path() /
+    std::filesystem::path("traceKernels_dev" + std::to_string(devIdx_) + "_" + std::to_string(fileIdx) + ".bin");
   auto traceStream = std::ofstream(tracePath, std::ios::binary | std::ios::out);
   traceStream.write((char*)deviceTrace.data(), deviceTrace.size());
 }

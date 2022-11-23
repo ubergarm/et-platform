@@ -51,12 +51,15 @@ public:
   void initialize(); // setup
   void deInitialize();
   void tearDown(); // FIXME:consolidate with deinitialize for multi-inference use-cases
-  void dumpTracesToFile();
+  void dumpTracesToFile(uint64_t fileIdx = 0);
 
   void kernelLaunch();
   void waitKernelCompletion(std::chrono::seconds timeout);
 
   virtual void prepareKernelArguments() = 0;
+
+  std::atomic<uint64_t> kernelError_ = 0; // Number of kernels that reported an error
+  std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
 
 private:
   rt::KernelId loadKernel(const std::string& kernelName, uint32_t deviceIdx = 0);
