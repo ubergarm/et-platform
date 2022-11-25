@@ -45,7 +45,6 @@ std::string defaultKernel = FLAGS_gp_sdk_device_installdir + KERNELS_DIR + "/tra
 DEFINE_string(kernel_path, defaultKernel, "ET-SoC-1 kernel path and filename");
 DEFINE_string(simulator_params, "-l -lm 0", "Hyperparameters to pass to simulator, overrides default values");
 DEFINE_string(simulator_installdir, "", "Path to simulator installation directory");
-DEFINE_bool(simulator_start_gdb, false, "Enable sysemu gdb");
 // TODO "runtime-install-prefix", "num-devices"
 
 std::tuple<fs::path, fs::path> getDeviceArtifactsBasePaths() {
@@ -86,7 +85,7 @@ emu::SysEmuOptions getDefaultOptions() {
   sysEmuOptions.puUart1Path = sysEmuOptions.runDir + "/pu_uart1_tx.log";
   sysEmuOptions.spUart0Path = sysEmuOptions.runDir + "/spio_uart0_tx.log";
   sysEmuOptions.spUart1Path = sysEmuOptions.runDir + "/spio_uart1_tx.log";
-  sysEmuOptions.startGdb = FLAGS_simulator_start_gdb;
+  sysEmuOptions.startGdb = false;
 
   // Pass the sysemu parameters from command line
   auto cmd = FLAGS_simulator_params;
