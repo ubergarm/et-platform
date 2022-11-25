@@ -16,8 +16,20 @@ include(tests.cmake)
 math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
 message(STATUS "address used for Debugging-> ${DEBUG_ADDRESS}")
 
-#Adding test
-add_etsoc_riscv_executable(print print/print.cc)
-add_etsoc_riscv_executable(print2 print2/print2.cc)
-add_etsoc_riscv_executable(bss kernelLaunch/resetBSS.cc)
+#Adding tests
+
+add_etsoc_riscv_executable(print "print/print.cc")
+add_etsoc_riscv_target_link(print crt_shared)
+
+add_etsoc_riscv_executable(print2 "print2/print2.cc")
+add_etsoc_riscv_target_link(print2 crt_shared)
+
+add_etsoc_riscv_executable(bss "kernelLaunch/resetBSS.cc")
+add_etsoc_riscv_target_link(bss crt_shared)
+
 add_etsoc_riscv_executable(data kernelLaunch/resetData.cc)
+add_etsoc_riscv_target_link(data crt_shared)
+
+set(FFT_SOURCES fftKernel/src/uberKernel_crt.S fftKernel/src/uberKernel.cc fftKernel/src/testOperator_compute.cc fftKernel/src/testOperator_w_pref.cc fftKernel/src/testOperator_inst_pref.cc fftKernel/src/testOperator_act_pref.cc fftKernel/src/SyncComputeNode.cc)
+add_etsoc_riscv_executable(fftKernel "${FFT_SOURCES}")
+add_etsoc_riscv_target_link(fftKernel dnnLibrary::dnn_lib)
