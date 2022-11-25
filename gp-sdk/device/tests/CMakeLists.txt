@@ -11,25 +11,27 @@
 find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 find_package(dnnLibrary)
 
-include(tests.cmake)
+include("${CMAKE_SOURCE_DIR}/riscv_helpers.cmake")
 
 math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
 message(STATUS "address used for Debugging-> ${DEBUG_ADDRESS}")
 
 #Adding tests
 
-add_etsoc_riscv_executable(print "print/print.cc")
-add_etsoc_riscv_target_link(print crt_shared)
+add_etsoc_riscv_executable(print.elf "print/print.cc")
+add_etsoc_riscv_target_link(print.elf crt_shared)
 
-add_etsoc_riscv_executable(print2 "print2/print2.cc")
-add_etsoc_riscv_target_link(print2 crt_shared)
+add_etsoc_riscv_executable(print2.elf "print2/print2.cc")
+add_etsoc_riscv_target_link(print2.elf crt_shared)
 
-add_etsoc_riscv_executable(bss "kernelLaunch/resetBSS.cc")
-add_etsoc_riscv_target_link(bss crt_shared)
+add_etsoc_riscv_executable(bss.elf "kernelLaunch/resetBSS.cc")
+add_etsoc_riscv_target_link(bss.elf crt_shared)
 
-add_etsoc_riscv_executable(data kernelLaunch/resetData.cc)
-add_etsoc_riscv_target_link(data crt_shared)
+add_etsoc_riscv_executable(data.elf kernelLaunch/resetData.cc)
+add_etsoc_riscv_target_link(data.elf crt_shared)
 
 set(FFT_SOURCES fftKernel/src/uberKernel_crt.S fftKernel/src/uberKernel.cc fftKernel/src/testOperator_compute.cc fftKernel/src/testOperator_w_pref.cc fftKernel/src/testOperator_inst_pref.cc fftKernel/src/testOperator_act_pref.cc fftKernel/src/SyncComputeNode.cc)
-add_etsoc_riscv_executable(fftKernel "${FFT_SOURCES}")
-add_etsoc_riscv_target_link(fftKernel dnnLibrary::dnn_lib)
+add_etsoc_riscv_executable(fftKernel.elf "${FFT_SOURCES}")
+add_etsoc_riscv_target_link(fftKernel.elf dnnLibrary::dnn_lib)
+set(FFT_INCLUDES fftKernel/include)
+add_etsoc_riscv_include(fftKernel.elf "${FFT_INCLUDES}")

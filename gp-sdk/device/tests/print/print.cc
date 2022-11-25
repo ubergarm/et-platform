@@ -3,7 +3,6 @@
 
 #include <array>
 #include <stdio.h>
-//#include <device_common.h>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/fcc.h>
 #include <etsoc/isa/hart.h>

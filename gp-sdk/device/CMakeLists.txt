@@ -36,11 +36,8 @@ endif()
 if (NOT ADDRESS)
   message(FATAL_ERROR "ADRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8005b35000")
 endif()
-    
-set(et-common-libs_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/et-common-libs)
-set(etsoc_hal_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/etsoc_hal)
-set(esperantoTrace_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/esperantoTrace)
-set(dnnLibrary_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/dnnLibrary)
+
+set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(sdk)
 add_subdirectory(tests)

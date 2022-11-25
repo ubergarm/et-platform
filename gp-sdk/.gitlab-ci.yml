@@ -54,10 +54,22 @@ default:
       # install dt2json
       conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
       source conanrun.sh
-  
+
       cd host/build
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2/print2 -device-type=${DEVICE_TYPE}
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print.elf/print.elf -device-type=${DEVICE_TYPE}
       dt2json traceKernels_dev0_0.bin -t
+
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2.elf/print2.elf -device-type=${DEVICE_TYPE}
+      dt2json traceKernels_dev0_0.bin -t
+
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/bss.elf/bss.elf -device-type=${DEVICE_TYPE}
+      dt2json traceKernels_dev0_0.bin -t
+
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/data.elf/data.elf -device-type=${DEVICE_TYPE}
+      dt2json traceKernels_dev0_0.bin -t
+
+#      ./${BUILD_TYPE}/sdk/fft_launcher -kernel_path=../../device/build/Release/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
+#      dt2json traceKernels_dev0_0.bin -t
 
 tests:conan:sw-sysemu:
   extends:
@@ -112,13 +124,25 @@ tests:conan:silicon:
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
       
       cd host/build
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2/print2 -device-type=${DEVICE_TYPE}
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf/print.elf -device-type=${DEVICE_TYPE}
       dt2json traceKernels_dev0_0.bin -t
+
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf/print2.elf -device-type=${DEVICE_TYPE}
+      dt2json traceKernels_dev0_0.bin -t
+
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf/bss.elf -device-type=${DEVICE_TYPE}
+      dt2json traceKernels_dev0_0.bin -t
+
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf/data.elf -device-type=${DEVICE_TYPE}
+      dt2json traceKernels_dev0_0.bin -t
+
+#      ./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
+#      dt2json traceKernels_dev0_0.bin -t
 
 tests:cmake-only:sw-sysemu:
   extends:
     - .tests:cmake-only:common
-  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.0
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.2
   variables:
     DEVICE_TYPE: sysemu
 
@@ -126,7 +150,7 @@ tests:cmake-only:silicon:
   extends:
     - .tests:cmake-only:common
   image:
-    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.0
+    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.2
     entrypoint: [""]
   tags:
     - silicon

@@ -1,7 +1,5 @@
 // clang-format off
 
-#define NDEBUG
-
 #include <array>
 #include <stdio.h>
 
@@ -11,7 +9,8 @@
 #include <etsoc/isa/tensors.h>
 #include <etsoc/isa/utils.h>
 
-#include <dnn_lib/inlining.h>
+#include <dnn_lib/Writer.h>
+#include <dnn_lib/utils.h>
 #include <dnn_lib/ETSOCGenericOpInst.h>
 #include <dnn_lib/LibCommon.h>
 #include <dnn_lib/LibTypes.h>

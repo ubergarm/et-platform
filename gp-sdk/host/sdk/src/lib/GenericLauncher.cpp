@@ -42,7 +42,7 @@ DEFINE_string(gp_sdk_device_installdir, defaultInstallDir, "Path to gp-sdk-devic
 std::string defaultKernel = FLAGS_gp_sdk_device_installdir + KERNELS_DIR + "/trace.elf";
 
 DEFINE_string(kernel_path, defaultKernel, "ET-SoC-1 kernel path and filename");
-DEFINE_string(simulator_params, "-l -lm 0", "Hyperparameters to pass to simulator, overrides default values");
+DEFINE_string(simulator_params, "", "Hyperparameters to pass to simulator, overrides default values");
 // TODO "runtime-install-prefix", "num-devices"
 
 #ifdef WITH_SYSEMU_PATHS

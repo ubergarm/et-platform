@@ -15,11 +15,7 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES)
   set(MAP_FILE ${TARGET_NAME}.map)
 
   add_executable(${TARGET_NAME} ${TARGET_SOURCES})
-
-  if(EXISTS "${PROJECT_SOURCE_DIR}/tests/${TARGET_NAME}/include")
-    target_include_directories(${TARGET_NAME} PRIVATE "${TARGET_NAME}/include")
-  endif()
-  
+ 
   target_link_libraries(${TARGET_NAME}
     PRIVATE
     et-common-libs::cm-umode
@@ -30,7 +26,6 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES)
   
   set_target_properties(${TARGET_NAME}
     PROPERTIES
-    SUFFIX  ".elf"
     COMPILE_FLAGS "-fno-exceptions -DNDEBUG -falign-functions=64 -O3 -g3"
     LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH}
     LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
@@ -51,10 +46,6 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES)
 
   add_executable(${DEBUG_TARGET} ${TARGET_SOURCES})
 
-  if(EXISTS "${PROJECT_SOURCE_DIR}/tests/${TARGET_NAME}/include")
-    target_include_directories(${DEBUG_TARGET} PRIVATE "${TARGET_NAME}/include")
-  endif() 
-
   target_link_libraries(${DEBUG_TARGET}
     PRIVATE
     et-common-libs::cm-umode  
@@ -62,7 +53,6 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES)
 
   set_target_properties(${DEBUG_TARGET}
     PROPERTIES
-    SUFFIX  ".elf"
     COMPILE_FLAGS "-fno-exceptions -DNDEBUG -falign-functions=64 -O3 -g3"
     LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH}
     LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
