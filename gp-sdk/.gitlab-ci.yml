@@ -59,7 +59,7 @@ build:cmake-only:
   extends:
     - .pod_large
     - .template_job
-  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.0.3
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.0
   stage: build
   parallel:
     matrix:
@@ -81,7 +81,67 @@ build:cmake-only:
       cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
       cmake --build .
 
-tests:sw-sysemu:
+tests:cmake-only:sw-sysemu:
+  extends:
+    - .pod_large
+    - .template_job
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.0
+  stage: test
+  parallel:
+    matrix:
+      - BUILD_TYPE: [ Release, Debug ]
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    TIMEOUT: 2h
+    CMD_BUILD: |
+      BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
+      sudo apt install ninja-build
+      cd device
+      mkdir build && cd build
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
+      cmake --build .
+      cd ../..
+
+      cd host
+      mkdir build && cd build
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
+      cmake --build .
+
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2/print2 -device-type=sysemu
+      dt2json traceKernels_dev0.bin -t
+
+tests:cmake-only:silicon:
+  extends:
+    - .pod_large
+    - .template_job
+  image:
+    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.0
+    entrypoint: [""]
+  stage: test
+  parallel:
+    matrix:
+      - BUILD_TYPE: [ Release, Debug ]
+  variables:
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    TIMEOUT: 2h
+    CMD_BUILD: |
+      BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
+      sudo apt install ninja-build
+      cd device
+      mkdir build && cd build
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
+      cmake --build .
+      cd ../..
+
+      cd host
+      mkdir build && cd build
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
+      cmake --build .
+
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2/print2 -device-type=silicon
+      dt2json traceKernels_dev0.bin -t
+
+tests:conan:sw-sysemu:
   extends:
     - .pod_large
     - .template_job
@@ -102,7 +162,7 @@ tests:sw-sysemu:
       ./build.sh -v ${SW_PLATFORM_RELEASE} -d ${DEVICE_API} -r sysemu
 
 # same as 'bulid' job + execute a kernel in a silicon machine
-tests:silicon:
+tests:conan:silicon:
   extends:
     - .pod_large
     - .template_job
