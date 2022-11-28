@@ -47,18 +47,6 @@ cmake --build --preset debug
 
 cd build
 
-if [[ "$device_type" == "sysemu" ]]
-then
-  extra_flags="-gp_sdk_device_installdir=./device_artifacts/"
-
-  # install sysemu device artifacts
-  rm -rf device_artifacts
-  mkdir device_artifacts
-  cd device_artifacts
-  conan install ../../../conanfile_device_artifacts_${version}.txt -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop --build missing -g deploy
-  cd ..
-fi
-
 # install dt2json
 conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
 source conanrun.sh
