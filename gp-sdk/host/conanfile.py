@@ -27,7 +27,7 @@ class GpSdkHostConan(ConanFile):
     default_options = {
         "shared": False,
         "fPIC": True,
-        "device_api_version": "0.8.0"
+        "device_api_version": "0.9.0"
     }
 
     python_requires = "conan-common/[>=0.5.0 <1.0.0]"
