@@ -103,6 +103,10 @@ tests:conan:silicon:
       cd ../..
 
     CMD_POST_BUILD: |
+      export ET_SDK_HOME=/usr/local/esperanto
+      source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
+      source ${ET_SDK_HOME}/.builds/host/conanrun.sh
+      
       cd host/build
       ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2/print2 -device-type=${DEVICE_TYPE}
       dt2json traceKernels_dev0_0.bin -t
