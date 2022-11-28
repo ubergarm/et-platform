@@ -20,6 +20,7 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchai
 cmake --build .
 
 ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2/print2 -device-type=sysemu
+dt2json traceKernels_dev0_0.bin -t
 
 cd ../..
 
