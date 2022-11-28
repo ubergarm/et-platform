@@ -121,7 +121,7 @@ class DnnLibraryConan(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
 
         if self.options.with_device_headers:
-            self.cpp_info.components["dnnLibrary"].set_property("cmake_target_name", "dnnLibrary::dnnLibrary")
+            self.cpp_info.components["dnnLibrary"].set_property("cmake_target_name", "dnnLibrary::dnn_lib")
             self.cpp_info.components["dnnLibrary"].includedirs = ["include"]
             if not self.options.header_only:
                 self.cpp_info.components["dnnLibrary"].libdirs = ["lib"]
