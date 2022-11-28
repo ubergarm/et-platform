@@ -51,6 +51,10 @@ default:
       cd ..
 
     CMD_POST_BUILD: |
+      # install dt2json
+      conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
+      source conanrun.sh
+  
       cd host/build
       ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2/print2 -device-type=${DEVICE_TYPE}
       dt2json traceKernels_dev0_0.bin -t
