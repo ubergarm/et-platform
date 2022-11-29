@@ -45,3 +45,7 @@ target_link_libraries(fftKernel.elf  etsoc_crt0
                                      dnnLibrary::dnn_lib)
 target_include_directories(fftKernel.elf PUBLIC fftKernel/include)
 
+
+
+add_etsoc_riscv_executable(syncDeviceBasic.elf barrier/syncDeviceBasic.cpp)
+target_link_libraries(syncDeviceBasic.elf etsoc_crt0)

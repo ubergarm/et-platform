@@ -52,14 +52,13 @@ static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) 
 
   et_assert(aligned  && "src/dst pointers are not 32-byte aligned");
 
-  float tmp = 0;
-  for (size_t i = 0; i < num_bytes; i+= stride) {
+  float tmp;
+  for (size_t i = 0; i < num_bytes; i += stride) {
     __asm__ __volatile__("flwg.ps %[tmp], (%[src])\n"
                          "fswg.ps %[tmp], (%[dst])\n"
-                         :
+                         : [ tmp ] "=&f" (tmp)
                          : [ src ] "r" (s + i),
-                           [ dst ] "r"(d + i),
-                           [ tmp ] "f" (tmp)
+                           [ dst ] "r"(d + i)
                          :);
   }
   return 0;
