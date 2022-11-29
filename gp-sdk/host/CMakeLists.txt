@@ -12,6 +12,8 @@ set(CMAKE_CXX_STANDARD 17)
 message(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 
 if (NOT USE_CONAN)
+  message(WARNING "Before open sourcing we should remove all these hardcoded paths")
+
   # gp-sdkk build on the ML build tree
   # 
 
@@ -49,6 +51,7 @@ if (NOT USE_CONAN)
   message(STATUS "base_DIR is " ${base_DIR})
   message(STATUS "runtime_DIR is " ${runtime_DIR})
 
+  add_definitions(-DWITH_SYSEMU_PATHS)
 endif()
 
 add_subdirectory(sdk)
