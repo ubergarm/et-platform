@@ -57,10 +57,6 @@ class DnnLibraryConan(ConanFile):
         if self.options.with_device_headers:
             self.requires("et-common-libs/[>=0.0.5 <1.0.0]")
 
-
-    def package_id(self):
-        if self.options.header_only:
-            self.info.header_only()
     
     def validate(self):
         if self.options.header_only:
