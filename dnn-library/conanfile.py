@@ -27,7 +27,7 @@ class DnnLibraryConan(ConanFile):
         "fPIC": True,
         "warnings_as_errors": False,
         "header_only": True,
-        "with_device_headers": True,
+        "with_device_headers": False,
         "with_host_headers": True
     }
 
