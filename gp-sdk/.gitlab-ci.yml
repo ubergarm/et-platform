@@ -102,7 +102,7 @@ tests:conan:silicon:
 
       cd host
       mkdir build && cd build
-      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -G Ninja
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_CONAN=ON -G Ninja
       cmake --build .
       cd ../..
 

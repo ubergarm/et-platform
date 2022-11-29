@@ -16,7 +16,7 @@ cd ../..
 # build host tools
 cd host
 mkdir build && cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -G Ninja
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DUSE_CONAN=ON -G Ninja
 cmake --build .
 
 ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2/print2 -device-type=sysemu
