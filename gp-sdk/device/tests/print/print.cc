@@ -27,7 +27,6 @@ int entryPoint(kernelArguments * layer_dyn_info) {
 
   if (get_minion_id()==0) {
     et_printf("%s,%d HELLO WORLD!!!!\n",__func__,__LINE__);
-    et_assert(false);
   }
 
   return 0;
