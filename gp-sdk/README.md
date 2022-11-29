@@ -5,30 +5,17 @@ This project contains General-purpose-sdk specific code and tools. it involves  
 * Execute on EtSoC
 * Recover results
 
-## Building (with Conan)
+## Building
 
-In order to build Conan you need to use a special docker image for conan development:
+In order to build you need to use a docker image:
 ````
-./dock.py --image=convoke/ubuntu-18.04-gcc7-conan
+./dock.py --image=convoke/ubuntu-18.04-et-sw-develop-stack prompt
 ````
-This image contains the bare minimum to build (gcc), conan and pre-configured conan-config with profiles for esperanto.
+This image contains the et sw stack allowing buliding GP-SDK from sources.
 
-## Building Host (with Conan)
+A `build.sh` script is provided to ease build process.
 
-Inside the docker image:
-```
-cd host
-conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --build missing
-cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=generators/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -G Ninja
-cmake --build .
-```
+Conceptually the build phase can be divided in:
 
-## Deployment
-
-At the moment we only create a tarball from Conan. It contains:
-
-* Host includes & libraries (runtime, deviceLayer, sysemu, hostUtils, deviceApi, et-trace)
-* Host tools (generic_launcher, sysemu executable)
-* RISC-V gnu toolchain (cross-compiler, linker, gdb, etc..)
-* (TODO) Device libs
+1. Building device kernel code
+2. Building host examples
