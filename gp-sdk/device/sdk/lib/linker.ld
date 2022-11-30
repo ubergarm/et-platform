@@ -3,7 +3,7 @@ SECTIONS
   . = 0x00000001;
   .text.init : { *(.text.init) }
   . = ALIGN(0x00001000);
-  .text : { *(.text.init) *(.text) *(.text.*) }
+  .text : { *(.text) *(.text.*) }
   . = ALIGN(0x00001000);
   .persistentData :
   {

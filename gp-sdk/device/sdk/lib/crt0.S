@@ -1,6 +1,6 @@
 #include <etsoc/isa/syscall.h>
 
-.section .text.startup, "ax", @progbits
+.section .text.init, "ax", @progbits
 .global _start
 
 _start:
