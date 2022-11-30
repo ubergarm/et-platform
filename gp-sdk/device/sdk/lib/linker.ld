@@ -9,6 +9,7 @@ SECTIONS
   {
     *(.persistentData);
   }
+  . = ALIGN(64);
   .data :
   {
     /* This section must be restored every time a kernel is relaunched in the
@@ -16,7 +17,6 @@ SECTIONS
        labeled (_data_ro_copy*) where we will place a read-only copy of _data
        the first time a kernel is launched. Subsequent launches will restore  
       _data_ro_copy into _data */
-    . = ALIGN(64);
     _data_start = .;
     *(.data* .sdata .sdata.*)  ;
     . = ALIGN(64);
@@ -31,9 +31,9 @@ SECTIONS
     *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
     *(.gnu.linkonce.s.* )
   }
+  . = ALIGN(64);
   .bss(NOLOAD) :
   {
-    . = ALIGN(64);
     _bss_start = .;
     *(.bss*);
     _bss_end = .;
