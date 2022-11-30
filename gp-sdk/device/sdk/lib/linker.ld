@@ -24,7 +24,6 @@ SECTIONS
     _data_ro_copy_start = .;
     . +=(_data_end - _data_start);
     _data_ro_copy_end = .;
-    . = ALIGN(64);
   }
   .sdata :
   {
