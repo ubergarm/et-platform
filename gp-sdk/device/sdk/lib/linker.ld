@@ -2,9 +2,9 @@ SECTIONS
 {
   . = 0x00000000;
   .text.init : { *(.text.init) }
-  . = ALIGN(0x00001000);
+  . = ALIGN(64);
   .text : { *(.text) *(.text.*) }
-  . = ALIGN(0x00001000);
+  . = ALIGN(64);
   .persistentData :
   {
     *(.persistentData);
@@ -25,6 +25,7 @@ SECTIONS
     . +=(_data_end - _data_start);
     _data_ro_copy_end = .;
   }
+  . = ALIGN(64);
   .sdata :
   {
     *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
