@@ -1,6 +1,5 @@
 SECTIONS
 {
-  . = 0x00000000;
   .text.init : { *(.text.init) }
   . = ALIGN(64);
   .text : { *(.text) *(.text.*) }
