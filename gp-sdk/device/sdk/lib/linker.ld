@@ -35,8 +35,8 @@ SECTIONS
   {
     _bss_start = .;
     *(.bss*);
-    _bss_end = .;
     . = ALIGN(64);
+    _bss_end = .;
   }
   _end = .;
 }
