@@ -9,14 +9,9 @@
 #include <etsoc/isa/tensors.h>
 #include <etsoc/isa/utils.h>
 
-#include "SyncComputeNode.h"
-#include "inst_pref_decls.h"
 
 #include "entryPoint.h"
 
-#include "kernel_arguments.h"
-
-typedef int8_t i8;
 
 constexpr size_t size = 32ULL;
 constexpr size_t smallSize = 4ULL;
@@ -33,7 +28,7 @@ static uint8_t initializedData[size] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
    In this test we modify .data and .sdata regions to check if the
    gp-sdk crt0 .data regions recovery system works properly */
 __attribute__((noinline))
-int entryPoint(kernelArguments * layer_dyn_info) {
+int entryPoint([[maybe_unused]]KernelArguments * args) {
   bool errorFound = 0;
 
   if (get_minion_id() == 0) {

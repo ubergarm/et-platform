@@ -9,10 +9,7 @@
 #include <etsoc/isa/tensors.h>
 #include <etsoc/isa/utils.h>
 
-#include "SyncComputeNode.h"
-#include "inst_pref_decls.h"
 #include "entryPoint.h"
-#include "kernel_arguments.h"
 
 constexpr size_t size = 256ULL;
 
@@ -20,7 +17,7 @@ static uint8_t uninitializedData[size];
 static uint8_t initToZeroData[size] = {0};
 
 __attribute__((noinline))
-int entryPoint(kernelArguments * layer_dyn_info) {
+int entryPoint([[maybe_unused]] KernelArguments * args) {
   bool errorFound = 0;
   if (get_minion_id()==0) {
     for(size_t i = 0; i < size; i++) {

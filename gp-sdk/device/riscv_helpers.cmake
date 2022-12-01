@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Copyright (C) 2019, Esperanto Technologies Inc.
+# Copyright (C) 2022, Esperanto Technologies Inc.
 # The copyright to the computer program(s) herein is the
 # property of Esperanto Technologies, Inc. All Rights Reserved.
 # The program(s) may be used and/or copied only with
@@ -8,87 +8,76 @@
 # agreement/contract under which the program(s) have been supplied.
 #------------------------------------------------------------------------------
 
-macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES) 
+#
+# Adds a riscv executable prepared for being executed as a kernel on ETSOC-1 options 
+# @param TARGET_NAME name of the cmake target to be created.
+# @param TARGET_SOURCES_LIST space-separated list of source files
+# Notes:
+#  - a secondary ${TARGET}_dbg is created (linked to a runtime-predicted address to be used
+#   with debuggers
+# - the created target is a standard cmake target, so compilation options and dependencies 
+#   can be completed by cmake standard calls (target_link_libraries, target_include_directories,...)
+#
+macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST) 
+
+  #merge param list
+  set(TARGET_SOURCES ${TARGET_SOURCES_LIST} ${ARGN} ) 
 
   set(LINKER_SCRIPT_ABS_PATH ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld)
+  set(LINKER_SCRIPT_ABS_PATH_DBG  ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_debug_linker.ld)
   
-  set(MAP_FILE ${TARGET_NAME}.map)
 
   add_executable(${TARGET_NAME} ${TARGET_SOURCES})
  
   target_link_libraries(${TARGET_NAME}
-    PRIVATE
     et-common-libs::cm-umode
   )
   
-  #@TODO we should commonoalize the options into some flags set to avoid repeating them.
-  set(ELF_EXE_LINKER_FLAGS "-nostdlib -nostartfiles -Wl,--gc-sections -Xlinker -Map=${MAP_FILE} -e _start -Wl,--start-group -lm -lgcc -T ${LINKER_SCRIPT_ABS_PATH}")
+  set(ELF_EXE_LINKER_FLAGS_BASE "-nostdlib -nostartfiles -Wl,--gc-sections  -e _start -Wl,--start-group -lm -lgcc")
   
+  set(ELF_EXE_LINKER_FLAGS "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH}")
+  set(ELF_EXE_LINKER_FLAGS_DBG "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH_DBG}")
+
+
+  target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3 -DNDEBUG)
+  target_compile_definitions(${TARGET_NAME} PRIVATE "-DNDEBUG")
+
   set_target_properties(${TARGET_NAME}
     PROPERTIES
-    COMPILE_FLAGS "-fno-exceptions -DNDEBUG -falign-functions=64 -O3 -g3"
     LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH}
     LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}" #bin
   )
   
-  #Mov map file to the proper folder.
-  add_custom_command(TARGET ${TARGET_NAME}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_CURRENT_BINARY_DIR}/${MAP_FILE}"
-    "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/${MAP_FILE}"
-  )
-
-  set(LINKER_SCRIPT_ABS_PATH  ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/debug_linker.ld)
-  set(DEBUG_MAP_FILE "${TARGET_NAME}_dbg.map")
-  set(ELF_EXE_LINKER_FLAGS "-nostdlib -nostartfiles -Wl,--gc-sections -Xlinker -Map=${DEBUG_MAP_FILE} -e _start -Wl,--start-group -lm -lgcc -T ${LINKER_SCRIPT_ABS_PATH}")
+  # adding a second "debug" target (identical, but linked using a different linker script)
   set(DEBUG_TARGET "${TARGET_NAME}_dbg")
+  
+  add_executable(${DEBUG_TARGET} $<TARGET_PROPERTY:${TARGET_NAME},SOURCES>)
+  target_link_libraries(${DEBUG_TARGET} PRIVATE $<TARGET_PROPERTY:${TARGET_NAME},LINK_LIBRARIES>) 
+  target_include_directories(${DEBUG_TARGET} PRIVATE $<TARGET_PROPERTY:${TARGET_NAME},INCLUDE_DIRECTORIES>) 
 
-  add_executable(${DEBUG_TARGET} ${TARGET_SOURCES})
+  target_compile_options(${DEBUG_TARGET}  PRIVATE $<TARGET_PROPERTY:${TARGET_NAME},COMPILE_OPTIONS>)
+  target_compile_definitions(${DEBUG_TARGET} PRIVATE   $<TARGET_PROPERTY:${TARGET_NAME},COMPILE_DEFINITIONS>)
 
-  target_link_libraries(${DEBUG_TARGET}
-    PRIVATE
-    et-common-libs::cm-umode  
-  )
+  set_target_properties(${DEBUG_TARGET}  
+     PROPERTIES  
+     LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH_DBG}
+     LINK_FLAGS  ${ELF_EXE_LINKER_FLAGS_DBG})
 
-  set_target_properties(${DEBUG_TARGET}
-    PROPERTIES
-    COMPILE_FLAGS "-fno-exceptions -DNDEBUG -falign-functions=64 -O3 -g3"
-    LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH}
-    LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}" #bin
-  )
+  #FIXME: this "addition" will be removed once linker script is fixed.
+  math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
+  message(STATUS "base address used for debug relinked elfs-> ${DEBUG_ADDRESS}")
 
+  #NOTE: a placeholder is required for this sed to work.(TODO: replace by a comment)
   add_custom_target("GenLinker_${DEBUG_TARGET}"
-    COMMAND sed '0,/0x00000001/s//${DEBUG_ADDRESS}/' ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld > ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/debug_linker.ld    
+    COMMAND sed '0,/0x00000001/s//${DEBUG_ADDRESS}/' ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld > ${LINKER_SCRIPT_ABS_PATH_DBG}   
   )
   
   add_dependencies(${DEBUG_TARGET} "GenLinker_${DEBUG_TARGET}")
 
   add_custom_command(TARGET ${DEBUG_TARGET}
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_CURRENT_BINARY_DIR}/${DEBUG_MAP_FILE}"
-    "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/${DEBUG_MAP_FILE}"    
-    COMMAND ${CMAKE_COMMAND} -E rm "${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/debug_linker.ld"
+    COMMAND ${CMAKE_COMMAND} -E rm  ${LINKER_SCRIPT_ABS_PATH_DBG}
   )
 
 endmacro(add_etsoc_riscv_executable)
 
-macro(add_etsoc_riscv_target_link TARGET_NAME TARGET_LIBS)
-
-  target_link_libraries(${TARGET_NAME}
-    PRIVATE
-    "${TARGET_LIBS}"
-  )
-
-  target_link_libraries("${TARGET_NAME}_dbg"
-    PRIVATE
-    "${TARGET_LIBS}"
-  )
-
-endmacro(add_etsoc_riscv_target_link)
-
-macro(add_etsoc_riscv_include TARGET_NAME INCLUDES)
-  target_include_directories(${TARGET_NAME} PRIVATE ${INCLUDES})
-  target_include_directories("${TARGET_NAME}_dbg" PRIVATE ${INCLUDES})
-endmacro(add_etsoc_riscv_include)
