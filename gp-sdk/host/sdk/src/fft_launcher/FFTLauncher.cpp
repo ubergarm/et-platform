@@ -174,8 +174,8 @@ private:
   // batch, channels, planes (2), height_, width_;
   // as an example, we can store a batch of 2 rgb images (feq domain).
   // batch=2 (im0, im1), channels = 3 (r,g,b) , planes = 2(real, img), height_ width_ (256 * 256 pixels images)
-  static constexpr size_t height_ = 256; //!< nedds to be power of 2.
-  static constexpr size_t width_ = 256;  //!< needs to be power of 2
+  static constexpr size_t height_ = 16; //!< nedds to be power of 2.
+  static constexpr size_t width_ = 16;  //!< needs to be power of 2
   static constexpr size_t planes_ = 2;   //!< only 2 is valid (real and imaginary planes).
   static constexpr size_t channels_ = 1; //!< number of image channels.
   static constexpr size_t batch_ = 1;    //!< number of images.

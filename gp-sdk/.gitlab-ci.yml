@@ -29,7 +29,7 @@ default:
   stage: test
   parallel:
     matrix:
-      - BUILD_TYPE: [ Release, Debug ]
+      - BUILD_TYPE: [ Release, Debug ] #RelWithDebInfo doesn't exist
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     TIMEOUT: 2h
@@ -57,19 +57,34 @@ default:
 
       cd host/build
       ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print.elf/print.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at print"
+      fi      
       dt2json traceKernels_dev0_0.bin -t
 
       ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2.elf/print2.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at print2"
+      fi            
       dt2json traceKernels_dev0_0.bin -t
 
       ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/bss.elf/bss.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at bss"
+      fi            
       dt2json traceKernels_dev0_0.bin -t
 
       ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/data.elf/data.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at data"
+      fi                  
       dt2json traceKernels_dev0_0.bin -t
 
-#      ./${BUILD_TYPE}/sdk/fft_launcher -kernel_path=../../device/build/Release/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
-#      dt2json traceKernels_dev0_0.bin -t
+      ./${BUILD_TYPE}/sdk/fft_launcher -kernel_path=../../device/build/Release/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at fftKernel"
+      fi            
+      dt2json traceKernels_dev0_0.bin -t
 
 tests:conan:sw-sysemu:
   extends:
@@ -98,7 +113,7 @@ tests:conan:silicon:
   stage: test
   parallel:
     matrix:
-      - BUILD_TYPE: [ Release, RelWithDebInfo, Debug ]
+      - BUILD_TYPE: [ Release, Debug ] #RelWithDebInfo doesn't exist
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     TIMEOUT: 2h
@@ -125,19 +140,34 @@ tests:conan:silicon:
       
       cd host/build
       ./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf/print.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at print"
+      fi
       dt2json traceKernels_dev0_0.bin -t
 
       ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf/print2.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at print2"
+      fi     
       dt2json traceKernels_dev0_0.bin -t
 
       ./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf/bss.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at bss"
+      fi      
       dt2json traceKernels_dev0_0.bin -t
 
       ./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf/data.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at data"
+      fi      
       dt2json traceKernels_dev0_0.bin -t
 
-#      ./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
-#      dt2json traceKernels_dev0_0.bin -t
+      ./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
+      if [ $? -ne 0 ]; then
+        echo "Error at fftkernel"
+      fi
+      dt2json traceKernels_dev0_0.bin -t
 
 tests:cmake-only:sw-sysemu:
   extends:
