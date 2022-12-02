@@ -139,31 +139,31 @@ tests:conan:silicon:
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
       
       cd host/build
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf/print.elf -device-type=${DEVICE_TYPE}
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at print"
       fi
       dt2json traceKernels_dev0_0.bin -t
 
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf/print2.elf -device-type=${DEVICE_TYPE}
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at print2"
       fi     
       dt2json traceKernels_dev0_0.bin -t
 
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf/bss.elf -device-type=${DEVICE_TYPE}
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at bss"
       fi      
       dt2json traceKernels_dev0_0.bin -t
 
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf/data.elf -device-type=${DEVICE_TYPE}
+      ./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at data"
       fi      
       dt2json traceKernels_dev0_0.bin -t
 
-      ./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
+      ./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at fftkernel"
       fi
