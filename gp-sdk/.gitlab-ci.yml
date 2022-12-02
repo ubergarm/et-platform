@@ -56,31 +56,31 @@ default:
       source conanrun.sh
 
       cd host/build
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print.elf/print.elf -device-type=${DEVICE_TYPE}
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at print"
       fi      
       dt2json traceKernels_dev0_0.bin -t
 
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2.elf/print2.elf -device-type=${DEVICE_TYPE}
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at print2"
       fi            
       dt2json traceKernels_dev0_0.bin -t
 
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/bss.elf/bss.elf -device-type=${DEVICE_TYPE}
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/bss.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at bss"
       fi            
       dt2json traceKernels_dev0_0.bin -t
 
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/data.elf/data.elf -device-type=${DEVICE_TYPE}
+      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/data.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at data"
       fi                  
       dt2json traceKernels_dev0_0.bin -t
 
-      ./${BUILD_TYPE}/sdk/fft_launcher -kernel_path=../../device/build/Release/tests/fftKernel.elf/fftKernel.elf -device-type=${DEVICE_TYPE}
+      ./${BUILD_TYPE}/sdk/fft_launcher -kernel_path=../../device/build/Release/tests/fftKernel.elf -device-type=${DEVICE_TYPE}
       if [ $? -ne 0 ]; then
         echo "Error at fftKernel"
       fi            
@@ -176,15 +176,18 @@ tests:cmake-only:sw-sysemu:
   variables:
     DEVICE_TYPE: sysemu
 
-tests:cmake-only:silicon:
-  extends:
-    - .tests:cmake-only:common
-  image:
-    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.2
-    entrypoint: [""]
-  tags:
-    - silicon
-    - mv-eap03
-  variables:
-    DEVICE_TYPE: silicon
-  allow_failure: true
+# 
+# Temporarily disabled silicon testing on the CI as it seems unreasonably slow & creates contention.
+#
+#tests:cmake-only:silicon:
+#  extends:
+#    - .tests:cmake-only:common
+#  image:
+#    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.2
+#    entrypoint: [""]
+#  tags:
+#    - silicon
+#    - mv-eap03
+#  variables:
+#    DEVICE_TYPE: silicon
+#  allow_failure: true
