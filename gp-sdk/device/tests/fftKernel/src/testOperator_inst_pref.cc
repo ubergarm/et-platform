@@ -10,7 +10,7 @@
 
 __attribute((noinline))
 _inst_pref_sect_attr(testOperator)
-void testOperator_inst_pref(kernelArguments * layer_dyn_info) {
+void testOperator_inst_pref(KernelArguments * layer_dyn_info) {
 
 uint64_t self_ptr;
 uint64_t act_pref_ptr;

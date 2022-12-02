@@ -28,6 +28,10 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
   
 
   add_executable(${TARGET_NAME} ${TARGET_SOURCES})
+  
+  #enabling exports allows crating a dependeny with the host app to 
+  #reach xxx_kernel_arguments header exported by the kernel
+  set_property(TARGET ${TARGET_NAME} PROPERTY ENABLE_EXPORTS 1)
  
   target_link_libraries(${TARGET_NAME}
     et-common-libs::cm-umode
@@ -65,7 +69,7 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
 
   #FIXME: this "addition" will be removed once linker script is fixed.
   math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
-  message(STATUS "base address used for debug relinked elfs-> ${DEBUG_ADDRESS}")
+  message(STATUS "base address used to produce relinked (debug) elfs-> ${DEBUG_ADDRESS}")
 
   #NOTE: a placeholder is required for this sed to work.(TODO: replace by a comment)
   add_custom_target("GenLinker_${DEBUG_TARGET}"

@@ -17,7 +17,7 @@
 
 __attribute__((noinline))
 _act_pref_inst_pref_sect_attr(testOperator)
-void testOperator_act_pref(kernelArguments * layer_dyn_info) {
+void testOperator_act_pref(KernelArguments * layer_dyn_info) {
 	 uint64_t hart_id = get_hart_id();
 	 uint64_t shire_id = hart_id >> 6;
 	 uint64_t minion_id = (hart_id >> 1) & 0x1F;

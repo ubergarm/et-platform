@@ -18,7 +18,7 @@
 
 __attribute__((noinline))
 _w_pref_inst_pref_sect_attr(testOperator)
-void testOperator_w_pref(kernelArguments * layer_dyn_info) {
+void testOperator_w_pref(KernelArguments * layer_dyn_info) {
 
 	// Inline the weight prefetch code of current node 
 	testOperator_w_inst_pref_self(layer_dyn_info);

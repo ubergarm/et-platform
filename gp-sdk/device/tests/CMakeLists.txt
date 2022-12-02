@@ -27,6 +27,21 @@ target_link_libraries(bss.elf etsoc_crt0)
 add_etsoc_riscv_executable(data.elf kernelLaunch/resetData.cc)
 target_link_libraries(data.elf etsoc_crt0)
 
+
+add_etsoc_riscv_executable(saxpy_scalar.elf saxpy/saxpy.cpp)
+target_link_libraries(saxpy_scalar.elf etsoc_crt0)
+target_include_directories(saxpy_scalar.elf INTERFACE .)
+
+
+add_etsoc_riscv_executable(saxpy_vector.elf saxpy/saxpy.cpp)
+target_link_libraries(saxpy_vector.elf etsoc_crt0)
+target_include_directories(saxpy_scalar.elf INTERFACE .)
+target_compile_definitions(saxpy_vector.elf PRIVATE "-DSAXPY_VECTOR")
+
+
+
+#FIXME. the fft test still uses neuralizer uberKenrel pieces. needs to migrate 
+# to gp-sdk (link against etsoc_crt0 and remove dead code).
 add_etsoc_riscv_executable(fftKernel.elf fftKernel/src/uberKernel_crt.S 
                                          fftKernel/src/uberKernel.cc
                                          fftKernel/src/testOperator_compute.cc
@@ -36,4 +51,5 @@ add_etsoc_riscv_executable(fftKernel.elf fftKernel/src/uberKernel_crt.S
                                          fftKernel/src/SyncComputeNode.cc )
 
 target_link_libraries(fftKernel.elf dnnLibrary::dnn_lib)
-target_include_directories(fftKernel.elf PRIVATE fftKernel/include)
+target_include_directories(fftKernel.elf PUBLIC fftKernel/include)
+

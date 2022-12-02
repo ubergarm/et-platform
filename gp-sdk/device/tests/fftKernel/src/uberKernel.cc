@@ -17,15 +17,15 @@
 #include "inst_pref_decls.h"
 
 
-extern "C" void startUberKernelComputes(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info);
-extern "C" void startUberKernelPrefActivations(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info);
-extern "C" void startUberKernelPrefWeights(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info);
-extern "C" void startUberKernelPrefInst(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info);
-extern "C" void startUberKernelCBDrainers(kernelArguments * layer_dyn_info);
-extern "C" void SyncMinionsCode(uint32_t minionId, uint32_t threadId, uint32_t nComputeShires, uint32_t syncThread0Mask, uint32_t syncThread1Mask, kernelArguments * layer_dyn_info);
+extern "C" void startUberKernelComputes(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info);
+extern "C" void startUberKernelPrefActivations(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info);
+extern "C" void startUberKernelPrefWeights(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info);
+extern "C" void startUberKernelPrefInst(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info);
+extern "C" void startUberKernelCBDrainers(KernelArguments * layer_dyn_info);
+extern "C" void SyncMinionsCode(uint32_t minionId, uint32_t threadId, uint32_t nComputeShires, uint32_t syncThread0Mask, uint32_t syncThread1Mask, KernelArguments * layer_dyn_info);
 
 
-extern "C" int uberKernel_RAWKERNEL_entry_point(kernelArguments * layer_dyn_info) {
+extern "C" int uberKernel_RAWKERNEL_entry_point(KernelArguments * layer_dyn_info) {
   uint32_t hart = get_hart_id();
   uint32_t threadId = hart & 1;
   uint32_t minionId = hart >> 1;
@@ -84,7 +84,7 @@ extern "C" int uberKernel_RAWKERNEL_entry_point(kernelArguments * layer_dyn_info
     #function "_return_point:" : : : );\
 }
 
-extern "C" __attribute((noclone , noinline)) void startUberKernelComputes(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info){
+extern "C" __attribute((noclone , noinline)) void startUberKernelComputes(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info){
 
   uint32_t globalMinionId = shireId * 32 + minionId;
 
@@ -95,7 +95,7 @@ extern "C" __attribute((noclone , noinline)) void startUberKernelComputes(uint64
 }
 
 
-extern "C" __attribute((noclone , noinline)) void startUberKernelPrefActivations(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info){
+extern "C" __attribute((noclone , noinline)) void startUberKernelPrefActivations(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info){
 
   _UNIQUE_CALL(testOperator_act_pref, layer_dyn_info)
 
@@ -104,7 +104,7 @@ extern "C" __attribute((noclone , noinline)) void startUberKernelPrefActivations
 }
 
 
-extern "C" __attribute((noclone , noinline)) void startUberKernelPrefWeights(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info){
+extern "C" __attribute((noclone , noinline)) void startUberKernelPrefWeights(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info){
 
   _UNIQUE_CALL(testOperator_w_pref, layer_dyn_info)
 
@@ -112,7 +112,7 @@ extern "C" __attribute((noclone , noinline)) void startUberKernelPrefWeights(uin
 }
 
 
-extern "C" __attribute((noclone , noinline)) void startUberKernelPrefInst(uint64_t shireId, uint32_t minionId, kernelArguments * layer_dyn_info){
+extern "C" __attribute((noclone , noinline)) void startUberKernelPrefInst(uint64_t shireId, uint32_t minionId, KernelArguments * layer_dyn_info){
 
   _UNIQUE_CALL(testOperator_inst_pref, layer_dyn_info)
 
@@ -121,10 +121,10 @@ extern "C" __attribute((noclone , noinline)) void startUberKernelPrefInst(uint64
 }
 
 
-void startUberKernelCBDrainers(kernelArguments * layer_dyn_info) {
+void startUberKernelCBDrainers(KernelArguments * layer_dyn_info) {
   //TODOtestOperator
 }
-extern "C" __attribute((noclone , noinline)) void SyncMinionsCode(uint32_t minionId, uint32_t threadId, uint32_t nComputeShires, uint32_t syncThread0Mask, uint32_t syncThread1Mask, kernelArguments * layer_dyn_info) {
+extern "C" __attribute((noclone , noinline)) void SyncMinionsCode(uint32_t minionId, uint32_t threadId, uint32_t nComputeShires, uint32_t syncThread0Mask, uint32_t syncThread1Mask, KernelArguments * layer_dyn_info) {
   if (threadId & 0x1) {
     if (((syncThread1Mask >> minionId) & 0x1) == 0) return;
   } else {

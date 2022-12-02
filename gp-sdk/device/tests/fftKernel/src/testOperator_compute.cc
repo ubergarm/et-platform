@@ -30,7 +30,7 @@ typedef int8_t i8;
 
 __attribute__((noinline))
 _compute_inst_pref_sect_attr(testOperator)
-void testOperator_compute(kernelArguments * layer_dyn_info) {
+void testOperator_compute(KernelArguments * layer_dyn_info) {
     fcc(FCC_0);
 
    

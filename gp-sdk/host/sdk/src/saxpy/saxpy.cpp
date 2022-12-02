@@ -1,0 +1,105 @@
+//******************************************************************************
+// Copyright (C) 2018-2023, Esperanto Technologies Inc.
+// The copyright to the computer program(s) herein is the
+// property of Esperanto Technologies, Inc. All Rights Reserved.
+// The program(s) may be used and/or copied only with
+// the written permission of Esperanto Technologies and
+// in accordance with the terms and conditions stipulated in the
+// agreement/contract under which the program(s) have been supplied.
+//------------------------------------------------------------------------------
+#include "GenericLauncher.h"
+#include <gflags/gflags.h>
+#include <numeric>
+
+#include "saxpy_kernel_arguments.h"
+
+// Specific kernel lancuher class.
+class Saxpy : public GenericLauncher {
+public:
+  Saxpy() = delete;
+  Saxpy(const Config& config)
+    : GenericLauncher(config){};
+
+  void prepareInput() {
+    a_= 3;
+    std::iota(x_.begin(), x_.end() ,0);
+    std::iota(y_.begin(), y_.end() ,100);
+
+  }
+
+  void performDeviceAllocs() {
+    deviceX_ = runtime_->mallocDevice(devices_[devIdx_], x_.size() * sizeof(float));
+    deviceY_ = runtime_->mallocDevice(devices_[devIdx_], y_.size() * sizeof(float));
+  }
+
+  void programHost2DevCopies() {
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *) x_.data(), deviceX_,
+                                 x_.size() * sizeof(float));
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *)  y_.data(), deviceY_,
+                                 y_.size() * sizeof(float));
+  }
+
+  void programDev2HostCopies() {
+    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_],deviceY_, (std::byte *)  y_.data(),
+                                 y_.size() * sizeof(float));
+  }
+
+  void freeDeviceAllocs() {
+    runtime_->freeDevice(devices_[devIdx_], deviceX_);
+    runtime_->freeDevice(devices_[devIdx_], deviceY_);
+  }
+
+  void prepareKernelArguments() override {
+    params_.x = (float *) deviceX_;
+    params_.y = (float *) deviceY_;
+    params_.numElements = x_.size();
+    params_.a = a_;
+ 
+    kernelArgs_ = (std::byte*)&params_;
+    kernelArgsSize_ = sizeof(params_);
+  }
+
+private:
+  static constexpr size_t numElems_ = 256;
+  float a_;
+  std::vector<float> x_ = std::vector<float>(numElems_);
+  std::vector<float> y_ = std::vector<float>(numElems_);
+  std::byte* deviceX_;
+  std::byte* deviceY_;
+  KernelArguments params_;
+};
+
+DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
+DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
+DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
+
+int main(int argc, char** argv) {
+  GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
+  Config config{modeFromString(FLAGS_device_type), 1};
+  config.dump();
+
+  Saxpy launcher(config);
+  launcher.initialize();
+  launcher.performDeviceAllocs();
+  launcher.prepareInput();
+
+  for (size_t i = 0; i < FLAGS_num_launches; i++) {
+    launcher.programHost2DevCopies();
+    launcher.prepareKernelArguments();
+    launcher.kernelLaunch();
+    launcher.programDev2HostCopies();
+    auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
+    launcher.waitKernelCompletion(timeout);
+    launcher.dumpTracesToFile(i);
+
+    if (launcher.kernelError_ || launcher.kernelAbort_) {
+      return -1;
+    }
+  }
+
+  launcher.freeDeviceAllocs();
+  launcher.deInitialize();
+  launcher.tearDown();
+
+  return 0;
+}

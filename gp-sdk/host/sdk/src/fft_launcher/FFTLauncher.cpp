@@ -17,21 +17,7 @@
 #endif
 
 // Shared kernel-arguments with device:
-
-struct TensorDesc {
-  uint64_t nDims;
-  uint64_t dims[6] = {0};
-  uint64_t strides[6] = {0};
-  uint64_t deviceAddress;
-} __attribute__((packed));
-
-struct FFTKernelArgs {
-  uint32_t nTensors;
-  TensorDesc tensors[2];
-  uint32_t operation;
-} __attribute__((packed));
-
-enum class FFTOp { FFT = 0, IFFT = 1, SKIP = 1024 };
+#include "kernel_arguments.h"
 
 // dnnlib FFT kernel lancuher class.
 class FFTLauncher : public GenericLauncher {
@@ -170,7 +156,7 @@ public:
   }
 
 private:
-  // FFT computation dimensions, is assumes a flatened tensor of 5 dims:
+  // FFT computation dimensions, it assumes a flattened tensor of 5 dims:
   // batch, channels, planes (2), height_, width_;
   // as an example, we can store a batch of 2 rgb images (feq domain).
   // batch=2 (im0, im1), channels = 3 (r,g,b) , planes = 2(real, img), height_ width_ (256 * 256 pixels images)
@@ -185,7 +171,7 @@ private:
   FFTOp operation_ = FFTOp::FFT;
   std::byte* devInputTensor = nullptr;
   std::byte* devOutputTensor = nullptr;
-  FFTKernelArgs fftKernelArgs_;
+  KernelArguments fftKernelArgs_;
 };
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");

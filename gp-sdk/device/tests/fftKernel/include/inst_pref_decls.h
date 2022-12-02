@@ -22,8 +22,8 @@ static const uint64_t function_prolog_bytes = 0;
 static const uint64_t function_epilog_bytes = 0;
 static const uint64_t max_prefetch_lines = 16;
 
-extern "C" void testOperator_inst_pref(kernelArguments * layer_dyn_info);
-inline void testOperator_w_inst_pref_self(kernelArguments * layer_dyn_info) {
+extern "C" void testOperator_inst_pref(KernelArguments * layer_dyn_info);
+inline void testOperator_w_inst_pref_self(KernelArguments * layer_dyn_info) {
 
 	uint64_t worker_id;
 	uint64_t self_size;
@@ -165,7 +165,7 @@ inline void testOperator_w_inst_pref_self(kernelArguments * layer_dyn_info) {
 	);
 
 }
-inline void testOperator_w_inst_pref(kernelArguments * layer_dyn_info) {
+inline void testOperator_w_inst_pref(KernelArguments * layer_dyn_info) {
 
 	uint64_t worker_id;
 	uint64_t ret_ptr;

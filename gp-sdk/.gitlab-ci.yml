@@ -92,19 +92,21 @@ tests:conan:sw-sysemu:
   image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.5.6
   variables:
     DEVICE_TYPE: sysemu
-
-tests:conan:silicon:
-  extends:
-    - .tests:conan:common
-  image:
-    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.5.6
-    entrypoint: [""]
-  tags:
-    - silicon
-    - mv-eap03
-  variables:
-    DEVICE_TYPE: silicon
-  allow_failure: true
+#
+# temporarily disabling silicon jobs
+#
+#tests:conan:silicon:
+#  extends:
+#    - .tests:conan:common
+#  image:
+#    name: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.5.6
+#    entrypoint: [""]
+#  tags:
+#    - silicon
+#    - mv-eap03
+#  variables:
+#    DEVICE_TYPE: silicon
+#  allow_failure: true
 
 .tests:cmake-only:common:
   extends:

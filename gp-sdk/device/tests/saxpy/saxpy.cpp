@@ -1,0 +1,98 @@
+
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2022, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
+
+#include <array>
+#include <stdio.h>
+#include <etsoc/common/utils.h>
+#include <etsoc/isa/fcc.h>
+#include <etsoc/isa/hart.h>
+#include <etsoc/isa/tensors.h>
+#include <etsoc/isa/utils.h>
+
+#include "entryPoint.h"
+
+#include <algorithm>
+
+#include "saxpy_kernel_arguments.h"
+
+//clang-format off
+static inline __attribute__((always_inline))
+void saxpy_vector(const size_t begin, const size_t end, const float alpha,
+  const float* const x,  const float* const y, float* const w)
+{
+    constexpr int vlen = 8;
+    float alphaVector;
+    int i = begin;
+     __asm__ __volatile__("fbcx.ps %[alphaVector], %[alpha]\n"
+                          : [ alphaVector ] "=&f"(alphaVector)
+                          : [ alpha ] "r"(alpha)
+                          :);
+    for (; i < end - (vlen - 1); i += vlen) {
+        float xValue;
+        float yValue;
+        const float *xv = &x[i]; 
+        const float *yv = &y[i];
+        const float *wv = &w[i];
+        // load x and y
+        __asm__ __volatile__ ("flw.ps %[xValue], (%[xv])\n"
+                              "flw.ps %[yValue], (%[yv])\n"
+                              : [xValue] "=&f"(xValue),
+                                [yValue] "=&f"(yValue)
+                              : [xv] "r" (xv), [yv] "r" (yv)
+                              : );
+
+        // w[i] = a * x[i] + y[i] 
+        __asm__ __volatile__(
+                            // multipy datavalues by weight and accumulate to prev value
+                            "fmadd.ps %[yValue], %[xValue], %[alphaVector], %[yValue]\n"
+                            : [yValue] "+&f"(yValue)
+                            : [ xValue ] "f"(xValue), [ alphaVector ] "f"(alphaVector)
+                            :);
+
+        // store w[i]
+        __asm__ __volatile__ ("fsw.ps %[yValue], (%[wv])\n"
+                              :         
+                              : [wv] "r" (wv), [yValue] "f"(yValue)
+                              : );
+    }
+
+    for (; i < end; ++i) {
+      w[i] = alpha * x[i] + y[i];
+    }
+    // epilogue
+}
+//clang-format on
+
+ __attribute__((noinline))
+int entryPoint(KernelArguments * vectors) {
+
+  auto minionId = (int)get_minion_id();
+  size_t numWorkers = SOC_MINIONS_PER_SHIRE; // just 1 shire (32 minions).
+
+  size_t elemsPerWorker = (vectors->numElements + numWorkers - 1) / numWorkers;
+  if (elemsPerWorker % 16) {
+    elemsPerWorker += 16 - (elemsPerWorker % 16);
+  }
+  size_t begin = elemsPerWorker * minionId;
+  size_t end = std::min(elemsPerWorker * (minionId + 1), vectors->numElements);
+#ifdef SAXPY_VECTOR
+    saxpy_vector(begin, end, vectors->a, vectors->x, vectors->y, vectors->y);
+#else
+     for (size_t i = begin; i < end; ++i) {
+       vectors->y[i] = vectors->a * vectors->x[i] + vectors->y[i];
+     }
+#endif
+
+  return 0;
+}
+
+
