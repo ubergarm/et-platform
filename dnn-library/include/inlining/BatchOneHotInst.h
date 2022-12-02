@@ -71,8 +71,9 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
   getCachelinePartition(typeSize, numElemsDst, dstAddr, maxRead,
                         minionId, activeMinions, dstT);
 
-  if (maxRead == 0)
+  if (maxRead == 0) {
     return;
+  }
 
   // We move the initialAddr to the next non-padding position
 
@@ -93,7 +94,7 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
   while (l >= lengths[featureId]) {
     l -= lengths[featureId];
     featureId++;
-    if (featureId >= featureCnt)  {
+    if (featureId >= featureCnt) {
       featureId = 0;
       l = i = 0;
       batchId++;
@@ -101,17 +102,19 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
     }
   }
 
-  auto posMax = maxRead + offsetOut;
+  auto posMax = maxRead + dstAddr;
 
   bool done = (offsetOut >= posMax);
   bool minionEnd = false;
+  size_t firstOffset = l;
 
-  while (!done && !minionEnd) {
-    while (batchId < batchSize){
+  while ((not done) and (not minionEnd)) {
+    while (batchId < batchSize) {
       size_t offset = i;
-      while (featureId < featureCnt){
+      while (featureId < featureCnt) {
         auto curValue = tAInput[batchId * dataPitch[0] + featureId];
-        auto curLength = lengths[featureId];
+        auto curLength = lengths[featureId] - firstOffset;
+        firstOffset = 0;
         while (i < offset + curLength) {
           if (curValue == tValues[i]) {
             tOutput[offsetOut] = (float)1;
@@ -119,7 +122,7 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
             tOutput[offsetOut] = (float)0;
           }
           offsetOut++;
-          if (offsetOut > posMax) {
+          if (offsetOut >= posMax) {
             minionEnd = true;
             break;
           }
@@ -127,21 +130,22 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
         }
         offset += curLength;
         featureId++;
-        if (minionEnd == true)
+        if (minionEnd) {
           break;
+        }
       }
+      offsetOut += (dstPitch[0] - i);
       i = 0;
       featureId = 0;
       batchId++;
-      offsetOut += dstPitch[0];
-      if (offsetOut > posMax) {
-       minionEnd = true;
-      }
-      if (minionEnd == true)
+      if (offsetOut >= posMax) {
+        minionEnd = true;
         break;
+      }
     }
-    if (batchId == batchSize)
+    if (batchId == batchSize) {
       done = true;
+    }
   }
 
   if (!DO_EVICTS)
