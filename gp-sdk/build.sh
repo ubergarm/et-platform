@@ -19,19 +19,19 @@ mkdir build && cd build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DUSE_CONAN=ON -G Ninja
 cmake --build .
 
-./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf/print.elf -device-type=sysemu
+./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf -device-type=sysemu
 dt2json traceKernels_dev0_0.bin -t
 
-./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf/print2.elf -device-type=sysemu
+./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf -device-type=sysemu
 dt2json traceKernels_dev0_0.bin -t
 
-./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf/bss.elf -device-type=sysemu
+./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf -device-type=sysemu
 dt2json traceKernels_dev0_0.bin -t
 
-./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf/data.elf -device-type=sysemu
+./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf -device-type=sysemu
 dt2json traceKernels_dev0_0.bin -t
 
-#./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf/fftKernel.elf  -device-type=sysemu
+#./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf  -device-type=sysemu
 #dt2json traceKernels_dev0_0.bin -t
 
 cd ../..
