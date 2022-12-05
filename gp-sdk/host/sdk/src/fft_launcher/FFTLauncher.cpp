@@ -175,7 +175,7 @@ private:
 };
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
-DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
+DEFINE_uint64(kernel_launch_timeout, 300, "timeout (inseconds) to wait for kernelLaunch");
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
 
 int main(int argc, char** argv) {

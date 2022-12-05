@@ -1,5 +1,5 @@
 #------------------------------------------------------------------------------
-# Copyright (C) 2019, Esperanto Technologies Inc.
+# Copyright (C) 2022, Esperanto Technologies Inc.
 # The copyright to the computer program(s) herein is the
 # property of Esperanto Technologies, Inc. All Rights Reserved.
 # The program(s) may be used and/or copied only with
@@ -40,16 +40,8 @@ target_compile_definitions(saxpy_vector.elf PRIVATE "-DSAXPY_VECTOR")
 
 
 
-#FIXME. the fft test still uses neuralizer uberKenrel pieces. needs to migrate 
-# to gp-sdk (link against etsoc_crt0 and remove dead code).
-add_etsoc_riscv_executable(fftKernel.elf fftKernel/src/uberKernel_crt.S 
-                                         fftKernel/src/uberKernel.cc
-                                         fftKernel/src/testOperator_compute.cc
-                                         fftKernel/src/testOperator_w_pref.cc 
-                                         fftKernel/src/testOperator_inst_pref.cc 
-                                         fftKernel/src/testOperator_act_pref.cc 
-                                         fftKernel/src/SyncComputeNode.cc )
-
-target_link_libraries(fftKernel.elf dnnLibrary::dnn_lib)
+add_etsoc_riscv_executable(fftKernel.elf fftKernel/src/fft_entry.cc)
+target_link_libraries(fftKernel.elf  etsoc_crt0
+                                     dnnLibrary::dnn_lib)
 target_include_directories(fftKernel.elf PUBLIC fftKernel/include)
 

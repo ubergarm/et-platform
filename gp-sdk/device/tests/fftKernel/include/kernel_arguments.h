@@ -1,4 +1,3 @@
-// clang-format off
 /*-------------------------------------------------------------------------
  * Copyright (C) 2022, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the

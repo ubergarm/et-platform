@@ -16,11 +16,9 @@
 #include <dnn_lib/LibTypes.h>
 #include <dnn_lib/LibTensor.h>
 #include <dnn_lib/Float16.h>
-#include "SyncComputeNode.h"
-#include "inst_pref_decls.h"
 
-#include "testOperator_compute.h"
 
+#include "entryPoint.h"
 #include "kernel_arguments.h"
 
 
@@ -29,17 +27,12 @@ typedef int8_t i8;
 
 
 __attribute__((noinline))
-_compute_inst_pref_sect_attr(testOperator)
-void testOperator_compute(KernelArguments * layer_dyn_info) {
-    fcc(FCC_0);
-
+int entryPoint(KernelArguments * kernelArgs) {
    
-    volatile auto minionId = get_minion_id(); 
+  et_assert(kernelArgs->nTensors == 2);
 
-  et_assert(layer_dyn_info->nTensors == 2);
-
-  auto inputDesc = &layer_dyn_info->tensors[0];
-  auto outputDesc = &layer_dyn_info->tensors[1];
+  auto inputDesc = &kernelArgs->tensors[0];
+  auto outputDesc = &kernelArgs->tensors[1];
 
   // we need to hardcode dims for now to craete arrays for libtensor-dims.
   
@@ -61,16 +54,15 @@ void testOperator_compute(KernelArguments * layer_dyn_info) {
   constexpr auto outputPaddingUntouchable = false;
   LibTensor outputTensor(outputElk, outputPtr, outputDims, outputStrides, outputPaddingUntouchable);
 
-  auto operation = (FFTOp) layer_dyn_info->operation;
+  auto operation = (FFTOp) kernelArgs->operation;
 
   if(operation == FFTOp::SKIP) { // DEBUG op to skip the filter.
-    return;
+    return 0;
   }
   constexpr uint64_t flags = 31;
   constexpr uint32_t minionOffset = 0;
   constexpr uint32_t assignedMinions = 1024;
 
-  uint32_t shireId = minionId >> 5;
   
   uint32_t op = operation == FFTOp::FFT?  uint32_t(dnn_lib::inlining::Operation::FFT) : uint32_t(dnn_lib::inlining::Operation::IFFT);
   auto start = et_get_timestamp();
@@ -82,5 +74,6 @@ void testOperator_compute(KernelArguments * layer_dyn_info) {
   if(get_minion_id() == 0) {
     et_printf("%s %d fft took %d Cycles\n", __func__,1,elapsed);
   }
-
+ 
+  return 0;
 }
