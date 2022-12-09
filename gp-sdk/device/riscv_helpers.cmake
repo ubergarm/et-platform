@@ -43,13 +43,13 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
   set(ELF_EXE_LINKER_FLAGS_DBG "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH_DBG}")
 
 
-  target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3 -DNDEBUG)
+  target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3 -Wstack-usage=4096 -DNDEBUG)
   target_compile_definitions(${TARGET_NAME} PRIVATE "-DNDEBUG")
 
   set_target_properties(${TARGET_NAME}
     PROPERTIES
     LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH}
-    LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
+   LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
   )
   
   # adding a second "debug" target (identical, but linked using a different linker script)
@@ -67,13 +67,12 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
      LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH_DBG}
      LINK_FLAGS  ${ELF_EXE_LINKER_FLAGS_DBG})
 
-  #FIXME: this "addition" will be removed once linker script is fixed.
   math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
   message(STATUS "base address used to produce relinked (debug) elfs-> ${DEBUG_ADDRESS}")
 
-  #NOTE: a placeholder is required for this sed to work.(TODO: replace by a comment)
+  #NOTE: keep track of this placeholder on original linker-script)
   add_custom_target("GenLinker_${DEBUG_TARGET}"
-    COMMAND sed '0,/0x00000001/s//${DEBUG_ADDRESS}/' ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld > ${LINKER_SCRIPT_ABS_PATH_DBG}   
+    COMMAND sed '0,/0x00000000\; \\/\\* BASE_ADDRESS_PLACEHOLDER \\*\\//s//${DEBUG_ADDRESS}\; \\/\\* BASE_ADDRESS_PLACEHOLDER \\*\\//' ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld > ${LINKER_SCRIPT_ABS_PATH_DBG}   
   )
   
   add_dependencies(${DEBUG_TARGET} "GenLinker_${DEBUG_TARGET}")
