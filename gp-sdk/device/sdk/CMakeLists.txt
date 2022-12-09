@@ -20,6 +20,10 @@ target_include_directories(etsoc_crt0
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/include
 )
+
+target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
+
+
 set_target_properties(etsoc_crt0 PROPERTIES 
     VERSION ${PROJECT_VERSION}
     SOVERSION ${PROJECT_VERSION_MAJOR}
