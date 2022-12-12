@@ -51,40 +51,50 @@ default:
       cd ..
 
     CMD_POST_BUILD: |
-      # install dt2json
-      conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
-      source conanrun.sh
+      if [ "$BUILD_TYPE" == "Debug"]; then
+        echo "Skip testing when building in Debug"
+      else
 
-      cd host/build
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at print"
-      fi      
-      dt2json traceKernels_dev0_0.bin -t
+        # install dt2json
+        conan install trace-utils/0.6.0@ -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-release --remote conan-develop --build missing -o trace-utils:with_cereal=False -g VirtualRunEnv
+        source conanrun.sh
 
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at print2"
-      fi            
-      dt2json traceKernels_dev0_0.bin -t
+        cd host/build
+        ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at print"
+        fi      
+        dt2json traceKernels_dev0_0.bin -t
 
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/bss.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at bss"
-      fi            
-      dt2json traceKernels_dev0_0.bin -t
+        ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/print2.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at print2"
+        fi            
+        dt2json traceKernels_dev0_0.bin -t
 
-      ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/data.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at data"
-      fi                  
-      dt2json traceKernels_dev0_0.bin -t
+        ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/bss.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at bss"
+        fi            
+        dt2json traceKernels_dev0_0.bin -t
 
-      ./${BUILD_TYPE}/sdk/fft_launcher -kernel_path=../../device/build/Release/tests/fftKernel.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at fftKernel"
-      fi            
-      dt2json traceKernels_dev0_0.bin -t
+        ./${BUILD_TYPE}/sdk/basic_launcher -kernel_path=../../device/build/Release/tests/data.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at data"
+        fi                  
+        dt2json traceKernels_dev0_0.bin -t
+
+        ./${BUILD_TYPE}/sdk/fft_launcher -kernel_path=../../device/build/Release/tests/fftKernel.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at fftKernel"
+        fi            
+        dt2json traceKernels_dev0_0.bin -t
+        
+        #
+        # Add more testes here
+        #
+
+      fi
 
 tests:conan:sw-sysemu:
   extends:
@@ -115,14 +125,13 @@ tests:conan:sw-sysemu:
   stage: test
   parallel:
     matrix:
-      - BUILD_TYPE: [ Release, Debug ] #RelWithDebInfo doesn't exist
+      - BUILD_TYPE: [ Release, RelWithDebInfo, Debug ]
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     TIMEOUT: 2h
     CMD_SETUP_EXTRA_DEPS: |
       sudo apt install ninja-build
     CMD_BUILD: |
-      BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
       cd device
       mkdir build && cd build
       cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
@@ -140,36 +149,46 @@ tests:conan:sw-sysemu:
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
       
-      cd host/build
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at print"
+      if [ "$BUILD_TYPE" == "Debug"]; then
+        echo "Skip testing when building in Debug"
+      else
+
+        cd host/build
+        ./sdk/basic_launcher -kernel_path=../../device/build/tests/print.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at print"
+        fi
+        dt2json traceKernels_dev0_0.bin -t
+
+        ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at print2"
+        fi     
+        dt2json traceKernels_dev0_0.bin -t
+
+        ./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at bss"
+        fi      
+        dt2json traceKernels_dev0_0.bin -t
+
+        ./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at data"
+        fi      
+        dt2json traceKernels_dev0_0.bin -t
+
+        ./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf -device-type=${DEVICE_TYPE}
+        if [ $? -ne 0 ]; then
+          echo "Error at fftkernel"
+        fi
+        dt2json traceKernels_dev0_0.bin -t
+      
+        #
+        # Add more testes here
+        #
+
       fi
-      dt2json traceKernels_dev0_0.bin -t
-
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/print2.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at print2"
-      fi     
-      dt2json traceKernels_dev0_0.bin -t
-
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/bss.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at bss"
-      fi      
-      dt2json traceKernels_dev0_0.bin -t
-
-      ./sdk/basic_launcher -kernel_path=../../device/build/tests/data.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at data"
-      fi      
-      dt2json traceKernels_dev0_0.bin -t
-
-      ./sdk/fft_launcher -kernel_path=../../device/build/tests/fftKernel.elf -device-type=${DEVICE_TYPE}
-      if [ $? -ne 0 ]; then
-        echo "Error at fftkernel"
-      fi
-      dt2json traceKernels_dev0_0.bin -t
 
 tests:cmake-only:sw-sysemu:
   extends:
