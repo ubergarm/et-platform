@@ -51,7 +51,7 @@ default:
       cd ..
 
     CMD_POST_BUILD: |
-      if [ "$BUILD_TYPE" == "Debug"]; then
+      if [ "$BUILD_TYPE" == "Debug" ]; then
         echo "Skip testing when building in Debug"
       else
 
@@ -149,7 +149,7 @@ tests:conan:sw-sysemu:
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
       
-      if [ "$BUILD_TYPE" == "Debug"]; then
+      if [ "$BUILD_TYPE" == "Debug" ]; then
         echo "Skip testing when building in Debug"
       else
 
