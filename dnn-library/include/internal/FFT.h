@@ -13,6 +13,10 @@
 #include <cstdint>
 #include <cstring>
 
+#ifdef GPSDK
+#include "sync.h"
+#endif
+
 #ifndef INLINE_ATTR
 #define INLINE_ATTR __attribute__((always_inline)) inline
 #endif
@@ -1091,7 +1095,12 @@ INLINE_ATTR void fft2dThreaded(size_t workRowBits, size_t workRowBranchBits, siz
         workRowBranchBits, minionOffset0, minionId0, stack, horizBaseTwiddleReal, horizBaseTwiddleImg, tFft16Real,
         tFft16Img, real + row * realStride, img + row * imgStride, 0, 1, width, resultReal + row * resultRealStride,
         resultImg + row * resultImgStride);
+
+#ifdef GPSDK
+      hart::barrier(globalMinionOffset, numMinions);
+#else
       barrier(globalMinionOffset, numMinions, 1);
+#endif
     }
   }
 
@@ -1166,7 +1175,11 @@ INLINE_ATTR void fft2dThreaded(size_t workRowBits, size_t workRowBranchBits, siz
 #endif
         }
       }
+#ifdef GPSDK
+      hart::barrier(globalMinionOffset, numMinions);
+#else
       barrier(globalMinionOffset, numMinions, 1);
+#endif
     }
   }
 
