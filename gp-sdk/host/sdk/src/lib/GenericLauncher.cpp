@@ -29,19 +29,9 @@ namespace fs = std::filesystem;
 
 #include "GenericLauncher.h"
 
-static const std::string KERNELS_DIR = "/lib/esperanto-fw/kernels";
-
-#ifdef ET_INSTALL_DIR
-std::string defaultInstallDir = ET_INSTALL_DIR + std::string("/sw-platform-riscv-sysroot/");
-#else
-std::string defaultInstallDir = "";
-#endif
-
 // FIXME: following options are just to speed up  debug-cycle. long-term we should default to void.
-DEFINE_string(gp_sdk_device_installdir, defaultInstallDir, "Path to gp-sdk-device installation directory");
-std::string defaultKernel = FLAGS_gp_sdk_device_installdir + KERNELS_DIR + "/trace.elf";
+DEFINE_string(gp_sdk_device_installdir, "", "Path to gp-sdk-device installation directory");
 
-DEFINE_string(kernel_path, defaultKernel, "ET-SoC-1 kernel path and filename");
 DEFINE_string(simulator_params, "", "Hyperparameters to pass to simulator, overrides default values");
 // TODO "runtime-install-prefix", "num-devices"
 
@@ -173,13 +163,10 @@ void GenericLauncher::initialize() {
 
   runtime_->setOnStreamErrorsCallback(streamErrorHandler);
   runtime_->setOnKernelAbortedErrorCallback(abortedKernelHandler);
-
-  // load the kernel on the device.
-  kernel_ = loadKernel(FLAGS_kernel_path);
 }
 
-void GenericLauncher::deInitialize() {
-  runtime_->unloadCode(kernel_);
+void GenericLauncher::unLoadKernel(rt::KernelId kernelId) {
+  runtime_->unloadCode(kernelId);
 }
 
 void GenericLauncher::tearDown() {
@@ -249,7 +236,7 @@ std::optional<rt::UserTrace> getKernelTraceParams(std::byte* deviceTraceBuffer, 
   return traceParams;
 }
 
-void GenericLauncher::dumpTracesToFile(uint64_t fileIdx) {
+void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) {
   if (not enableKernelTraces) {
     return;
   }
@@ -269,9 +256,14 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx) {
     return;
   }
 
+  std::string traceSuffix = "";
+  if (int(kernelId) != -1) {
+    traceSuffix = "_" + std::to_string(int(kernelId));
+  }
+  
   auto tracePath =
     std::filesystem::current_path() /
-    std::filesystem::path("traceKernels_dev" + std::to_string(devIdx_) + "_" + std::to_string(fileIdx) + ".bin");
+    std::filesystem::path("traceKernels_dev" + std::to_string(devIdx_) + "_" + std::to_string(fileIdx) + traceSuffix + ".bin");
   auto traceStream = std::ofstream(tracePath, std::ios::binary | std::ios::out);
   traceStream.write((char*)deviceTrace.data(), deviceTrace.size());
 }
@@ -299,7 +291,7 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   // TODO: we failed to abort the stream. place any mitigation / defensive code here.
 }
 
-void GenericLauncher::kernelLaunch() {
+void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte * params, size_t size) {
   // TODO   make shire-mask config-aware.
   // Alloc space on device to get user traces. TODO: split into prep work so we can leverage across launches.
   if (enableKernelTraces) {
@@ -309,6 +301,19 @@ void GenericLauncher::kernelLaunch() {
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
   constexpr uint64_t shireMask = 0x1ffffffff;
-  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernel_, kernelArgs_, kernelArgsSize_, shireMask, barrier, flushL3,
+  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, (std::byte *)params, size, shireMask, barrier, flushL3,
                          optUserTrace);
+}
+
+void GenericLauncher::tokenize(std::string const &str, const char delim,
+                               std::vector<std::string> &kernels_path)
+{
+    size_t start;
+    size_t end = 0;
+ 
+    while ((start = str.find_first_not_of(delim, end)) != std::string::npos)
+    {
+        end = str.find(delim, start);
+        kernels_path.push_back(str.substr(start, end - start));
+    }
 }

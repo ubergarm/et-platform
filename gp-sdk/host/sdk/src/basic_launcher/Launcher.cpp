@@ -10,10 +10,11 @@
 #include "GenericLauncher.h"
 #include <gflags/gflags.h>
 
+
 // Shared with device:
 // FIXME: move to a public header.
 // bewware of void * and use fixed-with instead.
-struct Params {
+struct KernelArguments {
   void* src1;
   void* src2;
   void* dst;
@@ -51,17 +52,6 @@ public:
     runtime_->freeDevice(devices_[devIdx_], dDst_);
   }
 
-  void prepareKernelArguments() override {
-    params_.src1 = dSrc1_;
-    params_.src2 = dSrc2_;
-    params_.dst = dDst_;
-    params_.elements = int(hSrc1_.size());
-
-    kernelArgs_ = (std::byte*)&params_;
-    kernelArgsSize_ = sizeof(params_);
-  }
-
-private:
   static constexpr size_t numElems_ = 150;
   std::vector<int> hSrc1_ = std::vector<int>(numElems_);
   std::vector<int> hSrc2_ = std::vector<int>(numElems_);
@@ -69,12 +59,15 @@ private:
   std::byte* dSrc1_;
   std::byte* dSrc2_;
   std::byte* dDst_;
-  Params params_;
+
+  KernelArguments args_ {(int *) dSrc1_, (int *) dSrc2_,
+			 (int *) dDst_, int(hSrc1_.size())};
 };
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
 DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
+DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
 
 int main(int argc, char** argv) {
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
@@ -83,12 +76,13 @@ int main(int argc, char** argv) {
 
   Launcher launcher(config);
   launcher.initialize();
+  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
+  launcher.kernels_.push_back(kernel_id);  
   launcher.performDeviceAllocs();
 
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();
-    launcher.prepareKernelArguments();
-    launcher.kernelLaunch();
+    launcher.kernelLaunch(launcher.kernels_[0], &launcher.args_);
     launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
@@ -100,7 +94,7 @@ int main(int argc, char** argv) {
   }
 
   launcher.freeDeviceAllocs();
-  launcher.deInitialize();
+  launcher.unLoadKernel(launcher.kernels_[0]); 
   launcher.tearDown();
 
   return 0;

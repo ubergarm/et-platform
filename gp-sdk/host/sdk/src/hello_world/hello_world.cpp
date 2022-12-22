@@ -16,34 +16,30 @@ public:
   HelloWorld() = delete;
   HelloWorld(const Config& config)
     : GenericLauncher(config){};
-
-  void prepareKernelArguments() override {
-    kernelArgs_ = nullptr;
-    kernelArgsSize_ = 0;
-  }
-
 };
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
 DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
+DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
 
 int main(int argc, char** argv) {
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
   Config config{modeFromString(FLAGS_device_type), 1};
   
   HelloWorld launcher(config);
-  launcher.initialize();       // loadCode() happens in initialize.
-  launcher.prepareKernelArguments();
+  launcher.initialize();
+  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
+  launcher.kernels_.push_back(kernel_id);
 
   auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
-    launcher.kernelLaunch();
+    launcher.kernelLaunch(launcher.kernels_[0]);
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
   }
 
-  launcher.deInitialize();
+  launcher.unLoadKernel(launcher.kernels_[0]); 
   launcher.tearDown();
 
   return 0;

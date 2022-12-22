@@ -37,16 +37,6 @@ public:
     runtime_->freeDevice(devices_[devIdx_], deviceAccumData_);
   }
 
-  void prepareKernelArguments() override {
-    params_.data = (uint64_t *) deviceData_;
-    params_.accumData = (uint64_t *) deviceAccumData_;
-    params_.assignedMinions = data_.size();
- 
-    kernelArgs_ = (std::byte*)&params_;
-    kernelArgsSize_ = sizeof(params_);
-  }
-
-private:
   static constexpr size_t assignedMinions = 32;
   std::vector<uint64_t> data_ = std::vector<uint64_t>(assignedMinions, 0);
   std::vector<uint64_t> accumData_ = std::vector<uint64_t>(assignedMinions, 0);
@@ -58,6 +48,7 @@ private:
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
 DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
+DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
 
 int main(int argc, char** argv) {
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
@@ -66,12 +57,18 @@ int main(int argc, char** argv) {
 
   BarrierLauncher launcher(config);
   launcher.initialize();
+  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
+  launcher.kernels_.push_back(kernel_id); 
   launcher.performDeviceAllocs();
+
+
+  launcher.prepareInput();
+  KernelArguments args {launcher.data_.size(), (uint64_t *) launcher.deviceData_,
+                        (uint64_t *) launcher.deviceAccumData_};
 
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();
-    launcher.prepareKernelArguments();
-    launcher.kernelLaunch();
+    launcher.kernelLaunch(launcher.kernels_[0], &args);
     // launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
@@ -83,7 +80,7 @@ int main(int argc, char** argv) {
   }
 
   launcher.freeDeviceAllocs();
-  launcher.deInitialize();
+  launcher.unLoadKernel(launcher.kernels_[0]); 
   launcher.tearDown();
 
   return 0;

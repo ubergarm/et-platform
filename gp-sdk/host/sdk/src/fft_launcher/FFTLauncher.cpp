@@ -134,28 +134,6 @@ public:
     runtime_->freeDevice(devices_[devIdx_], devOutputTensor);
   }
 
-  void prepareKernelArguments() override {
-    TensorDesc inputTensorDesc = {
-      5,                                                                                                 // nDims
-      {batch_, channels_, planes_, height_, width_},                                                     // Sizes
-      {width_ * height_ * planes_ * channels_, width_ * height_ * planes_, width_ * height_, width_, 1}, // Strides
-      uint64_t(devInputTensor)};                                                                         // device Ptr
-    TensorDesc outputTensorDesc = {
-      5,                                                                                                 // nDims
-      {batch_, channels_, planes_, height_, width_},                                                     // Sizes
-      {width_ * height_ * planes_ * channels_, width_ * height_ * planes_, width_ * height_, width_, 1}, // Strides
-      uint64_t(devOutputTensor)};                                                                        // device Ptr.
-
-    fftKernelArgs_.nTensors = 2;
-    fftKernelArgs_.tensors[0] = inputTensorDesc;
-    fftKernelArgs_.tensors[1] = outputTensorDesc;
-    fftKernelArgs_.operation = (uint32_t)operation_;
-
-    kernelArgs_ = (std::byte*)&fftKernelArgs_;
-    kernelArgsSize_ = sizeof(fftKernelArgs_);
-  }
-
-private:
   // FFT computation dimensions, it assumes a flattened tensor of 5 dims:
   // batch, channels, planes (2), height_, width_;
   // as an example, we can store a batch of 2 rgb images (feq domain).
@@ -177,6 +155,7 @@ private:
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
 DEFINE_uint64(kernel_launch_timeout, 300, "timeout (inseconds) to wait for kernelLaunch");
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
+DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
 
 int main(int argc, char** argv) {
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
@@ -185,23 +164,35 @@ int main(int argc, char** argv) {
 
   FFTLauncher launcher(config);
   launcher.initialize();
+  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
+  launcher.kernels_.push_back(kernel_id);
   launcher.prepareInput();
   launcher.performDeviceAllocs();
+
+  TensorDesc inputTensorDesc = {5, {launcher.batch_, launcher.channels_, launcher.planes_, launcher.height_, launcher.width_},
+				{launcher.width_ * launcher.height_ * launcher.planes_ * launcher.channels_,
+				 launcher.width_ * launcher.height_ * launcher.planes_, launcher.width_ * launcher.height_, launcher.width_, 1},
+				uint64_t(launcher.devInputTensor)};
+  TensorDesc outputTensorDesc = {5, {launcher.batch_, launcher.channels_, launcher.planes_, launcher.height_, launcher.width_},
+				 {launcher.width_ * launcher.height_ * launcher.planes_ * launcher.channels_,
+				  launcher.width_ * launcher.height_ * launcher.planes_, launcher.width_ * launcher.height_, launcher.width_, 1},
+				 uint64_t(launcher.devOutputTensor)};
+
+  KernelArguments args {2,{{(uint64_t) launcher.devInputTensor},{(uint64_t) launcher.devOutputTensor}},
+			(uint32_t) launcher.operation_ };
+
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();
-    launcher.prepareKernelArguments();
-
     launcher.prepareInput();
-    launcher.kernelLaunch();
+    launcher.kernelLaunch(launcher.kernels_[0], &args);
     launcher.programDev2HostCopies();
 
     auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
-
     launcher.dumpTracesToFile(i);
   }
   launcher.freeDeviceAllocs();
-  launcher.deInitialize();
+  launcher.unLoadKernel(launcher.kernels_[0]); 
   launcher.tearDown();
 
 #ifdef FFT_VERIFICATION

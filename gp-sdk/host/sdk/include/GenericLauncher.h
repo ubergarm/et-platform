@@ -49,24 +49,36 @@ public:
   GenericLauncher(const Config& config)
     : config_(config){};
   void initialize(); // setup
-  void deInitialize();
+  void deInitialize(rt::KernelId kernelId);
   void tearDown(); // FIXME:consolidate with deinitialize for multi-inference use-cases
-  void dumpTracesToFile(uint64_t fileIdx = 0);
+  void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1));
 
-  void kernelLaunch();
+  template <typename TParams>
+  void kernelLaunch(rt::KernelId kernelId, TParams * params) {
+    doKernelLaunch(kernelId, (std::byte *)params, sizeof(TParams));
+  }
+
+  void kernelLaunch(rt::KernelId kernelId) {
+    doKernelLaunch(kernelId, nullptr, 0);
+  }
+  
   void waitKernelCompletion(std::chrono::seconds timeout);
-
-  virtual void prepareKernelArguments() = 0;
-
+  void tokenize(std::string const &str, const char delim,
+                std::vector<std::string> &kernels_path);
+  rt::KernelId loadKernel(const std::string& kernelName, uint32_t deviceIdx = 0);
+  void unLoadKernel(rt::KernelId kernelId);
+  
   std::atomic<uint64_t> kernelError_ = 0; // Number of kernels that reported an error
   std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
 
+  std::vector<rt::KernelId> kernels_;
+  
 private:
-  rt::KernelId loadKernel(const std::string& kernelName, uint32_t deviceIdx = 0);
   std::vector<std::byte> readFile(const std::string& path);
   // FIXME: just to enable glog-logger on runtime.
   logging::LoggerDefault loggerDefault_;
-
+  void doKernelLaunch(rt::KernelId, std::byte * params, size_t size);
+  
 protected:
   const Config& config_;
   std::unique_ptr<dev::IDeviceLayer> deviceLayer_;
@@ -76,10 +88,6 @@ protected:
   std::vector<rt::StreamId> traceStreams_;
 
   std::byte* traceDeviceBuffer_;
-  // todo: support loading multiple kernels and launch named kernels.
-  rt::KernelId kernel_;
-  std::byte* kernelArgs_;
-  size_t kernelArgsSize_;
   // TODO: multi-dev design.
   size_t devIdx_ = 0;
 };
