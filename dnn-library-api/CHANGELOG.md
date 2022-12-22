@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
+## [0.4.0]
+### Added
+### Changed
+- [SW-14081] Extended LibTensor interface to allow EmbeddingBag fast-path options
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 ## [0.3.0]
 ### Added
 ### Changed
