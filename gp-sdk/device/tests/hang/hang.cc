@@ -4,15 +4,11 @@
 #include <stdio.h>
 
 #include <etsoc/common/utils.h>
-#include <etsoc/isa/fcc.h>
 #include <etsoc/isa/hart.h>
-#include <etsoc/isa/tensors.h>
-#include <etsoc/isa/utils.h>
 
 #include "entryPoint.h"
 
-__attribute__((noinline))
-int entryPoint([[maybe_unused]] KernelArguments * args) {
+int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   
   //Generate code hang
   for(;;) {}

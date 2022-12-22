@@ -145,6 +145,7 @@ private:
   void reportUserException(const rt::StreamError& error) const;
   void createRuntime(bool enableCoreDump, rt::Options options);
   void resetRuntime(bool enableCoreDump);
+  rt::IRuntime* getRuntime(bool enableCoreDump);
   AbortManager abortManager_;
 
 protected:

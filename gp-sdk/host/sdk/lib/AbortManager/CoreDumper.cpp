@@ -12,13 +12,13 @@
 #include "AbortManager.h"
 #include "GPSDKElf.h"
 
-#include <glog/logging.h>
-
 #include <cassert>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <tuple>
+
+# include <unistd.h>
 
 // Standard RISC-V exception mcause values
 
@@ -231,26 +231,26 @@ void CoreDumper::dumpCore(AbortManager& abortManager, rt::IRuntime* runtime, rt:
   AbortManager::Handler abortHandler(abortManager);
 
   if (not error.errorContext_.has_value()) {
-    LOG(INFO) << "Not dumping a core without context.";
-    LOG(WARNING) << "Device error (no core dump possible)";
+    std::cout << "[INFO] Not dumping a core without context.\n";
+    std::cout << "[WARNING] Device error (no core dump possible)\n";
     return;
   }
 
   if (abortHandler.hasMultipleKernels()) {
-    LOG(INFO) << "Multiple kernels loaded. The core dump will not include the "
-                 "stack since it may have been overwritten.";
+    std::cout << "[INFO] Multiple kernels loaded. The core dump will not include the "
+                 "stack since it may have been overwritten.\n";
   }
 
   if (not abortHandler.hasCode()) {
-    LOG(INFO) << "Not dumping a core without any kernel loaded.";
-    LOG(WARNING) << "Device error (no core dump possible)";
+    std::cout << "[INFO] Not dumping a core without any kernel loaded.\n";
+    std::cout << "[WARNING] Device error (no core dump possible)\n";
     return;
   }
 
   auto contextIndices = getValidErrorContextIndices(error);
   if (contextIndices.empty()) {
-    LOG(INFO) << "Could not find any initialized device error context.";
-    LOG(WARNING) << "Device error (no core dump possible)";
+    std::cout << "[INFO] Could not find any initialized device error context.\n";
+    std::cout << "[WARNING] Device error (no core dump possible)\n";
     return;
   }
 
@@ -287,9 +287,9 @@ void CoreDumper::dumpCore(AbortManager& abortManager, rt::IRuntime* runtime, rt:
   std::string coreFileName = "core." + std::to_string(getpid()) + ".etsoc." + std::to_string((int)eventId);
   std::ofstream out(coreFileName.c_str());
   if (out.bad()) {
-    // LOG(ERROR) << "Error creating '" << coreFileName
-    //            << "' device core dump file.";
-    LOG(WARNING) << "Device error (no core dump possible)";
+    std::cout << "[ERROR] Error creating '" << coreFileName
+               << "' device core dump file.\n";
+    std::cout << "[WARNING] Device error (no core dump possible)\n";
     runtime->destroyStream(copyBackStream);
     return;
   }
@@ -390,7 +390,7 @@ void CoreDumper::dumpCore(AbortManager& abortManager, rt::IRuntime* runtime, rt:
     // Wait for the copy to finish
     bool success = runtime->waitForEvent(copyEventId);
     if (not success) {
-      // LOG(ERROR) << "Timed out copying core dump data from device.";
+      std::cout << "[ERROR] Timed out copying core dump data from device.\n";
       runtime->destroyStream(copyBackStream);
       out.close();
       return;
@@ -407,5 +407,5 @@ void CoreDumper::dumpCore(AbortManager& abortManager, rt::IRuntime* runtime, rt:
 
   runtime->destroyStream(copyBackStream);
 
-  LOG(WARNING) << "Device error (core dumped " << coreFileName << ")";
+  std::cout << "[WARNING] Device error (core dumped " << coreFileName << ")\n";
 }

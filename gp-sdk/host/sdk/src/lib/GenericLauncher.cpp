@@ -17,10 +17,6 @@
 #include <runtime/DeviceLayerFake.h>
 #include <sw-sysemu/SysEmuOptions.h>
 
-#include <cstdint>
-#include <tuple>
-#include <unistd.h>
-
 #if __has_include("filesystem")
 #include <filesystem>
 #elif __has_include("experimental/filesystem")
@@ -117,11 +113,11 @@ void GenericLauncher::initialize() {
   auto options = rt::getDefaultOptions();
   switch (config_.mode_) {
   case Mode::PCIE:
-    std::cout << "Running tests with PCIE deviceLayer";
+    std::cout << "Running tests with PCIE deviceLayer\n";
     deviceLayer_ = dev::IDeviceLayer::createPcieDeviceLayer();
     break;
   case Mode::SYSEMU: {
-    std::cout << "Running tests with SYSEMU deviceLayer";
+    std::cout << "Running tests with SYSEMU deviceLayer\n";
     auto opts = getDefaultOptions();
     std::vector<decltype(opts)> vopts;
     for (auto i = 0; i < config_.numDevices_; ++i) {
@@ -132,7 +128,7 @@ void GenericLauncher::initialize() {
     break;
   }
   case Mode::FAKE:
-    std::cout << "Running tests with FAKE deviceLayer";
+    std::cout << "Running tests with FAKE deviceLayer\n";
     deviceLayer_ = std::make_unique<dev::DeviceLayerFake>();
     options.checkDeviceApiVersion_ = false;
     break;
@@ -149,8 +145,6 @@ void GenericLauncher::initialize() {
   for (auto i = 0U; i < static_cast<uint32_t>(deviceLayer_->getDevicesCount()); ++i) {
     defaultStreams_.emplace_back(runtime_->createStream(devices_[i]));
     traceStreams_.emplace_back(runtime_->createStream(devices_[i]));
-
-    abortManager_.registerStream(defaultStreams_[i], devices_[i]);
   }
 
   // Program callbacks for error management.
@@ -161,45 +155,25 @@ void GenericLauncher::initialize() {
               << error.getString();
     if ((error.errorCode_ == rt::DeviceErrorCode::DmaHostAborted) or
         (error.errorCode_ == rt::DeviceErrorCode::KernelLaunchHostAborted)) {
-      std::cout << std::to_string(error.errorCode_) << " Errors during aborts are expected, ignoring";
+      std::cout << std::to_string(error.errorCode_) << " Errors during aborts are expected, ignoring\n";
       return;
     }
     kernelError_++;
   };
 
   // Program callback when we want kernel aborts (due to a timeout) to dump corefiles
-  auto abortedKernelHandler = [this, rt = runtime_.get()](rt::EventId id, std::byte const* context, size_t size,
+  auto abortedKernelHandler = [this, rt = getRuntime(FLAGS_enableCoreDump)](rt::EventId id, std::byte const* context, size_t size,
                                                           std::function<void()> freeResources) {
     std::cout << "abortedKernelHandler"
               << " () rt reports that a kernel has been aborted (EventId: " << static_cast<int>(id) << ")\n";
     kernelAbort_++;
-
-    // Wait until the kernel has been fully aborted so that further commands
-    // are not aborted
-    abortManager_.waitKernelLaunchAborted(id);
-    if (FLAGS_enableCoreDump) {
-      // Retrieve the error context from the device and handle the error
-      auto error = abortManager_.retrieveErrorContext(rt, id, context, size);
+    
+    if(FLAGS_enableCoreDump) {
+      auto error = abortManager_.handleAbortedKernelAndDumpCore(rt, id, context, size, freeResources);
       if (error.has_value()) {
         reportUserException(error.value());
-        CoreDumper::dumpCore(abortManager_, rt, id, error.value());
-      } else {
-        LOG(WARNING) << "Device error (core dump not enabled)";
       }
     }
-    else {
-      LOG(WARNING) << "Device error (core dump not enabled)";
-    }
-
-    // Release the runtime resources before allowing the aborter thread to
-    // continue
-    freeResources();
-
-    // Allow the aborter thread to continue
-    abortManager_.notifyDeviceAbortCallback(id);
-
-    LOG(FATAL) << "Kernel aborted. GP SDK cannot recover from this, "
-                  "finishing the execution";
   };
 
   runtime_->setOnStreamErrorsCallback(streamErrorHandler);
@@ -224,9 +198,7 @@ void GenericLauncher::tearDown() {
   auto timeout = std::chrono::seconds(1);
   for (auto s : defaultStreams_) {
     auto success = runtime_->waitForStream(s, timeout);
-    if (success) {
-      abortManager_.clearKernelLaunches(s);
-    } else {
+    if (!success) {
       std::cout << __func__ << "() default stream " << uint32_t(s) << " wait timeout\n";
     }
     runtime_->destroyStream(s);
@@ -316,7 +288,6 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   auto success = runtime_->waitForStream(defaultStreams_[devIdx_], timeout);
 
   if (success) {
-    abortManager_.clearKernelLaunches(defaultStreams_[devIdx_]);
     return;
   }
   // Kernel did not complete on the expected time. let's abort the stream in which
@@ -324,50 +295,30 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   std::cout << "[TIMEOUT] " << __func__ << "() Wait for Stream command exceeded " << std::dec << int(timeout.count())
             << " seconds.  Aborting stream\n";
 
-  std::vector<rt::EventId> abortedKernelLaunchEventIds;
-  abortedKernelLaunchEventIds =
-    abortManager_.prepareKernelLaunchAbort(devices_[devIdx_], defaultStreams_[devIdx_], *runtime_);
   auto event = runtime_->abortStream(defaultStreams_[devIdx_]);
-  // Wait for the abort to complete.
   auto abortTimeout = std::chrono::seconds(10);
   success = runtime_->waitForEvent(event, abortTimeout);
   if (success) {
-    // Allow the callbacks to proceed
-    for (auto const& kernelEventId : abortedKernelLaunchEventIds) {
-      abortManager_.notifyKernelLaunchAborted(kernelEventId);
-    }
-
-    // Wait until the callbacks have been received to avoid destructing the
-    // runtime too early
-    for (auto const& kernelEventId : abortedKernelLaunchEventIds) {
-      abortManager_.waitDeviceAbortCallback(kernelEventId);
-    }
-    std::cout << "[        ] " << __func__ << "() stream aborted correctly \n" << int(defaultStreams_[devIdx_]) << "\n";
+    std::cout << "[TIMEOUT] " << __func__
+              << "() event completed succesfuly: " << (int)event << "\n";
     return;
   }
-
-  // could not complete the abort.
-  std::cout << "[TIMEOUT] " << __func__ << "() timeout aborting stream \n" << int(defaultStreams_[devIdx_]) << "\n";
-  // TODO: we failed to abort the stream. place any mitigation / defensive code here.
+  std::cout << "[TIMEOUT] " << __func__
+             << "() timeout expired wating for abortStream event: "
+             << (int)event << " to complete\n";
+  return;  
 }
 
 void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte * params, size_t size, uint64_t shireMask) {
-  // This promise is used to avoid a race condition where the RT responds with
-  // an abort before the core dumper has registered the event id
-  std::promise<rt::EventId> promisedEventId;
-  promisedEventId = abortManager_.registerKernelLaunch(defaultStreams_[devIdx_], kernel_);
-
   std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_, kTraceBufferSize);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
-  auto eventId = runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3,
+  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3,
                          optUserTrace);
-
-  promisedEventId.set_value(eventId);
 }
 
 void GenericLauncher::reportUserException(const rt::StreamError& error) const {
-  LOG(INFO) << "Exception found, need to dump the execution context";
+  std::cout << "Exception found, need to dump the execution context\n";
   // Dump execution context into a file
   auto path = std::experimental::filesystem::current_path();
   auto filename = "device_execution_context.txt";
@@ -378,7 +329,8 @@ void GenericLauncher::reportUserException(const rt::StreamError& error) const {
 }
 
 void GenericLauncher::createRuntime(bool enableCoreDump, rt::Options options) {
-  if (enableCoreDump) {
+  if(enableCoreDump) {
+    //If core dump is enabled, runtime wrapper with core dump capabilities is used
     runtimeBase_ = rt::IRuntime::create(deviceLayer_.get(), options);
     runtime_ = std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_);
   } else {
@@ -387,9 +339,20 @@ void GenericLauncher::createRuntime(bool enableCoreDump, rt::Options options) {
 }
 
 void GenericLauncher::resetRuntime(bool enableCoreDump) {
-    if (enableCoreDump) {
+  if(enableCoreDump) {
     runtimeBase_.reset();
   }
   runtime_.reset();
 }
 
+//Passes pointer to runtime instance without core dump capabilities 
+//to abortedKernelHandler callback.
+//Runtime is used inside the callback to copy error context
+//and dump core from device to host.
+rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
+  if(enableCoreDump) {
+    return runtimeBase_.get();
+  } else {
+    return runtime_.get();
+  }
+}

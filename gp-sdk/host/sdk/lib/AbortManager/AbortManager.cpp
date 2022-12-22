@@ -11,8 +11,6 @@
 #include "AbortManager.h"
 #include "CoreDumper.h"
 
-#include <glog/logging.h>
-
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -258,7 +256,6 @@ std::optional<rt::StreamError> AbortManager::retrieveErrorContext(rt::IRuntime* 
     copyBackStream, context, reinterpret_cast<std::byte*>(error.errorContext_.value().data()), size, false);
   bool success = runtime->waitForEvent(copyEventId);
   if (not success) {
-    // LOG(ERROR) << "Timed out copying core dump data from device.";
     std::cout << "Timed out copying core dump data from device.\n";
     return empty;
   }
@@ -266,4 +263,29 @@ std::optional<rt::StreamError> AbortManager::retrieveErrorContext(rt::IRuntime* 
 
   return std::move(error);
 }
-         
+
+std::optional<rt::StreamError> AbortManager::handleAbortedKernelAndDumpCore(rt::IRuntime* runtime, rt::EventId eventId,
+                                                      std::byte const* context, size_t size, std::function<void()> freeResources) {
+    // Wait until the kernel has been fully aborted so that further commands
+    // are not aborted
+    waitKernelLaunchAborted(eventId);
+    // Retrieve the error context from the device and handle the error
+    auto error = retrieveErrorContext(runtime, eventId, context, size);
+    if (error.has_value()) {
+      CoreDumper::dumpCore(*this, runtime, eventId, error.value());
+    } else {
+      std::cout << "[ERROR] Device error (core dump not enabled)\n";
+    }
+
+    // Release the runtime resources before allowing the aborter thread to
+    // continue
+    freeResources();
+
+    // Allow the aborter thread to continue
+    notifyDeviceAbortCallback(eventId);
+
+    std::cout << "[FATAL ERROR] Kernel aborted. GP SDK cannot recover from this, "
+                  "finishing the execution\n";
+
+    return error;
+}                                                   

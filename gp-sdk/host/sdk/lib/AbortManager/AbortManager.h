@@ -126,6 +126,9 @@ public:
   std::optional<rt::StreamError> retrieveErrorContext(rt::IRuntime* runtime, rt::EventId eventId,
                                                       std::byte const* context, size_t size);
 
+  std::optional<rt::StreamError> handleAbortedKernelAndDumpCore(rt::IRuntime* runtime, rt::EventId eventId,
+                                                      std::byte const* context, size_t size, std::function<void()> freeResources);                                                    
+
 private:
   class KernelLaunchInformation {
   private:
