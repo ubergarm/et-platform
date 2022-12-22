@@ -166,8 +166,10 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
             workRowBranchBits, workColBits, workColBranchBits);
 
   if (minionId - minionOffset == 0) {
+#ifdef ENABLE_TRACES
     et_printf("bBits=%d chBits=%d rBits=%d rBrBits=%d cBits=%d cBrBits=%d", workBatchBits, workChannelBits, workRowBits,
               workRowBranchBits, workColBits, workColBranchBits);
+#endif
   }
 
   // Ensure we got assigned at least as many minions as we can use
@@ -319,7 +321,9 @@ INLINE_ATTR void fwdLibETSOCGenericOpInst(LibTensor* outT, LibTensor* inT, uint3
   size_t minionId = get_minion_id();
 
   if (minionId == 0) {
+#ifdef ENABLE_TRACES
     et_printf("%s(%d) [numMinions=%d op=%d]\n", __func__, __LINE__, numMinions, op);
+#endif
   }
 
   switch (Operation(op)) {
