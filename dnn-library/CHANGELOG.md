@@ -10,6 +10,21 @@
 ### Fixed
 ### Security
 
+## [0.4.0]
+### Added
+### Changed
+- [SW-14877] Fix BatchOneHot operator writing in non-multiple of cacheline
+- [SW-14892] Generalize `partitionLoop()` to accept non-consecutive elements.
+- [SW-14859] dnnLibrary export public interface. (make it consumable by cmake targets)
+- [SW-14005] Added Int8QTy Embedding Bag Fastpath implementation
+- [SW-14081] Generalize EmbeddingBag fast-path options
+- [SW-15296] Test new barrier primitives in the FFT
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+
 ## [0.3.0]
 ### Added
 ### Changed
