@@ -89,6 +89,7 @@ class GpSdkHostConan(ConanFile):
         self.requires("esperantoTrace/0.7.0")
     
         self.requires("gflags/2.2.2")
+        self.requires("fftw/3.3.9")
 
         # overrides
         self.requires("sw-sysemu/0.7.0")
