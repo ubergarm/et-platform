@@ -1,0 +1,73 @@
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2022, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
+
+#ifndef GPSDK_PROFILING_H
+#define GPSDK_PROFILING_H
+
+#include "trace/trace_umode.h"
+
+/**
+ * \brief adapters to user_profile_events provided by tracing_subsystem.
+ * Note at the moment function-name is part of the event identifier. so events should start and complete o the same
+ *function.
+ **/
+
+class ScopedUserProfileEvent {
+public:
+  ScopedUserProfileEvent() = delete;
+  ScopedUserProfileEvent(const char* func, uint32_t line, uint16_t regionId)
+    : func_(func)
+    , line_(line)
+    , regionId_(regionId) {
+    et_trace_user_profile_event(regionId_, /*start*/ true, func_, line_);
+  }
+
+  ~ScopedUserProfileEvent() {
+    et_trace_user_profile_event(regionId_, /*start*/ false, func_, line_);
+  }
+
+private:
+  const char* func_ = nullptr;
+  uint32_t line_ = 0;
+  uint16_t regionId_ = 0;
+};
+
+/**
+ * \brief
+ * Generates a scoped user profiling event identified with region. function name and line will also be quoted.
+ * - Event begins when where code is placed.
+ * - Event ends where the current C++ scope ends
+ * \param regionId: region to instrument
+ */
+
+#define SCOPED_USER_PROFILE_EVENT(regionId) ScopedUserProfileEvent scopedUserProfileEvent(__func__, __LINE__, regionId)
+/**
+ * \brief
+ * Generates the start of a user profiling event. function name and line will also be quoted.
+ * This event needs to be expcicitlly completed (USER_PROFILE_EVENT_END of same regionId)
+ * \param regionId: region to instrument
+ */
+#define USER_PROFILE_EVENT_START(regionId)                                                                               \
+  do {                                                                                                                 \
+    et_trace_user_profile_event(regionId, true, __func__, __LINE__);                                                   \
+  } while (0)
+
+/**
+ * \brief
+ * Completes a profiling event. function name and line will also be quoted.
+ * \param regionId: region to instrument
+ */
+#define USER_PROFILE_EVENT_END(regionId)                                                                                 \
+  do {                                                                                                                 \
+    et_trace_user_profile_event(regionId, false, __func__, __LINE__);                                                  \
+  } while (0)
+
+#endif // GPSDK_PROFILING_H

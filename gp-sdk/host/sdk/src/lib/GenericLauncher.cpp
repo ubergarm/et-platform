@@ -221,9 +221,7 @@ rt::KernelId GenericLauncher::loadKernel(const std::string& kernelName, uint32_t
 // TODO: make it configuraion-aware.
 std::tuple<uint64_t, uint64_t> getTraceMinions() {
   // all
-  //    return {0x1FFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
-  // zero
-  return {0x100000001ULL, 0x0000000000000001ULL};
+  return {0x1FFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
 }
 
 // TODO: DRY. get this magic number from rutnime/ device headers if possible.
