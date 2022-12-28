@@ -20,14 +20,6 @@ public:
   BarrierLauncher(const Config& config)
     : GenericLauncher(config){};
 
-  void prepareInput() {
-    // memset(data_, 0, sizeof(uint64_t));
-    // a_= 3;
-    // std::iota(x_.begin(), x_.end() ,0);
-    // std::iota(y_.begin(), y_.end() ,100);
-
-  }
-
   void performDeviceAllocs() {
     deviceData_ = runtime_->mallocDevice(devices_[devIdx_], data_.size() * sizeof(uint64_t));
     deviceAccumData_ = runtime_->mallocDevice(devices_[devIdx_], accumData_.size() * sizeof(uint64_t));
@@ -39,11 +31,6 @@ public:
     runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *)  accumData_.data(), deviceAccumData_,
                                  accumData_.size() * sizeof(uint64_t));
   }
-
-  // void programDev2HostCopies() {
-  //   runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_],deviceD_, (std::byte *)  y_.data(),
-  //                                y_.size() * sizeof(float));
-  // }
 
   void freeDeviceAllocs() {
     runtime_->freeDevice(devices_[devIdx_], deviceData_);
@@ -80,7 +67,6 @@ int main(int argc, char** argv) {
   BarrierLauncher launcher(config);
   launcher.initialize();
   launcher.performDeviceAllocs();
-  launcher.prepareInput();
 
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();

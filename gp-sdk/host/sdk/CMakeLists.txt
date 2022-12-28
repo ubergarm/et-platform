@@ -3,6 +3,7 @@ find_package(deviceApi REQUIRED)
 find_package(deviceLayer REQUIRED)
 find_package(runtime REQUIRED)
 find_package(esperantoTrace REQUIRED)
+find_package(FFTW3f REQUIRED)
 
 find_package(gflags REQUIRED)
 
@@ -54,13 +55,16 @@ target_include_directories(saxpy_launcher PRIVATE ../../device/tests/saxpy)
 target_include_directories(barrier_launcher PRIVATE ../../device/tests/barrier) 
 
 add_executable(fft_launcher src/fft_launcher/FFTLauncher.cpp)
+target_compile_definitions(fft_launcher PRIVATE "FFT_VERIFICATION")
 target_link_libraries(fft_launcher 
     PRIVATE      etsoc_gpsdk
                  gflags::gflags
-                  #fftw3f needed for FFT_VERIFICATION 
+                 FFTW3::fftw3f
 )
 # FIXME. used to get kernel_arguments.h
 target_include_directories(fft_launcher PRIVATE ../../device/tests/fftKernel/include) 
+
+
 
 install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}

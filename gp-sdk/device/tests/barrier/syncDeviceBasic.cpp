@@ -108,7 +108,7 @@ int entryPoint(KernelArguments * args) {
         return -1;
       }
     }
+    et_printf("Success\n");
   }
-
   return 0;
 }

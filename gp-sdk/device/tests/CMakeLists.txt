@@ -39,12 +39,11 @@ target_include_directories(saxpy_scalar.elf INTERFACE .)
 target_compile_definitions(saxpy_vector.elf PRIVATE "-DSAXPY_VECTOR")
 
 
-
 add_etsoc_riscv_executable(fftKernel.elf fftKernel/src/fft_entry.cc)
 target_link_libraries(fftKernel.elf  etsoc_crt0
                                      dnnLibrary::dnn_lib)
 target_include_directories(fftKernel.elf PUBLIC fftKernel/include)
-
+target_compile_definitions(fftKernel.elf PRIVATE "-DGPSDK")
 
 
 add_etsoc_riscv_executable(syncDeviceBasic.elf barrier/syncDeviceBasic.cpp)

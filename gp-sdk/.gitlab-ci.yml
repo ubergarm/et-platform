@@ -20,9 +20,9 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.13
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.24
   ET_CONAN_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.5.8
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.5.10
 
 
 ###############################################################################
@@ -52,7 +52,7 @@ variables:
       cd ..
 
       cd host
-      conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --update --remote conan-develop --build missing
+      conan install .  -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --update --remote conan-develop --build missing -o fftw:precision=single
       cmake --preset ${BUILD_TYPE_LOWER} -G Ninja
       cmake --build --preset ${BUILD_TYPE_LOWER}
       cd ..

@@ -32,17 +32,15 @@ constexpr size_t log2(size_t value) {
   return result;
 }
 
-
 /** @enum hart::Scope
  *  @brief enum class representing the thread scope synced in a barrier.
  */
 enum class Scope {
-  // future: kernel scope for multi-device support 
-  device, /**< Threads sync by shire  */
-  shire,  /**< Threads sync by shire */
-  minion  /**< Threads sync by minion */
+  // future: kernel scope for multi-device support
+  device, /**< Sync threads in the device  */
+  shire,  /**< Sync threads in a shire */
+  minion  /**< Sync threads per minion */
 };
-
 
 /**
  * \brief Sync barrier for threads within a shire.
@@ -104,7 +102,6 @@ barrier(size_t startingMinion, size_t count) {
 
   // Local sync - syncs all minions in the same shire
   hart::barrier<Scope::shire>(allOnesMask);
-  // et_printf("shireId: %u, locally synced\n", shireId);
 
   if (masterShireId == shireId) {
     // minion 0 coordinates syncing with the other shires
@@ -113,11 +110,9 @@ barrier(size_t startingMinion, size_t count) {
       // for loop starts at 1 because already consumed 1
       for (size_t i = 0; i < numShires - 1; i++) {
         fcc_consume(fcc0);
-        // et_printf("master-t0 someone woke me up %llu\n", i);
       }
       // time to wake up the other shires
       for (auto sId = masterShireId; sId < masterShireId + numShires; sId++) {
-        // et_printf("master-t0 I am sending credit to shire [%u]\n", sId);
         fcc_send(sId, thread0, fcc0, allOnesMask.to_ullong());
       }
     }
@@ -125,14 +120,11 @@ barrier(size_t startingMinion, size_t count) {
     // Non-Master minion sends a credit to wake up the Master Shire - minion 0 - thread 0.
     if (localId == 0) {
       fcc_send(masterShireId, thread0, fcc0, minion0Mask.to_ullong());
-      // et_printf("I am [%u] and waking up the mastershire\n", shireId);
     }
   }
 
   // Everyone sleeps until the Master Shire wakes everyone including itself
   fcc_consume(fcc0);
-  // et_printf("master shire woke me up\n");
-
 }
 
 
@@ -149,12 +141,12 @@ barrier(size_t startingMinion, size_t count) {
 inline void barrier(const size_t startingMinion, const size_t count) {
   // Two count groups of values are supported.
   // If count > 32. count must be a multiple of 32. i.e: {64,96,128,160,..,1024}
-  // If count <= 32. count must be a power of two. i.e: {1,2,4,8,16,32}. 
-  et_printf("startingMinion: %llu, count %llu", startingMinion, count);
+  // If count <= 32. count must be a power of two. i.e: {1,2,4,8,16,32}.
 
   std::bitset<64> cmask = std::bitset<64>(count);
   std::bitset<64> smask = std::bitset<64>(startingMinion);
-  // check if count and startingMinion are powers of two (startingMinion can be 0 also)
+
+  // check if count and startingMinion are powers of two (or 0)
   bool isPow2 = (cmask.count() == 1) && ((smask.count() == 1) || (smask.count() == 0));
 
   if (count > SOC_MINIONS_PER_SHIRE) {
@@ -179,9 +171,7 @@ inline void barrier(const size_t startingMinion, const size_t count) {
  * use the overloaded function barrier(startingMinon, count) instead.
  */
 inline void barrier() {
-  // size_t assignedMinions = getNumMinions();
   size_t assignedMinions = 1024;
-  // et_printf("assigned: %llu\n", assignedMinions);
 
   if (assignedMinions > SOC_MINIONS_PER_SHIRE) {
     barrier<Scope::device>(0, assignedMinions);
