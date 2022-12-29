@@ -26,7 +26,7 @@ if (NOT USE_CONAN)
   if (NOT CMAKE_MODULE_PATH)
     set (CMAKE_MODULE_PATH ${ET_SWPLATFORM_DIR}/cmake)
   endif()
-      
+
   set(et-common-libs_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/et-common-libs)
   set(etsoc_hal_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/etsoc_hal)
   set(esperantoTrace_DIR ${ET_INSTALL_DIR}/sw-platform-riscv-sysroot/lib/cmake/esperantoTrace)
@@ -44,6 +44,9 @@ find_package(dnnLibrary)
 
 include("${CMAKE_SOURCE_DIR}/riscv_helpers.cmake")
 
+if (NOT ET_SDK_TOOLS_PATH)
+  set(ET_SDK_TOOLS_PATH ${CMAKE_SOURCE_DIR}/../tools)
+endif()
 
 add_subdirectory(sdk)
 add_subdirectory(tests)

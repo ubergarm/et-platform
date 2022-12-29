@@ -13,7 +13,7 @@
 # @param TARGET_NAME name of the cmake target to be created.
 # @param TARGET_SOURCES_LIST space-separated list of source files
 # Notes:
-#  - a secondary ${TARGET}_dbg is created (linked to a runtime-predicted address to be used
+# - a secondary ${TARGET}_dbg is created (linked to a runtime-predicted address to be used
 #   with debuggers
 # - the created target is a standard cmake target, so compilation options and dependencies 
 #   can be completed by cmake standard calls (target_link_libraries, target_include_directories,...)
@@ -25,7 +25,6 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
 
   set(LINKER_SCRIPT_ABS_PATH ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld)
   set(LINKER_SCRIPT_ABS_PATH_DBG  ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}_debug_linker.ld)
-  
 
   add_executable(${TARGET_NAME} ${TARGET_SOURCES})
   
@@ -49,7 +48,7 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
   set_target_properties(${TARGET_NAME}
     PROPERTIES
     LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH}
-   LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
+    LINK_FLAGS ${ELF_EXE_LINKER_FLAGS}
   )
   
   # adding a second "debug" target (identical, but linked using a different linker script)
@@ -81,6 +80,12 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E rm  ${LINKER_SCRIPT_ABS_PATH_DBG}
   )
+
+  add_custom_command(TARGET ${DEBUG_TARGET}
+    POST_BUILD
+    COMMAND ${ET_SDK_TOOLS_PATH}/scripts/check_unimplemented_instructions.sh ${DEBUG_TARGET}
+  )
+
 
 endmacro(add_etsoc_riscv_executable)
 
