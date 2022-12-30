@@ -29,17 +29,16 @@ int main(int argc, char** argv) {
   
   HelloWorld launcher(config);
   launcher.initialize();
-  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
-  launcher.kernels_.push_back(kernel_id);
+  auto kernelId = launcher.loadKernel(FLAGS_kernel_path);
 
   auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
-    launcher.kernelLaunch(launcher.kernels_[0]);
+    launcher.kernelLaunch(kernelId);
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
   }
 
-  launcher.unLoadKernel(launcher.kernels_[0]); 
+  launcher.unLoadKernel(kernelId); 
   launcher.tearDown();
 
   return 0;

@@ -35,7 +35,7 @@ public:
   void programHost2DevCopies() {
     runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *) x_.data(), deviceX_,
                                  x_.size() * sizeof(float));
-    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *)  y_.data(), deviceY_,
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *) y_.data(), deviceY_,
                                  y_.size() * sizeof(float));
   }
 
@@ -64,22 +64,25 @@ DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
 DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
 
 int main(int argc, char** argv) {
+
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
   Config config{modeFromString(FLAGS_device_type), 1};
   config.dump();
 
   Saxpy launcher(config);
   launcher.initialize();
-  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
-  launcher.kernels_.push_back(kernel_id);
+  auto kernelId = launcher.loadKernel(FLAGS_kernel_path);
   launcher.performDeviceAllocs();
   launcher.prepareInput();
-  KernelArguments args {launcher.x_.size(), (float *) launcher.deviceX_,
-			(float *) launcher.deviceY_, launcher.a_};
+  
   
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();
-    launcher.kernelLaunch(launcher.kernels_[0], &args);
+    
+    KernelArguments kernelArgs {launcher.x_.size(), (float *) launcher.deviceX_,
+			(float *) launcher.deviceY_, launcher.a_};
+    
+    launcher.kernelLaunch(kernelId, &kernelArgs);
     launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
@@ -91,7 +94,7 @@ int main(int argc, char** argv) {
   }
 
   launcher.freeDeviceAllocs();
-  launcher.unLoadKernel(launcher.kernels_[0]); 
+  launcher.unLoadKernel(kernelId); 
   launcher.tearDown();
 
   return 0;

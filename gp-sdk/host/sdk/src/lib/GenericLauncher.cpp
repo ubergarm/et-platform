@@ -33,7 +33,12 @@ namespace fs = std::filesystem;
 DEFINE_string(gp_sdk_device_installdir, "", "Path to gp-sdk-device installation directory");
 
 DEFINE_string(simulator_params, "", "Hyperparameters to pass to simulator, overrides default values");
-// TODO "runtime-install-prefix", "num-devices"
+
+// Trace Buffer realted constants.
+constexpr size_t kTraceBytesPerHart = 4096;
+constexpr size_t kNumHarts = 2112; 
+constexpr size_t kTraceBufferSize = kTraceBytesPerHart * kNumHarts;
+constexpr bool enableKernelTraces = true;
 
 #ifdef WITH_SYSEMU_PATHS
 std::tuple<fs::path, fs::path> getDeviceArtifactsBasePaths() {
@@ -163,13 +168,23 @@ void GenericLauncher::initialize() {
 
   runtime_->setOnStreamErrorsCallback(streamErrorHandler);
   runtime_->setOnKernelAbortedErrorCallback(abortedKernelHandler);
+
+  // Alloc space on device for user traces. Note: This buffer will be reused across differnet kernel launches.
+  if (enableKernelTraces) {
+    traceDeviceBuffer_ = runtime_->mallocDevice(devices_[devIdx_], kTraceBufferSize);
+  }
 }
 
 void GenericLauncher::unLoadKernel(rt::KernelId kernelId) {
   runtime_->unloadCode(kernelId);
 }
 
-void GenericLauncher::tearDown() {
+void GenericLauncher::tearDown() { 
+
+  if(enableKernelTraces) {
+    runtime_->freeDevice(devices_[devIdx_], traceDeviceBuffer_);
+  }
+
   auto timeout = std::chrono::seconds(1);
   for (auto s : defaultStreams_) {
     auto success = runtime_->waitForStream(s, timeout);
@@ -207,20 +222,13 @@ rt::KernelId GenericLauncher::loadKernel(const std::string& kernelName, uint32_t
 
 // TODO: make it configuraion-aware.
 std::tuple<uint64_t, uint64_t> getTraceMinions() {
-  // all
+  // all (shireMask: threadMask)
   return {0x1FFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
 }
 
-// TODO: DRY. get this magic number from rutnime/ device headers if possible.
-// 4096 bytes per hart, 2048 harts....
-constexpr size_t kTraceBytesPerHart = 4096;
-constexpr size_t kNumHarts = 2048; // why not 2080?
-constexpr size_t kTraceBufferSize = kTraceBytesPerHart * kNumHarts;
-// TODO: consolidate configuration.
-constexpr bool enableKernelTraces = true;
 
-// TODO: make class fn.
-std::optional<rt::UserTrace> getKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize) {
+
+std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize) {
   if (not enableKernelTraces) {
     return std::nullopt;
   }
@@ -246,10 +254,6 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) 
   // serialize traces to disk
   auto tracesTimeout = std::chrono::seconds(10);
   auto success = runtime_->waitForStream(traceStreams_[devIdx_], tracesTimeout);
-
-  // traces have been copied.. we can remove them from device.
-  // FIXME: decouple removal from here to reuse trace-buffer across kernel launches.
-  runtime_->freeDevice(devices_[devIdx_], traceDeviceBuffer_);
 
   if (!success) {
     std::cout << __func__ << "() timeout extracting traces from device\n";
@@ -293,27 +297,11 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
 
 void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte * params, size_t size) {
   // TODO   make shire-mask config-aware.
-  // Alloc space on device to get user traces. TODO: split into prep work so we can leverage across launches.
-  if (enableKernelTraces) {
-    traceDeviceBuffer_ = runtime_->mallocDevice(devices_[devIdx_], kTraceBufferSize);
-  }
-  std::optional<rt::UserTrace> optUserTrace = getKernelTraceParams(traceDeviceBuffer_, kTraceBufferSize);
+  std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_, kTraceBufferSize);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
   constexpr uint64_t shireMask = 0x1ffffffff;
-  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, (std::byte *)params, size, shireMask, barrier, flushL3,
+  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3,
                          optUserTrace);
 }
 
-void GenericLauncher::tokenize(std::string const &str, const char delim,
-                               std::vector<std::string> &kernels_path)
-{
-    size_t start;
-    size_t end = 0;
- 
-    while ((start = str.find_first_not_of(delim, end)) != std::string::npos)
-    {
-        end = str.find(delim, start);
-        kernels_path.push_back(str.substr(start, end - start));
-    }
-}

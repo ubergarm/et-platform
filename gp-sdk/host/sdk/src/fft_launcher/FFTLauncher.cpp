@@ -26,7 +26,7 @@ public:
   FFTLauncher(const Config& config)
     : GenericLauncher(config){};
 
-  /// \brief fill input vector with data. if we are doing an FFT, only real data is in use. Img planes are 0-ed.
+  /// \brief fill input vector with data. if we are doing an FFT, only real data is in use. Im planes are 0-ed.
   void prepareInput() {
 
     auto planeSize = height_ * width_;
@@ -154,7 +154,6 @@ public:
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
 DEFINE_uint64(kernel_launch_timeout, 300, "timeout (inseconds) to wait for kernelLaunch");
-DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
 DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
 
 int main(int argc, char** argv) {
@@ -164,11 +163,14 @@ int main(int argc, char** argv) {
 
   FFTLauncher launcher(config);
   launcher.initialize();
-  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
-  launcher.kernels_.push_back(kernel_id);
+  auto kernelId = launcher.loadKernel(FLAGS_kernel_path);
   launcher.prepareInput();
   launcher.performDeviceAllocs();
 
+  launcher.programHost2DevCopies();
+  launcher.prepareInput();
+  
+  // Prepare kernel arguments & launch the kernel.
   TensorDesc inputTensorDesc = {5, {launcher.batch_, launcher.channels_, launcher.planes_, launcher.height_, launcher.width_},
 				{launcher.width_ * launcher.height_ * launcher.planes_ * launcher.channels_,
 				 launcher.width_ * launcher.height_ * launcher.planes_, launcher.width_ * launcher.height_, launcher.width_, 1},
@@ -177,22 +179,18 @@ int main(int argc, char** argv) {
 				 {launcher.width_ * launcher.height_ * launcher.planes_ * launcher.channels_,
 				  launcher.width_ * launcher.height_ * launcher.planes_, launcher.width_ * launcher.height_, launcher.width_, 1},
 				 uint64_t(launcher.devOutputTensor)};
+ 
+  KernelArguments kernelArgs {2, inputTensorDesc, outputTensorDesc, uint32_t(launcher.operation_) };
 
-  KernelArguments args {2,{{(uint64_t) launcher.devInputTensor},{(uint64_t) launcher.devOutputTensor}},
-			(uint32_t) launcher.operation_ };
+  launcher.kernelLaunch(kernelId, &kernelArgs);
+  launcher.programDev2HostCopies();
 
-  for (size_t i = 0; i < FLAGS_num_launches; i++) {
-    launcher.programHost2DevCopies();
-    launcher.prepareInput();
-    launcher.kernelLaunch(launcher.kernels_[0], &args);
-    launcher.programDev2HostCopies();
-
-    auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
-    launcher.waitKernelCompletion(timeout);
-    launcher.dumpTracesToFile(i);
-  }
+  auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
+  launcher.waitKernelCompletion(timeout);
+  launcher.dumpTracesToFile();
+  
   launcher.freeDeviceAllocs();
-  launcher.unLoadKernel(launcher.kernels_[0]); 
+  launcher.unLoadKernel(kernelId); 
   launcher.tearDown();
 
 #ifdef FFT_VERIFICATION

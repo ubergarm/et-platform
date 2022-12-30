@@ -49,8 +49,7 @@ public:
   GenericLauncher(const Config& config)
     : config_(config){};
   void initialize(); // setup
-  void deInitialize(rt::KernelId kernelId);
-  void tearDown(); // FIXME:consolidate with deinitialize for multi-inference use-cases
+  void tearDown(); 
   void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1));
 
   template <typename TParams>
@@ -71,11 +70,9 @@ public:
   std::atomic<uint64_t> kernelError_ = 0; // Number of kernels that reported an error
   std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
 
-  std::vector<rt::KernelId> kernels_;
-  
 private:
   std::vector<std::byte> readFile(const std::string& path);
-  // FIXME: just to enable glog-logger on runtime.
+  // just to enable glog-logger on runtime.
   logging::LoggerDefault loggerDefault_;
   void doKernelLaunch(rt::KernelId, std::byte * params, size_t size);
   

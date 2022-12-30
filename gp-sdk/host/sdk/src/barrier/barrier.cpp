@@ -42,7 +42,6 @@ public:
   std::vector<uint64_t> accumData_ = std::vector<uint64_t>(assignedMinions, 0);
   std::byte* deviceData_;
   std::byte* deviceAccumData_;
-  KernelArguments params_;
 };
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
@@ -57,18 +56,15 @@ int main(int argc, char** argv) {
 
   BarrierLauncher launcher(config);
   launcher.initialize();
-  auto kernel_id = launcher.loadKernel(FLAGS_kernel_path);
-  launcher.kernels_.push_back(kernel_id); 
+  auto kernelId = launcher.loadKernel(FLAGS_kernel_path);
   launcher.performDeviceAllocs();
 
-
-  launcher.prepareInput();
-  KernelArguments args {launcher.data_.size(), (uint64_t *) launcher.deviceData_,
+  KernelArguments kernelArgs {launcher.data_.size(), (uint64_t *) launcher.deviceData_,
                         (uint64_t *) launcher.deviceAccumData_};
 
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();
-    launcher.kernelLaunch(launcher.kernels_[0], &args);
+    launcher.kernelLaunch(kernelId, &kernelArgs);
     // launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
@@ -80,7 +76,7 @@ int main(int argc, char** argv) {
   }
 
   launcher.freeDeviceAllocs();
-  launcher.unLoadKernel(launcher.kernels_[0]); 
+  launcher.unLoadKernel(kernelId); 
   launcher.tearDown();
 
   return 0;
