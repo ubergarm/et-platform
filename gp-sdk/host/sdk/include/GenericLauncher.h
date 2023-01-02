@@ -12,9 +12,6 @@
 #include <device-layer/IDeviceLayer.h>
 #include <runtime/IRuntime.h>
 
-// TODO
-// FIXME: In case it is needed we should have or own gp-sdk logger,
-// although it only affects runtime.
 #include <hostUtils/logging/Logger.h>
 
 #include <string>
@@ -53,17 +50,15 @@ public:
   void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1));
 
   template <typename TParams>
-  void kernelLaunch(rt::KernelId kernelId, TParams * params) {
-    doKernelLaunch(kernelId, (std::byte *)params, sizeof(TParams));
+  void kernelLaunch(rt::KernelId kernelId, TParams * params, uint64_t shireMask = 0x1ffffffff) {
+    doKernelLaunch(kernelId, (std::byte *)params, sizeof(TParams), shireMask);
   }
 
-  void kernelLaunch(rt::KernelId kernelId) {
-    doKernelLaunch(kernelId, nullptr, 0);
+  void kernelLaunch(rt::KernelId kernelId, uint64_t shireMask = 0x1ffffffff) {
+    doKernelLaunch(kernelId, nullptr, 0, shireMask);
   }
   
   void waitKernelCompletion(std::chrono::seconds timeout);
-  void tokenize(std::string const &str, const char delim,
-                std::vector<std::string> &kernels_path);
   rt::KernelId loadKernel(const std::string& kernelName, uint32_t deviceIdx = 0);
   void unLoadKernel(rt::KernelId kernelId);
   
@@ -74,7 +69,7 @@ private:
   std::vector<std::byte> readFile(const std::string& path);
   // just to enable glog-logger on runtime.
   logging::LoggerDefault loggerDefault_;
-  void doKernelLaunch(rt::KernelId, std::byte * params, size_t size);
+  void doKernelLaunch(rt::KernelId, std::byte * params, size_t size, uint64_t shireMask);
   
 protected:
   const Config& config_;

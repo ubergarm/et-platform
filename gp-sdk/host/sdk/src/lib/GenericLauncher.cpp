@@ -29,7 +29,6 @@ namespace fs = std::filesystem;
 
 #include "GenericLauncher.h"
 
-// FIXME: following options are just to speed up  debug-cycle. long-term we should default to void.
 DEFINE_string(gp_sdk_device_installdir, "", "Path to gp-sdk-device installation directory");
 
 DEFINE_string(simulator_params, "", "Hyperparameters to pass to simulator, overrides default values");
@@ -251,7 +250,6 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) 
   // geting device traces.
   std::vector<std::byte> deviceTrace(kTraceBufferSize);
   runtime_->memcpyDeviceToHost(traceStreams_[devIdx_], traceDeviceBuffer_, deviceTrace.data(), deviceTrace.size());
-  // serialize traces to disk
   auto tracesTimeout = std::chrono::seconds(10);
   auto success = runtime_->waitForStream(traceStreams_[devIdx_], tracesTimeout);
 
@@ -260,6 +258,7 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) 
     return;
   }
 
+  // serialize traces to disk
   std::string traceSuffix = "";
   if (int(kernelId) != -1) {
     traceSuffix = "_" + std::to_string(int(kernelId));
@@ -295,12 +294,10 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   // TODO: we failed to abort the stream. place any mitigation / defensive code here.
 }
 
-void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte * params, size_t size) {
-  // TODO   make shire-mask config-aware.
+void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte * params, size_t size, uint64_t shireMask) {
   std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_, kTraceBufferSize);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
-  constexpr uint64_t shireMask = 0x1ffffffff;
   runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3,
                          optUserTrace);
 }
