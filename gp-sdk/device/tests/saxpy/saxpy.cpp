@@ -1,4 +1,3 @@
-
 /*-------------------------------------------------------------------------
  * Copyright (C) 2022, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
@@ -72,8 +71,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
 }
 //clang-format on
 
- __attribute__((noinline))
-int entryPoint(KernelArguments * vectors) {
+int entryPoint_0(KernelArguments* vectors) {
 
   auto minionId = (int)get_minion_id();
   size_t numWorkers = SOC_MINIONS_PER_SHIRE; // just 1 shire (32 minions).
@@ -94,5 +92,3 @@ int entryPoint(KernelArguments * vectors) {
 
   return 0;
 }
-
-

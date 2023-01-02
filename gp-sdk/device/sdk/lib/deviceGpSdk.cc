@@ -1,5 +1,13 @@
-// clang-format off
-
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2023, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
 
 #include <stdio.h>
 
@@ -20,30 +28,6 @@ extern uint32_t _data_ro_copy_start;
 
 /* Number of times the kernel has been launched */
 uint64_t numberOfBoots __attribute__ ((section("persistentData"))) = { 1 };
-
-#define _UNIQUE_CALL(function, ...)\
- do { \
-  function( __VA_ARGS__ ); \
-  __asm__ __volatile__ (\
-    ".global " #function "_return_point\n"\
-    #function "_return_point:" : : : );\
-} while(0);
-
-#define _UNIQUE_CALL_PARALLEL(function, param) {\
-  function( param ); \
-}
-
-#define _UNIQUE_CALL_PARALLEL_RETURN(function_name) {\
-  __asm__ __volatile__ (\
-    ".global " #function_name "_return_point\n"\
-    #function_name "_return_point:" : : : );\
-}
-
-#define _UNIQUE_LBL(function, param) {\
-  __asm__ __volatile__ (\
-    ".global " #function "_return_point\n"\
-    #function "_return_point:" : : : );\
-}
 
 void resetBSS();
 void resetData();
@@ -97,15 +81,33 @@ extern "C" int deviceGpSdkEntry(KernelArguments * args) {
     for (uint32_t sId = 0; sId < 32; sId++) {
       fcc_send(sId, THREAD_0, FCC_0, 0xFFFFFFFF);
     }
+
+    // barrier 1 - send credits to THREAD_1 of all minions
+    for (uint32_t sId = 0; sId < 32; sId++) {
+      fcc_send(sId, THREAD_1, FCC_1, 0xFFFFFFFF);
+    }
   }
 
-  if ((shireId < 32) && (threadId == 0)) {
-    // barrier 0 - wait for credits
-    fcc_consume(FCC_0);
+  // Wait initialization to complete and forward to user-code.
+  if (shireId < 32) {
+    if (threadId == 0) {
+      // barrier 0 - wait for credits
+      fcc_consume(FCC_0);
 
-    _UNIQUE_CALL(entryPoint, args);
+      return entryPoint_0(args);
+    } else {
+      // barrier 1 - wait for credits
+      fcc_consume(FCC_1);
+
+      return entryPoint_1(args);
+    }
   }
-  
+
   return 0;
 }
 
+/* Weak implementation of hart_1 entry point, for simple kernels not using it. */
+int __attribute__((weak)) entryPoint_1([[maybe_unused]] KernelArguments* args) {
+  /* void */
+  return 0;
+}

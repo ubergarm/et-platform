@@ -27,9 +27,7 @@
 
 constexpr uint64_t one = 1;
 
-
- __attribute__((noinline))
-int entryPoint(KernelArguments * args) {
+__attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
   // This test creates a symmetric vector using atomic additions.
   // The n-th thread performs n +1 additions in the n-th position of the vector
   // In a second step, n-th thread performs data[minionId] += data[numMinions - minionId - 1];

@@ -1,5 +1,13 @@
-// clang-format off
-
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2023, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
 
 #include <array>
 #include <stdio.h>
@@ -16,8 +24,7 @@ constexpr size_t size = 256ULL;
 static uint8_t uninitializedData[size];
 static uint8_t initToZeroData[size] = {0};
 
-__attribute__((noinline))
-int entryPoint([[maybe_unused]] KernelArguments * args) {
+int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   bool errorFound = 0;
   if (get_minion_id()==0) {
     for(size_t i = 0; i < size; i++) {

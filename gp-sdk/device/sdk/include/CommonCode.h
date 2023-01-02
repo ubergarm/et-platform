@@ -1,16 +1,7 @@
-// clang-format off
-
 /*-------------------------------------------------------------------------
- * Copyright (C) 2018, Esperanto Technologies Inc.
- *
- ************************************************************
- * ---------------------------------------------------------
- * This code is Auto-Generated. Please DON'T MODIFY IT.
- * ---------------------------------------------------------
- ************************************************************
- *
+ * Copyright (C) 2023, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
- * property of Esperanto Technologies, Inc. All Rights Reserved. All Rights Reserved.
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
  * the written permission of Esperanto Technologies and
  * in accordance with the terms and conditions stipulated in the
@@ -24,21 +15,8 @@
 // Global
 #include <inttypes.h>
 
-// Device common
-//#include <device_common.h>
-#include <etsoc/common/utils.h>
-#include <etsoc/isa/fcc.h>
-#include <etsoc/isa/hart.h>
-#include <etsoc/isa/tensors.h>
-#include <etsoc/isa/utils.h>
 
-// FW syscall IDs
-#include <etsoc/isa/syscall.h>
-#include <stdio.h>
 
-static inline void ecall_shire_cache_bank_op(uint64_t shire, uint64_t bank, uint64_t op) {
-  syscall(SYSCALL_SHIRE_CACHE_BANK_OP, shire, bank, op);
-}
 
 static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) {
   constexpr size_t stride = 32; // vector width is 32 bytes

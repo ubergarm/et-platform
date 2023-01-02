@@ -1,4 +1,13 @@
-// clang-format off
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2023, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
 
 #include <array>
 #include <stdio.h>
@@ -21,14 +30,10 @@
 #include "entryPoint.h"
 #include "kernel_arguments.h"
 
-
 using namespace dnn_lib;
-typedef int8_t i8;
 
+int entryPoint_0(KernelArguments* kernelArgs) {
 
-__attribute__((noinline))
-int entryPoint(KernelArguments * kernelArgs) {
-   
   et_assert(kernelArgs->nTensors == 2);
 
   auto inputDesc = &kernelArgs->tensors[0];
@@ -56,7 +61,7 @@ int entryPoint(KernelArguments * kernelArgs) {
 
   auto operation = (FFTOp) kernelArgs->operation;
 
-  if(operation == FFTOp::SKIP) { // DEBUG op to skip the filter.
+  if (operation == FFTOp::SKIP) { // DEBUG op to skip the operation.
     return 0;
   }
   constexpr uint64_t flags = 31;
