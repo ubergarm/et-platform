@@ -36,8 +36,27 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
 
     et_assert(!errorFound && "Error: .bss section is not set to 0\n");
 
-    if (!errorFound) et_printf("Results are correct.");
+    if (!errorFound) et_printf("%s() Results are correct.", __func__);
   }
   
   return 0;
 }
+
+int entryPoint_1([[maybe_unused]] KernelArguments* args) {
+  bool errorFound = 0;
+  if (get_minion_id()==0) {
+    for(size_t i = 0; i < size; i++) {
+      if (uninitializedData[i] != 0 || initToZeroData[i] != 0) {
+        errorFound = 1;
+        break;
+      }
+    }
+
+    et_assert(!errorFound && "Error: .bss section is not set to 0\n");
+
+    if (!errorFound) et_printf("%s() Results are correct.", __func__);
+  }
+
+  return 0;
+}
+
