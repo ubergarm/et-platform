@@ -81,28 +81,48 @@
                          : #FP_REG_0_, #FP_REG_1_);                                                                    \
   } while (0)
 
+/**
+ * @brief packs 8 fp16s into a contiguous region of the f reg and and stores it to mem
+ * @param[in] FP_REG_ register name (will be stringified)
+ * @param[in] DST_PTR_ dst ptr to store (shall be cacheline-aligned)
+ */
+
+#define PACK_AND_STORE_8_FP16(FP_REG_, DST_PTR_)                                                                       \
+  do {                                                                                                                 \
+    __asm__ __volatile__(/* pack the downconverted fp16 to 128 consecutive bits */                                     \
+                         "fpackreph.pi " #FP_REG_ "," #FP_REG_ "\n" /* split 128 bits block in 4 32 bit pieces*/       \
+                         "mov.m.x  m0, zero, 0x0f\n"                                                                   \
+                         "fsw.ps " #FP_REG_ ", (%[dst_ptr])\n"                                                         \
+                         "mov.m.x  m0, zero, 0xff\n"                                                                   \
+                         : [ dst_ptr ] "+&r"(DST_PTR_)                                                                 \
+                         :                                                                                             \
+                         : #FP_REG_);                                                                                  \
+  } while (0)
+
+/**
+ * @brief packs 16 fp16s (8 in each f reg)  into a contiguous f reg and and stores it to global mem
+ * @param[in] FP_REG_1_ register name containing the first fp16s (will be stringified)
+ * @param[in] FP_REG_2_ register name containing the second fp16s (will be stringified)
+ * @param[in] DST_PTR_ dst ptr to store (shall be cacheline-aligned)
+ */
+
+#define PACK_AND_STORE_16_FP16(FP_REG_0_, FP_REG_1_, DST_PTR_)                                                         \
+  do {                                                                                                                 \
+    __asm__ __volatile__("mov.m.x  m0, zero, 0x0f\n"                                                                   \
+                         "fpackreph.pi " #FP_REG_0_ "," #FP_REG_0_ "\n" /* pack 8 fp16s in the lower half */           \
+                         "mov.m.x  m0, zero, 0xf0\n"                                                                   \
+                         "fpackreph.pi " #FP_REG_0_ "," #FP_REG_1_ "\n" /* pack 8 fp16s in the higher half */          \
+                         "mov.m.x  m0, zero, 0xff\n"                    /* restore the mask */                         \
+                         "fsw.ps  " #FP_REG_0_ ", (%[dst_ptr])\n"       /* gloobal store the whole  256 bits reg */    \
+                         "addi        %[dst_ptr], %[dst_ptr], 32\n"                                                    \
+                         : [ dst_ptr ] "+&r"(DST_PTR_)                                                                 \
+                         :                                                                                             \
+                         : #FP_REG_0_, #FP_REG_1_);                                                                    \
+  } while (0)
+
 namespace dnn_lib {
 
 namespace inlining {
-
-/**
- * @brief Convert a length vector to a range sequence.
- *
- * For example, input=[4,3,1], the output would be [0,1,2,3,0,1,2,0]. // Comment; This description is wrong
- *
- * Currently It only solves Int32ITy ElemKind following InstGen.cpp
- * Interpreter.cpp and isOpSupported at ETSOC.cpp specification.
- *
- * @tparam Elemkind the kind of the element which hast to be resolved.
- * @param[out] outT LibTensor destination. It holds the expected data.
- * @param[in] in1T LibTensor input. It keeps the Data to being handle.
- * @param[in] in2T LibTensor input. It keeps the Weights to being handle.
- * @param[in] in3T LibTensor input. It keeps the indices to being handle.
- * @param[in] in4T LibTensor input. It keeps the offsets to being handle.
- * @param[in] hasEndOffset bool type mark the end of the last segment.
- * @param[flags] flags Gives the information of the Active Shires and the
- *  type of evict required.
- */
 
 inline __attribute((always_inline)) void pack_and_global_store_fp16x16(f32x8 src0, const f32x8 src1, void* dstPtr) {
   __asm__ __volatile__("mov.m.x  m0, zero, 0x0F \n"
@@ -111,6 +131,18 @@ inline __attribute((always_inline)) void pack_and_global_store_fp16x16(f32x8 src
                        "fpackreph.pi %[src0], %[src1]\n" /* pack 8 fp16s in the higher half */
                        "mov.m.x  m0, zero, 0xFF \n"      /* restore mask */
                        "fswg.ps %[src0], (%[dst_ptr])\n" /* global store the whole  256 bits reg */
+                       : [ dst_ptr ] "+&r"(dstPtr), [ src0 ] "+&f"(src0)
+                       : [ src1 ] "f"(src1)
+                       :);
+}
+
+inline __attribute((always_inline)) void pack_and_store_fp16x16(f32x8 src0, const f32x8 src1, void* dstPtr) {
+  __asm__ __volatile__("mov.m.x  m0, zero, 0x0F \n"
+                       "fpackreph.pi %[src0], %[src0]\n" /* pack 8 fp16s in the lower half */
+                       "mov.m.x  m0, zero, 0xF0 \n"
+                       "fpackreph.pi %[src0], %[src1]\n" /* pack 8 fp16s in the higher half */
+                       "mov.m.x  m0, zero, 0xFF \n"      /* restore mask */
+                       "fsw.ps %[src0], (%[dst_ptr])\n"  /* store the whole 256 bits reg */
                        : [ dst_ptr ] "+&r"(dstPtr), [ src0 ] "+&f"(src0)
                        : [ src1 ] "f"(src1)
                        :);
@@ -129,8 +161,8 @@ template <ElemKind elK>
 inline __attribute((always_inline)) void
 embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStart, uintptr_t currSegmentEnd,
                             uint8_t* tAInput, int64_t* indices, uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
-                            uint8_t* tWInput, uint8_t* dst_ptr, bool destAlignedVreg) {
-
+                            uint8_t* tWInput, uint8_t* dst_ptr, bool destAlignedVregFP32, bool destAlignedVregFP16,
+                            bool destGlobalReq) {
   constexpr bool float32Dst = (elK == FloatTy);
   constexpr bool float16Dst = (elK == Float16Ty);
 
@@ -196,34 +228,39 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
   }
 
   if (float32Dst) {
-    if (destAlignedVreg) {
-      // Store accumulated results.
-      __asm__ __volatile__("fswg.ps f0, (%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0");
+    // Store sequence for FP32 results
+    // Global stores are required as different minions will write to same cache line
+    if (destGlobalReq) {
+      if (destAlignedVregFP32) {
+        // If results are aligned to full vector of 32bits, can use regular store global
+        __asm__ __volatile__("fswg.ps f0, (%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0");
+      } else {
+        // Need to use global scatter, as results are not aligned to full vector
+        __asm__ __volatile__("fscwg.ps f0, f20(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0", "f20");
+      }
     } else {
-      // Store accumulated results.
-      __asm__ __volatile__ (
-        "fscwg.ps f0, f20(%[dst_ptr])\n"
-        :
-        : [dst_ptr] "r" (dst_ptr)
-        : "f0", "f20"
-      );
+      // Can use regular store as minions won't collide in same cacheline
+      __asm__ __volatile__("fsw.ps f0, (%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0");
     }
   } else {
+    // Store sequence for FP16 results
     __asm__ __volatile__ (
       "fcvt.f16.ps f0, f0\n"
       :
       :
       : "f0"
     );
-    if (destAlignedVreg) {
-      PACK_AND_GLOBAL_STORE_8_FP16(f0, dst_ptr);
+    // Global stores are required as different minions will write to same cache line
+    if (destGlobalReq) {
+      if (destAlignedVregFP16) {
+        // If results are aligned to full vector of 16bits, can use regular store global with pack
+        PACK_AND_GLOBAL_STORE_8_FP16(f0, dst_ptr);
+      } else {
+        // Need ot use global scatter, as resutls are not aligned to full vector
+        __asm__ __volatile__("fschg.ps f0, f20(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0", "f20");
+      }
     } else {
-      __asm__ __volatile__ (
-        "fschg.ps f0, f20(%[dst_ptr])\n"
-        :
-        : [dst_ptr] "r" (dst_ptr)
-        : "f0", "f20"
-      );
+      PACK_AND_STORE_8_FP16(f0, dst_ptr);
     }
   }
 }
@@ -413,9 +450,6 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   
   // Assign work to Minions :
   //
-  // NOTE: Each Minion gets assigned at least an output cache line for
-  // historical reasons although Global stores are in use.
-  //
   // NOTE: NOT IMPLEMENTED!!!
   // If the row is smaller than a cache line then multiple rows need to
   // be assigned to a single Minion.
@@ -482,8 +516,12 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   // the smallest dimension
   // The padding must be touchable or the number of elements multiple of Vreg size
   const auto outputStrideZeroBytes = outT->strides()[0] * elemSize;
-  bool destAlignedVreg = (((uint64_t)tOutput % VREG_BYTES) == 0) && ((outputStrideZeroBytes % VREG_BYTES) == 0) &&
-                         (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstVRegElems) == 0));
+  bool destAlignedVregFP32 = (((uint64_t)tOutput % VREG_BYTES) == 0) && ((outputStrideZeroBytes % VREG_BYTES) == 0) &&
+                             (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstVRegElems) == 0));
+  bool destAlignedVregFP16 = (((uint64_t)tOutput % (VREG_BYTES / 2)) == 0) &&
+                             ((outputStrideZeroBytes % (VREG_BYTES / 2)) == 0) &&
+                             (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstVRegElems) == 0));
+  bool destGlobalReq = (((outT->strides()[0] * elemSize) % CACHE_LINE_BYTES) != 0);
 
   // Compute the first output row (segment) assigned to the Minion.
   uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
@@ -637,25 +675,34 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
       }
 
       if (float32Dst) {
-        if (destAlignedVreg) {
+        if (destGlobalReq) {
+          if (destAlignedVregFP32) {
+            // Store accumulated results.
+            __asm__ __volatile__("fswg.ps f0,  (%[dst_ptr])\n"
+                                 "addi    %[dst_ptr], %[dst_ptr], 32\n"
+                                 "fswg.ps f1,  (%[dst_ptr])\n"
+                                 "addi    %[dst_ptr], %[dst_ptr], 32\n"
+                                 : [ dst_ptr ] "+&r"(dst_ptr)
+                                 :
+                                 : "f0", "f1");
+          } else {
+            __asm__ __volatile__("fscwg.ps    f0, f20(%[dst_ptr])\n"
+                                 "addi        %[dst_ptr], %[dst_ptr], 32\n"
+                                 "fscwg.ps    f1, f20(%[dst_ptr])\n"
+                                 "addi        %[dst_ptr], %[dst_ptr], 32\n"
+                                 : [ dst_ptr ] "+&r"(dst_ptr)
+                                 :
+                                 : "f0", "f1", "f20");
+          }
+        } else {
           // Store accumulated results.
-          __asm__ __volatile__("fswg.ps f0,  (%[dst_ptr])\n"
+          __asm__ __volatile__("fsw.ps f0,  (%[dst_ptr])\n"
                                "addi    %[dst_ptr], %[dst_ptr], 32\n"
-                               "fswg.ps f1,  (%[dst_ptr])\n"
+                               "fsw.ps f1,  (%[dst_ptr])\n"
                                "addi    %[dst_ptr], %[dst_ptr], 32\n"
                                : [ dst_ptr ] "+&r"(dst_ptr)
                                :
                                : "f0", "f1");
-        } else {
-          __asm__ __volatile__ (
-            "fscwg.ps    f0, f20(%[dst_ptr])\n"
-            "addi        %[dst_ptr], %[dst_ptr], 32\n"
-            "fscwg.ps    f1, f20(%[dst_ptr])\n"
-            "addi        %[dst_ptr], %[dst_ptr], 32\n"
-            : [dst_ptr] "+&r" (dst_ptr)
-            :
-            : "f0", "f1", "f20"
-          );
         }
       } else { // Float16
         // Convert and store accumulated results.
@@ -667,23 +714,26 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
                              :
                              : "f0", "f1", "f2", "f3");
 
-        if (destAlignedVreg) {
-          PACK_AND_GLOBAL_STORE_16_FP16(f0, f1, dst_ptr);
-          PACK_AND_GLOBAL_STORE_16_FP16(f2, f3, dst_ptr);
+        if (destGlobalReq) {
+          if (destAlignedVregFP32) {
+            PACK_AND_GLOBAL_STORE_16_FP16(f0, f1, dst_ptr);
+            PACK_AND_GLOBAL_STORE_16_FP16(f2, f3, dst_ptr);
+          } else {
+            __asm__ __volatile__("fschg.ps     f0, f20(%[dst_ptr])\n"
+                                 "addi        %[dst_ptr], %[dst_ptr], 16\n"
+                                 "fschg.ps     f1, f20(%[dst_ptr])\n"
+                                 "addi        %[dst_ptr], %[dst_ptr], 16\n"
+                                 "fschg.ps     f2, f20(%[dst_ptr])\n"
+                                 "addi        %[dst_ptr], %[dst_ptr], 16\n"
+                                 "fschg.ps     f3, f20(%[dst_ptr])\n"
+                                 "addi        %[dst_ptr], %[dst_ptr], 16\n"
+                                 : [ dst_ptr ] "+&r"(dst_ptr)
+                                 :
+                                 : "f0", "f1", "f2", "f3", "f20");
+          }
         } else {
-          __asm__ __volatile__ (
-            "fschg.ps     f0, f20(%[dst_ptr])\n"
-            "addi        %[dst_ptr], %[dst_ptr], 16\n"
-            "fschg.ps     f1, f20(%[dst_ptr])\n"
-            "addi        %[dst_ptr], %[dst_ptr], 16\n"
-            "fschg.ps     f2, f20(%[dst_ptr])\n"
-            "addi        %[dst_ptr], %[dst_ptr], 16\n"
-            "fschg.ps     f3, f20(%[dst_ptr])\n"
-            "addi        %[dst_ptr], %[dst_ptr], 16\n"
-            : [dst_ptr] "+&r" (dst_ptr)
-            :
-            : "f0", "f1", "f2", "f3", "f20"
-          );
+          PACK_AND_STORE_16_FP16(f0, f1, dst_ptr);
+          PACK_AND_STORE_16_FP16(f2, f3, dst_ptr);
         }
       }
 
@@ -708,9 +758,10 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
       );
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-        embeddingBagsTailVectorized<outElK>(
-          minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, in1T->strides()[0] * elemSize,
-          (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize, tWInput, dst_ptr, destAlignedVreg);
+        embeddingBagsTailVectorized<outElK>(minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices,
+                                            in1T->strides()[0] * elemSize,
+                                            (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize, tWInput,
+                                            dst_ptr, destAlignedVregFP32, destAlignedVregFP16, destGlobalReq);
         dst_ptr += dstVRegElems * elemSize;
       }
 
@@ -724,7 +775,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
       embeddingBagsTailVectorized<outElK>(
         minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, in1T->strides()[0] * elemSize,
         (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize, tWInput, dst_ptr,
-        destAlignedVreg);
+        destAlignedVregFP32, destAlignedVregFP16, destGlobalReq);
 
       minionCurrIndex += (currSegmentEnd - currSegmentStart);
 
@@ -1359,6 +1410,8 @@ INLINE_ATTR void fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTens
 
 #undef PACK_AND_GLOBAL_STORE_8_FP16
 #undef PACK_AND_GLOBAL_STORE_16_FP16
+#undef PACK_AND_STORE_8_FP16
+#undef PACK_AND_STORE_16_FP16
 
 #endif // _EMBEDDING_BAG_INST_H_
 
