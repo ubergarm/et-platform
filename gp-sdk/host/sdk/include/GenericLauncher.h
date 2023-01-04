@@ -50,11 +50,11 @@ public:
   void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1));
 
   template <typename TParams>
-  void kernelLaunch(rt::KernelId kernelId, TParams * params, uint64_t shireMask = 0x1ffffffff) {
+  void kernelLaunch(rt::KernelId kernelId, TParams * params, uint64_t shireMask = 0xffffffff) {
     doKernelLaunch(kernelId, (std::byte *)params, sizeof(TParams), shireMask);
   }
 
-  void kernelLaunch(rt::KernelId kernelId, uint64_t shireMask = 0x1ffffffff) {
+  void kernelLaunch(rt::KernelId kernelId, uint64_t shireMask = 0xffffffff) {
     doKernelLaunch(kernelId, nullptr, 0, shireMask);
   }
   

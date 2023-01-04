@@ -35,7 +35,7 @@ DEFINE_string(simulator_params, "", "Hyperparameters to pass to simulator, overr
 
 // Trace Buffer realted constants.
 constexpr size_t kTraceBytesPerHart = 4096;
-constexpr size_t kNumHarts = 2112; 
+constexpr size_t kNumHarts = 2048; 
 constexpr size_t kTraceBufferSize = kTraceBytesPerHart * kNumHarts;
 constexpr bool enableKernelTraces = true;
 
@@ -222,7 +222,7 @@ rt::KernelId GenericLauncher::loadKernel(const std::string& kernelName, uint32_t
 // TODO: make it configuraion-aware.
 std::tuple<uint64_t, uint64_t> getTraceMinions() {
   // all (shireMask: threadMask)
-  return {0x1FFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
+  return {0xFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
 }
 
 
