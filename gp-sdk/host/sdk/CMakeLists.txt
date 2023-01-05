@@ -1,12 +1,4 @@
 
-find_package(deviceApi REQUIRED)
-find_package(deviceLayer REQUIRED)
-find_package(runtime REQUIRED)
-find_package(esperantoTrace REQUIRED)
-find_package(FFTW3f REQUIRED)
-
-find_package(gflags REQUIRED)
-
 
 # 
 # compile generic_launcher lib

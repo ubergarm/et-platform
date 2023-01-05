@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2022, Esperanto Technologies Inc.
+ * Copyright (C) 2023, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -9,19 +9,15 @@
  *-------------------------------------------------------------------------
  */
 
-#include <etsoc/isa/syscall.h>
+#include <etsoc/common/utils.h>
+#include <etsoc/isa/hart.h>
 
-.section .text.startup, "ax", @progbits
-.global _start
+#include "entryPoint.h"
 
-_start:
-.option push
-.option norelax
-.option pop
+int entryPoint_0([[maybe_unused]] KernelArguments* args) {
+  if (get_minion_id()==0) {
+    et_printf("%s,%d HELLO WORLD!!!!\n",__func__,__LINE__);
+  }
 
-  call  uberKernel_RAWKERNEL_entry_point
-
-  li    a2, KERNEL_RETURN_SUCCESS
-  mv    a1, a0
-  li    a0, SYSCALL_RETURN_FROM_KERNEL
-  ecall
+  return 0;
+}

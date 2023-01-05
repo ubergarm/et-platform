@@ -9,13 +9,13 @@
 #------------------------------------------------------------------------------
 
 #
-# Adds a riscv executable prepared for being executed as a kernel on ETSOC-1 options 
+# Adds a riscv executable prepared for being executed as a kernel on ET-SoC-1 
 # @param TARGET_NAME name of the cmake target to be created.
 # @param TARGET_SOURCES_LIST space-separated list of source files
 # Notes:
 #  - a secondary ${TARGET}_dbg is created (linked to a runtime-predicted address to be used
 #   with debuggers
-# - the created target is a standard cmake target, so compilation options and dependencies 
+# - the created target is a standard cmake target, so compilation options and dependencies 
 #   can be completed by cmake standard calls (target_link_libraries, target_include_directories,...)
 #
 macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST) 

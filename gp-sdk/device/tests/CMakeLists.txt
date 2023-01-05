@@ -8,13 +8,6 @@
 # agreement/contract under which the program(s) have been supplied.
 #------------------------------------------------------------------------------
 
-find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
-find_package(dnnLibrary)
-
-include("${CMAKE_SOURCE_DIR}/riscv_helpers.cmake")
-
-#Adding tests
-
 add_etsoc_riscv_executable(print.elf print/print.cc)
 target_link_libraries(print.elf  etsoc_crt0)
 

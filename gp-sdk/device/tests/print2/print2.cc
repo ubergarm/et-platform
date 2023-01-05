@@ -9,14 +9,8 @@
  *-------------------------------------------------------------------------
  */
 
-#include <array>
-#include <stdio.h>
-
 #include <etsoc/common/utils.h>
-#include <etsoc/isa/fcc.h>
 #include <etsoc/isa/hart.h>
-#include <etsoc/isa/tensors.h>
-#include <etsoc/isa/utils.h>
 
 #include "entryPoint.h"
 

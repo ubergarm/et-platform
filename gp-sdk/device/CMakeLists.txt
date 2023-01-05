@@ -39,5 +39,13 @@ endif()
 
 set(CMAKE_CXX_STANDARD 17)
 
+find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
+find_package(dnnLibrary)
+
+include("${CMAKE_SOURCE_DIR}/riscv_helpers.cmake")
+
+
 add_subdirectory(sdk)
 add_subdirectory(tests)
+# project-specific directories to be added here.
+add_subdirectory(examples)

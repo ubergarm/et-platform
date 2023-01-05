@@ -10,8 +10,6 @@
  *-------------------------------------------------------------------------
  */
 
-// #include <array>
-// #include <stdio.h>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/fcc.h>
 #include <etsoc/isa/hart.h>
@@ -20,7 +18,6 @@
 
 #include "entryPoint.h"
 
-#include <algorithm>
 #include "sync.h"
 
 #include "barrierKernelArguments.h"

@@ -18,6 +18,7 @@ include(GNUInstallDirs)
 
 set(CMAKE_CXX_STANDARD 17)
 
+
 message(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
 
 if (NOT USE_CONAN)
@@ -63,7 +64,18 @@ if (NOT USE_CONAN)
   add_definitions(-DWITH_SYSEMU_PATHS)
 endif()
 
+find_package(deviceApi REQUIRED)
+find_package(deviceLayer REQUIRED)
+find_package(runtime REQUIRED)
+find_package(esperantoTrace REQUIRED)
+find_package(FFTW3f REQUIRED)
+find_package(gflags REQUIRED)
+
 add_subdirectory(sdk)
+
 if (BUILD_TESTS)
   add_subdirectory(tests)
 endif()
+
+# project-specific directories to be added here
+add_subdirectory(examples)
