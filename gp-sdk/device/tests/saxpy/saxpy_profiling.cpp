@@ -18,11 +18,20 @@
 
 #include "saxpy_kernel_arguments.h"
 
+#include "profiling.h"
+
+//
+// The prupose of this example is just to show profling across functions.. i
+// that is why the kernel is executed twice.(vector and scalar)
+//
+
 //clang-format off
 static inline __attribute__((always_inline))
 void saxpy_vector(const size_t begin, const size_t end, const float alpha,
   const float* const x,  const float* const y, float* const w)
 {
+    SCOPED_USER_PROFILE_EVENT(1);
+
     constexpr int vlen = 8;
     float alphaVector;
     auto i = begin;
@@ -70,20 +79,26 @@ int entryPoint_0(KernelArguments* vectors) {
 
   auto minionId = (int)get_minion_id();
   size_t numWorkers = SOC_MINIONS_PER_SHIRE; // just 1 shire (32 minions).
-
+  if(get_minion_id() > numWorkers) {
+    return 0;
+  }
   size_t elemsPerWorker = (vectors->numElements + numWorkers - 1) / numWorkers;
   if (elemsPerWorker % 16) {
     elemsPerWorker += 16 - (elemsPerWorker % 16);
   }
   size_t begin = elemsPerWorker * minionId;
   size_t end = std::min(elemsPerWorker * (minionId + 1), vectors->numElements);
-#ifdef SAXPY_VECTOR
-    saxpy_vector(begin, end, vectors->a, vectors->x, vectors->y, vectors->y);
-#else
+  //calling vector impl too jus to show profiling event on another func.
+   saxpy_vector(begin, end, vectors->a, vectors->x, vectors->y, vectors->y);
+   // doing scalar saxpy again. 
+   {
+     SCOPED_USER_PROFILE_EVENT(1);
+
      for (size_t i = begin; i < end; ++i) {
+       SCOPED_USER_PROFILE_EVENT(2);
        vectors->y[i] = vectors->a * vectors->x[i] + vectors->y[i];
      }
-#endif
+   }
 
   return 0;
 }

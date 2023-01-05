@@ -31,6 +31,11 @@ target_link_libraries(saxpy_vector.elf etsoc_crt0)
 target_include_directories(saxpy_scalar.elf INTERFACE .)
 target_compile_definitions(saxpy_vector.elf PRIVATE "-DSAXPY_VECTOR")
 
+add_etsoc_riscv_executable(saxpy_profiling.elf saxpy/saxpy_profiling.cpp)
+target_link_libraries(saxpy_profiling.elf etsoc_crt0)
+target_include_directories(saxpy_profiling.elf INTERFACE .)
+
+
 
 add_etsoc_riscv_executable(fftKernel.elf fftKernel/src/fft_entry.cc)
 target_link_libraries(fftKernel.elf  etsoc_crt0

@@ -40,6 +40,11 @@ private:
   uint16_t regionId_ = 0;
 };
 
+/** helpers to create a unique name quoting the line */
+#define CONCAT(a, b) a##b
+#define UNIQUE_1(i, n) CONCAT(i, n)
+#define UNIQUE(name) UNIQUE_1(name, __LINE__)
+
 /**
  * \brief
  * Generates a scoped user profiling event identified with region. function name and line will also be quoted.
@@ -48,14 +53,15 @@ private:
  * \param regionId: region to instrument
  */
 
-#define SCOPED_USER_PROFILE_EVENT(regionId) ScopedUserProfileEvent scopedUserProfileEvent(__func__, __LINE__, regionId)
+#define SCOPED_USER_PROFILE_EVENT(regionId)                                                                            \
+  ScopedUserProfileEvent UNIQUE(scopedUserProfileEvent)(__func__, __LINE__, regionId)
 /**
  * \brief
  * Generates the start of a user profiling event. function name and line will also be quoted.
  * This event needs to be expcicitlly completed (USER_PROFILE_EVENT_END of same regionId)
  * \param regionId: region to instrument
  */
-#define USER_PROFILE_EVENT_START(regionId)                                                                               \
+#define USER_PROFILE_EVENT_START(regionId)                                                                             \
   do {                                                                                                                 \
     et_trace_user_profile_event(regionId, true, __func__, __LINE__);                                                   \
   } while (0)
@@ -65,7 +71,7 @@ private:
  * Completes a profiling event. function name and line will also be quoted.
  * \param regionId: region to instrument
  */
-#define USER_PROFILE_EVENT_END(regionId)                                                                                 \
+#define USER_PROFILE_EVENT_END(regionId)                                                                               \
   do {                                                                                                                 \
     et_trace_user_profile_event(regionId, false, __func__, __LINE__);                                                  \
   } while (0)
