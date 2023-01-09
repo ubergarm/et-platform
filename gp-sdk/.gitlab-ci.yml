@@ -22,7 +22,7 @@ variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
     value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.2.0
   ET_CONAN_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.6.0
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.6.1
 
 
 ###############################################################################
