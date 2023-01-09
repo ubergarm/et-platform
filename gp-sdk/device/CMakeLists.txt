@@ -51,4 +51,3 @@ endif()
 add_subdirectory(sdk)
 add_subdirectory(tests)
 # project-specific directories to be added here.
-add_subdirectory(examples)

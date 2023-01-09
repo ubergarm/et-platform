@@ -78,4 +78,3 @@ if (BUILD_TESTS)
 endif()
 
 # project-specific directories to be added here
-add_subdirectory(examples)
