@@ -20,9 +20,9 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.1.29
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.2.0
   ET_CONAN_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.5.10
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-gcc7-conan:0.6.0
 
 
 ###############################################################################
@@ -47,7 +47,7 @@ variables:
       cd device
       conan install . -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop --build missing
       source build/generators/conanbuild.sh
-      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
+      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON
       cmake --build --preset release
       cd ..
 
@@ -143,7 +143,7 @@ tests:conan:sw-sysemu:
       mkdir build && cd build
       export ET_SDK_HOME=/usr/local/esperanto
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
-      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DCMAKE_C_COMPILER=riscv64-unknown-elf-gcc -DCMAKE_CXX_COMPILER=riscv64-unknown-elf-g++ -DCMAKE_ASM_COMPILER=riscv64-unknown-elf-gcc -DUSE_CONAN=ON
+      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON
       cmake --build .
       cd ../..
 
