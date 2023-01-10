@@ -4,8 +4,8 @@
 // clang-format off
 
 // File automatically generated with:
-//  ./libManager.py
-//  cwd=/home/cgomez/repos/sw-platform/host-software/dnnLibrary/scripts
+//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
+//  cwd=/home/gsole/Esperanto/sw-platform4/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -647,19 +647,19 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {"Vectorized", "Fastpath"}, // impl versions
     implSel::EmbeddingBag, // custom impl selector
     // L1 states per impl
-    {{{operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::untouched, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0, 0x0, 0x0}, // evict available mask
-    {0x1, 0x1, 0x1}  // global store mask
+    {0x0, 0x0, 0x0}  // global store mask
   },
 
   // ET_maxsplat
