@@ -10,7 +10,7 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-project(gp-sdk-device VERSION 0.1.0 LANGUAGES C CXX ASM)
+project(gp-sdk-device VERSION 1.0.0 LANGUAGES C CXX ASM)
 
 option(USE_CONAN "Use connan packages" OFF)
 
