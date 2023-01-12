@@ -20,11 +20,9 @@ target_link_libraries(bss.elf etsoc_crt0)
 add_etsoc_riscv_executable(data.elf kernelLaunch/resetData.cc)
 target_link_libraries(data.elf etsoc_crt0)
 
-
 add_etsoc_riscv_executable(saxpy_scalar.elf saxpy/saxpy.cpp)
 target_link_libraries(saxpy_scalar.elf etsoc_crt0)
 target_include_directories(saxpy_scalar.elf INTERFACE .)
-
 
 add_etsoc_riscv_executable(saxpy_vector.elf saxpy/saxpy.cpp)
 target_link_libraries(saxpy_vector.elf etsoc_crt0)
@@ -35,14 +33,14 @@ add_etsoc_riscv_executable(saxpy_profiling.elf saxpy/saxpy_profiling.cpp)
 target_link_libraries(saxpy_profiling.elf etsoc_crt0)
 target_include_directories(saxpy_profiling.elf INTERFACE .)
 
-
-
 add_etsoc_riscv_executable(fftKernel.elf fftKernel/src/fft_entry.cc)
 target_link_libraries(fftKernel.elf  etsoc_crt0
                                      dnnLibrary::dnn_lib)
 target_include_directories(fftKernel.elf PUBLIC fftKernel/include)
 target_compile_definitions(fftKernel.elf PRIVATE "-DGPSDK")
 
-
 add_etsoc_riscv_executable(syncDeviceBasic.elf barrier/syncDeviceBasic.cpp)
 target_link_libraries(syncDeviceBasic.elf etsoc_crt0)
+
+add_etsoc_riscv_executable(syncMinion.elf barrier/syncMinion.cpp)
+target_link_libraries(syncMinion.elf etsoc_crt0)

@@ -52,8 +52,35 @@ enum class Scope {
   // future: kernel scope for multi-device support
   device, /**< Sync threads in the device  */
   shire,  /**< Sync threads in a shire */
-  minion  /**< Sync threads per minion */
+  minion  /**< Sync both threads 0 and 1 in a minion */
 };
+
+/**
+ * \brief Sync barrier for threads within a minion.
+ *
+ * Blocks thread execution until both threads in the minion reach the barrier.
+ */
+template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> barrier() {
+  constexpr uint32_t fcc = 0;                // Credit counter 0
+  const uint32_t thread = get_hart_id() & 1; // Thread 0 or 1
+  const size_t hartMask = 1 << get_minion_id();
+  // const uint32_t minionId = get_minion_id();
+
+  // Note: barrier<shire> assumes full availability of FLB's for its synchronizations
+  // Therefore we cannot make use of FLB's to implement barrier<minion> as they might be in use by the first.
+  // We implement a 'ring-synchronization' method
+
+  if (thread == 1) {
+    fcc_consume(fcc);
+    constexpr size_t destThread = 0;
+    fcc_send(SHIRE_OWN, destThread, fcc, hartMask);
+  } else {
+    et_assert(thread == 0);
+    constexpr size_t destThread = 1;
+    fcc_send(SHIRE_OWN, destThread, fcc, hartMask);
+    fcc_consume(fcc);
+  }
+}
 
 /**
  * \brief Sync barrier for threads within a shire.
@@ -70,15 +97,20 @@ enum class Scope {
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::shire), void> 
 barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
-  
-  constexpr uint32_t fcc = 0;     // Credit counter 0
-  constexpr uint32_t thread0 = 0; // Thread 0
+  if (hartMask.count() < 2)
+    return; // no threads to sync
 
-  // Each minion computes its corresponding FLB
-  size_t flb = get_minion_id() >> log2(hartMask.count());
+  constexpr uint32_t fcc = 0;                // Credit counter 0
+  const uint32_t thread = get_hart_id() % 2; // Thread 0 or 1
 
+  // Each minion computes its corresponding FLB (values=[0,31])
+  size_t flb = (get_minion_id() >> log2(hartMask.count())) % SOC_MINIONS_PER_SHIRE;
+  if (thread == 1) {
+    flb += 16; // Shire minion Thread 1's use flbs [16,31]
+  }
+  // Last minion to reach the barrier wakes up the others
   if (flbarrier(flb, hartMask.count() - 1)) {
-    fcc_send(SHIRE_OWN, thread0, fcc, hartMask.to_ullong());
+    fcc_send(SHIRE_OWN, thread, fcc, hartMask.to_ullong());
   }
   fcc_consume(fcc);
 }
@@ -98,8 +130,8 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::device), void> 
 barrier(size_t startingMinion, size_t count) {
-  constexpr uint32_t fcc0 = 0;     // Credit counter 0
-  constexpr uint32_t thread0 = 0;  // Thread 0
+  constexpr uint32_t fcc0 = 0;               // Credit counter 0
+  const uint32_t thread = get_hart_id() % 2; // Thread 0 or 1
   const std::bitset<64> allOnesMask = std::bitset<64>(0xFFFFFFFF);
   const std::bitset<64> minion0Mask = std::bitset<64>(0x1);
 
@@ -126,20 +158,19 @@ barrier(size_t startingMinion, size_t count) {
       }
       // time to wake up the other shires
       for (auto sId = masterShireId; sId < masterShireId + numShires; sId++) {
-        fcc_send(sId, thread0, fcc0, allOnesMask.to_ullong());
+        fcc_send(sId, thread, fcc0, allOnesMask.to_ullong());
       }
     }
   } else if (shireId < masterShireId + numShires) {
-    // Non-Master minion sends a credit to wake up the Master Shire - minion 0 - thread 0.
+    // Non-Master minion sends a credit to wake up the Master Shire - minion 0.
     if (localId == 0) {
-      fcc_send(masterShireId, thread0, fcc0, minion0Mask.to_ullong());
+      fcc_send(masterShireId, thread, fcc0, minion0Mask.to_ullong());
     }
   }
 
   // Everyone sleeps until the Master Shire wakes everyone including itself
   fcc_consume(fcc0);
 }
-
 
 /**
  * \brief Sync barrier for a group of threads within a device.
@@ -166,10 +197,11 @@ inline void barrier(const size_t startingMinion, const size_t count) {
     barrier<Scope::device>(startingMinion, count);
   } else {
     et_assert(isPow2);
-    size_t localId = get_minion_id() % SOC_MINIONS_PER_SHIRE;
-
+    // get the startingMinion id inside the shire
+    size_t localId = startingMinion % SOC_MINIONS_PER_SHIRE;
     std::bitset<64> mask;
-    for (size_t i = localId; i < localId + count ; i++) {
+    // set mask bits fromt local id to
+    for (size_t i = localId; i < localId + count; i++) {
       mask.set(i);
     }
     barrier<Scope::shire>(mask);
