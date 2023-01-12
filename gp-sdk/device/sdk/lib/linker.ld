@@ -12,7 +12,7 @@
 
 SECTIONS
 {
-  . = 0x00000000; /* BASE_ADDRESS_PLACEHOLDER */ 
+  . = BASE_ADDRESS;
   .text.init : { *(.text.init) }
   . = ALIGN(64);
   .text : { *(.text) *(.text.*) }
