@@ -64,3 +64,6 @@ target_link_libraries(busy10sec.elf etsoc_crt0)
 add_etsoc_riscv_executable(check_pmc.elf check_pmc/check_pmc.cc)
 target_link_libraries(check_pmc.elf etsoc_crt0)
 
+foreach(kernel print print2 bss data saxpy_scalar saxpy_vector saxpy_profiling fftKernel syncDeviceBasic syncMinion txfma oneTrapOnSync, busy10sec, check_pmc)
+  install(TARGETS ${kernel}.elf ${kernel}.elf_dbg DESTINATION kernels)
+endforeach()
