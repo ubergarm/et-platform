@@ -35,6 +35,8 @@ target_link_libraries(etsoc_gpsdk
 # compile specific launcher apps.
 #
 
+if (BUILD_EXAMPLES)
+
 add_executable(basic_launcher src/basic_launcher/Launcher.cpp)
 
 target_link_libraries(basic_launcher
@@ -111,3 +113,4 @@ install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_wor
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
+endif()

@@ -13,9 +13,12 @@ cmake_minimum_required(VERSION 3.5)
 project(gp-sdk-device VERSION 1.0.1 LANGUAGES C CXX ASM)
 
 option(BUILD_DOCS "Enable/disable building documentation" ON)
+option(BUILD_EXAMPLES "Build GP-SDK example kernels" ON)
+set(GP_SDK_TOOLS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../tools" CACHE PATH "Path to GP-SDK tools")
+set(GP_SDK_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/lib/linker.ld" CACHE PATH "Path to device linker script")
 
 if (NOT ADDRESS)
-  message(FATAL_ERROR "ADRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8005b35000")
+  message(FATAL_ERROR "ADDRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8005b35000")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
@@ -23,11 +26,7 @@ set(CMAKE_CXX_STANDARD 17)
 find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 find_package(dnnLibrary)
 
-include("${CMAKE_SOURCE_DIR}/riscv_helpers.cmake")
-
-if (NOT ET_SDK_TOOLS_PATH)
-  set(ET_SDK_TOOLS_PATH ${CMAKE_SOURCE_DIR}/../tools)
-endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/riscv_helpers.cmake")
 
 ## project documentation
 if (BUILD_DOCS)
@@ -35,7 +34,9 @@ if (BUILD_DOCS)
 endif()
 
 add_subdirectory(sdk)
-add_subdirectory(tests)
+if (BUILD_EXAMPLES)
+  add_subdirectory(tests)
+endif()
 
 # Users of this CMakeLists.txt can provide an additional subdirectory by passing build arguments,
 # as opposed to modifying this CMakeLists.txt. This CMake configuration mechanism is intended for

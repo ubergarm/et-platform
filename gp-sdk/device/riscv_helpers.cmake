@@ -26,7 +26,7 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
   # merge parameter list
   set(TARGET_SOURCES ${TARGET_SOURCES_LIST} ${ARGN} ) 
 
-  set(LINKER_SCRIPT_ABS_PATH ${PROJECT_SOURCE_DIR}/sdk/lib/linker.ld)
+  set(LINKER_SCRIPT_ABS_PATH ${GP_SDK_LINKER_SCRIPT})
 
   add_executable(${TARGET_NAME} ${TARGET_SOURCES})
   
@@ -69,7 +69,7 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
 
   add_custom_command(TARGET ${DEBUG_TARGET}
     POST_BUILD
-    COMMAND ${ET_SDK_TOOLS_PATH}/scripts/check_unimplemented_instructions.sh ${DEBUG_TARGET}
+    COMMAND ${GP_SDK_TOOLS_PATH}/scripts/check_unimplemented_instructions.sh ${DEBUG_TARGET}
   )
 
 
