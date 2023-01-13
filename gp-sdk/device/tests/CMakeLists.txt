@@ -44,3 +44,8 @@ target_link_libraries(syncDeviceBasic.elf etsoc_crt0)
 
 add_etsoc_riscv_executable(syncMinion.elf barrier/syncMinion.cpp)
 target_link_libraries(syncMinion.elf etsoc_crt0)
+
+add_etsoc_riscv_executable(txfma.elf txfma/txfma.cpp)
+target_link_libraries(txfma.elf etsoc_crt0)
+target_include_directories(txfma.elf INTERFACE .)
+
