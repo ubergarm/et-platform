@@ -465,6 +465,10 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   // Compute the number of groups per output row (rounded up).
   const uintptr_t dstRowGroups = ((dstRowElemSize - 1) / dstGroupElems) + 1;
 
+  // To prevent issues with two minions writing on the same cacheline when
+  // the destination register is not cacheline aligned, flag it here
+  bool singleMinionPerRow = (((uint64_t)tOutput % CACHE_LINE_BYTES) != 0);
+
   // Computes if there's a tail
   bool dstRowHasTail = ((dstRowElemSize % dstGroupElems) != 0);
 
@@ -488,20 +492,48 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   uintptr_t minionWorkUnits = 0;
   uintptr_t minionFirstWorkUnit = 0;
 
-  if ((totalWorkUnits % activeMinions) == 0) {
-    minionWorkUnits = totalWorkUnits / activeMinions;
-    minionFirstWorkUnit = minionId * minionWorkUnits;
-  } else {
-    minionWorkUnits = totalWorkUnits / activeMinions;
-    const uintptr_t remainingWorkUnits = totalWorkUnits % activeMinions;
-    if (minionId < remainingWorkUnits) {
-      minionWorkUnits++;
-      // Compute the index into the first work unit.
+  // If a row is done by a single minion, we need to distribute work in a per row granularity
+  if (singleMinionPerRow) {
+    // Even distribution across minions
+    if ((outT->dims()[0] % activeMinions) == 0) {
+      minionWorkUnits = outT->dims()[0] / activeMinions;
+      // Converts from rows to work units
+      minionWorkUnits *= dstRowGroups;
       minionFirstWorkUnit = minionId * minionWorkUnits;
     } else {
-      // Compute the index into the first work unit.
-      minionFirstWorkUnit = remainingWorkUnits * (minionWorkUnits + 1)
-                         +  (minionId - remainingWorkUnits) * minionWorkUnits;
+      // Uneven distribution across minions
+      minionWorkUnits = outT->dims()[0] / activeMinions;
+      const uintptr_t remainingWorkUnits = outT->dims()[0] % activeMinions;
+      if (minionId < remainingWorkUnits) {
+        minionWorkUnits++;
+        // Converts from rows to work units
+        minionWorkUnits *= dstRowGroups;
+        // Compute the index into the first work unit.
+        minionFirstWorkUnit = minionId * minionWorkUnits;
+      } else {
+        // Converts from rows to work units
+        minionWorkUnits *= dstRowGroups;
+        // Compute the index into the first work unit.
+        minionFirstWorkUnit =
+          remainingWorkUnits * (minionWorkUnits + dstRowGroups) + (minionId - remainingWorkUnits) * minionWorkUnits;
+      }
+    }
+  } else {
+    if ((totalWorkUnits % activeMinions) == 0) {
+      minionWorkUnits = totalWorkUnits / activeMinions;
+      minionFirstWorkUnit = minionId * minionWorkUnits;
+    } else {
+      minionWorkUnits = totalWorkUnits / activeMinions;
+      const uintptr_t remainingWorkUnits = totalWorkUnits % activeMinions;
+      if (minionId < remainingWorkUnits) {
+        minionWorkUnits++;
+        // Compute the index into the first work unit.
+        minionFirstWorkUnit = minionId * minionWorkUnits;
+      } else {
+        // Compute the index into the first work unit.
+        minionFirstWorkUnit =
+          remainingWorkUnits * (minionWorkUnits + 1) + (minionId - remainingWorkUnits) * minionWorkUnits;
+      }
     }
   }
 
@@ -521,6 +553,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   bool destAlignedVregFP16 = (((uint64_t)tOutput % (VREG_BYTES / 2)) == 0) &&
                              ((outputStrideZeroBytes % (VREG_BYTES / 2)) == 0) &&
                              (!outT->getUntouchable() || (((uint64_t)outT->dims()[1] % dstVRegElems) == 0));
+  // We require to use global stores to destination if more than two minions might write in the same cacheline
   bool destGlobalReq = (((outT->strides()[0] * elemSize) % CACHE_LINE_BYTES) != 0);
 
   // Compute the first output row (segment) assigned to the Minion.
