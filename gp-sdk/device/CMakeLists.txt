@@ -50,4 +50,27 @@ endif()
 
 add_subdirectory(sdk)
 add_subdirectory(tests)
-# project-specific directories to be added here.
+
+# Users of this CMakeLists.txt can provide an additional subdirectory by passing build arguments,
+# as opposed to modifying this CMakeLists.txt. This CMake configuration mechanism is intended for
+# consumers of the GP-SDK to build custom kernels leveraging the same build recipe from the
+# internal GP-SDK tests. The accepted parameters are:
+#
+# - CUSTOM_KERNELS_SRC_DIR: directory where the sources and the corresponding CMakeLists.txt
+#   are located. It can be located out of this tree.
+#
+# - CUSTOM_KERNELS_BIN_DIR: directory where the binary files will be stored. If the directory
+#   does not exist it gets created.
+#
+# If one such pair of arguments is provided it is handled at this stage.
+
+if (CUSTOM_KERNELS_SRC_DIR AND CUSTOM_KERNELS_BIN_DIR)
+    add_subdirectory(${CUSTOM_KERNELS_SRC_DIR} ${CUSTOM_KERNELS_BIN_DIR})
+endif()
+
+# Users can also hack their way by just editing this file and have their own project added as a
+# subdirectory here without any extra arguments being passed. That build method is suggested in
+# the tutorial from the GP-SDK user guide but has also been labeled as not ideal for production by
+# some users of the GP-SDK.
+#
+# add_subdirectory(tutorial_example)
