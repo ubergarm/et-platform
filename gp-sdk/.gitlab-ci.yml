@@ -20,7 +20,7 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.2.2
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.3.0
 
 
 .tests:common:
@@ -159,6 +159,22 @@ tests:conan:sw-sysemu:
       cmake --build .
       cd ../..
 
+tests:cmake-only:silicon:
+  extends:
+    - .tests:cmake-only:common
+  image:
+    name: ${ET_SW_DEVELOP_DOCKER_IMAGE}
+    entrypoint: [""]
+  variables:
+    DEVICE_TYPE: silicon
+  parallel:
+    matrix:
+      - BUILD_TYPE: [ Release ]
+  tags:
+    - silicon
+    - 1-card-silicon
+    - mv-gb-swci01
+  
 tests:cmake-only:sw-sysemu:
   extends:
     - .tests:cmake-only:common
