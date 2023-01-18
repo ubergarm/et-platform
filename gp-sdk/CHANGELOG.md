@@ -13,6 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ### Fixed
 
+## 1.0.1
+### Added
+- Added TFMA tutorial
+- Extra args on cmakelis for building custom kernels
+- Extended barrier functionality
+### Changed
+### Deprecated
+### Removed
+### Fixed
 ## 1.0.0
 ### Initial GP_SDK  version
 
