@@ -77,7 +77,7 @@ int entryPoint_0(KernelArguments* kernelArgs) {
   auto elapsed = et_get_delta_timestamp(start);
  
   if(get_minion_id() == 0) {
-    et_printf("%s %d fft took %d Cycles\n", __func__,1,elapsed);
+    et_printf("%s %d fft took %lu Cycles\n", __func__,1,elapsed);
   }
  
   return 0;

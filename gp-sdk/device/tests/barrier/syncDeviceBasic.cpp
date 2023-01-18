@@ -99,7 +99,7 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
 
     for (size_t i = 1; i < args->assignedMinions; i++) {
       if (checkValue != accumData[i]) {
-        et_printf("Invalid value data[%llu] %llu\n", i, accumData[i]);
+        et_printf("Invalid value data[%lu] %lu\n", i, accumData[i]);
         return -1;
       }
     }
