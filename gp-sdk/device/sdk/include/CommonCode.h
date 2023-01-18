@@ -12,12 +12,20 @@
 #ifndef _COMMON_CODE_H_
 #define _COMMON_CODE_H_
 
+/*! \file CommonCode.h
+    \brief Efficient routines for common mem copy operations.
+*/
+
 // Global
 #include <inttypes.h>
 #include <etsoc/common/utils.h>
 
-
-
+/**
+ * Copies \p num_bytes bytes from the object pointed to by \p src to the object pointed to by \p dst. Both object
+ * pointers must be 32-byte aligned. \brief Copies bytes from a memory position in the device to another. \param src
+ * pointer to the memory location to copy from \param dst pointer to the memory location to copy to \param num_bytes
+ * number of bytes to copy
+ */
 static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) {
   constexpr size_t stride = 32; // vector width is 32 bytes
   /* cast to 1-byte ptr type, needed for pointer arithmetic */
@@ -42,6 +50,16 @@ static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) 
   return 0;
 }
 
+/*! \cond PRIVATE */
+
+/**
+ * Copies the static_cast<int>(\p value) repeatedly in 32-bit strides starting at \p ptr memory addres until \p
+ * num_bytes are written. \brief Sets a region of memory to the same value
+ *
+ * \param ptr pointer to the memory location to copy to
+ * \param value 32-bit value to write in memory
+ * \param num_bytes number of bytes to write
+ */
 static inline int global_memset(void * ptr, const int value, size_t num_bytes) {
   /* vector width is 32 bytes (256-bit) */
   constexpr size_t stride = 32; 
@@ -68,5 +86,6 @@ static inline int global_memset(void * ptr, const int value, size_t num_bytes) {
   }
   return 0;
 }
+/*! \endcond */
 
 #endif

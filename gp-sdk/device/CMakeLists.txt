@@ -12,7 +12,8 @@ cmake_minimum_required(VERSION 3.5)
 
 project(gp-sdk-device VERSION 1.0.0 LANGUAGES C CXX ASM)
 
-option(USE_CONAN "Use connan packages" OFF)
+option(USE_CONAN "Use conan packages" OFF)
+option(BUILD_DOCS "Enable/disable building documentation" ON)
 
 if (NOT USE_CONAN)
   if (NOT ET_SWPLATFORM_DIR)
@@ -46,6 +47,11 @@ include("${CMAKE_SOURCE_DIR}/riscv_helpers.cmake")
 
 if (NOT ET_SDK_TOOLS_PATH)
   set(ET_SDK_TOOLS_PATH ${CMAKE_SOURCE_DIR}/../tools)
+endif()
+
+## project documentation
+if (BUILD_DOCS)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/../docs/device ${CMAKE_SOURCE_DIR}/../docs/device/build)
 endif()
 
 add_subdirectory(sdk)

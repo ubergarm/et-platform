@@ -25,15 +25,17 @@
 // FW syscall IDs
 #include <etsoc/isa/syscall.h>
 
+/**
+ * \brief Namespace including low-level routines for the minion.
+ **/
 namespace hart {
 
-// temporary fix for not having a way to obtain assigned minions in the device;
-
+/*! \cond PRIVATE */
 /**
  * \brief Computes integer log2(value).
  *
  * This function computes the base 2 logarithm of value and returns the result.
- * 
+ *
  * \param value The number to apply the logarithm
  * \return The base 2 logarithm of value, floored to the closest integer.
  */
@@ -44,19 +46,20 @@ constexpr size_t log2(size_t value) {
   }
   return result;
 }
+/*! \endcond */
 
-/** @enum hart::Scope
- *  @brief enum class representing the thread scope synced in a barrier.
+/** @enum Scope
+ *  @brief list of possible Scope types in a barrier().
  */
 enum class Scope {
   // future: kernel scope for multi-device support
-  device, /**< Sync threads in the device  */
-  shire,  /**< Sync threads in a shire */
-  minion  /**< Sync both threads 0 and 1 in a minion */
+  device, /*!< Synchronizes threads in the device (group by thread_id) */
+  shire,  /*!< Synchronizes threads in a shire (group by thread_id) */
+  minion  /*!< Synchronizes both thread_id=0 and thread_id=1 in a minion */
 };
 
 /**
- * \brief Sync barrier for threads within a minion.
+ * \brief Synchronizes both threads per minion
  *
  * Blocks thread execution until both threads in the minion reach the barrier.
  */
@@ -64,7 +67,6 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
   constexpr uint32_t fcc = 0;                // Credit counter 0
   const uint32_t thread = get_hart_id() & 1; // Thread 0 or 1
   const size_t hartMask = 1 << get_minion_id();
-  // const uint32_t minionId = get_minion_id();
 
   // Note: barrier<shire> assumes full availability of FLB's for its synchronizations
   // Therefore we cannot make use of FLB's to implement barrier<minion> as they might be in use by the first.
@@ -83,19 +85,23 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
 }
 
 /**
- * \brief Sync barrier for threads within a shire.
+ * \brief Synchronizes threads per shire.
  *
- * Blocks thread execution until all the threads selected in the hartMask reach this barrier.
+ * Blocks thread execution until all threads specified in the \p hartMask reach the barrier. This barrier is shared only
+ * between threads with the same thread_id (get_thread_id()).
+ *
  * Every bit of hartMask maps to a hart in the shire.
- * Multiple concurrent barriers per shire are supported, as long as there is no thread overlapping between them. 
- * 
+ *
+ * Multiple barriers synchronizing different groups of threads per shire are supported, as long as there is not a thread
+ * in more than one group at once.
+ *
  * \param hartMask The n-th bit of the mask enables the sync of the n-th thread in the shire.
  * hartMask.count() must be a power of 2.
  * hartMask.count() max value is 32.
- *  
+ *
  */
 template <Scope S>
-inline typename std::enable_if_t<(S == Scope::shire), void> 
+inline typename std::enable_if_t<(S == Scope::shire), void>
 barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
   if (hartMask.count() < 2)
     return; // no threads to sync
@@ -115,21 +121,21 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
   fcc_consume(fcc);
 }
 
+/*! \cond PRIVATE */
 /**
- * \brief Sync barrier for a group of threads within a device.
- * 
- * Internal function, specific to handle barrier() when count > 32.
- * 
- * Blocks thread execution until all the threads in the synchronization group reach this barrier.
- * The synchronization group syncs count contiguous threads starting from 'startingMinion'.
- * 
- * \param startingMinion First thread in the synchronization group. Must be a multiple of 32
- * \param count Number of threads to synchronize. Must be a multiple of 32.
- * 
+ * \brief Synchronizes a range of threads in a device.
+ *
+ * Blocks thread execution until all the threads in the specified range reach this barrier. This barrier is shared only
+ * between threads with the same thread_id (get_thread_id()).
+ *
+ * Synchronizes \p count contiguous threads starting at \p startingMinion.
+ *
+ * \param startingMinion First thread in the synchronization range. Must be a multiple of 32 or 0.
+ * \param count Number of threads in the synchronization range. Must be a multiple of 32.
+ *
  */
 template <Scope S>
-inline typename std::enable_if_t<(S == Scope::device), void> 
-barrier(size_t startingMinion, size_t count) {
+inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t startingMinion, size_t count) {
   constexpr uint32_t fcc0 = 0;               // Credit counter 0
   const uint32_t thread = get_hart_id() % 2; // Thread 0 or 1
   const std::bitset<64> allOnesMask = std::bitset<64>(0xFFFFFFFF);
@@ -139,11 +145,11 @@ barrier(size_t startingMinion, size_t count) {
   size_t numShires = count / SOC_MINIONS_PER_SHIRE;
 
   et_assert((startingMinion % SOC_MINIONS_PER_SHIRE == 0)  && "barrier: startingMinion must be multiple of 32");
-  et_assert((count % SOC_MINIONS_PER_SHIRE == 0)  && "barrier: count must be multiple of 32");
+  et_assert((count % SOC_MINIONS_PER_SHIRE == 0) && "barrier: count must be multiple of 32");
   et_assert(numShires < 33 && masterShireId < 32 && "barrier: shire configuration is INCORRECT");
 
   auto localId = get_minion_id() % SOC_MINIONS_PER_SHIRE;
-  auto shireId =  get_minion_id() / SOC_MINIONS_PER_SHIRE;
+  auto shireId = get_minion_id() / SOC_MINIONS_PER_SHIRE;
 
   // Local sync - syncs all minions in the same shire
   hart::barrier<Scope::shire>(allOnesMask);
@@ -171,27 +177,28 @@ barrier(size_t startingMinion, size_t count) {
   // Everyone sleeps until the Master Shire wakes everyone including itself
   fcc_consume(fcc0);
 }
+/*! \endcond */
 
 /**
- * \brief Sync barrier for a group of threads within a device.
+ * \brief Synchronizes a range of threads in a device.
  *
- * Blocks thread execution until all the threads in the synchronization group reach this barrier.
- * The synchronization group syncs count contiguous threads starting from 'startingMinion'.
- * 
- * \param startingMinion First thread in the synchronization group. If count is > 32, it must be a multiple of 32, otherwise, it must be a power of two or 0.
- * \param count Number of threads to synchronize. If count is > 32, it must be a multiple of 32, otherwise, it must be a power of two.
- * 
+ * Blocks thread execution until all the threads in the specified range reach this barrier. This barrier is shared only
+ * between threads with the same thread_id (get_thread_id()). Synchronizes \p count contiguous threads starting at \p
+ * startingMinion.
+ * \param startingMinion First minion in the synchronization group. Must be a multiple of \p count or 0.
+ * \param count Number of threads to synchronize. Must be a multiple of 32 or a power of two <= 32.
  */
 inline void barrier(const size_t startingMinion, const size_t count) {
   // Two count groups of values are supported.
-  // If count > 32. count must be a multiple of 32. i.e: {64,96,128,160,..,1024}
-  // If count <= 32. count must be a power of two. i.e: {1,2,4,8,16,32}.
+  // If count >= 32. count must be a multiple of 32
+  // If count < 32. count must be a power of two. i.e: {1,2,4,8,16}.
 
   std::bitset<64> cmask = std::bitset<64>(count);
   std::bitset<64> smask = std::bitset<64>(startingMinion);
 
   // check if count and startingMinion are powers of two (or 0)
   bool isPow2 = (cmask.count() == 1) && ((smask.count() == 1) || (smask.count() == 0));
+  // TODO: et_assert invalid range (start, count) configurations
 
   if (count > SOC_MINIONS_PER_SHIRE) {
     barrier<Scope::device>(startingMinion, count);
@@ -208,10 +215,11 @@ inline void barrier(const size_t startingMinion, const size_t count) {
   }
 }
 
+/*! \cond PRIVATE */
 /**
- * \brief Sync barrier for all threads in the kernel.
+ * \brief Synchronizes all threads in the kernel.
  *
- * Blocks thread execution until all the threads reach this barrier.
+ * Blocks thread execution until all the threads (with the same thread_id) reach this barrier.
  * TEMPORARY: not working if the assigned minions to the kernel is different than 1024
  * use the overloaded function barrier(startingMinon, count) instead.
  */
@@ -224,6 +232,6 @@ inline void barrier() {
     barrier<Scope::shire>(std::bitset<64>(0xFFFFFFFF));
   }
 }
-
+/*! \endcond */
 }
 #endif // GPSDK_SYNC_H

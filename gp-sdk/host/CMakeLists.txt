@@ -12,6 +12,8 @@ project(gp-sdk-host VERSION 1.0.0 LANGUAGES C CXX)
 
 option(USE_CONAN "Use connan packages" OFF)
 option(BUILD_TESTS "Build tests (adds gtest dependency)" OFF)
+option(BUILD_DOCS "Enable/disable building documentation" ON)
+
 
 
 include(GNUInstallDirs)
@@ -76,6 +78,11 @@ add_subdirectory(sdk)
 
 if (BUILD_TESTS)
   add_subdirectory(tests)
+endif()
+
+## project documentation
+if (BUILD_DOCS)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/../docs/host ${CMAKE_SOURCE_DIR}/../docs/host/build)
 endif()
 
 # project-specific directories to be added here
