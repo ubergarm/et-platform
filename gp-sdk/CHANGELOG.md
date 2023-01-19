@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added TFMA tutorial
 - Extra args on cmakelis for building custom kernels
 - Extended barrier functionality
+- [SW-15785] Added map_feq.py script
 ### Changed
 ### Deprecated
 ### Removed
