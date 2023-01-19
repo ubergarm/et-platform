@@ -9,11 +9,22 @@
 //------------------------------------------------------------------------------
 #include "GenericLauncher.h"
 #include <gflags/gflags.h>
+#include <iostream>
 #include <numeric>
 
 #include "saxpy_kernel_arguments.h"
 
-// Specific kernel lancuher class.
+// Host-side implementation of a SAXPY kernel (for checking purposes)
+template <class InputIt, class OutputIt, class VT = typename InputIt::value_type>
+OutputIt saxpy(InputIt first, InputIt last, OutputIt d_first, VT a) {
+  for (; first != last; ++first) {
+    *d_first = a * *first + *d_first;
+    ++d_first;
+  }
+  return d_first;
+}
+
+// Specific kernel launcher class.
 class Saxpy : public GenericLauncher {
 public:
   Saxpy() = delete;
@@ -21,10 +32,9 @@ public:
     : GenericLauncher(config){};
 
   void prepareInput() {
-    a_= 3;
-    std::iota(x_.begin(), x_.end() ,0);
-    std::iota(y_.begin(), y_.end() ,100);
-
+    a_ = 3;
+    std::iota(x_.begin(), x_.end(), 0);
+    std::iota(y_.begin(), y_.end(), 100);
   }
 
   void performDeviceAllocs() {
@@ -33,15 +43,12 @@ public:
   }
 
   void programHost2DevCopies() {
-    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *) x_.data(), deviceX_,
-                                 x_.size() * sizeof(float));
-    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *) y_.data(), deviceY_,
-                                 y_.size() * sizeof(float));
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte*)x_.data(), deviceX_, x_.size() * sizeof(float));
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte*)y_.data(), deviceY_, y_.size() * sizeof(float));
   }
 
   void programDev2HostCopies() {
-    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_],deviceY_, (std::byte *)  y_.data(),
-                                 y_.size() * sizeof(float));
+    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_], deviceY_, (std::byte*)y_.data(), y_.size() * sizeof(float));
   }
 
   void freeDeviceAllocs() {
@@ -55,13 +62,13 @@ public:
   std::vector<float> y_ = std::vector<float>(numElems_);
   std::byte* deviceX_;
   std::byte* deviceY_;
-
 };
 
-DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
-DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
+DEFINE_string(device_type, "sysemu", "Device type to be used (sysemu,fake,silicon)");
+DEFINE_uint64(kernel_launch_timeout, 10, "Timeout (in seconds) to wait for kernelLaunch");
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
 DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
+DEFINE_uint64(launch_mult, 1, "Number of times the kernel is executed for each launch");
 
 int main(int argc, char** argv) {
 
@@ -74,14 +81,16 @@ int main(int argc, char** argv) {
   auto kernelId = launcher.loadKernel(FLAGS_kernel_path);
   launcher.performDeviceAllocs();
   launcher.prepareInput();
-  
-  
+
+  // Copy original values to check them later
+  auto x2 = launcher.x_;
+  auto y2 = launcher.y_;
+
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();
-    
-    KernelArguments kernelArgs {launcher.x_.size(), (float *) launcher.deviceX_,
-			(float *) launcher.deviceY_, launcher.a_};
-    
+
+    KernelArguments kernelArgs{launcher.x_.size(), (float*)launcher.deviceX_, (float*)launcher.deviceY_, launcher.a_};
+
     launcher.kernelLaunch(kernelId, &kernelArgs);
     launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
@@ -94,8 +103,17 @@ int main(int argc, char** argv) {
   }
 
   launcher.freeDeviceAllocs();
-  launcher.unLoadKernel(kernelId); 
+  launcher.unLoadKernel(kernelId);
   launcher.tearDown();
+
+  // Check kernel results
+  for (size_t i = 0; i < FLAGS_num_launches * FLAGS_launch_mult; ++i) {
+    saxpy(x2.begin(), x2.end(), y2.begin(), launcher.a_);
+  }
+  if (y2 != launcher.y_) {
+    std::cerr << "error: SAXPY host/device results do not match" << std::endl;
+    return 1;
+  }
 
   return 0;
 }
