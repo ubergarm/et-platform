@@ -69,6 +69,7 @@ DEFINE_uint64(kernel_launch_timeout, 10, "Timeout (in seconds) to wait for kerne
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
 DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
 DEFINE_uint64(launch_mult, 1, "Number of times the kernel is executed for each launch");
+DEFINE_double(epsilon, 0.0, "Delta used for comparison between host and device");
 
 int main(int argc, char** argv) {
 
@@ -83,8 +84,8 @@ int main(int argc, char** argv) {
   launcher.prepareInput();
 
   // Copy original values to check them later
-  auto x2 = launcher.x_;
-  auto y2 = launcher.y_;
+  std::vector<float> x2 = launcher.x_;
+  std::vector<float> y2 = launcher.y_;
 
   for (size_t i = 0; i < FLAGS_num_launches; i++) {
     launcher.programHost2DevCopies();
@@ -110,7 +111,8 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < FLAGS_num_launches * FLAGS_launch_mult; ++i) {
     saxpy(x2.begin(), x2.end(), y2.begin(), launcher.a_);
   }
-  if (y2 != launcher.y_) {
+  if (!std::equal(y2.begin(), y2.end(), launcher.y_.begin(),
+                  [=](float host, float dev) { return std::abs(host - dev) <= FLAGS_epsilon; })) {
     std::cerr << "error: SAXPY host/device results do not match" << std::endl;
     return 1;
   }

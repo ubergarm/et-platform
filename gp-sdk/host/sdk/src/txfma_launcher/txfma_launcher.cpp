@@ -78,6 +78,7 @@ DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silico
 DEFINE_uint64(kernel_launch_timeout, 10, "timeout (inseconds) to wait for kernelLaunch");
 DEFINE_uint64(num_launches, 1, "Number of times the kernel will be launched");
 DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
+DEFINE_double(epsilon, 0.0, "Delta used for comparison between host and device");
 
 int main(int argc, char** argv) {
 
@@ -114,13 +115,14 @@ int main(int argc, char** argv) {
   launcher.unLoadKernel(kernelId);
   launcher.tearDown();
 
-  auto c2 = launcher.C_;
+  // Check results
+  std::vector<float> c2 = launcher.C_;
   txfma(c2.data(), launcher.A_.data(), launcher.B_.data(), launcher.aRows, launcher.aCols, launcher.bCols);
-  if (c2 != launcher.C_) {
-    std::cerr << "error: SAXPY host/device results do not match" << std::endl;
+  if (!std::equal(c2.begin(), c2.end(), launcher.C_.begin(),
+                  [=](float host, float dev) { return std::abs(host - dev) <= FLAGS_epsilon; })) {
+    std::cerr << "error: TXFMA host/device results do not match" << std::endl;
     return 1;
   }
-
 
   return 0;
 }
