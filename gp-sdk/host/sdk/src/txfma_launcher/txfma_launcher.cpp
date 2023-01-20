@@ -13,7 +13,18 @@
 
 #include "txfma_kernel_arguments.h"
 
-// Specific kernel lancuher class.
+void txfma(float* C, const float* A, const float* B, size_t M, size_t K, size_t N) {
+  std::fill_n(C, M * N, 0.f);
+  for (auto k = 0; k < K; ++k) {
+    for (auto m = 0; m < M; ++m) {
+      for (auto n = 0; n < N; ++n) {
+        C[m * N + n] += A[m * K + k] * B[k * N + n];
+      }
+    }
+  }
+}
+
+// Kernel launcher for TxFMA
 class TxFma : public GenericLauncher {
 public:
   TxFma() = delete;
@@ -21,9 +32,8 @@ public:
     : GenericLauncher(config){};
 
   void prepareInput() {
-    std::iota(A_.begin(), A_.end() ,0);
-    std::iota(B_.begin(), B_.end() ,100);
-
+    std::iota(A_.begin(), A_.end(), 0);
+    std::iota(B_.begin(), B_.end(), 100);
   }
 
   void performDeviceAllocs() {
@@ -33,15 +43,12 @@ public:
   }
 
   void programHost2DevCopies() {
-    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *) A_.data(), deviceA_,
-                                 A_.size() * sizeof(float));
-    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte *) B_.data(), deviceB_,
-                                 B_.size() * sizeof(float));
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte*)A_.data(), deviceA_, A_.size() * sizeof(float));
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte*)B_.data(), deviceB_, B_.size() * sizeof(float));
   }
 
   void programDev2HostCopies() {
-    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_],deviceC_, (std::byte *)  C_.data(),
-                                 C_.size() * sizeof(float));
+    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_], deviceC_, (std::byte*)C_.data(), C_.size() * sizeof(float));
   }
 
   void freeDeviceAllocs() {
@@ -50,13 +57,13 @@ public:
     runtime_->freeDevice(devices_[devIdx_], deviceC_);
   }
 
-  static constexpr uint32_t aRows = 14; 
-  static constexpr uint32_t aCols = 16; 
+  static constexpr uint32_t aRows = 14;
+  static constexpr uint32_t aCols = 16;
 
-  static constexpr uint32_t bRows = 16; 
+  static constexpr uint32_t bRows = 16;
   static constexpr uint32_t bCols = 16;
 
-  static constexpr uint32_t cRows = 14; 
+  static constexpr uint32_t cRows = 14;
   static constexpr uint32_t cCols = 16;
 
   std::vector<float> A_ = std::vector<float>(aRows * aCols);
@@ -65,7 +72,6 @@ public:
   std::byte* deviceA_;
   std::byte* deviceB_;
   std::byte* deviceC_;
-
 };
 
 DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
@@ -84,15 +90,15 @@ int main(int argc, char** argv) {
   auto kernelId = launcher.loadKernel(FLAGS_kernel_path);
   launcher.performDeviceAllocs();
   launcher.prepareInput();
-  
+
   launcher.programHost2DevCopies();
 
   // prep kernel args object
-  Matrix A {launcher.aRows, launcher.aCols, (float *)launcher.deviceA_};
-  Matrix B {launcher.bRows, launcher.bCols, (float *)launcher.deviceB_};
-  Matrix C {launcher.cRows, launcher.cCols, (float *)launcher.deviceC_};
+  Matrix A{launcher.aRows, launcher.aCols, (float*)launcher.deviceA_};
+  Matrix B{launcher.bRows, launcher.bCols, (float*)launcher.deviceB_};
+  Matrix C{launcher.cRows, launcher.cCols, (float*)launcher.deviceC_};
 
-  KernelArguments kernelArgs {A,B,C};
+  KernelArguments kernelArgs{A, B, C};
 
   launcher.kernelLaunch(kernelId, &kernelArgs);
   launcher.programDev2HostCopies();
@@ -103,11 +109,18 @@ int main(int argc, char** argv) {
   if (launcher.kernelError_ || launcher.kernelAbort_) {
     return -1;
   }
-  
 
   launcher.freeDeviceAllocs();
-  launcher.unLoadKernel(kernelId); 
+  launcher.unLoadKernel(kernelId);
   launcher.tearDown();
+
+  auto c2 = launcher.C_;
+  txfma(c2.data(), launcher.A_.data(), launcher.B_.data(), launcher.aRows, launcher.aCols, launcher.bCols);
+  if (c2 != launcher.C_) {
+    std::cerr << "error: SAXPY host/device results do not match" << std::endl;
+    return 1;
+  }
+
 
   return 0;
 }
