@@ -643,7 +643,7 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     1, // # outs
     4,  // # ins
     {instrMembers::mbHasEndOffset}, // members
-    3, // template param mask
+    11, // template param mask
     {"Vectorized", "Fastpath"}, // impl versions
     implSel::EmbeddingBag, // custom impl selector
     // L1 states per impl

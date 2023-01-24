@@ -157,16 +157,19 @@ INLINE_ATTR uint32_t getVMask(int64_t n) {
   return gvl;
 }
 
-template <ElemKind elK>
+template <ElemKind elK, ElemKind indexElK>
 inline __attribute((always_inline)) void
 embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStart, uintptr_t currSegmentEnd,
-                            uint8_t* tAInput, int64_t* indices, uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
+                            uint8_t* tAInput, LibTensor* indices, uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
                             uint8_t* tWInput, uint8_t* dst_ptr, bool destAlignedVregFP32, bool destAlignedVregFP16,
                             bool destGlobalReq) {
   constexpr bool float32Dst = (elK == FloatTy);
   constexpr bool float16Dst = (elK == Float16Ty);
 
   static_assert(elK == FloatTy || elK == Float16Ty);
+
+  using indicesType = typename elemKind2elemTy<indexElK>::type;
+  auto indicesPtr = indices->getRawDataPointer<indicesType>();
 
   constexpr uintptr_t elemSize = float32Dst ? 4 : 2;
 
@@ -181,8 +184,7 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
   // For all sparse input rows.
   for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex; j < currSegmentEnd; j++, currIndex++) {
 
-    uint8_t *data_ptr   = tAInput + indices[currIndex] * dataRowPitch
-                                  + dataRowGroupOffset;
+    uint8_t* data_ptr = tAInput + ((int64_t)indicesPtr[currIndex]) * dataRowPitch + dataRowGroupOffset;
     uint8_t *weight_ptr = tWInput + currIndex * elemSize;
   
     __asm__ __volatile__ (
@@ -265,7 +267,7 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
   }
 }
 
-template <ElemKind outElK, ElemKind dataElK>
+template <ElemKind outElK, ElemKind dataElK, ElemKind indexElK>
 inline __attribute((always_inline)) typename std::enable_if_t<(dataElK == Int8QTy && outElK == FloatTy), void>
 embeddingBagsTailVectorized(dim_t minionCurrIndex, dim_t currSegmentStart, dim_t currSegmentEnd, int8_t* tAInput,
                             const float scale, const int32_t offset, int64_t* indices, dim_t dataRowPitch,
@@ -334,9 +336,11 @@ embeddingBagsTailVectorized(dim_t minionCurrIndex, dim_t currSegmentStart, dim_t
   }
 }
 
-INLINE_ATTR bool getNextSegment(const dim_t segment, const dim_t segments, const dim_t numIndices,
-                                Handle<int64_t>& offH, const bool hasEndOffset, dim_t& currSegmentStart,
-                                dim_t& currSegmentEnd) {
+template <ElemKind indexElK>
+INLINE_ATTR bool getNextSegment(const dim_t segment, const dim_t segments, const dim_t numIndices, LibTensor* offsets,
+                                const bool hasEndOffset, dim_t& currSegmentStart, dim_t& currSegmentEnd) {
+  using indicesType = typename elemKind2elemTy<indexElK>::type;
+  auto offH = offsets->getHandle<indicesType>();
   bool emptySegment;
   dim_t start = offH.raw(segment);
   dim_t end;
@@ -399,11 +403,16 @@ INLINE_ATTR std::pair<dim_t, dim_t> getWorkDistribution(size_t minionId, size_t 
   return {minionWorkUnits, minionFirstWorkUnit};
 }
 
-template <ElemKind outElK, ElemKind in1ElK>
+template <ElemKind outElK, ElemKind in1ElK, ElemKind indexElK>
 INLINE_ATTR typename std::enable_if_t<(in1ElK == FloatTy || in1ElK == Float16Ty), void>
-fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibTensor* in3T, LibTensor* in4T,
-                                 bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
+fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* data, LibTensor* weights, LibTensor* indices,
+                                 LibTensor* offsets, bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
                                  const uint32_t assignedMinions = 0) {
+  et_assert(data->getElementType() == outT->getElementType());
+  et_assert((data->getElementType() == FloatTy) || (data->getElementType() == Float16Ty));
+  et_assert(indices->getElementType() == offsets->getElementType());
+  et_assert((indices->getElementType() == Int64ITy) || (indices->getElementType() == Int32ITy));
+
   // in This instantiation, in and out forcibly match.
   static_assert(in1ElK == outElK);
   constexpr bool float32Dst = (outElK == FloatTy);
@@ -431,19 +440,15 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
     return;
   }
 
-  assert(in1T->getElementType() == outT->getElementType());
-  assert((in1T->getElementType() == FloatTy) || (in1T->getElementType() == Float16Ty));
-  assert((in3T->getElementType() == Int64ITy) && (in3T->getElementType() == in4T->getElementType()));
-
-  auto offH = in4T->getHandle<int64_t>();
-
   auto tOutput = outT->getRawDataPointer<uint8_t>();
-  auto tAInput = in1T->getRawDataPointer<uint8_t>();
-  auto tWInput = in2T->getRawDataPointer<uint8_t>();
-  auto indices = in3T->getRawDataPointer<int64_t>();
+  auto tAInput = data->getRawDataPointer<uint8_t>();
+  auto tWInput = weights->getRawDataPointer<uint8_t>();
+  using indicesType = typename elemKind2elemTy<indexElK>::type;
+  auto indicesPtr = indices->getRawDataPointer<indicesType>();
+  auto offH = offsets->getHandle<indicesType>();
 
-  const dim_t segments = hasEndOffset ? (in4T->dims()[0] - 1) : in4T->dims()[0];
-  const dim_t numIndices = in3T->dims()[0];
+  const dim_t segments = hasEndOffset ? (offsets->dims()[0] - 1) : offsets->dims()[0];
+  const dim_t numIndices = indices->dims()[0];
 
   // Compute the number of elements per data row (first tensor dimension).
   const uintptr_t dstRowElemSize = outT->dims()[1];  
@@ -570,18 +575,17 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
   if (offH.raw(0) == 0) {
     // fast path, offests start at 0, we can have a direct access to minionFirstIndex
     minionFirstIndex = offH.raw(minionFirstSegment);
-    // (void)getNextSegment(minionFirstSegment);
-    (void)getNextSegment(minionFirstSegment, segments, numIndices, offH, hasEndOffset, currSegmentStart,
-                         currSegmentEnd);
+    (void)getNextSegment<indexElK>(minionFirstSegment, segments, numIndices, offsets, hasEndOffset, currSegmentStart,
+                                   currSegmentEnd);
   } else {
     // slow path, offests do not start at 0, offets need traveral to get to minionFirstIndex
     bool minionEmptySegment = false;
     for (uintptr_t s = 0; s <= minionFirstSegment; s++) {
-      if (not minionEmptySegment)
+      if (not minionEmptySegment) {
         minionFirstIndex += (currSegmentEnd - currSegmentStart);
-      // minionEmptySegment = getNextSegment(s);
+      }
       minionEmptySegment =
-        getNextSegment(s, segments, numIndices, offH, hasEndOffset, currSegmentStart, currSegmentEnd);
+        getNextSegment<indexElK>(s, segments, numIndices, offsets, hasEndOffset, currSegmentStart, currSegmentEnd);
     }
   }
 
@@ -645,7 +649,8 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
       for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex;
            j < currSegmentEnd; j++, currIndex++) {
         uint8_t* data_ptr =
-          tAInput + (indices[currIndex] * in1T->strides()[0] + minionCurrRowGroup * dstGroupElems) * elemSize;
+          tAInput +
+          (((int64_t)indicesPtr[currIndex]) * data->strides()[0] + minionCurrRowGroup * dstGroupElems) * elemSize;
         uint8_t *weight_ptr = tWInput + currIndex * elemSize;
 
         __asm__ __volatile__ (
@@ -666,7 +671,8 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
 
         if (j < currSegmentEnd - 1) {
           uint8_t* data_ptr_next =
-            tAInput + (indices[currIndex + 1] * in1T->strides()[0] + minionCurrRowGroup * dstGroupElems) * elemSize;
+            tAInput +
+            (((int64_t)indicesPtr[currIndex + 1]) * data->strides()[0] + minionCurrRowGroup * dstGroupElems) * elemSize;
           // Prefetch next index of current segment
           __asm__ __volatile__("ld          x0, (%[data_ptr_next])\n" : : [ data_ptr_next ] "r"(data_ptr_next) :);
         }
@@ -781,7 +787,8 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
           minionCurrIndex += (currSegmentEnd - currSegmentStart);
         }
 
-        getNextSegment(minionCurrSegment, segments, numIndices, offH, hasEndOffset, currSegmentStart, currSegmentEnd);
+        getNextSegment<indexElK>(minionCurrSegment, segments, numIndices, offsets, hasEndOffset, currSegmentStart,
+                                 currSegmentEnd);
         dst_ptr = tOutput + minionCurrSegment * outputStrideZeroBytes + minionCurrRowGroup * dstGroupElems * elemSize;
       }
     } else {
@@ -791,10 +798,10 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
       );
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
-        embeddingBagsTailVectorized<outElK>(minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices,
-                                            in1T->strides()[0] * elemSize,
-                                            (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize, tWInput,
-                                            dst_ptr, destAlignedVregFP32, destAlignedVregFP16, destGlobalReq);
+        embeddingBagsTailVectorized<outElK, indexElK>(
+          minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, data->strides()[0] * elemSize,
+          (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize, tWInput, dst_ptr, destAlignedVregFP32,
+          destAlignedVregFP16, destGlobalReq);
         dst_ptr += dstVRegElems * elemSize;
       }
 
@@ -805,8 +812,8 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
         : [tail_mask] "r" (dstRowTailVRegMask)
       );
 
-      embeddingBagsTailVectorized<outElK>(
-        minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, in1T->strides()[0] * elemSize,
+      embeddingBagsTailVectorized<outElK, indexElK>(
+        minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, data->strides()[0] * elemSize,
         (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize, tWInput, dst_ptr,
         destAlignedVregFP32, destAlignedVregFP16, destGlobalReq);
 
@@ -816,22 +823,28 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* in1T, LibTensor* in
       minionCurrSegment++;
       minionCurrRowGroup = 0;
 
-      // getNextSegment(minionCurrSegment);
-      getNextSegment(minionCurrSegment, segments, numIndices, offH, hasEndOffset, currSegmentStart, currSegmentEnd);
+      getNextSegment<indexElK>(minionCurrSegment, segments, numIndices, offsets, hasEndOffset, currSegmentStart,
+                               currSegmentEnd);
 
       dst_ptr = tOutput + minionCurrSegment * outputStrideZeroBytes + minionCurrRowGroup * dstGroupElems * elemSize;
     }
   }
 }
 
-template <ElemKind outElK, ElemKind dataElK>
+template <ElemKind outElK, ElemKind dataElK, ElemKind indexElK>
 INLINE_ATTR typename std::enable_if_t<(dataElK == Int8QTy && (outElK == FloatTy || outElK == Float16Ty)), void>
 fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
                                  LibTensor* offsets, bool hasEndOffset, uint64_t flags, const uint32_t minionOffset = 0,
                                  const uint32_t assignedMinions = 0) {
 
+  et_assert(weights->getElementType() == out->getElementType());
+  et_assert(indices->getElementType() == offsets->getElementType());
+  et_assert((indices->getElementType() == Int64ITy) || (indices->getElementType() == Int32ITy));
+  et_assert(reinterpret_cast<uint64_t>(out->getRawDataPointer<uint64_t>()) % 64 == 0);
+
   using outType = typename elemKind2elemTy<outElK>::type;
   using inType = typename elemKind2elemTy<dataElK>::type;
+  using indicesType = typename elemKind2elemTy<indexElK>::type;
 
   // If Minion is outside the group assigned to this Node get out.
   size_t minionId = get_minion_id();
@@ -849,10 +862,8 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
   if (minionId >= activeMinions) {
     return;
   }
-  et_assert(weights->getElementType() == out->getElementType());
-  et_assert((indices->getElementType() == Int64ITy) && (indices->getElementType() == offsets->getElementType()));
 
-  auto offH = offsets->getHandle<int64_t>();
+  auto offH = offsets->getHandle<indicesType>();
   auto tWInput = weights->getRawDataPointer<outType>();
 
   // Work partitioning is based on output tensor 'segments'
@@ -869,13 +880,11 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
   auto endSegment = std::min(startSegment + numSegmentsPerMinion, numSegments);
 
   // Handles
-  auto IH = indices->getHandle<int64_t>();
+  auto IH = indices->getHandle<indicesType>();
   auto DH = data->getHandle<inType>();
   auto OH = out->getHandle<outType>();
-  // Get the sizes to iterate
-  et_assert(reinterpret_cast<uint64_t>(out->getRawDataPointer<uint64_t>()) % 64 ==
-            0); // Assert output tensor is aligned to 8 bytes
 
+  // Get the sizes to iterate
   // Pre-compute the indices used in gather/scatter operations
   // load gather for quantized Int8QTy data values
   // store scatter for FP16/FP32 accumulated results
@@ -906,7 +915,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
     f32x8 accum0;
 
     // Get start and end offset of this segment
-    auto startOffset = offH.raw(s);
+    int64_t startOffset = offH.raw(s);
     int64_t endOffset;
     if (s == (numSegments - 1UL)) {
       endOffset = hasEndOffset ? static_cast<int64_t>(offH.raw(s + 1)) : static_cast<int64_t>(indices->dims()[0]);
@@ -1128,14 +1137,20 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
   }
 }
 
-template <ElemKind outElK, ElemKind dataElK>
+template <ElemKind outElK, ElemKind dataElK, ElemKind indexElK>
 INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
                                                 LibTensor* offsets, bool hasEndOffset, uint64_t flags,
                                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-  (void)hasEndOffset;
   et_assert(data->getElementType() == Int8QTy);
+  et_assert(weights->getElementType() == out->getElementType());
+  et_assert(indices->getElementType() == offsets->getElementType());
+  et_assert((indices->getElementType() == Int64ITy) || (indices->getElementType() == Int32ITy));
+  et_assert(reinterpret_cast<uint64_t>(out->getRawDataPointer<uint64_t>()) % 64 == 0);
+
+  (void)hasEndOffset;
   using outType = typename elemKind2elemTy<outElK>::type;
   using inType = typename elemKind2elemTy<dataElK>::type;
+  using indicesType = typename elemKind2elemTy<indexElK>::type;
 
   // If Minion is outside the group assigned to this Node get out.
   size_t minionId = get_minion_id();
@@ -1151,10 +1166,8 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
   if (minionId >= activeMinions) {
     return;
   }
-  et_assert(weights->getElementType() == out->getElementType());
-  et_assert((indices->getElementType() == Int64ITy) && (indices->getElementType() == offsets->getElementType()));
 
-  auto offH = offsets->getHandle<int64_t>();
+  auto offH = offsets->getHandle<indicesType>();
 
   // Work partitioning is based on output tensor 'segments'
   auto numSegments = out->dims()[0];
@@ -1169,12 +1182,10 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
   auto endSegment = std::min(startSegment + numSegmentsPerMinion, numSegments);
 
   // Handles
-  auto IH = indices->getHandle<int64_t>();
+  auto IH = indices->getHandle<indicesType>();
   auto DH = data->getHandle<inType>();
   auto OH = out->getHandle<outType>();
   // Get the sizes to iterate
-  et_assert(reinterpret_cast<uint64_t>(out->getRawDataPointer<uint64_t>()) % 64 ==
-            0); // Assert output tensor is aligned to 8 bytes
 
   // Pre-compute the indices used in gather/scatter operations
   // load gather for quantized Int8QTy data values
@@ -1207,7 +1218,7 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
   // Main loop
   for (dim_t s = startSegment; s < endSegment; s++) {
     // Get start and end offset of this segment
-    auto startOffset = offH.raw(s);
+    int64_t startOffset = offH.raw(s);
     auto rowIndex = static_cast<dim_t>(IH.raw(startOffset));
 
     // Get the destination pointer to write results
@@ -1293,7 +1304,7 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
 //////////// Int8QTy "data" instantiation for EmbeddingBag
 // Beware of occupied semantics: "data" from the operator PoV is typically considered a "weight" from dlrm model PoV.
 
-template <ElemKind outElK, ElemKind dataElK>
+template <ElemKind outElK, ElemKind dataElK, ElemKind indexElK>
 INLINE_ATTR void fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
                                         LibTensor* offsets, bool hasEndOffset, uint64_t flags,
                                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
@@ -1308,6 +1319,7 @@ INLINE_ATTR void fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTens
   using outType = typename elemKind2elemTy<outElK>::type;
   using dataType = typename elemKind2elemTy<dataElK>::type;
   using outGlobalType = typename std::conditional<outElK == ElemKind::FloatTy, uint32_t, uint16_t>::type;
+  using indicesType = typename elemKind2elemTy<indexElK>::type;
 
   auto minionId = get_minion_id();
   //  FIXME: just minon 0 does some work at the moment.
@@ -1315,8 +1327,8 @@ INLINE_ATTR void fwdLibEmbeddingBagInst(LibTensor* out, LibTensor* data, LibTens
     return;
   }
 
-  auto IH = indices->getHandle<int64_t>();
-  auto OFFH = offsets->getHandle<int64_t>();
+  auto IH = indices->getHandle<indicesType>();
+  auto OFFH = offsets->getHandle<indicesType>();
 
   // If an end offset is present to mark the end of the last segment then this
   // must be subtracted to get the correct number of segments
