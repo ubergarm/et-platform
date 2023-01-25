@@ -160,16 +160,15 @@ INLINE_ATTR uint32_t getVMask(int64_t n) {
 template <ElemKind elK, ElemKind indexElK>
 inline __attribute((always_inline)) void
 embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStart, uintptr_t currSegmentEnd,
-                            uint8_t* tAInput, LibTensor* indices, uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
+                            uint8_t* tAInput, void* indicesPtr, uintptr_t dataRowPitch, uintptr_t dataRowGroupOffset,
                             uint8_t* tWInput, uint8_t* dst_ptr, bool destAlignedVregFP32, bool destAlignedVregFP16,
                             bool destGlobalReq) {
   constexpr bool float32Dst = (elK == FloatTy);
   constexpr bool float16Dst = (elK == Float16Ty);
+  constexpr bool indices32B = (indexElK == Int32ITy);
 
-  static_assert(elK == FloatTy || elK == Float16Ty);
-
-  using indicesType = typename elemKind2elemTy<indexElK>::type;
-  auto indicesPtr = indices->getRawDataPointer<indicesType>();
+  static_assert((elK == FloatTy) || (elK == Float16Ty));
+  static_assert((indexElK == Int32ITy) || (indexElK == Int64ITy));
 
   constexpr uintptr_t elemSize = float32Dst ? 4 : 2;
 
@@ -183,8 +182,16 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
 
   // For all sparse input rows.
   for (uintptr_t j = currSegmentStart, currIndex = minionCurrIndex; j < currSegmentEnd; j++, currIndex++) {
+    int64_t rowOffset;
+    if (indices32B) {
+      int32_t* indicesPtr32B = (int32_t*)indicesPtr;
+      rowOffset = indicesPtr32B[currIndex];
+    } else {
+      int64_t* indicesPtr64B = (int64_t*)indicesPtr;
+      rowOffset = indicesPtr64B[currIndex];
+    }
 
-    uint8_t* data_ptr = tAInput + ((int64_t)indicesPtr[currIndex]) * dataRowPitch + dataRowGroupOffset;
+    uint8_t* data_ptr = tAInput + rowOffset * dataRowPitch + dataRowGroupOffset;
     uint8_t *weight_ptr = tWInput + currIndex * elemSize;
   
     __asm__ __volatile__ (
@@ -799,7 +806,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* data, LibTensor* we
 
       for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
         embeddingBagsTailVectorized<outElK, indexElK>(
-          minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, data->strides()[0] * elemSize,
+          minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, (void*)indicesPtr, data->strides()[0] * elemSize,
           (minionCurrRowGroup * dstGroupElems + k * dstVRegElems) * elemSize, tWInput, dst_ptr, destAlignedVregFP32,
           destAlignedVregFP16, destGlobalReq);
         dst_ptr += dstVRegElems * elemSize;
@@ -813,7 +820,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* data, LibTensor* we
       );
 
       embeddingBagsTailVectorized<outElK, indexElK>(
-        minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, indices, data->strides()[0] * elemSize,
+        minionCurrIndex, currSegmentStart, currSegmentEnd, tAInput, (void*)indicesPtr, data->strides()[0] * elemSize,
         (minionCurrRowGroup * dstGroupElems + (dstRowTailVRegs - 1) * dstVRegElems) * elemSize, tWInput, dst_ptr,
         destAlignedVregFP32, destAlignedVregFP16, destGlobalReq);
 
