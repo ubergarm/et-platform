@@ -85,30 +85,38 @@ public:
   /**
    * Dumps the selected kernel event trace into a formatted text file.
    * If multiple instances of the same kernel are launched,
-   * \p fileIdx allows add a distinctive numeric Id to the file name.
    * \brief Dumps a kernel trace
    * \param fileIdx numeric index appended to the trace file name
    * \param KernelId id of the kernel to dump
+   * \param deviceIdx device target to work with
    */
-  void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1));
+  void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1), uint32_t deviceIdx = 0);
 
   /**
    * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
-   * waitKernelCompletion() is called. \brief Launches the kernel on the device. \param kernelId id of the kernel to
-   * launch. \param params launch parameters. \param shireMask mask with the shires that will execute the kernel.
+   * waitKernelCompletion() is called.
+   * \brief Launches the kernel on the device. \param kernelId id of the kernel to
+   * launch.
+   * \param params launch parameters.
+   * \param shireMask mask with the shires that will execute the kernel.
+   * \param deviceIdx device target to work with
    */
   template <typename TParams>
-  void kernelLaunch(rt::KernelId kernelId, TParams * params, uint64_t shireMask = 0xffffffff) {
-    doKernelLaunch(kernelId, (std::byte *)params, sizeof(TParams), shireMask);
+  void kernelLaunch(rt::KernelId kernelId, TParams* params, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
+
+    doKernelLaunch(kernelId, (std::byte*)params, sizeof(TParams), shireMask, deviceIdx);
   }
 
   /**
    * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
-   * waitKernelCompletion() is called. \brief Launches the kernel on the device without providing parameters. \param
-   * kernelId id of the kernel to launch. \param shireMask mask with the shires that will execute the kernel.
+   * waitKernelCompletion() is called.
+   * \brief Launches the kernel on the device without providing parameters.
+   * \param kernelId id of the kernel to launch.
+   * \param shireMask mask with the shires that will execute the kernel.
+   * \param deviceIdx device target to work with
    */
-  void kernelLaunch(rt::KernelId kernelId, uint64_t shireMask = 0xffffffff) {
-    doKernelLaunch(kernelId, nullptr, 0, shireMask);
+  void kernelLaunch(rt::KernelId kernelId, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
+    doKernelLaunch(kernelId, nullptr, 0, shireMask, deviceIdx);
   }
 
   /**
@@ -116,13 +124,15 @@ public:
    * If the device kernel does not complete in the allocated \p timeout seconds, it will be aborted raising an error.
    * \brief Waits for device kernel completion.
    * \param timeout max number of seconds to wait before timing out
+   * \param deviceIdx device target to work with
    */
-  void waitKernelCompletion(std::chrono::seconds timeout);
+  void waitKernelCompletion(std::chrono::seconds timeout, uint32_t deviceIdx = 0);
 
   /**
    * Loads an ETSoC-1 RISC-V binary in ELF format located at \p kernelName filepath.
    * \brief Loads a kernel on the device.
    * \param kernelName path to the kernel file (elf format) to load
+   * \param deviceIdx device target to work with
    * \return returns a kernelId
    */
   rt::KernelId loadKernel(const std::string& kernelName, uint32_t deviceIdx = 0);
@@ -133,7 +143,16 @@ public:
    * \param kernelId id of the kernel to unload
    */
   void unLoadKernel(rt::KernelId kernelId);
-  
+
+  /**
+   * Get the number of PCIE devices detected
+   * \brief It has real value after initialize call
+   * \return numDev_
+   */
+  uint32_t getNumDevices(void) {
+    return numDev_;
+  }
+
   std::atomic<uint64_t> kernelError_ = 0; // Number of kernels that reported an error
   std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
 
@@ -141,7 +160,7 @@ private:
   std::vector<std::byte> readFile(const std::string& path);
   // just to enable glog-logger on runtime.
   logging::LoggerDefault loggerDefault_;
-  void doKernelLaunch(rt::KernelId, std::byte * params, size_t size, uint64_t shireMask);
+  void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, uint64_t shireMask, uint32_t deviceIdx);
   void reportUserException(const rt::StreamError& error) const;
   void createRuntime(bool enableCoreDump, rt::Options options);
   void resetRuntime(bool enableCoreDump);
@@ -157,8 +176,8 @@ protected:
   std::vector<rt::StreamId> defaultStreams_;
   std::vector<rt::StreamId> traceStreams_;
 
-  std::byte* traceDeviceBuffer_;
-  // TODO: multi-dev design.
+  std::vector<std::byte*> traceDeviceBuffer_;
+  uint32_t numDev_ = 0;
   size_t devIdx_ = 0;
 };
 

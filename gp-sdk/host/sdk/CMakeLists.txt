@@ -76,10 +76,18 @@ target_link_libraries(txfma_launcher etsoc_gpsdk
                                      gflags::gflags)
 target_include_directories(txfma_launcher PRIVATE ../../device/tests/txfma)
 
+add_executable(multiDevice_launcher src/multi_device/multiDevice.cpp)
+target_link_libraries(multiDevice_launcher etsoc_gpsdk
+                                           gflags::gflags)
 
+target_include_directories(multiDevice_launcher PRIVATE ../../device/tests/saxpy)
+
+add_executable(multiDeviceHang_launcher src/multi_device/multiDeviceHang.cpp)
+target_link_libraries(multiDeviceHang_launcher etsoc_gpsdk
+                                               gflags::gflags)
 
                                          
-install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher
+install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}

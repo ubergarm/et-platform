@@ -188,8 +188,8 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
       const uint64_t masterMinion = 1UL << shireId;
       fcc_send(masterShireId, thread, fcc0, masterMinion);
     }
-     // wait for wake-up from master shire
-     fcc_consume(fcc0);
+    // wait for wake-up from master shire
+    fcc_consume(fcc0);
   }
 }
 /*! \endcond */

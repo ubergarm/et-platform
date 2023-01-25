@@ -145,6 +145,7 @@ void GenericLauncher::initialize() {
   for (auto i = 0U; i < static_cast<uint32_t>(deviceLayer_->getDevicesCount()); ++i) {
     defaultStreams_.emplace_back(runtime_->createStream(devices_[i]));
     traceStreams_.emplace_back(runtime_->createStream(devices_[i]));
+    numDev_++;
   }
 
   // Program callbacks for error management.
@@ -188,7 +189,9 @@ void GenericLauncher::initialize() {
 
   // Alloc space on device for user traces. Note: This buffer will be reused across differnet kernel launches.
   if (enableKernelTraces) {
-    traceDeviceBuffer_ = runtime_->mallocDevice(devices_[devIdx_], kTraceBufferSize);
+    for (uint32_t idx = 0; idx < numDev_; idx++) {
+      traceDeviceBuffer_.emplace_back(runtime_->mallocDevice(devices_[idx], kTraceBufferSize));
+    }
   }
 }
 
@@ -198,8 +201,10 @@ void GenericLauncher::unLoadKernel(rt::KernelId kernelId) {
 
 void GenericLauncher::tearDown() {
 
-  if (enableKernelTraces) {
-    runtime_->freeDevice(devices_[devIdx_], traceDeviceBuffer_);
+  if(enableKernelTraces) {
+    for (uint32_t deviceIdx = 0; deviceIdx < numDev_; deviceIdx++) {
+      runtime_->freeDevice(devices_[deviceIdx], traceDeviceBuffer_[deviceIdx]);
+    }
   }
 
   auto timeout = std::chrono::seconds(1);
@@ -245,6 +250,8 @@ std::tuple<uint64_t, uint64_t> getTraceMinions() {
   return {0xFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
 }
 
+
+
 std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize) {
   if (not enableKernelTraces) {
     return std::nullopt;
@@ -261,15 +268,16 @@ std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer,
   return traceParams;
 }
 
-void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) {
+void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId, uint32_t deviceIdx) {
   if (not enableKernelTraces) {
     return;
   }
   // geting device traces.
   std::vector<std::byte> deviceTrace(kTraceBufferSize);
-  runtime_->memcpyDeviceToHost(traceStreams_[devIdx_], traceDeviceBuffer_, deviceTrace.data(), deviceTrace.size());
+  runtime_->memcpyDeviceToHost(traceStreams_[deviceIdx], traceDeviceBuffer_[deviceIdx], deviceTrace.data(),
+                               deviceTrace.size());
   auto tracesTimeout = std::chrono::seconds(10);
-  auto success = runtime_->waitForStream(traceStreams_[devIdx_], tracesTimeout);
+  auto success = runtime_->waitForStream(traceStreams_[deviceIdx], tracesTimeout);
 
   if (!success) {
     std::cout << __func__ << "() timeout extracting traces from device\n";
@@ -289,8 +297,8 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) 
   traceStream.write((char*)deviceTrace.data(), deviceTrace.size());
 }
 
-void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
-  auto success = runtime_->waitForStream(defaultStreams_[devIdx_], timeout);
+void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_t deviceIdx) {
+  auto success = runtime_->waitForStream(defaultStreams_[deviceIdx], timeout);
 
   if (success) {
     return;
@@ -300,23 +308,26 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   std::cout << "[TIMEOUT] " << __func__ << "() Wait for Stream command exceeded " << std::dec << int(timeout.count())
             << " seconds.  Aborting stream\n";
 
-  auto event = runtime_->abortStream(defaultStreams_[devIdx_]);
+  auto event = runtime_->abortStream(defaultStreams_[deviceIdx]);
   auto abortTimeout = std::chrono::seconds(10);
   success = runtime_->waitForEvent(event, abortTimeout);
   if (success) {
     std::cout << "[TIMEOUT] " << __func__ << "() event completed succesfuly: " << (int)event << "\n";
     return;
   }
-  std::cout << "[TIMEOUT] " << __func__ << "() timeout expired wating for abortStream event: " << (int)event
-            << " to complete\n";
+  std::cout << "[TIMEOUT] " << __func__
+             << "() timeout expired wating for abortStream event: "
+             << (int)event << " to complete\n";
   return;
 }
 
-void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, uint64_t shireMask) {
-  std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_, kTraceBufferSize);
+void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, uint64_t shireMask,
+                                     uint32_t deviceIdx) {
+  std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
-  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3, optUserTrace);
+
+  runtime_->kernelLaunch(defaultStreams_[deviceIdx], kernelId, params, size, shireMask, barrier, flushL3, optUserTrace);
 }
 
 void GenericLauncher::reportUserException(const rt::StreamError& error) const {
