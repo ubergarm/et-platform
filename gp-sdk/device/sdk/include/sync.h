@@ -25,6 +25,8 @@
 // FW syscall IDs
 #include <etsoc/isa/syscall.h>
 
+#include <profiling.h>
+
 /**
  * \brief Namespace including low-level routines for the minion.
  **/
@@ -136,10 +138,9 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
  */
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t startingMinion, size_t count) {
-  constexpr uint32_t fcc0 = 0;               // Credit counter 0
+  constexpr uint32_t fcc0 = 1;               // Credit counter 0
   const uint32_t thread = get_hart_id() % 2; // Thread 0 or 1
-  const std::bitset<64> allOnesMask = std::bitset<64>(0xFFFFFFFF);
-  const std::bitset<64> minion0Mask = std::bitset<64>(0x1);
+  constexpr std::bitset<64> allOnesMask = std::bitset<64>(0xFFFFFFFF);
 
   auto masterShireId = (uint32_t) startingMinion / SOC_MINIONS_PER_SHIRE; // Master shire that coordinates sync
   size_t numShires = count / SOC_MINIONS_PER_SHIRE;
@@ -151,31 +152,45 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
   auto localId = get_minion_id() % SOC_MINIONS_PER_SHIRE;
   auto shireId = get_minion_id() / SOC_MINIONS_PER_SHIRE;
 
-  // Local sync - syncs all minions in the same shire
-  hart::barrier<Scope::shire>(allOnesMask);
+  hart::barrier<Scope::shire>();
 
   if (masterShireId == shireId) {
-    // minion 0 coordinates syncing with the other shires
-    if (localId == 0) {
-      // minion 0 waits for (numShires - 1) credits
-      // for loop starts at 1 because already consumed 1
-      for (size_t i = 0; i < numShires - 1; i++) {
-        fcc_consume(fcc0);
-      }
-      // time to wake up the other shires
-      for (auto sId = masterShireId; sId < masterShireId + numShires; sId++) {
-        fcc_send(sId, thread, fcc0, allOnesMask.to_ullong());
+    if (localId > masterShireId && localId < (masterShireId + numShires)) {
+      const uint64_t flb = thread;
+      // wait for wake-up credit from each active shire
+      fcc_consume(fcc0);
+      if (flbarrier(flb, numShires - 1 - 1)) {
+        // wake-up all minion in master shire
+        fcc_send(masterShireId, thread, fcc0, allOnesMask.to_ullong());
       }
     }
-  } else if (shireId < masterShireId + numShires) {
-    // Non-Master minion sends a credit to wake up the Master Shire - minion 0.
-    if (localId == 0) {
-      fcc_send(masterShireId, thread, fcc0, minion0Mask.to_ullong());
-    }
-  }
+    fcc_consume(fcc0);
+    // Invariant: at this point all shires are successfully synchronized
 
-  // Everyone sleeps until the Master Shire wakes everyone including itself
-  fcc_consume(fcc0);
+    // masterShire wakes up the other shires in the barrier
+    if (localId > masterShireId && localId < (masterShireId + numShires)) {
+      // Minion[i] wakes up shire[i], where i is the id of each assigned shire
+      fcc_send(localId, thread, fcc0, allOnesMask.to_ullong());
+    }
+  } else if (shireId < (masterShireId + numShires)) {
+    // const uint64_t flb = thread;
+
+    // // local shire sync
+    // if (flbarrier(flb, SOC_MINIONS_PER_SHIRE - 1)) {
+    //   // wake-up all minion in master shire
+    //   fcc_send(shireId, thread, fcc0, allOnesMask.to_ullong());
+    // }
+    // fcc_consume(fcc0);
+
+    // Global sync
+    // Each active shire sends a credit to notify masterShire it has reached the barrier.
+    if (localId == 0) {
+      const uint64_t masterMinion = 1UL << shireId;
+      fcc_send(masterShireId, thread, fcc0, masterMinion);
+    }
+     // wait for wake-up from master shire
+     fcc_consume(fcc0);
+  }
 }
 /*! \endcond */
 
@@ -192,7 +207,6 @@ inline void barrier(const size_t startingMinion, const size_t count) {
   // Two count groups of values are supported.
   // If count >= 32. count must be a multiple of 32
   // If count < 32. count must be a power of two. i.e: {1,2,4,8,16}.
-
   std::bitset<64> cmask = std::bitset<64>(count);
   std::bitset<64> smask = std::bitset<64>(startingMinion);
 
@@ -224,7 +238,7 @@ inline void barrier(const size_t startingMinion, const size_t count) {
  * use the overloaded function barrier(startingMinon, count) instead.
  */
 inline void barrier() {
-  size_t assignedMinions = 1024;
+  constexpr size_t assignedMinions = 1024;
 
   if (assignedMinions > SOC_MINIONS_PER_SHIRE) {
     barrier<Scope::device>(0, assignedMinions);
