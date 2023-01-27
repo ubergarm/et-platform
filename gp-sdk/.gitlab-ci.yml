@@ -43,42 +43,7 @@ variables:
       if [ "$BUILD_TYPE" == "Debug" ]; then
         echo "Skip testing when building in Debug"
       else
-
-        cd host/build
-        ./${LAUNCHERS_BASE_PATH}/basic_launcher -kernel_path=${KERNELS_BASE_PATH}/print.elf -device-type=${DEVICE_TYPE}
-        if [ $? -ne 0 ]; then
-          echo "Error at print"
-        fi      
-        dt2json traceKernels_dev0_0.bin -t
-
-        ./${LAUNCHERS_BASE_PATH}/basic_launcher -kernel_path=${KERNELS_BASE_PATH}/print2.elf -device-type=${DEVICE_TYPE}
-        if [ $? -ne 0 ]; then
-          echo "Error at print2"
-        fi            
-        dt2json traceKernels_dev0_0.bin -t
-
-        ./${LAUNCHERS_BASE_PATH}/basic_launcher -kernel_path=${KERNELS_BASE_PATH}/bss.elf -device-type=${DEVICE_TYPE}
-        if [ $? -ne 0 ]; then
-          echo "Error at bss"
-        fi            
-        dt2json traceKernels_dev0_0.bin -t
-
-        ./${LAUNCHERS_BASE_PATH}/basic_launcher -kernel_path=${KERNELS_BASE_PATH}/data.elf -device-type=${DEVICE_TYPE}
-        if [ $? -ne 0 ]; then
-          echo "Error at data"
-        fi                  
-        dt2json traceKernels_dev0_0.bin -t
-
-        ./${LAUNCHERS_BASE_PATH}/fft_launcher -kernel_path=${KERNELS_BASE_PATH}/fftKernel.elf -device-type=${DEVICE_TYPE}
-        if [ $? -ne 0 ]; then
-          echo "Error at fftKernel"
-        fi            
-        dt2json traceKernels_dev0_0.bin -t
-
-        #
-        # Add more testes here
-        #
-
+        ./tests_gpsdk_ci.py --path=$PWD/host/build
       fi
 
 ###############################################################################
