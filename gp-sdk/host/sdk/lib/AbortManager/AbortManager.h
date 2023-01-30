@@ -17,9 +17,9 @@
 #include <list>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 //--------------------------------------------------------------------------------------
 // Following classes, structures, and constants are extracted from GLOW stack
@@ -127,7 +127,10 @@ public:
                                                       std::byte const* context, size_t size);
 
   std::optional<rt::StreamError> handleAbortedKernelAndDumpCore(rt::IRuntime* runtime, rt::EventId eventId,
-                                                      std::byte const* context, size_t size, std::function<void()> freeResources);                                                    
+                                                                std::byte const* context, size_t size,
+                                                                std::function<void()> freeResources);
+  // dump core from a rt::StreamError
+  void dumpCore(rt::IRuntime* runtime, rt::EventId eventId, const rt::StreamError& error);
 
 private:
   class KernelLaunchInformation {

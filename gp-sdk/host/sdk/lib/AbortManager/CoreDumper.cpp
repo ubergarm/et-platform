@@ -407,5 +407,5 @@ void CoreDumper::dumpCore(AbortManager& abortManager, rt::IRuntime* runtime, rt:
 
   runtime->destroyStream(copyBackStream);
 
-  std::cout << "[WARNING] Device error (core dumped " << coreFileName << ")\n";
+  std::cout << "\n[WARNING] Device error (core dumped " << coreFileName << ")\n";
 }

@@ -38,7 +38,7 @@ DEFINE_bool(enableCoreDump, false, "Enable core dump");
 
 // Trace Buffer realted constants.
 constexpr size_t kTraceBytesPerHart = 4096;
-constexpr size_t kNumHarts = 2048; 
+constexpr size_t kNumHarts = 2048;
 constexpr size_t kTraceBufferSize = kTraceBytesPerHart * kNumHarts;
 constexpr bool enableKernelTraces = true;
 
@@ -148,7 +148,8 @@ void GenericLauncher::initialize() {
   }
 
   // Program callbacks for error management.
-  auto streamErrorHandler = [&, this]([[maybe_unused]] rt::EventId id, const rt::StreamError& error) {
+  auto streamErrorHandler = [this, rt = getRuntime(FLAGS_enableCoreDump)]([[maybe_unused]] rt::EventId id,
+                                                                          const rt::StreamError& error) {
     // TO IMPROVE: Currently we don't have the deviceId related to this error.
     std::cout << "streamErrorHandler "
               << "() rt reports an error on a stream command(EventId: " << static_cast<int>(id) << "):\n"
@@ -158,17 +159,23 @@ void GenericLauncher::initialize() {
       std::cout << std::to_string(error.errorCode_) << " Errors during aborts are expected, ignoring\n";
       return;
     }
+
     kernelError_++;
+
+    if (FLAGS_enableCoreDump) {
+      abortManager_.dumpCore(rt, id, error);
+    }
   };
 
   // Program callback when we want kernel aborts (due to a timeout) to dump corefiles
-  auto abortedKernelHandler = [this, rt = getRuntime(FLAGS_enableCoreDump)](rt::EventId id, std::byte const* context, size_t size,
-                                                          std::function<void()> freeResources) {
+  auto abortedKernelHandler = [this, rt = getRuntime(FLAGS_enableCoreDump)](rt::EventId id, std::byte const* context,
+                                                                            size_t size,
+                                                                            std::function<void()> freeResources) {
     std::cout << "abortedKernelHandler"
               << " () rt reports that a kernel has been aborted (EventId: " << static_cast<int>(id) << ")\n";
     kernelAbort_++;
-    
-    if(FLAGS_enableCoreDump) {
+
+    if (FLAGS_enableCoreDump) {
       auto error = abortManager_.handleAbortedKernelAndDumpCore(rt, id, context, size, freeResources);
       if (error.has_value()) {
         reportUserException(error.value());
@@ -189,9 +196,9 @@ void GenericLauncher::unLoadKernel(rt::KernelId kernelId) {
   runtime_->unloadCode(kernelId);
 }
 
-void GenericLauncher::tearDown() { 
+void GenericLauncher::tearDown() {
 
-  if(enableKernelTraces) {
+  if (enableKernelTraces) {
     runtime_->freeDevice(devices_[devIdx_], traceDeviceBuffer_);
   }
 
@@ -238,8 +245,6 @@ std::tuple<uint64_t, uint64_t> getTraceMinions() {
   return {0xFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
 }
 
-
-
 std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize) {
   if (not enableKernelTraces) {
     return std::nullopt;
@@ -276,10 +281,10 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId) 
   if (int(kernelId) != -1) {
     traceSuffix = "_" + std::to_string(int(kernelId));
   }
-  
+
   auto tracePath =
-    std::filesystem::current_path() /
-    std::filesystem::path("traceKernels_dev" + std::to_string(devIdx_) + "_" + std::to_string(fileIdx) + traceSuffix + ".bin");
+    std::filesystem::current_path() / std::filesystem::path("traceKernels_dev" + std::to_string(devIdx_) + "_" +
+                                                            std::to_string(fileIdx) + traceSuffix + ".bin");
   auto traceStream = std::ofstream(tracePath, std::ios::binary | std::ios::out);
   traceStream.write((char*)deviceTrace.data(), deviceTrace.size());
 }
@@ -299,22 +304,19 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout) {
   auto abortTimeout = std::chrono::seconds(10);
   success = runtime_->waitForEvent(event, abortTimeout);
   if (success) {
-    std::cout << "[TIMEOUT] " << __func__
-              << "() event completed succesfuly: " << (int)event << "\n";
+    std::cout << "[TIMEOUT] " << __func__ << "() event completed succesfuly: " << (int)event << "\n";
     return;
   }
-  std::cout << "[TIMEOUT] " << __func__
-             << "() timeout expired wating for abortStream event: "
-             << (int)event << " to complete\n";
-  return;  
+  std::cout << "[TIMEOUT] " << __func__ << "() timeout expired wating for abortStream event: " << (int)event
+            << " to complete\n";
+  return;
 }
 
-void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte * params, size_t size, uint64_t shireMask) {
+void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, uint64_t shireMask) {
   std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_, kTraceBufferSize);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
-  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3,
-                         optUserTrace);
+  runtime_->kernelLaunch(defaultStreams_[devIdx_], kernelId, params, size, shireMask, barrier, flushL3, optUserTrace);
 }
 
 void GenericLauncher::reportUserException(const rt::StreamError& error) const {
@@ -329,8 +331,8 @@ void GenericLauncher::reportUserException(const rt::StreamError& error) const {
 }
 
 void GenericLauncher::createRuntime(bool enableCoreDump, rt::Options options) {
-  if(enableCoreDump) {
-    //If core dump is enabled, runtime wrapper with core dump capabilities is used
+  if (enableCoreDump) {
+    // If core dump is enabled, runtime wrapper with core dump capabilities is used
     runtimeBase_ = rt::IRuntime::create(deviceLayer_.get(), options);
     runtime_ = std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_);
   } else {
@@ -339,18 +341,18 @@ void GenericLauncher::createRuntime(bool enableCoreDump, rt::Options options) {
 }
 
 void GenericLauncher::resetRuntime(bool enableCoreDump) {
-  if(enableCoreDump) {
+  if (enableCoreDump) {
     runtimeBase_.reset();
   }
   runtime_.reset();
 }
 
-//Passes pointer to runtime instance without core dump capabilities 
-//to abortedKernelHandler callback.
-//Runtime is used inside the callback to copy error context
-//and dump core from device to host.
+// Passes pointer to runtime instance without core dump capabilities
+// to abortedKernelHandler callback.
+// Runtime is used inside the callback to copy error context
+// and dump core from device to host.
 rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
-  if(enableCoreDump) {
+  if (enableCoreDump) {
     return runtimeBase_.get();
   } else {
     return runtime_.get();
