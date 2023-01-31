@@ -1146,7 +1146,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* out, LibTensor* data, LibTensor* wei
 
 template <ElemKind outElK, ElemKind dataElK, ElemKind indexElK>
 INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data, LibTensor* weights, LibTensor* indices,
-                                                LibTensor* offsets, bool hasEndOffset, uint64_t flags,
+                                                [[maybe_unused]] LibTensor* offsets, bool hasEndOffset, uint64_t flags,
                                                 const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
   et_assert(data->getElementType() == Int8QTy);
   et_assert(weights->getElementType() == out->getElementType());
@@ -1173,8 +1173,6 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
   if (minionId >= activeMinions) {
     return;
   }
-
-  auto offH = offsets->getHandle<indicesType>();
 
   // Work partitioning is based on output tensor 'segments'
   auto numSegments = out->dims()[0];
@@ -1225,8 +1223,7 @@ INLINE_ATTR void fwdLibEmbeddingBagInstFastpath(LibTensor* out, LibTensor* data,
   // Main loop
   for (dim_t s = startSegment; s < endSegment; s++) {
     // Get start and end offset of this segment
-    int64_t startOffset = offH.raw(s);
-    auto rowIndex = static_cast<dim_t>(IH.raw(startOffset));
+    auto rowIndex = static_cast<dim_t>(IH.raw(s));
 
     // Get the destination pointer to write results
     std::array<dim_t, 2> segmentCoord = {s, 0};
