@@ -36,6 +36,8 @@ KERNELS = [
     "syncDeviceBasic",
     "syncMinion",
     "txfma",
+    "hang",
+    "exception",
 ]
 
 
