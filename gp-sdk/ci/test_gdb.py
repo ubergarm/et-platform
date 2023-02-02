@@ -124,7 +124,7 @@ def gdb_script(entry_pc: int):
     ]
 
 
-def launch_kernel(shell, launcher: Path, kernel: Path, cwd: Path):
+def launch_kernel(shell, launcher: Path, kernel: Path):
     """Launch a test kernel"""
     entry_pc = shell.find_symbol(Path(f"{kernel}_dbg"), "entryPoint_0")
     logging.debug("PC of entryPoint_0: %#x", entry_pc)
@@ -139,7 +139,6 @@ def launch_kernel(shell, launcher: Path, kernel: Path, cwd: Path):
                 "-kernel-launch-timeout=10000",
             ]
         ),
-        cwd=cwd,
     )
 
 
@@ -182,12 +181,12 @@ def check_commands(gdb, commands: list, timeout: float):
     return True, script
 
 
-def test_gdb_sysemu(request, tmp_path_factory, gp_sdk, shell):
+def test_gdb_sysemu(request, gp_sdk, shell):
     """Execute a saxpy kernel and debug with GDB"""
     build_cache = request.config.cache.get("build-make", None)
     if build_cache is None or not Path(build_cache).exists():
         logging.info("Building example for gdb")
-        build_dir = tmp_path_factory.mktemp("build-make-gdb", numbered=False)
+        build_dir = Path("build")
         shell.mkdir(build_dir / "device")
         shell.cmake(
             source_dir=gp_sdk.path / "device",
@@ -213,14 +212,11 @@ def test_gdb_sysemu(request, tmp_path_factory, gp_sdk, shell):
         logging.info("Reusing build cache")
         build_dir = Path(build_cache)
 
-    run_dir = tmp_path_factory.mktemp("gdb-run", numbered=False)
-
     logging.info("Starting kernel launcher")
     entry_pc, launcher = launch_kernel(
         shell,
         launcher=build_dir / "host/sdk/saxpy_launcher",
         kernel=build_dir / "device/tests/saxpy_vector.elf",
-        cwd=run_dir,
     )
 
     time.sleep(2)  # Wait some time for the launcher to start
@@ -240,7 +236,7 @@ def test_gdb_sysemu(request, tmp_path_factory, gp_sdk, shell):
             timeout=0.4,
         )
         logging.debug("Saving gdb commands")
-        (run_dir / "script.gdb").write_text("\n".join(script))
+        Path("script.gdb").write_text("\n".join(script))
         assert res, "gdb mismatch"
         gdb.stdin.close()
         err = gdb.wait()
@@ -248,5 +244,3 @@ def test_gdb_sysemu(request, tmp_path_factory, gp_sdk, shell):
 
     err = launcher.wait()
     assert err == 0, "launcher returned non-zero exit-code"
-
-    shutil.rmtree(run_dir)

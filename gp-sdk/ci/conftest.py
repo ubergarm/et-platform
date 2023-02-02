@@ -14,6 +14,9 @@ import os
 from pathlib import Path
 import subprocess
 import shlex
+import shutil
+import stat
+import re
 import pytest
 
 
@@ -21,79 +24,69 @@ KERNEL_ADDRESS = "0x8006335000"
 
 Sdk = namedtuple("Sdk", ["path", "kernel_address"])
 
-Step = namedtuple("Step", ["name", "commands"])
-
 GENERATOR_TARGET = {
     "make": "Unix Makefiles",
     "ninja": "Ninja",
 }
 
 
-class ShellEnv:
+class ShellSession:
     """
     Shell environment fixture
     """
 
-    def __init__(self, temp):
-        self._temp = temp
-        self._steps = [Step("setup test session", [])]
+    def __init__(self, tmp_path):
+        self._commands = []
+        self._should_keep = False
+        self.tmp_path = tmp_path
 
-    def fixture(self, name):
-        """Enter a new test fixture"""
-        self._steps.append(Step(name, []))
+    def _prerun(self, cmd: str, quiet: bool = False, **kwargs):
+        if not quiet:
+            logging.debug("> %s", cmd)
+            self._commands.append(cmd)
 
-    def _command(self, command):
-        """Record a shell command"""
-        self._steps[-1].commands.append(
-            command.replace(str(self._temp.absolute()), "$TESTDIR")
-        )
+        if "stdout" not in kwargs:
+            kwargs["stdout"] = subprocess.PIPE
 
-    def getscript(self):
+        kwargs["args"] = cmd
+        kwargs["shell"] = True
+
+        return kwargs
+
+    def clean_tmp(self):
+        """Clean temporary files"""
+        if not self._should_keep:
+            shutil.rmtree(self.tmp_path, ignore_errors=True)
+
+    def save_commands(self):
         """Create a script of all shell commands that were run"""
-        script = [
-            "#!/bin/bash",
-            "",
-            "set -eu",
-            "",
-            f"TESTDIR={self._temp}",
-        ]
-        for step in self._steps:
-            script.extend(["", f"# {step.name}"])
-            script.extend(step.commands)
-        script.append("")
-        return "\n".join(script)
+        script = (
+            [
+                "#!/bin/bash",
+                "",
+                "set -eu",
+                "",
+            ]
+            + self._commands
+            + ["\n"]
+        )
+        commands = self.tmp_path / "commands.sh"
+        commands.write_text("\n".join(script))
+        os.chmod(commands, os.stat(commands).st_mode | stat.S_IEXEC)
 
-    def run(self, cmd: str, **kwargs):
+    def keep_tmp(self, should_keep: bool = True):
+        """Keep temporary files even on pass"""
+        self._should_keep = should_keep
+
+    def run(self, cmd: str, quiet: bool = False, **kwargs):
         """Run a single shell command"""
-        logging.debug("> %s", cmd)
-        self._command(cmd)
+        return subprocess.run(**self._prerun(cmd, quiet=quiet, **kwargs), check=True)
 
-        if "stdout" not in kwargs:
-            kwargs["stdout"] = subprocess.PIPE
-
-        return subprocess.run(
-            cmd,
-            check=True,
-            shell=True,
-            **kwargs,
-        )
-
-    def popen(self, cmd: str, **kwargs):
+    def popen(self, cmd: str, quiet: bool = False, **kwargs):
         """Run a single shell command in a separate process"""
-        logging.debug("> %s &", cmd)
-        # logging.debug("* %s", shlex.split(cmd))
-        self._command(f"{cmd} &")
+        return subprocess.Popen(**self._prerun(cmd, quiet=quiet, **kwargs))
 
-        if "stdout" not in kwargs:
-            kwargs["stdout"] = subprocess.PIPE
-
-        return subprocess.Popen(
-            cmd,
-            shell=True,
-            **kwargs,
-        )
-
-    def mkdir(self, path):
+    def mkdir(self, path: Path):
         """Create a directory"""
         return self.run(f"mkdir -p {path}")
 
@@ -148,23 +141,39 @@ def pytest_addoption(parser):
         action="store_true",
         help="Enable manual GDB testing (for debug)",
     )
+    parser.addoption(
+        "--keep-on-pass",
+        default=False,
+        action="store_true",
+        help="Keep build artifacts on pass",
+    )
 
 
 @pytest.fixture(scope="session")
-def shell_env(tmp_path_factory):
-    """Session-wide instance of the shell environment"""
-    env = ShellEnv(tmp_path_factory.getbasetemp())
+def shell_env(request):
+    """Keep track of all shell sessions"""
+    keep_on_pass = request.config.getoption("--keep-on-pass")
+    env = []
     yield env
-    logging.debug("Saving shell commands")
-    commands_path = tmp_path_factory.mktemp("shell", numbered=False) / "commands.sh"
-    commands_path.write_text(env.getscript(), encoding="utf-8")
+    if not keep_on_pass:
+        logging.debug("Cleaning up")
+        for session in env:
+            session.clean_tmp()
 
 
 @pytest.fixture
-def shell(shell_env, request):
+def shell(request, tmp_path_factory, shell_env):
     """Per-function shell fixture"""
-    shell_env.fixture(request.node.name)
-    return shell_env
+    name = re.sub(r"[\W]", "_", request.node.name)
+    if name[-1] == "_":
+        name = name[:-1]
+    session = ShellSession(tmp_path_factory.mktemp(name, numbered=False))
+    shell_env.append(session)
+    os.chdir(session.tmp_path)
+    yield session
+    session.save_commands()
+    if request.session.testsfailed != 0:
+        session.keep_tmp()
 
 
 @pytest.fixture(scope="session")
@@ -172,7 +181,9 @@ def gp_sdk(request):
     """Setup the GP-SDK environment"""
     gp_sdk_opt = request.config.getoption("--with-gp-sdk")
     if gp_sdk_opt is None:
-        gp_sdk_opt = os.environ["GP_SDK_HOME"] if "GP_SDK_HOME" in os.environ else os.getcwd()
+        gp_sdk_opt = (
+            os.environ["GP_SDK_HOME"] if "GP_SDK_HOME" in os.environ else os.getcwd()
+        )
     gp_sdk_path = Path(gp_sdk_opt)
     assert gp_sdk_path.exists()
     assert (gp_sdk_path / ".git").exists()
