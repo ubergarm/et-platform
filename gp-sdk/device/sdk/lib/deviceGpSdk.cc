@@ -34,6 +34,25 @@ void resetData();
 bool hasGlobalData();
 extern "C" int deviceGpSdkEntry(KernelArguments* args);
 
+/* wake up all threads on the shire-Mask group  system */
+static inline void wakeUpThreads(uint64_t shire_mask) {
+
+  /* uses ESR-broadcast extension to send credits to all shires simultaneously */
+  volatile uint64_t* broadcast_data =
+    (volatile uint64_t*)ESR_SHIRE_PROT_ADDR(PRV_U, THIS_SHIRE, ESR_SHIRE_BROADCAST0); // 0x013ff5fff0
+  volatile uint64_t* broadcast_address =
+    (volatile uint64_t*)ESR_SHIRE_PROT_ADDR(PRV_U, THIS_SHIRE, ESR_SHIRE_BROADCAST1); // 0x013ff5fff8
+
+  constexpr uint64_t thread_mask = 0xffffffff;
+  *broadcast_data = thread_mask;
+  // broadcast to threads 0
+  *broadcast_address =
+    (shire_mask & 0xFFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_0) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
+  // braodcast to threads 1.
+  *broadcast_address =
+    (shire_mask & 0xFFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_2) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
+}
+
 /* resets global memory region .bss to zero */
 void resetBSS() {
   uint8_t* bss_end = (uint8_t*)&_bss_end;
@@ -74,7 +93,7 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
   auto needSync = hasGlobalData();
 
   // fast-path: no global data: fast-forward to user code.
-  if(!needSync) {
+  if (!needSync) {
     if (shireId < 32) {
       if (threadId == 0) {
         return entryPoint_0(args);
@@ -97,25 +116,18 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
                          : [ result ] "=r"(result)
                          : [ increase ] "r"(increment), [ dst ] "r"(&numberOfBoots)
                          :);
-
-    // barrier 0 - send credits to THREAD_0 of all minions
-    for (uint32_t sId = 0; sId < 32; sId++) {
-      fcc_send(sId, THREAD_0, FCC_0, 0xFFFFFFFF);
-    }
-
-    // barrier 1 - send credits to THREAD_1 of all minions
-    for (uint32_t sId = 0; sId < 32; sId++) {
-      fcc_send(sId, THREAD_1, FCC_1, 0xFFFFFFFF);
-    }
+    // wake up the rest of the threads. Shire-mask should be obtained from env.
+    constexpr uint64_t shire_mask = 0xffffffff;
+    wakeUpThreads(shire_mask);
   }
-  
+
   // Wait initialization to complete and forward to user-code.
   if (shireId < 32) {
     if (threadId == 0) {
       fcc_consume(FCC_0);
       return entryPoint_0(args);
     } else {
-      fcc_consume(FCC_1);
+      fcc_consume(FCC_0);
       return entryPoint_1(args);
     }
   }
