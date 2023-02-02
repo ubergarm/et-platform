@@ -172,10 +172,7 @@ def gp_sdk(request):
     """Setup the GP-SDK environment"""
     gp_sdk_opt = request.config.getoption("--with-gp-sdk")
     if gp_sdk_opt is None:
-        gp_sdk_opt = os.environ["GP_SDK_HOME"]
-    assert (
-        gp_sdk_opt is not None
-    ), "no --with-gp-sdk argument and $GP_SDK_HOME is undefined"
+        gp_sdk_opt = os.environ["GP_SDK_HOME"] if "GP_SDK_HOME" in os.environ else os.getcwd()
     gp_sdk_path = Path(gp_sdk_opt)
     assert gp_sdk_path.exists()
     assert (gp_sdk_path / ".git").exists()
