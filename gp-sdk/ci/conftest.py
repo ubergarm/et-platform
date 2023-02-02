@@ -10,12 +10,14 @@ Important fixtures:
 
 import logging
 from collections import namedtuple
+import fnmatch
 import os
 from pathlib import Path
 import subprocess
 import shlex
 import shutil
 import stat
+from typing import Optional
 import re
 import pytest
 
@@ -28,6 +30,72 @@ GENERATOR_TARGET = {
     "make": "Unix Makefiles",
     "ninja": "Ninja",
 }
+
+
+class GdbSession:
+    """
+    GDB session fixture
+    """
+
+    def __init__(self, process):
+        self.process = process
+        self.commands = []
+
+    def __del__(self):
+        if self.process.returncode is None:
+            self.close()
+
+    def _readline(self):
+        line = self.process.stdout.readline().decode("utf-8")
+        if line.startswith("(gdb) "):
+            line = line.replace("(gdb) ", "")
+        line = line.strip()
+        logging.debug(line)
+        return line
+
+    @classmethod
+    def launch(cls, shell, cmd):
+        """Start a GDB session"""
+        logging.info("Starting gdb session")
+        if not cmd.startswith("riscv64-unknown-elf-gdb"):
+            cmd = f"riscv64-unknown-elf-gdb {cmd}"
+        return cls(shell.popen(cmd, stdin=subprocess.PIPE))
+
+    def close(self):
+        """Close stdin and exit the process"""
+        self.process.stdin.close()
+        returncode = self.process.wait()
+        if returncode != 0:
+            raise RuntimeError("gdb returned non-zero exit-code")
+
+    def read_until(self, marker: str):
+        """Process GDB output until a marker is read"""
+        while self.process.poll() is None:
+            line = self._readline()
+            if marker in line:
+                break
+
+    def eval(self, cmd: str, expected_output: Optional[list] = None):
+        """Evaluate and check a single GDB command"""
+        if expected_output is None:
+            expected_output = []
+        self.commands.append(cmd)
+        self.process.stdin.write(cmd.encode("utf-8"))
+        self.process.stdin.write(b"\n")
+        self.process.stdin.flush()
+        logging.debug("(gdb) %s", cmd)
+        for expected_line in expected_output:
+            line = self._readline()
+            match = fnmatch.fnmatch(line, expected_line)
+            if not match:
+                logging.error("(gdb) %s", cmd)
+                logging.error("  expected: %s", expected_line)
+                logging.error("  found:    %s", line)
+                raise RuntimeError("gdb script mismatch")
+
+    def save(self, path: Path):
+        """Save GDB commands to a file"""
+        path.write_text("\n".join(self.commands) + "\n")
 
 
 class ShellSession:
@@ -174,6 +242,20 @@ def shell(request, tmp_path_factory, shell_env):
     session.save_commands()
     if request.session.testsfailed != 0:
         session.keep_tmp()
+
+
+@pytest.fixture
+def gdb(shell):
+    """Create a gdb session"""
+    sessions = []
+
+    def _gdb(cmd: str):
+        sessions.append(GdbSession.launch(shell, cmd))
+        return sessions[-1]
+
+    yield _gdb
+    for i, session in enumerate(sessions):
+        session.save(Path(f"script{i}.gdb"))
 
 
 @pytest.fixture(scope="session")

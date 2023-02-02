@@ -5,13 +5,13 @@ Tests:
     - test_gdb_sysemu: Test GDB on sysemu
 """
 
+# pylint: disable=redefined-outer-name # this is needed for local fixtures
+
 from collections import namedtuple
-import fnmatch
 import logging
 from pathlib import Path
-import subprocess
-import shutil
 import time
+import pytest
 
 Command = namedtuple("Command", ["input", "expected_output"])
 
@@ -84,7 +84,7 @@ def gdb_script(entry_pc: int):
             [
                 "*asm*volatile*flw.ps*",
                 "=> 0x*800*entryPoint_0*flw.ps*fa4*",
-                "   0x*800*entryPoint_0*flw.ps*fa5*",
+                "0x*800*entryPoint_0*flw.ps*fa5*",
             ],
         ),
         Command(
@@ -142,47 +142,9 @@ def launch_kernel(shell, launcher: Path, kernel: Path):
     )
 
 
-def launch_gdb(shell, kernel: Path):
-    """Launch GDB and advance past the license blob"""
-    gdb = shell.popen(
-        f"riscv64-unknown-elf-gdb {kernel}",
-        stdin=subprocess.PIPE,
-    )
-
-    while gdb.poll() is None:
-        line = gdb.stdout.readline().decode("utf-8")
-        if "Reading symbols" in line:
-            break
-
-    return gdb
-
-
-def check_commands(gdb, commands: list, timeout: float):
-    """Execute a sequence of commands and check the expected output"""
-    script = []
-    for command in commands:
-        time.sleep(timeout)
-        script.append(command.input)
-        gdb.stdin.write(command.input.encode("utf-8"))
-        gdb.stdin.write(b"\n")
-        gdb.stdin.flush()
-        logging.debug("(gdb) %s", command.input)
-        for expected_output in command.expected_output:
-            output = gdb.stdout.readline().decode("utf-8").rstrip()
-            if output.startswith("(gdb) "):
-                output = output.replace("(gdb) ", "", 1)
-            logging.debug(output)
-            match = fnmatch.fnmatch(output, expected_output)
-            if not match:
-                logging.error("(gdb) %s", command.input)
-                logging.error("  expected: %s", expected_output)
-                logging.error("  found:    %s", output)
-                return False, script
-    return True, script
-
-
-def test_gdb_sysemu(request, gp_sdk, shell):
-    """Execute a saxpy kernel and debug with GDB"""
+@pytest.fixture
+def example(shell, request, gp_sdk):
+    """Build gdb example (or use cache)"""
     build_cache = request.config.cache.get("build-make", None)
     if build_cache is None or not Path(build_cache).exists():
         logging.info("Building example for gdb")
@@ -211,12 +173,16 @@ def test_gdb_sysemu(request, gp_sdk, shell):
     else:
         logging.info("Reusing build cache")
         build_dir = Path(build_cache)
+    return build_dir
 
+
+def test_gdb_sysemu(request, example, shell, gdb):
+    """Execute a saxpy kernel and debug with GDB"""
     logging.info("Starting kernel launcher")
     entry_pc, launcher = launch_kernel(
         shell,
-        launcher=build_dir / "host/sdk/saxpy_launcher",
-        kernel=build_dir / "device/tests/saxpy_vector.elf",
+        launcher=example / "host/sdk/saxpy_launcher",
+        kernel=example / "device/tests/saxpy_vector.elf",
     )
 
     time.sleep(2)  # Wait some time for the launcher to start
@@ -224,23 +190,13 @@ def test_gdb_sysemu(request, gp_sdk, shell):
     if request.config.getoption("--gdb-custom"):
         logging.info("Waiting for gdb connection")
     else:
-        logging.info("Starting gdb session")
-        gdb = launch_gdb(
-            shell,
-            kernel=build_dir / "device/tests/saxpy_vector.elf_dbg",
-        )
+        gdb = gdb(str(example / "device/tests/saxpy_vector.elf_dbg"))
+        gdb.read_until("Reading symbols")
         logging.info("Running gdb commands")
-        res, script = check_commands(
-            gdb,
-            commands=gdb_script(entry_pc),
-            timeout=0.4,
-        )
-        logging.debug("Saving gdb commands")
-        Path("script.gdb").write_text("\n".join(script))
-        assert res, "gdb mismatch"
-        gdb.stdin.close()
-        err = gdb.wait()
-        assert err == 0, "gdb returned non-zero exit-code"
+        for cmd in gdb_script(entry_pc):
+            time.sleep(0.4)
+            gdb.eval(cmd.input, cmd.expected_output)
+        gdb.close()
 
     err = launcher.wait()
     assert err == 0, "launcher returned non-zero exit-code"
