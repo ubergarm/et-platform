@@ -38,7 +38,9 @@ getCode() {
 getCLine() {
   #"fn at file:line" so we need to parse $3
   #split file and line:
-  sed "${3##*:}q;d" "${3%%:*}"
+  if [[ $3 != "??:?" && $3 != *":?" ]]; then
+      sed "${3##*:}q;d" "${3%%:*}"
+  fi
 }
 
 parseSysemuLog() {
