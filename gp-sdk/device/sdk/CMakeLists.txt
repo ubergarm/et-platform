@@ -23,6 +23,12 @@ target_include_directories(etsoc_crt0
 
 target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
 
+add_library(libcpp_throw_stub STATIC libcpp_throw_stub/functexcept.cc)
+target_link_libraries(libcpp_throw_stub
+    PRIVATE
+        et-common-libs::cm-umode
+)
+
 
 set_target_properties(etsoc_crt0 PROPERTIES 
     VERSION ${PROJECT_VERSION}
@@ -31,6 +37,7 @@ set_target_properties(etsoc_crt0 PROPERTIES
 target_link_libraries(etsoc_crt0
     PUBLIC
         et-common-libs::cm-umode
+        libcpp_throw_stub
 )
 
 
