@@ -115,23 +115,38 @@ build:sonarqube-check:
     CMD_BUILD: |
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
       
-      cd device
-      cp ${ET_SDK_HOME}/.conanfiles/conanfile_device.txt conanfile.txt
-      echo "[layout]" >> conanfile.txt
-      echo "cmake_layout" >> conanfile.txt
+      cp ${ET_SDK_HOME}/.conanfiles/conanfile_device.txt device/conanfile.txt
+      echo "[layout]" >> device/conanfile.txt
+      echo "cmake_layout" >> device/conanfile.txt
       
-      conan install . -pr:b default -pr:h baremetal-rv64-gcc8.2-release --remote conan-develop --build missing
+      cp ${ET_SDK_HOME}/.conanfiles/conanfile_host.txt host/conanfile.txt
+      echo "[layout]" >> host/conanfile.txt
+      echo "cmake_layout" >> host/conanfile.txt
+      
+      conan lock create device/conanfile.txt -pr:b linux-ubuntu18.04-x86_64-gcc7-release -pr:h baremetal-rv64-gcc8.2-release --build missing --lockfile-out device.lock
+      conan lock build-order device.lock --json build-order-device.json
+      
+      conan lock create host/conanfile.txt -pr:b linux-ubuntu18.04-x86_64-gcc7-release -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --build missing --lockfile-out host.lock
+      conan lock build-order host.lock --json build-order-host.json
+      
+      conan install device/conanfile.txt --lockfile device.lock --build missing -if device/build
+      conan install host/conanfile.txt --lockfile host.lock --build missing -if host/build
+      if [[ $(< build-order-device.json) != "[]" || $(< build-order-host.json) != "[]" ]]; then
+        conan user ${ARTIFACTORY_USER} -p ${ARTIFACTORY_PASSWORD} --remote conan-tmp
+        conan upload "*" --all --check --confirm --retry 5 --retry-wait 120 --parallel -r conan-tmp
+        if [[ "$CI_COMMIT_BRANCH" == "$CI_DEFAULT_BRANCH" ]]; then
+          conan user ${ARTIFACTORY_USER} -p ${ARTIFACTORY_PASSWORD} --remote conan-develop
+          conan upload "*" --all --check --confirm --retry 5 --retry-wait 120 --parallel -r conan-develop
+        fi
+      fi
+      
+      cd device
       source build/generators/conanbuild.sh
-      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON
+      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON -G "Unix Makefiles"
       cmake --build --preset release
       cd ..
 
       cd host
-      cp ${ET_SDK_HOME}/.conanfiles/conanfile_host.txt conanfile.txt
-      echo "[layout]" >> conanfile.txt
-      echo "cmake_layout" >> conanfile.txt
-      
-      conan install . -pr:b default -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --update --remote conan-develop --build missing
       cmake --preset ${BUILD_TYPE_LOWER} -DUSE_CONAN=ON -G Ninja
       cmake --build --preset ${BUILD_TYPE_LOWER}
       cd ..
