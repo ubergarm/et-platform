@@ -4,6 +4,7 @@ import os
 import argparse
 import sys
 import subprocess
+import mmap
 
 KERNELS = [
     "print",
@@ -43,6 +44,7 @@ KERNEL_LAUNCHERS = {
     "syncMinion": "barrier_launcher",
     "txfma": "txfma_launcher",
     "hang": "basic_launcher",
+    "exception": "basic_launcher",
 }
 
 
@@ -155,7 +157,29 @@ if __name__ == "__main__":
         if file.startswith("core"):
             corefound = True
             print(f'Core was {file}')
+    if not corefound:
+        error = True
 
+    result= subprocess.run([f'{launcher_base_path}/{KERNEL_LAUNCHERS["exception"]} -kernel_path={kernels_base_path}/exception.elf -device-type={device_type}'], shell=True, capture_output=True, text=True)
+    print(f'test: exception')
+    print("stdout:", result.stdout)
+    print("stderr:", result.stderr)
+    #For this test a Fail it is expected so
+    if result.returncode != 1:
+        print("expected exception test fails.")
+
+    if device_type == "sysemu":
+        #find exception interrupt in sysemu.log0 file
+        with open('sysemu.log0', 'rb', 0) as file, \
+             mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as s:
+            if s.find(b'raise_device_interrupt(type = PU)') == -1:
+                error = True
+    elif device_type == "silicon":
+        if ("Error code: KernelLaunchException" not in result.stdout):
+            error = True            
+    
     if error is True:
         print("error was Found")
         exit(1)
+    else:
+        print("All TEST PASSED")
