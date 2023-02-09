@@ -142,47 +142,15 @@ def launch_kernel(shell, launcher: Path, kernel: Path):
     )
 
 
-@pytest.fixture
-def example(shell, request, gp_sdk):
-    """Build gdb example (or use cache)"""
-    build_cache = request.config.cache.get("build-make", None)
-    if build_cache is None or not Path(build_cache).exists():
-        logging.info("Building example for gdb")
-        build_dir = Path("build")
-        shell.mkdir(build_dir / "device")
-        shell.cmake(
-            source_dir=gp_sdk.path / "device",
-            build_dir=build_dir / "device",
-            cmake_toolchain_file="$ET_SDK_HOME/.builds/device/conan_toolchain.cmake",
-            cmake_build_type="Release",
-            address=gp_sdk.kernel_address,
-            use_conan=True,
-        )
-        shell.make(
-            build_dir / "device", target=["saxpy_vector.elf", "saxpy_vector.elf_dbg"]
-        )
-        shell.mkdir(build_dir / "host")
-        shell.cmake(
-            source_dir=gp_sdk.path / "host",
-            build_dir=build_dir / "host",
-            cmake_toolchain_file="$ET_SDK_HOME/.builds/host/conan_toolchain.cmake",
-            cmake_build_type="Release",
-            use_conan=True,
-        )
-        shell.make(build_dir / "host", target="saxpy_launcher")
-    else:
-        logging.info("Reusing build cache")
-        build_dir = Path(build_cache)
-    return build_dir
-
-
-def test_gdb_sysemu(request, example, shell, gdb):
+def test_gdb_sysemu(request, build_dir, shell, gdb):
     """Execute a saxpy kernel and debug with GDB"""
+    if not build_dir.exists():
+        pytest.skip("the examples have not been built")
     logging.info("Starting kernel launcher")
     entry_pc, launcher = launch_kernel(
         shell,
-        launcher=example / "host/sdk/saxpy_launcher",
-        kernel=example / "device/tests/saxpy_vector.elf",
+        launcher=build_dir.host / "sdk/saxpy_launcher",
+        kernel=build_dir.device / "tests/saxpy_vector.elf",
     )
 
     time.sleep(2)  # Wait some time for the launcher to start
@@ -190,7 +158,7 @@ def test_gdb_sysemu(request, example, shell, gdb):
     if request.config.getoption("--gdb-custom"):
         logging.info("Waiting for gdb connection")
     else:
-        gdb = gdb(str(example / "device/tests/saxpy_vector.elf_dbg"))
+        gdb = gdb(str(build_dir.device / "tests/saxpy_vector.elf_dbg"))
         gdb.read_until("Reading symbols")
         logging.info("Running gdb commands")
         for cmd in gdb_script(entry_pc):

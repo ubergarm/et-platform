@@ -32,6 +32,60 @@ GENERATOR_TARGET = {
 }
 
 
+class BuildCache:
+    """
+    Cache build directories for host launchers and device kernels.
+    """
+
+    def __init__(self, config):
+        self._config = config
+
+    def exists(self):
+        """Check whether host/device build directories exist"""
+        device = self.device
+        host = self.host
+        return (
+            device is not None
+            and device.exists()
+            and host is not None
+            and host.exists()
+        )
+
+    @property
+    def device(self) -> Optional[Path]:
+        """Path to the device build"""
+        build = self._config.getoption("--device-build")
+        if build is None:
+            build = self._config.cache.get("device-build", None)
+        if build is None:
+            return None
+        path = Path(build)
+        if not path.is_absolute():
+            path = self._config.rootdir / path
+        return path
+
+    @property
+    def host(self) -> Optional[Path]:
+        """Path to the host build"""
+        build = self._config.getoption("--host-build")
+        if build is None:
+            build = self._config.cache.get("host-build", None)
+        if build is None:
+            return None
+        path = Path(build)
+        if not path.is_absolute():
+            path = self._config.rootdir / path
+        return path
+
+    def save_device(self, path: Path):
+        """Cache the device build"""
+        self._config.cache.set("device-build", str(path))
+
+    def save_host(self, path: Path):
+        """Cache the host build"""
+        self._config.cache.set("host-build", str(path))
+
+
 class GdbSession:
     """
     GDB session fixture
@@ -132,7 +186,7 @@ class ShellSession:
             [
                 "#!/bin/bash",
                 "",
-                "set -eu",
+                "set -eux",
                 "",
             ]
             + self._commands
@@ -215,6 +269,14 @@ def pytest_addoption(parser):
         action="store_true",
         help="Keep build artifacts on pass",
     )
+    parser.addoption(
+        "--device-build",
+        help="Path to device builds",
+    )
+    parser.addoption(
+        "--host-build",
+        help="Path to device builds",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -271,3 +333,9 @@ def gp_sdk(request):
     assert (gp_sdk_path / ".git").exists()
     logging.info("Using GP-SDK in %s", gp_sdk_opt)
     return Sdk(path=gp_sdk_path, kernel_address=KERNEL_ADDRESS)
+
+
+@pytest.fixture
+def build_dir(request):
+    """Build directory (cmdline or cached)"""
+    return BuildCache(request.config)

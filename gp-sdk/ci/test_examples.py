@@ -171,7 +171,7 @@ def check_run_artifacts(shell, device_type: str, nkernels: int = 1):
         # "ninja",  # FIXME: Currently not working, see CS-49
     ],
 )
-def test_build_examples(gp_sdk, shell, generator, request):
+def test_build_examples(gp_sdk, shell, generator, build_dir):
     """Build both device-side and host-side artifacts"""
     logging.info("Building device-side kernels")
     shell.mkdir(shell.tmp_path / "device")
@@ -223,24 +223,21 @@ def test_build_examples(gp_sdk, shell, generator, request):
                 "libdeviceLayer.so",
             ],
         )
-    request.config.cache.set(f"build-{generator}", str(shell.tmp_path))
+    build_dir.save_device(shell.tmp_path / "device")
+    build_dir.save_host(shell.tmp_path / "host")
 
 
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
 @pytest.mark.parametrize("kernel", KERNELS)
-def test_run_example(request, shell, device_type, kernel):
+def test_run_example(shell, device_type, kernel, build_dir):
     """Run one of the provided examples"""
-    build_cache = request.config.cache.get("build-make", None)
-    if build_cache is None:
-        pytest.skip("the examples have not been built")
-    build_dir = Path(build_cache)
     if not build_dir.exists():
-        pytest.skip("the examples need to be rebuilt")
+        pytest.skip("the examples have not been built")
     logging.info("Running %s on %s", kernel, device_type)
-    kernel_path = build_dir / "device/tests" / f"{kernel}.elf"
+    kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
     launch_cmd = " ".join(
         [
-            str(build_dir / "host/sdk" / KERNEL_LAUNCHERS[kernel]),
+            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS[kernel]),
             f"--kernel_path={kernel_path}",
             f"--device_type={device_type}",
         ]
@@ -251,20 +248,16 @@ def test_run_example(request, shell, device_type, kernel):
 
 
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
-def test_run_multi_kernel(request, shell, device_type):
+def test_run_multi_kernel(shell, device_type, build_dir):
     """Run multi kernel example"""
-    build_cache = request.config.cache.get("build-make", None)
-    if build_cache is None:
-        pytest.skip("the examples have not been built")
-    build_dir = Path(build_cache)
     if not build_dir.exists():
-        pytest.skip("the examples need to be rebuilt")
+        pytest.skip("the examples have not been built")
     kernels = ["bss", "saxpy_scalar"]
     logging.info("Running %s on %s", kernels, device_type)
-    kernel_paths = [build_dir / "device/tests" / f"{kernel}.elf" for kernel in kernels]
+    kernel_paths = [build_dir.device / "tests" / f"{kernel}.elf" for kernel in kernels]
     launch_cmd = " ".join(
         [
-            str(build_dir / "host/sdk/multiKernel_launcher"),
+            str(build_dir.host / "sdk/multiKernel_launcher"),
             f"--kernel_path1={kernel_paths[0]}",
             f"--kernel_path2={kernel_paths[1]}",
             f"--device_type={device_type}",
