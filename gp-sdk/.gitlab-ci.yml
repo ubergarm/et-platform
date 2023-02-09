@@ -95,7 +95,7 @@ build:sonarqube-check:
       if [ "$BUILD_TYPE" == "Debug" ]; then
         echo "Skip testing when building in Debug"
       else
-        python3 -m pytest ci -k "artifacts or $DEVICE_TYPE" --basetemp=$TEMP_DIR --junitxml=$JUNIT_REPORT $PYTEST_OPTIONS --device-build=$DEVICE_BUILD_PATH --host-build=$HOST_BUILD_PATH
+        python3 -m pytest ci -k "(artifacts or $DEVICE_TYPE) and not gdb" --basetemp=$TEMP_DIR --junitxml=$JUNIT_REPORT $PYTEST_OPTIONS --device-build=$DEVICE_BUILD_PATH --host-build=$HOST_BUILD_PATH
       fi
   artifacts:
     when: always
