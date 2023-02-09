@@ -78,9 +78,13 @@ build:sonarqube-check:
   variables:
     KUBERNETES_MEMORY_LIMIT: 16Gi
     ET_SDK_HOME: /usr/local/esperanto
+    KERNEL_ADDRESS: 0x8005b35000
+    JUNIT_REPORT: report.xml
+    TEMP_DIR: temp
+    PYTEST_OPTIONS: --log-cli-level=DEBUG --tb=short -q
+    DEVICE_BUILD_PATH: device/build/Release
+    HOST_BUILD_PATH: host/build/$BUILD_TYPE
     # DEVICE_TYPE: type of execution (silicon or sysemu)
-    # LAUNCHERS_BASE_PATH: path to compiled host kernel launchers (examples)
-    # KERNELS_BASE_PATH: path to compiled device kernels
 
     CMD_SETUP_EXTRA_DEPS: |
       sudo apt install ninja-build
@@ -91,8 +95,17 @@ build:sonarqube-check:
       if [ "$BUILD_TYPE" == "Debug" ]; then
         echo "Skip testing when building in Debug"
       else
-        ./tests_gpsdk_ci.py --path=$PWD/host/build
+        python3 -m pytest ci -k "artifacts or $DEVICE_TYPE" --basetemp=$TEMP_DIR --junitxml=$JUNIT_REPORT $PYTEST_OPTIONS --device-build=$DEVICE_BUILD_PATH --host-build=$HOST_BUILD_PATH
       fi
+  artifacts:
+    when: always
+    paths:
+      - $JUNIT_REPORT
+      - $TEMP_DIR
+    expire_in: 1 day
+    reports:
+      junit: $JUNIT_REPORT
+
 
 ###############################################################################
 ###############################################################################
@@ -109,8 +122,6 @@ build:sonarqube-check:
       - BUILD_TYPE: [ Release, Debug ]
   variables:
     TIMEOUT: 2h
-    LAUNCHERS_BASE_PATH: ${BUILD_TYPE}/sdk
-    KERNELS_BASE_PATH: ../../device/build/Release/tests
 
     CMD_BUILD: |
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
@@ -142,7 +153,7 @@ build:sonarqube-check:
       
       cd device
       source build/generators/conanbuild.sh
-      cmake --preset release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON -G "Unix Makefiles"
+      cmake --preset release -DADDRESS:STRING=${KERNEL_ADDRESS} -DUSE_CONAN=ON -G "Unix Makefiles"
       cmake --build --preset release
       cd ..
 
@@ -170,22 +181,16 @@ tests:conan:sw-sysemu:
       - BUILD_TYPE: [ Release, RelWithDebInfo, Debug ]
   variables:
     TIMEOUT: 2h
-    LAUNCHERS_BASE_PATH: sdk
-    KERNELS_BASE_PATH: ../../device/build/tests
 
     CMD_BUILD: |      
-      cd device
-      mkdir build && cd build
+      mkdir -p $DEVICE_BUILD_PATH
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
-      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON
-      cmake --build .
-      cd ../..
+      cmake -B$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=${KERNEL_ADDRESS} -DUSE_CONAN=ON device
+      cmake --build $DEVICE_BUILD_PATH
 
-      cd host
-      mkdir build && cd build
-      cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_CONAN=ON -G Ninja
-      cmake --build .
-      cd ../..
+      mkdir -p $HOST_BUILD_PATH
+      cmake -B$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_CONAN=ON -G Ninja host
+      cmake --build $HOST_BUILD_PATH
 
 tests:cmake-only:silicon:
   extends:
