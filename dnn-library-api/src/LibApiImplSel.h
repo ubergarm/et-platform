@@ -45,6 +45,8 @@ public:
 
   static size_t ElementCmpEQ(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
 
+  static size_t ElementCmpNEQ(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
+
   static size_t ElementCmpLTE(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
 
   static size_t ElementCmpLT(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);

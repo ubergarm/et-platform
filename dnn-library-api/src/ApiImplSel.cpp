@@ -47,6 +47,10 @@ size_t implSel::ElementCmpEQ(std::vector<LibTensor*>& outTensors, std::vector<Li
   return ElementBool(outTensors, inTensors);
 }
 
+size_t implSel::ElementCmpNEQ(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
+  return ElementBool(outTensors, inTensors);
+}
+
 size_t implSel::ElementCmpLTE(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
   return ElementBool(outTensors, inTensors);
 }
