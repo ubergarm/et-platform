@@ -48,7 +48,9 @@ size_t implSel::ElementCmpEQ(std::vector<LibTensor*>& outTensors, std::vector<Li
 }
 
 size_t implSel::ElementCmpNEQ(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
-  return ElementBool(outTensors, inTensors);
+  // SW-16112: Add Vectorized implementation for CMPNEQ (currenty only works for FP16)
+  // return ElementBool(outTensors, inTensors);
+  return 0;
 }
 
 size_t implSel::ElementCmpLTE(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
