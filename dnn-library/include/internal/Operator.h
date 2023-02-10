@@ -1165,6 +1165,111 @@ public:
     dst[d] = (src1[s1] == src2[s2]) ? true : false;
   }
 
+  // FIXME: SW-16112 to fix these vectorized code
+  template <typename U = opType, typename S = src1Type,
+            typename std::enable_if<std::is_same<U, CmpNEQ>::value && std::is_same<S, Addresser<Float16Ty>>::value,
+                                    std::size_t>::type = 0>
+  INLINE_ATTR void doOpVect(int32_t* gatherValues, uintptr_t srcAddr1, uintptr_t srcAddr2, bool* dstAddr,
+                            [[maybe_unused]] const float* scale, [[maybe_unused]] const int32_t* offset) {
+    uint32_t scatterValues[] = {0, 1, 2, 3, 4, 5, 6, 7};
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
+                         "fgh.ps  f0, f31(%[src1]) \n"
+                         "fcvt.ps.f16 f0, f0 \n"
+                         "fgh.ps  f1, f31(%[src2]) \n"
+                         "flw.ps f31, %[scatterValues]\n"
+                         "fcvt.ps.f16 f1, f1 \n"
+                         "feq.ps f0, f0, f1 \n"
+                         "fandi.pi f0, f0, 0x1 \n"
+                         "fnot.pi f0, f0 \n"
+                         "fscb.ps f0, f31(%[dst])\n"
+                         :
+                         : [ gatherValues ] "m"(*(const int32_t(*)[8])gatherValues),
+                           [ scatterValues ] "m"(*(const int32_t(*)[8])scatterValues), [ src1 ] "r"(srcAddr1),
+                           [ src2 ] "r"(srcAddr2), [ dst ] "r"(dstAddr)
+                         : "f0", "f1", "f31", "memory");
+  }
+
+  template <typename U = opType, typename S = src1Type,
+            typename std::enable_if<std::is_same<U, CmpNEQ>::value && std::is_same<S, Addresser<FloatTy>>::value,
+                                    std::size_t>::type = 0>
+  INLINE_ATTR void doOpVect([[maybe_unused]] int32_t* gatherValues, uintptr_t srcAddr1, uintptr_t srcAddr2,
+                            bool* dstAddr, [[maybe_unused]] const float* scale,
+                            [[maybe_unused]] const int32_t* offset) {
+    __asm__ __volatile__("flw.ps  f0, 0x0(%[src1]) \n"
+                         "flw.ps  f1, 0x0(%[src2]) \n"
+                         "feq.ps f0, f0, f1 \n"
+                         "fandi.pi f0, f0, 0x1 \n"
+                         "fnot.pi f0, f0 \n"
+                         "fslli.pi f0, f0, 24 \n"
+                         "fbci.pi f2, 0 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsrli.pi f2, f2, 0x8 \n"
+                         "fswizz.ps f0, f0, 0x39 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsrli.pi f2, f2, 0x8 \n"
+                         "fswizz.ps f0, f0, 0x39 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsrli.pi f2, f2, 0x8 \n"
+                         "fswizz.ps f0, f0, 0x39 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsw f2, 0x0(%[dst]) \n"
+                         "mov.m.x m1, zero, 16 \n"
+                         "maskand m0, m0, m1 \n"
+                         "fsw.ps f2, -12(%[dst]) \n"
+                         :
+                         : [ src1 ] "r"(srcAddr1), [ src2 ] "r"(srcAddr2), [ dst ] "r"(dstAddr)
+                         : "f0", "f1", "f2", "memory");
+  }
+
+  template <typename U = opType, typename S = src1Type,
+            typename std::enable_if<std::is_same<U, CmpNEQ>::value && std::is_same<S, Addresser<Int8QTy>>::value,
+                                    std::size_t>::type = 0>
+  INLINE_ATTR void doOpVect(int32_t* gatherValues, uintptr_t srcAddr1, uintptr_t srcAddr2, bool* dstAddr,
+                            const float* scale, const int32_t* offset) {
+    __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
+                         "fbc.ps f30, 0x0(%[offset]) \n"
+                         "fbc.ps f29, 0x0(%[scale]) \n"
+                         "fgb.ps  f0, f31(%[src1]) \n"
+                         "fsub.pi f0, f0, f30 \n"
+                         "fcvt.ps.pw f0, f0 \n"
+                         "fmul.ps f0, f0, f29 \n"
+                         "fgb.ps  f1, f31(%[src2]) \n"
+                         "fbc.ps f30, 0x4(%[offset]) \n"
+                         "fbc.ps f29, 0x4(%[scale]) \n"
+                         "fsub.pi f1, f1, f30 \n"
+                         "fcvt.ps.pw f1, f1 \n"
+                         "fmul.ps f1, f1, f29 \n"
+                         "feq.ps f0, f0, f1 \n"
+                         "fandi.pi f0, f0, 0x1 \n"
+                         "fnot.pi f0, f0 \n"
+                         "fslli.pi f0, f0, 24 \n"
+                         "fbci.pi f2, 0 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsrli.pi f2, f2, 0x8 \n"
+                         "fswizz.ps f0, f0, 0x39 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsrli.pi f2, f2, 0x8 \n"
+                         "fswizz.ps f0, f0, 0x39 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsrli.pi f2, f2, 0x8 \n"
+                         "fswizz.ps f0, f0, 0x39 \n"
+                         "for.pi f2, f0, f2 \n"
+                         "fsw f2, 0x0(%[dst]) \n"
+                         "mov.m.x m1, zero, 16 \n"
+                         "maskand m0, m0, m1 \n"
+                         "fsw.ps f2, -12(%[dst]) \n"
+                         :
+                         : [ gatherValues ] "m"(*(const int32_t(*)[8])gatherValues), [ src1 ] "r"(srcAddr1),
+                           [ src2 ] "r"(srcAddr2), [ dst ] "r"(dstAddr), [ offset ] "r"(offset), [ scale ] "r"(scale)
+                         : "f0", "f1", "f2", "f29", "f30", "f31", "memory");
+  }
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, CmpNEQ>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(bool* dst, const src1Type& src1, const src2Type& src2, uint64_t& d, uint64_t& s1,
+                        uint64_t& s2) {
+    dst[d] = (src1[s1] == src2[s2]) ? false : true;
+  }
+
   template <typename U = opType, typename S = src1Type,
             typename std::enable_if<std::is_same<U, CmpLTE>::value && std::is_same<S, Addresser<Float16Ty>>::value,
                                     std::size_t>::type = 0>

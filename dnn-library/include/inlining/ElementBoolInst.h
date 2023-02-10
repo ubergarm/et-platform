@@ -365,10 +365,9 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
                                                                         assignedMinions);                              \
   }
 
-  EltWiseInst(ElementCmpEQ, CmpEQ)
-  EltWiseInst(ElementCmpLT, CmpLT)
+EltWiseInst(ElementCmpEQ, CmpEQ) EltWiseInst(ElementCmpNEQ, CmpNEQ) EltWiseInst(ElementCmpLT, CmpLT)
   EltWiseInst(ElementCmpLTE, CmpLTE)
-    
+
 #undef EltWiseInst
 
   
