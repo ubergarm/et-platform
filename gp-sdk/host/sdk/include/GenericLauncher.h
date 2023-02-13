@@ -18,6 +18,16 @@
 #include <string>
 #include <vector>
 
+#if __has_include("filesystem")
+#include <filesystem>
+#elif __has_include("experimental/filesystem")
+#include <experimental/filesystem>
+namespace std {
+namespace filesystem = std::experimental::filesystem;
+}
+#endif
+namespace fs = std::filesystem;
+
 /**
  * \enum Mode
  * \brief list of execution mode types.
@@ -67,8 +77,11 @@ public:
    * \brief Main constructor.
    * \param config specifies device type and device count configuration used in the kernel execution
    */
-  GenericLauncher(const Config& config)
-    : config_(config){};
+  GenericLauncher(const Config& config, int argc, char** argv)
+    : config_(config) {
+
+    parse_args(argc, argv);
+  };
 
   /**
    * Initializes the PCIE, SYSEMU or FAKE device interface where the kernel will run.
@@ -156,6 +169,12 @@ public:
   std::atomic<uint64_t> kernelError_ = 0; // Number of kernels that reported an error
   std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
 
+  // static inline constexpr const char* help_msg =
+   constexpr static const char* help_msg =  
+    "  -c, --enableCoreDump          Write perfetto trace to a file instead\n"
+    "  -s, --simulator_params        Hyperparameters to pass to simulator, overrides default values\n"
+    "  -g, --gp_sdk_device_intalldir Path to gp-sdk-device installation directory\n";
+
 private:
   std::vector<std::byte> readFile(const std::string& path);
   // just to enable glog-logger on runtime.
@@ -166,6 +185,13 @@ private:
   void resetRuntime(bool enableCoreDump);
   rt::IRuntime* getRuntime(bool enableCoreDump);
   AbortManager abortManager_;
+
+  void parse_args(int argc, char* const* argv);
+
+  // parameters expected
+  fs::path gp_sdk_device_installdir_;
+  std::string simulator_params_;
+  bool enableCoreDump_;
 
 protected:
   const Config& config_;

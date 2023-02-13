@@ -7,25 +7,84 @@
 // in accordance with the terms and conditions stipulated in the
 // agreement/contract under which the program(s) have been supplied.
 //------------------------------------------------------------------------------
-#include "GenericLauncher.h"
+
 #include <algorithm>
 #include <cassert>
-#include <gflags/gflags.h>
-
 #ifdef FFT_VERIFICATION
 #include <fftw3.h>
 #endif
 
+#include <cstdlib>
+#include <getopt.h>
+#include <string>
+
+#include "GenericLauncher.h"
 // Shared kernel-arguments with device:
 #include "kernel_arguments.h"
+
+/* Place here all parameters accepted for this specific launcher. */
+struct Options {
+
+  fs::path kernel_path = "";
+  int kernel_launch_timeout = 10;
+  std::string device_type = "sysemu";
+};
+
+Options parse_args(int argc, char* const* argv) {
+
+  std::string launcherName = argv[0];
+  static constexpr const char* help_msg =
+    "Usage: [options] <trace>\n\n"
+    "Launcher GP-SDK kernel.\n\n"
+    "The following switches must be given:\n"
+    "  -k, --kernel_path             path to kernel elf file to execute.\n\n"
+    "The following switches are optional:\n"
+    "  -t, --kernel_launch_timeout   timeout (in seconds) to wait for kenelLaunch\n"
+    "  -d, --device_type             Device Type to be used (sysemu, fake,silicon.\n";
+
+  static constexpr const char* short_opts = "k:t:n:d:h";
+
+  static const std::vector<struct option> long_opts_vect {{"kernel_path", required_argument, nullptr, 'k'},
+                                                          {"kernel_launch_timeout", required_argument, nullptr, 't'},
+                                                          {"device_type", required_argument, nullptr, 'd'},
+                                                          {nullptr, 0, nullptr, 0}};
+
+  Options opts;
+
+  int ret = 0;
+  int index = 0;
+  opterr = 0;
+
+  while ((ret = getopt_long(argc, argv, short_opts, long_opts_vect.data(), &index)) != -1) {
+    switch (ret) {
+    case 'k':
+      opts.kernel_path = optarg;
+      break;
+    case 't':
+      opts.kernel_launch_timeout = atoi(optarg);
+      break;
+    case 'd':
+      opts.device_type = optarg;
+      break;
+    case 'h':
+      std::cout << help_msg << GenericLauncher::help_msg << std::endl;
+      exit(0);
+    case '?':
+      break;
+    default:
+      std::cout << "Error: Unknown option " << argv[optind - 1] << ". See " << argv[0] << " --help'.\n" << std::endl;
+      exit(1);
+    }
+  }
+
+  return opts;
+}
 
 // dnnlib FFT kernel lancuher class.
 class FFTLauncher : public GenericLauncher {
 public:
   FFTLauncher() = delete;
-  FFTLauncher(const Config& config)
-    : GenericLauncher(config){};
-
+  using GenericLauncher::GenericLauncher;
   /// \brief fill input vector with data. if we are doing an FFT, only real data is in use. Im planes are 0-ed.
   void prepareInput() {
 
@@ -152,18 +211,14 @@ public:
   KernelArguments fftKernelArgs_;
 };
 
-DEFINE_string(device_type, "sysemu", "Device Type to be used (sysemu,fake,silicon)");
-DEFINE_uint64(kernel_launch_timeout, 300, "timeout (inseconds) to wait for kernelLaunch");
-DEFINE_string(kernel_path, "", "ET-SoC-1 kernel path and filename");
-
 int main(int argc, char** argv) {
-  GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
-  Config config{modeFromString(FLAGS_device_type), 1};
+  Options opt = parse_args(argc, argv);
+  Config config{modeFromString(opt.device_type), 1};
   config.dump();
 
-  FFTLauncher launcher(config);
+  FFTLauncher launcher(config, argc, argv);
   launcher.initialize();
-  auto kernelId = launcher.loadKernel(FLAGS_kernel_path);
+  auto kernelId = launcher.loadKernel(opt.kernel_path);
   launcher.prepareInput();
   launcher.performDeviceAllocs();
 
@@ -185,7 +240,7 @@ int main(int argc, char** argv) {
   launcher.kernelLaunch(kernelId, &kernelArgs);
   launcher.programDev2HostCopies();
 
-  auto timeout = std::chrono::seconds(FLAGS_kernel_launch_timeout);
+  auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
   launcher.waitKernelCompletion(timeout);
   launcher.dumpTracesToFile();
   

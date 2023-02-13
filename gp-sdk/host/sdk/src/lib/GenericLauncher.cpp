@@ -17,24 +17,12 @@
 #include <runtime/DeviceLayerFake.h>
 #include <sw-sysemu/SysEmuOptions.h>
 
-#if __has_include("filesystem")
-#include <filesystem>
-#elif __has_include("experimental/filesystem")
-#include <experimental/filesystem>
-namespace std {
-namespace filesystem = std::experimental::filesystem;
-}
-#endif
-namespace fs = std::filesystem;
+#include <getopt.h>
 
 #include "GenericLauncher.h"
 #include "RuntimeImpWithCoreDump.h"
 
-DEFINE_string(gp_sdk_device_installdir, "", "Path to gp-sdk-device installation directory");
 
-DEFINE_string(simulator_params, "", "Hyperparameters to pass to simulator, overrides default values");
-
-DEFINE_bool(enableCoreDump, false, "Enable core dump");
 
 // Trace Buffer realted constants.
 constexpr size_t kTraceBytesPerHart = 4096;
@@ -57,7 +45,7 @@ std::tuple<fs::path, fs::path> getDeviceArtifactsBasePaths() {
 }
 #endif
 
-emu::SysEmuOptions getDefaultOptions() {
+emu::SysEmuOptions getDefaultOptions(std::string const &simulator_params) {
 #ifdef WITH_SYSEMU_PATHS
   auto [device_bootloader_path, device_minion_rt_path] = getDeviceArtifactsBasePaths();
   const fs::path BOOTROM_TRAMPOLINE_TO_BL2_ELF =
@@ -88,7 +76,7 @@ emu::SysEmuOptions getDefaultOptions() {
   sysEmuOptions.startGdb = false;
 
   // Pass the sysemu parameters from command line
-  auto cmd = FLAGS_simulator_params;
+  auto cmd = simulator_params;
   std::istringstream iss{cmd};
   sysEmuOptions.additionalOptions =
     std::vector<std::string>{std::istream_iterator<std::string>{iss}, std::istream_iterator<std::string>{}};
@@ -118,7 +106,7 @@ void GenericLauncher::initialize() {
     break;
   case Mode::SYSEMU: {
     std::cout << "Running tests with SYSEMU deviceLayer\n";
-    auto opts = getDefaultOptions();
+    auto opts = getDefaultOptions(simulator_params_);
     std::vector<decltype(opts)> vopts;
     for (auto i = 0; i < config_.numDevices_; ++i) {
       vopts.emplace_back(opts);
@@ -138,7 +126,7 @@ void GenericLauncher::initialize() {
     break;
   }
 
-  createRuntime(FLAGS_enableCoreDump, options);
+  createRuntime(enableCoreDump_, options);
 
   devices_ = runtime_->getDevices();
 
@@ -149,8 +137,8 @@ void GenericLauncher::initialize() {
   }
 
   // Program callbacks for error management.
-  auto streamErrorHandler = [this, rt = getRuntime(FLAGS_enableCoreDump)]([[maybe_unused]] rt::EventId id,
-                                                                          const rt::StreamError& error) {
+  auto streamErrorHandler = [this, rt = getRuntime(enableCoreDump_)]([[maybe_unused]] rt::EventId id,
+                                                                     const rt::StreamError& error) {
     // TO IMPROVE: Currently we don't have the deviceId related to this error.
     std::cout << "streamErrorHandler "
               << "() rt reports an error on a stream command(EventId: " << static_cast<int>(id) << "):\n"
@@ -163,20 +151,20 @@ void GenericLauncher::initialize() {
 
     kernelError_++;
 
-    if (FLAGS_enableCoreDump) {
+    if (enableCoreDump_) {
       abortManager_.dumpCore(rt, id, error);
     }
   };
 
   // Program callback when we want kernel aborts (due to a timeout) to dump corefiles
-  auto abortedKernelHandler = [this, rt = getRuntime(FLAGS_enableCoreDump)](rt::EventId id, std::byte const* context,
-                                                                            size_t size,
-                                                                            std::function<void()> freeResources) {
+  auto abortedKernelHandler = [this, rt = getRuntime(enableCoreDump_)](rt::EventId id, std::byte const* context,
+                                                                       size_t size,
+                                                                       std::function<void()> freeResources) {
     std::cout << "abortedKernelHandler"
               << " () rt reports that a kernel has been aborted (EventId: " << static_cast<int>(id) << ")\n";
     kernelAbort_++;
 
-    if (FLAGS_enableCoreDump) {
+    if (enableCoreDump_) {
       auto error = abortManager_.handleAbortedKernelAndDumpCore(rt, id, context, size, freeResources);
       if (error.has_value()) {
         reportUserException(error.value());
@@ -223,7 +211,7 @@ void GenericLauncher::tearDown() {
     runtime_->destroyStream(s);
   }
 
-  resetRuntime(FLAGS_enableCoreDump);
+  resetRuntime(enableCoreDump_);
   defaultStreams_.clear();
   traceStreams_.clear();
   devices_.clear();
@@ -368,4 +356,48 @@ rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
   } else {
     return runtime_.get();
   }
+}
+
+void GenericLauncher::parse_args(int argc, char* const* argv) {
+
+  static constexpr const char* short_opts = "c:s:g";
+
+  static const std::vector<struct option> long_opts_vect {{"enableCoreDump", no_argument, nullptr, 'c'},
+                                                          {"simulator_params", required_argument, nullptr, 's'},
+                                                          {"gp_sdk_device_installdir", required_argument, nullptr, 'g'},
+                                                          {nullptr, 0, nullptr, 0}};
+
+  int ret = 0;
+  int index = 0;
+  opterr = 0;
+
+  /*
+    A program that scans multiple argument vectors, or rescans the same vector more than once,
+    and wants to make use of GNU extensions such as '+' and '-' at the start of optstring,
+    or changes the value of POSIXLY_CORRECT between scans, must reinitialize getopt() by
+    resetting optind to 0, rather than the traditional value of 1. (Resetting to 0 forces
+    the invocation of an internal initialization routine that rechecks POSIXLY_CORRECT
+    and checks for GNU extensions in optstring.)
+  */
+
+  optind = 0;
+
+  while ((ret = getopt_long(argc, argv, short_opts, long_opts_vect.data(), &index)) != -1) {
+    switch (ret) {
+    case 'c':
+      enableCoreDump_ = true;
+      break;
+    case 's':
+      simulator_params_ = optarg;
+      break;
+    case 'g':
+      gp_sdk_device_installdir_ = optarg;
+      break;
+    default:
+      break;
+    }
+  }
+
+  /* It needs to do again because on invoke sysemu if is the case, It calls getopts again */
+  optind = 0;
 }
