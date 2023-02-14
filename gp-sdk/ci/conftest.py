@@ -277,6 +277,11 @@ def pytest_addoption(parser):
         "--host-build",
         help="Path to device builds",
     )
+    parser.addoption(
+        "--skip-gdb",
+        action="store_true",
+        help="Skip GDB checks",
+    )
 
 
 @pytest.fixture(scope="session")

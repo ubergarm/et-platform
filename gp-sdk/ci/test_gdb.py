@@ -146,6 +146,8 @@ def test_gdb_sysemu(request, build_dir, shell, gdb):
     """Execute a saxpy kernel and debug with GDB"""
     if not build_dir.exists():
         pytest.skip("the examples have not been built")
+    if request.config.getoption("--skip-gdb"):
+        pytest.skip("gdb tests are is disabled")
     logging.info("Starting kernel launcher")
     entry_pc, launcher = launch_kernel(
         shell,
