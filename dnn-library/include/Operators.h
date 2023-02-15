@@ -19,6 +19,7 @@ class Div {};
 class Max {};
 class Min {};
 class CmpEQ {};
+class CmpNEQ {};
 class CmpLTE {};
 class CmpLT {};
 class Select {};
