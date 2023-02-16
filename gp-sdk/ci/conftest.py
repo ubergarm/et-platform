@@ -61,7 +61,7 @@ class BuildCache:
             return None
         path = Path(build)
         if not path.is_absolute():
-            path = self._config.rootdir / path
+            path = Path(self._config.rootdir / path)
         return path
 
     @property
@@ -74,7 +74,7 @@ class BuildCache:
             return None
         path = Path(build)
         if not path.is_absolute():
-            path = self._config.rootdir / path
+            path = Path(self._config.rootdir / path)
         return path
 
     def save_device(self, path: Path):
