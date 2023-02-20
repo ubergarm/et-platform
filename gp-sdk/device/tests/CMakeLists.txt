@@ -58,3 +58,6 @@ target_include_directories(txfma.elf INTERFACE .)
 add_etsoc_riscv_executable(oneTrapOnSync.elf trapping/oneTrapOnSync.cpp)
 target_link_libraries(oneTrapOnSync.elf etsoc_crt0)
 
+add_etsoc_riscv_executable(busy10sec.elf busy10sec/busy10sec.cc)
+target_link_libraries(busy10sec.elf etsoc_crt0)
+
