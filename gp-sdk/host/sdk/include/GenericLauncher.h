@@ -191,7 +191,7 @@ private:
   // parameters expected
   fs::path gp_sdk_device_installdir_;
   std::string simulator_params_;
-  bool enableCoreDump_;
+  bool enableCoreDump_ = false;
 
 protected:
   const Config& config_;

@@ -99,8 +99,13 @@ target_link_libraries(multiDeviceHang_launcher
         etsoc_gpsdk
 )
 
-                                         
-install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher
+add_executable(trapping_launcher src/trapping/trapping.cpp)
+target_link_libraries(trapping_launcher
+    PRIVATE
+        etsoc_gpsdk
+)
+      
+install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}
