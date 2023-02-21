@@ -11,6 +11,7 @@
 
 #ifndef _ENTRY_POINT_H_
 #define _ENTRY_POINT_H_
+
 /**
  * Forward declaration of KernelArguments, user implementations will define
  */
@@ -37,4 +38,19 @@ extern "C" int entryPoint_0(KernelArguments* args);
  * \param num_bytes number of bytes to write
  */
 extern "C" int entryPoint_1(KernelArguments* args);
+
+/* EntryPoint kernel functions must have this form */
+using KernelEntryPointFuncPtr = int (*)(KernelArguments*);
+
+/// @brief hello
+/// Examples of DeviceConfig
+/// constexpr DeviceConfig config1 {1, entryPoint_0, nullptr};
+/// constexpr DeviceConfig config2 {2, entryPoint_0, entryPoint_0};
+/// constexpr DeviceConfig config3 {2, entryPoint_0, entryPoint_1};
+struct DeviceConfig {
+  int32_t threadsPerCore = 0;
+  KernelEntryPointFuncPtr entryPoint_0 = nullptr;
+  KernelEntryPointFuncPtr entryPoint_1 = nullptr;
+};
+
 #endif 
