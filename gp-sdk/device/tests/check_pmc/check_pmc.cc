@@ -15,10 +15,15 @@
 #include <etsoc/isa/hart.h>
 
 #include "profiling.h"
+#include "environment.h"
 
 // This define will make the test fail, (not enabled on CI yet)
 // It is just needed until  system-sw components are released
 #define PMC_Get_Current_Cycles_Safe PMC_Get_Current_Cycles
+
+int entryPoint_0(KernelArguments* args);
+int entryPoint_1(KernelArguments* args);
+DeviceConfig config {2, entryPoint_0, entryPoint_1};
 
 static inline int checkPMC() {
 

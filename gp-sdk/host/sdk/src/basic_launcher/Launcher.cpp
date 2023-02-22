@@ -13,6 +13,7 @@
 #include <string>
 
 #include "GenericLauncher.h"
+#include "environment.h"
 
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
@@ -85,7 +86,6 @@ class Launcher : public GenericLauncher {
 };
 
 int main(int argc, char** argv) {
-
   Options opt = parse_args(argc, argv);
 
   Config config{modeFromString(opt.device_type), 1};
@@ -98,7 +98,8 @@ int main(int argc, char** argv) {
   auto kernelId = launcher.loadKernel(opt.kernel_path);
 
   for (size_t i = 0; i < opt.num_launches; i++) {
-    launcher.kernelLaunch(kernelId);
+    Arguments args;
+    launcher.kernelLaunch(kernelId, &args, 0, 0xFFFFFFFF);
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);

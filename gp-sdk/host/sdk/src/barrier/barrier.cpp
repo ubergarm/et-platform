@@ -16,8 +16,7 @@
 #include "GenericLauncher.h"
 #include "barrierKernelArguments.h"
 
-static constexpr int32_t numThreads = 32;
-static constexpr int32_t threadsPerCore = 1;
+static constexpr size_t numElements = 1024;
 
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
@@ -106,8 +105,8 @@ public:
     runtime_->freeDevice(devices_[devIdx_], deviceAccumData_);
   }
 
-  std::vector<uint64_t> data_ = std::vector<uint64_t>(numThreads, 0);
-  std::vector<uint64_t> accumData_ = std::vector<uint64_t>(numThreads, 0);
+  std::vector<uint64_t> data_ = std::vector<uint64_t>(numElements, 0);
+  std::vector<uint64_t> accumData_ = std::vector<uint64_t>(numElements, 0);
   std::byte* deviceData_;
   std::byte* deviceAccumData_;
 };
@@ -128,7 +127,8 @@ int main(int argc, char** argv) {
 
   for (size_t i = 0; i < opt.num_launches; i++) {
     launcher.programHost2DevCopies();
-    launcher.kernelLaunch(kernelId, numThreads, &kernelArgs);
+    launcher.kernelLaunch(kernelId, &kernelArgs);
+
     // launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);

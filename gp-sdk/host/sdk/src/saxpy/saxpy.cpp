@@ -161,7 +161,11 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < opt.num_launches; i++) {
     launcher.programHost2DevCopies();
 
-    KernelArguments kernelArgs{launcher.x_.size(), (float*)launcher.deviceX_, (float*)launcher.deviceY_, launcher.a_};
+    KernelArguments kernelArgs;
+    kernelArgs.numElements = launcher.x_.size();
+    kernelArgs.x = (float*)launcher.deviceX_;
+    kernelArgs.y = (float*)launcher.deviceY_;
+    kernelArgs.a = launcher.a_;
 
     launcher.kernelLaunch(kernelId, &kernelArgs);
     launcher.programDev2HostCopies();

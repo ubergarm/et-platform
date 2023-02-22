@@ -19,10 +19,15 @@
 #include "entryPoint.h"
 
 #include "sync.h"
+#include "CommonCode.h"
 
 #include "barrierKernelArguments.h"
 
 constexpr uint64_t one = 1;
+
+int entryPoint_0(KernelArguments* args);
+DeviceConfig config {1, entryPoint_0, nullptr};
+
 
 __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
   // This test creates a symmetric vector using atomic additions.
@@ -33,19 +38,21 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
 
   // Because there is unbalance between threads, any non-sync thread would produce incorrect results.
   // Result correctness is easy to check.
-  auto minionId = get_minion_id();
-  if (minionId >= args->env.numThreads) {
+
+  auto threadId = get_relative_thread_id();
+  auto numThreads = get_num_threads();
+
+  if (threadId >= numThreads || threadId < 0 ) {
      return 0;
   }
-
   // Kernel arguments
   auto data = args->data; 
   auto accumData = args->accumData;
   uint64_t preValue;
 
   // unbalanced number of operations per minion
-  for (size_t i = 0; i < minionId; i++) {
-    auto dataPtr = &data[minionId];
+  for (int i = 0; i < threadId; i++) {
+    auto dataPtr = &data[threadId];
 
     // AMOADDG.D global atomic add
     __asm__ __volatile__("amoaddg.d %[preValue], %[one], (%[dataPtr])\n"
@@ -57,8 +64,8 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
 
   // copy data[] to accumData
   uint64_t srcValue;
-  auto srcPtr = &data[minionId];
-  auto dstPtr = &accumData[minionId];
+  auto srcPtr = &data[threadId];
+  auto dstPtr = &accumData[threadId];
 
   // LOAD 
   __asm__ volatile("amoorg.d %[srcValue], x0, (%[srcPtr])\n"                                      
@@ -73,33 +80,33 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
                         [ srcValue ] "r" (srcValue)
                       :);
 
-  hart::barrier(0, args->env.numThreads);
+  hart::barrier();
 
-  srcPtr = &data[args->env.numThreads - minionId - 1];
-  dstPtr = &accumData[minionId];
+  srcPtr = &data[numThreads - threadId - 1];
+  dstPtr = &accumData[threadId];
 
-  // Atomic global load (using an OR), srcValue = data[numThreads - minionId - 1];
+  // Atomic global load (using an OR), srcValue = data[assignedMinions - threadId - 1];
   __asm__ volatile("amoorg.d %[srcValue], x0, (%[srcPtr])\n"                                      
-                  : [srcValue]  "=r" (srcValue)      
+                  : [srcValue]  "=r" (srcValue)
                   : [srcPtr]  "r" (srcPtr)
   );
 
-  // data[minionId] += data[numThreads - minionId - 1];
+  // data[minionId] += data[assignedMinions - threadId - 1];
   __asm__ __volatile__("amoaddg.d %[preValue], %[srcValue], (%[dstPtr])\n"
                       : [ preValue ] "=r" (preValue)
                       : [ dstPtr ] "r" (dstPtr),
                         [ srcValue ] "r" (srcValue)
                       :);
 
-  hart::barrier(0, args->env.numThreads);
+  hart::barrier();
 
   // All values in the vector should add the same
-  if (minionId == 0) {
-    auto checkValue = accumData[minionId];
+  if (threadId == 0) {
+    auto checkValue = accumData[threadId];
 
-    for (size_t i = 1; i < args->env.numThreads; i++) {
+    for (int i = 1; i < numThreads; i++) {
       if (checkValue != accumData[i]) {
-        et_printf("Invalid value data[%lu] %lu\n", i, accumData[i]);
+        et_printf("Invalid value data[%d] %lu\n", i, accumData[i]);
         return -1;
       }
     }

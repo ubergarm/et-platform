@@ -13,14 +13,13 @@
 #include <etsoc/isa/hart.h>
 
 #include "entryPoint.h"
-
 #include <algorithm>
-
 #include "saxpy_kernel_arguments.h"
-
 #include "profiling.h"
 
-//
+int entryPoint_0(KernelArguments* args);
+DeviceConfig config {1, entryPoint_0, nullptr};
+
 // The prupose of this example is just to show profling across functions.. i
 // that is why the kernel is executed twice.(vector and scalar)
 //

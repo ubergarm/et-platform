@@ -14,6 +14,10 @@
 
 #include "entryPoint.h"
 
+int entryPoint_0(KernelArguments* args);
+int entryPoint_1(KernelArguments* args);
+DeviceConfig config {2, entryPoint_0, entryPoint_1};
+
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   if (get_minion_id()< 32) {
     et_printf("%s,%d HELLO WORLD from minion %d  hart %d !!!!\n",__func__,__LINE__, get_minion_id(), get_hart_id());

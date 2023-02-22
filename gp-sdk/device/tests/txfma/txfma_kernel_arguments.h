@@ -12,6 +12,7 @@
  *-------------------------------------------------------------------------
  */
 
+#include "environment.h"
 
 struct Matrix {
   uint32_t rows;
@@ -19,7 +20,7 @@ struct Matrix {
   float * data;
 } __attribute__ ((packed));
 
-struct KernelArguments {
+struct KernelArguments : Arguments {
   Matrix A;
   Matrix B;
   Matrix C;

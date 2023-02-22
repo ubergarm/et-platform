@@ -19,30 +19,10 @@
  */
 class KernelArguments;
 
-/**
- * Entry point for user code, from all threads allocated, only those with get_thread_id()==0
- * will enter this function.
- *
- * \brief main() for all threads with thread_id==0
- *
- * \param args struct of type KernelArguments
- * \param value Number of threads to synchronize. Must be a multiple of 32 or a power of two <= 32.
- * \param num_bytes number of bytes to write
- */
-extern "C" int entryPoint_0(KernelArguments* args);
-
-/**
- * Copies the 32-bit \p value into each of the first \p num_bytes characters of the object pointed to by \p ptr.
- * \brief main() for all threads with thread_id==1
- *
- * \param ptr First minion in the synchronization group. Must be a multiple of \p count or 0.
- * \param value Number of threads to synchronize. Must be a multiple of 32 or a power of two <= 32.
- * \param num_bytes number of bytes to write
- */
-extern "C" int entryPoint_1(KernelArguments* args);
-
 /* EntryPoint kernel functions must have this form */
 using KernelEntryPointFuncPtr = int (*)(KernelArguments*);
+
+KernelEntryPointFuncPtr rebaseEntryPointPtr(KernelEntryPointFuncPtr fnc, uint64_t base);
 
 /// @brief hello
 /// Examples of DeviceConfig

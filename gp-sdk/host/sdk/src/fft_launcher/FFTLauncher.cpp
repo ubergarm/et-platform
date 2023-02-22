@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
   kernelArgs.tensors[1] = outputTensorDesc;
   kernelArgs.operation = uint32_t(launcher.operation_);
 
-  launcher.kernelLaunch(kernelId, numThreads, &kernelArgs);
+  launcher.kernelLaunch(kernelId, &kernelArgs);
   launcher.programDev2HostCopies();
 
   auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);

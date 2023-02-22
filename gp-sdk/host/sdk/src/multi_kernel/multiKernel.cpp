@@ -165,7 +165,12 @@ int main(int argc, char** argv) {
   launcher.performDeviceAllocsSaxpy();
   launcher.prepareInputSapxy();                   
   launcher.programHost2DevCopiesSaxpy();
-  KernelArguments kernelArgs {launcher.x_.size(), (float *) launcher.deviceX_ ,  (float *) launcher.deviceY_, launcher.a_};
+  
+  KernelArguments kernelArgs;
+  kernelArgs.numElements = launcher.x_.size();
+  kernelArgs.x = (float *) launcher.deviceX_;
+  kernelArgs.y = (float *) launcher.deviceY_;
+  kernelArgs.a = launcher.a_;
 
   launcher.kernelLaunch(launcher.kernels_[1], &kernelArgs);
   launcher.programDev2HostCopiesSaxpy();

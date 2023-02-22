@@ -11,12 +11,13 @@
 
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/hart.h>
-
-#include "entryPoint.h"
-
 #include <algorithm>
 
+#include "entryPoint.h"
 #include "saxpy_kernel_arguments.h"
+
+int entryPoint_0(KernelArguments* args);
+DeviceConfig config {1, entryPoint_0, nullptr};
 
 //clang-format off
 static inline __attribute__((always_inline))

@@ -153,8 +153,6 @@ def test_device_kernel_artifacts(kernel, build_dir, shell):
     logging.info("Checking device/tests/%s.elf", kernel)
     symbols = [
         Symbol(name="_start", type="TtWw"),
-        Symbol(name="entryPoint_0", type="TtWw"),
-        Symbol(name="entryPoint_1", type="TtWw"),
     ]
     check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf", symbols)
     check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf_dbg", symbols)

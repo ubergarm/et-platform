@@ -5,8 +5,8 @@
 
 /* @brief This struct information is filled by the runtime when the kernel is launched */
 struct Environment {
-  int32_t numThreads;
   uint64_t shireMask;
+  int32_t numThreads;
   int8_t numEntryPoints;
   int32_t freqMHz;
 } __attribute__ ((packed));

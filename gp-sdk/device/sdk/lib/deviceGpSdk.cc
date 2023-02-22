@@ -10,6 +10,7 @@
  */
 
 #include <stdio.h>
+#include <bitset>
 
 #include "CommonCode.h"
 #include "entryPoint.h"
@@ -28,6 +29,8 @@ extern uint32_t _data_ro_copy_end;
 extern uint32_t _data_ro_copy_start;
 /* Linker label used to rebase entryPoint function pointers */
 extern uint32_t _text_init_start;
+
+extern DeviceConfig config;
 
 /* Global pointer to arguments provided by the host */
 Arguments * args_;
@@ -106,18 +109,31 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
   minionId = minionId & 0x1F;
   uint32_t globalMinionId = shireId * 32 + minionId;
   auto needSync = hasGlobalData();
+  
+  if (shireId >= 32)
+    return 0;
 
   // fast-path: no global data: fast-forward to user code.
   if (!needSync) {
-    if (shireId < 32) {
-      if (threadId == 0) {
-        return entryPoint_0(args);
+    if (config.threadsPerCore == 1) {
+      if(threadId == 0) {
+        KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+        return rebasedFnc(args);
       } else {
-        return entryPoint_1(args);
+        return 0;
       }
-      return 0;
+    } else {
+      if (threadId == 0) {
+        KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+        return rebasedFnc(args);
+      } else {
+        KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_1,(uint64_t)(&_text_init_start));
+        return rebasedFnc(args);
+      }
     }
   }
+
+  
   // global data: initialize and forwared to user-code.
   if (globalMinionId == 0 && threadId == 0) {
     // Reset .bss and .data sections on each kernel launch
@@ -133,49 +149,49 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
                          :);
 
     args_ = (Arguments *) args;
+    args_->env.numThreads = __builtin_popcountll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * config.threadsPerCore;
     evictCacheLine(0x3, (uint8_t *) &args_);
-
-    // wake up the rest of the threads. Shire-mask should be obtained from env.
-    constexpr uint64_t shire_mask = 0xffffffff;
-    wakeUpThreads(shire_mask);
-
+    evictCacheLine(0x3, (uint8_t *) args_);
+    et_printf("th: %d\n", args_->env.numThreads);
+    constexpr uint64_t full_shire_mask = 0xffffffff;
+    wakeUpThreads(full_shire_mask);
   }
 
   // Wait initialization to complete and forward to user-code.
-  if (shireId < 32) {
+  if (config.threadsPerCore == 1) {
+    if(threadId == 0) {
+      fcc_consume(FCC_0);
+      KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+      return rebasedFnc(args);
+    }
+  } else {
     if (threadId == 0) {
       fcc_consume(FCC_0);
-      return entryPoint_0(args);
+      KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+      return rebasedFnc(args);
     } else {
       fcc_consume(FCC_0);
-      return entryPoint_1(args);
+      KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_1,(uint64_t)(&_text_init_start));
+      return rebasedFnc(args);
     }
   }
-
   return 0;
 }
-
-/* Weak implementation of hart_1 entry point, for simple kernels not using it. */
-int __attribute__((weak)) entryPoint_1([[maybe_unused]] KernelArguments* args) {
-  /* void */
-  return 0;
-}
-
 
 int get_num_threads() {
   return args_->env.numThreads;
 }
 
-// int get_relative_thread_id() {
-//   constexpr int maxThreadsPerCore = 2;
-//   auto hartId = static_cast<int>(get_hart_id());
-//   int startingHart = static_cast<int>(__builtin_ctzll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * 2);
+int get_relative_thread_id() {
+  constexpr int maxThreadsPerCore = 2;
+  auto hartId = static_cast<int>(get_hart_id());
+  int startingHart = static_cast<int>(__builtin_ctzll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * 2);
 
-//   // return -1 ifs not an active thread
-//   if (hartId < startingHart) {
-//     return -1;
-//   }
+  // return -1 ifs not an active thread
+  if (hartId < startingHart) {
+    return -1;
+  }
 
-//   int threadId = (hartId / (maxThreadsPerCore / config.threadsPerCore)) - startingHart;
-//   return threadId;
-// }
+  int threadId = (hartId / (maxThreadsPerCore / config.threadsPerCore)) - startingHart;
+  return threadId;
+}

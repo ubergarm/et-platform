@@ -76,7 +76,7 @@ static inline int global_memset(void * ptr, const int value, size_t num_bytes) {
 
   /* Check 32 byte alignment start */
   bool aligned_start = (reinterpret_cast<uintptr_t>(p) % 32UL == 0);
-  bool aligned_size = (num_bytes >> 5) != 0;
+  // bool aligned_size = (num_bytes >> 5) != 0;
 
   et_assert(aligned_start && "ptr is not 32-byte aligned");
   // et_assert(aligned_size && "num_bytes is not multiple of 32-bytes");
@@ -96,7 +96,7 @@ static inline int global_memset(void * ptr, const int value, size_t num_bytes) {
   }
   // this line will be evicted
   uint8_t * evict_addr = p + i;
-  for (; i < num_bytes; i++) {
+  for (; i < (int64_t) num_bytes; i++) {
     uint8_t tmp = readByte(p + i);
     writeByte(p + i, tmp);
   }

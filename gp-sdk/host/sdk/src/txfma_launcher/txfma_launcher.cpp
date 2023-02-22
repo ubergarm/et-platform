@@ -147,6 +147,7 @@ public:
 };
 
 int main(int argc, char** argv) {
+  static constexpr int32_t numThreads = 1024;
 
   Options opt = parse_args(argc, argv);
   Config config{modeFromString(opt.device_type), 1};
@@ -165,9 +166,13 @@ int main(int argc, char** argv) {
   Matrix B{launcher.bRows, launcher.bCols, (float*)launcher.deviceB_};
   Matrix C{launcher.cRows, launcher.cCols, (float*)launcher.deviceC_};
 
-  KernelArguments kernelArgs{A, B, C};
+  KernelArguments kernelArgs;
+  kernelArgs.A = A;
+  kernelArgs.B = B;
+  kernelArgs.C = C;
 
-  launcher.kernelLaunch(kernelId, &kernelArgs);
+  launcher.kernelLaunch(kernelId, &kernelArgs, 0, 0xFFFFFFFF);
+
   launcher.programDev2HostCopies();
   auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
   launcher.waitKernelCompletion(timeout);

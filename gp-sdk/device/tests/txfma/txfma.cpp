@@ -16,10 +16,11 @@
 #include <etsoc/isa/utils.h>
 
 #include "entryPoint.h"
-
 #include <algorithm>
-
 #include "txfma_kernel_arguments.h"
+
+int entryPoint_0(KernelArguments* args);
+DeviceConfig config {1, entryPoint_0, nullptr};
 
 static inline void drain_cbs_no_broad() {
 #define L2_CACHE_BANKS (4)

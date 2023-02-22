@@ -30,6 +30,9 @@
 #include "entryPoint.h"
 #include "kernel_arguments.h"
 
+int entryPoint_0(KernelArguments* args);
+DeviceConfig config {1, entryPoint_0, nullptr};
+
 using namespace dnn_lib;
 
 int entryPoint_0(KernelArguments* kernelArgs) {
@@ -72,7 +75,7 @@ int entryPoint_0(KernelArguments* kernelArgs) {
   uint32_t op = operation == FFTOp::FFT?  uint32_t(dnn_lib::inlining::Operation::FFT) : uint32_t(dnn_lib::inlining::Operation::IFFT);
   auto start = et_get_timestamp();
   
-  dnn_lib::inlining::fwdLibETSOCGenericOpInst<inputElk> (&outputTensor, &inputTensor, op, flags, minionOffset, assignedMinions);
+  dnn_lib::inlining::fwdLibETSOCGenericOpInst<inputElk>(&outputTensor, &inputTensor, op, flags, minionOffset, assignedMinions);
 
   auto elapsed = et_get_delta_timestamp(start);
  
