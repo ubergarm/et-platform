@@ -11,7 +11,6 @@
 #include <cassert>
 #include <esperanto/et-trace/encoder.h>
 #include <fstream>
-#include <gflags/gflags.h>
 #include <iostream>
 #include <iterator>
 #include <runtime/DeviceLayerFake.h>
@@ -22,50 +21,19 @@
 #include "GenericLauncher.h"
 #include "RuntimeImpWithCoreDump.h"
 
-
-
 // Trace Buffer realted constants.
 constexpr size_t kTraceBytesPerHart = 4096;
 constexpr size_t kNumHarts = 2048;
 constexpr size_t kTraceBufferSize = kTraceBytesPerHart * kNumHarts;
 constexpr bool enableKernelTraces = true;
 
-#ifdef WITH_SYSEMU_PATHS
-std::tuple<fs::path, fs::path> getDeviceArtifactsBasePaths() {
-  fs::path device_bootloader_path = FLAGS_gp_sdk_device_installdir;
-  fs::path device_minion_rt_path = FLAGS_gp_sdk_device_installdir;
-#ifdef WITH_CONAN
-  device_bootloader_path /= "device-bootloaders";
-  device_minion_rt_path /= "device-minion-runtime";
-#endif
-  fs::path postfix = "lib/esperanto-fw";
-  device_bootloader_path /= postfix;
-  device_minion_rt_path /= postfix;
-  return {device_bootloader_path, device_minion_rt_path};
-}
-#endif
-
 emu::SysEmuOptions getDefaultOptions(std::string const &simulator_params) {
-#ifdef WITH_SYSEMU_PATHS
-  auto [device_bootloader_path, device_minion_rt_path] = getDeviceArtifactsBasePaths();
-  const fs::path BOOTROM_TRAMPOLINE_TO_BL2_ELF =
-    device_bootloader_path / "BootromTrampolineToBL2/BootromTrampolineToBL2.elf";
-  const fs::path BL2_ELF = device_bootloader_path / "ServiceProcessorBL2/fast-boot/ServiceProcessorBL2_fast-boot.elf";
-  const fs::path MASTER_MINION_ELF = device_minion_rt_path / "MasterMinion/MasterMinion.elf";
-  const fs::path MACHINE_MINION_ELF = device_minion_rt_path / "MachineMinion/MachineMinion.elf";
-  const fs::path WORKER_MINION_ELF = device_minion_rt_path / "WorkerMinion/WorkerMinion.elf";
-#endif
+
   constexpr uint64_t kSysEmuMaxCycles = std::numeric_limits<uint64_t>::max();
   constexpr uint64_t kSysEmuMinionShiresMask = 0x1FFFFFFFFu;
 
   emu::SysEmuOptions sysEmuOptions;
-#ifdef WITH_SYSEMU_PATHS
-  sysEmuOptions.bootromTrampolineToBL2ElfPath = BOOTROM_TRAMPOLINE_TO_BL2_ELF;
-  sysEmuOptions.spBL2ElfPath = BL2_ELF;
-  sysEmuOptions.machineMinionElfPath = MACHINE_MINION_ELF;
-  sysEmuOptions.masterMinionElfPath = MASTER_MINION_ELF;
-  sysEmuOptions.workerMinionElfPath = WORKER_MINION_ELF;
-#endif
+
   sysEmuOptions.runDir = std::filesystem::current_path();
   sysEmuOptions.maxCycles = kSysEmuMaxCycles;
   sysEmuOptions.minionShiresMask = kSysEmuMinionShiresMask;
@@ -364,7 +332,6 @@ void GenericLauncher::parse_args(int argc, char* const* argv) {
 
   static const std::vector<struct option> long_opts_vect {{"enableCoreDump", no_argument, nullptr, 'c'},
                                                           {"simulator_params", required_argument, nullptr, 's'},
-                                                          {"gp_sdk_device_installdir", required_argument, nullptr, 'g'},
                                                           {nullptr, 0, nullptr, 0}};
 
   int ret = 0;
@@ -389,9 +356,6 @@ void GenericLauncher::parse_args(int argc, char* const* argv) {
       break;
     case 's':
       simulator_params_ = optarg;
-      break;
-    case 'g':
-      gp_sdk_device_installdir_ = optarg;
       break;
     default:
       break;
