@@ -13,6 +13,7 @@
 
 #include "CommonCode.h"
 #include "entryPoint.h"
+#include "environment.h"
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/barriers.h>
 #include <etsoc/isa/cacheops-umode.h>
@@ -25,6 +26,11 @@ extern uint32_t _data_end;
 extern uint32_t _data_start;
 extern uint32_t _data_ro_copy_end;
 extern uint32_t _data_ro_copy_start;
+/* Linker label used to rebase entryPoint function pointers */
+extern uint32_t _text_init_start;
+
+/* Global pointer to arguments provided by the host */
+Arguments * args_;
 
 /* Number of times the kernel has been launched */
 uint64_t numberOfBoots __attribute__((section("persistentData"))) = {1};
@@ -34,7 +40,7 @@ void resetData();
 bool hasGlobalData();
 extern "C" int deviceGpSdkEntry(KernelArguments* args);
 
-/* wake up all threads on the shire-Mask group  system */
+/* wake up all threads on the shire-Mask group system */
 static inline void wakeUpThreads(uint64_t shire_mask) {
 
   /* uses ESR-broadcast extension to send credits to all shires simultaneously */
@@ -53,14 +59,14 @@ static inline void wakeUpThreads(uint64_t shire_mask) {
     (shire_mask & 0xFFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_2) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
 }
 
-/* resets global memory region .bss to zero */
+/// @brief Resets global memory region .bss to zero
 void resetBSS() {
   uint8_t* bss_end = (uint8_t*)&_bss_end;
   uint8_t* bss_start = (uint8_t*)&_bss_start;
   global_memset(bss_start, 0, bss_end - bss_start);
 }
 
-/* initialized global memory region .bss to zero */
+/// @brief Initializes global memory region .data to its original value
 void resetData() {
   uint8_t* data_end = (uint8_t*)&_data_end;
   uint8_t* data_start = (uint8_t*)&_data_start;
@@ -75,12 +81,21 @@ void resetData() {
   }
 }
 
+/// @brief returns true if Global Data sections (.bss and .data) are not empty.
 bool hasGlobalData() {
   uint8_t* bss_end = (uint8_t*)&_bss_end;
   uint8_t* bss_start = (uint8_t*)&_bss_start;
   uint8_t* data_end = (uint8_t*)&_data_end;
   uint8_t* data_start = (uint8_t*)&_data_start;
   return !((bss_end == bss_start) && (data_end == data_start));
+}
+
+/// @brief Computes the new memory address of a function after loading the kernel in the device.
+/// @param fnc function pointer which address has been determined in compile time.
+/// @param base new base address of the program
+/// @return Returns the new rebased pointer to the function
+KernelEntryPointFuncPtr rebaseEntryPointPtr(KernelEntryPointFuncPtr fnc, uint64_t base) {
+  return (KernelEntryPointFuncPtr)((uint64_t) fnc + base);
 }
 
 extern "C" int deviceGpSdkEntry(KernelArguments* args) {
@@ -116,9 +131,14 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
                          : [ result ] "=r"(result)
                          : [ increase ] "r"(increment), [ dst ] "r"(&numberOfBoots)
                          :);
+
+    args_ = (Arguments *) args;
+    evictCacheLine(0x3, (uint8_t *) &args_);
+
     // wake up the rest of the threads. Shire-mask should be obtained from env.
     constexpr uint64_t shire_mask = 0xffffffff;
     wakeUpThreads(shire_mask);
+
   }
 
   // Wait initialization to complete and forward to user-code.
@@ -140,3 +160,22 @@ int __attribute__((weak)) entryPoint_1([[maybe_unused]] KernelArguments* args) {
   /* void */
   return 0;
 }
+
+
+int get_num_threads() {
+  return args_->env.numThreads;
+}
+
+// int get_relative_thread_id() {
+//   constexpr int maxThreadsPerCore = 2;
+//   auto hartId = static_cast<int>(get_hart_id());
+//   int startingHart = static_cast<int>(__builtin_ctzll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * 2);
+
+//   // return -1 ifs not an active thread
+//   if (hartId < startingHart) {
+//     return -1;
+//   }
+
+//   int threadId = (hartId / (maxThreadsPerCore / config.threadsPerCore)) - startingHart;
+//   return threadId;
+// }

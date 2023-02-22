@@ -11,6 +11,8 @@
 #ifndef KERNEL_ARGUMENTS_H
 #define KERNEL_ARGUMENTS_H
 
+#include "environment.h"
+
 // TODO: make a common header for host and device structures.
 struct TensorDesc {
     uint64_t nDims;
@@ -19,14 +21,13 @@ struct TensorDesc {
     uint64_t deviceAddress;
  } __attribute__((packed));
 
-  struct KernelArguments {
+struct KernelArguments : Arguments { 
     uint32_t nTensors;
     TensorDesc tensors[2];
     uint32_t operation;
   } __attribute__((packed));
 
   enum class FFTOp { FFT = 1, IFFT = 2, SKIP = 1024};
-
 
 #endif
 

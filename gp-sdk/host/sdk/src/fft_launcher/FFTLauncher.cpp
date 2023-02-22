@@ -22,6 +22,8 @@
 // Shared kernel-arguments with device:
 #include "kernel_arguments.h"
 
+static constexpr int32_t numThreads = 32;
+
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
 
@@ -235,9 +237,14 @@ int main(int argc, char** argv) {
 				  launcher.width_ * launcher.height_ * launcher.planes_, launcher.width_ * launcher.height_, launcher.width_, 1},
 				 uint64_t(launcher.devOutputTensor)};
  
-  KernelArguments kernelArgs {2, inputTensorDesc, outputTensorDesc, uint32_t(launcher.operation_) };
 
-  launcher.kernelLaunch(kernelId, &kernelArgs);
+  KernelArguments kernelArgs;
+  kernelArgs.nTensors = 2;
+  kernelArgs.tensors[0] = inputTensorDesc;
+  kernelArgs.tensors[1] = outputTensorDesc;
+  kernelArgs.operation = uint32_t(launcher.operation_);
+
+  launcher.kernelLaunch(kernelId, numThreads, &kernelArgs);
   launcher.programDev2HostCopies();
 
   auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);

@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include "environment.h"
+
 #if __has_include("filesystem")
 #include <filesystem>
 #elif __has_include("experimental/filesystem")
@@ -104,6 +106,26 @@ public:
    * \param deviceIdx device target to work with
    */
   void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1), uint32_t deviceIdx = 0);
+
+  /**
+   * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
+   * waitKernelCompletion() is called. 
+   * \brief Launches the kernel on the device. 
+   * \param kernelId id of the kernel to launch.
+   * \param numThreads number of threads, must be a multiple of 32.
+   * \param params launch parameters. 
+   * \param shireMask mask with the shires that will execute the kernel.
+   */
+  template <typename TParams>
+  void kernelLaunch(rt::KernelId kernelId, int32_t numThreads, TParams * params, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
+    params->env.numThreads = numThreads;
+    // Compute shireMask based on numThreads. This should be decided by the runtime in the future.
+    uint64_t activeShires = ((numThreads + 31) / 32);
+    uint64_t smask = (1 << activeShires) - 1;
+    params->env.shireMask = smask;
+    
+    doKernelLaunch(kernelId, (std::byte *) params, sizeof(TParams), smask, deviceIdx);
+  }
 
   /**
    * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until

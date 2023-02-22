@@ -13,7 +13,12 @@
 SECTIONS
 {
   . = BASE_ADDRESS;
-  .text.init : { *(.text.init) }
+  .text.init : 
+  {
+    _text_init_start = .;
+     *(.text.init)
+  }
+  _before_align = .;
   . = ALIGN(64);
   .text : { *(.text) *(.text.*) }
   . = ALIGN(64);

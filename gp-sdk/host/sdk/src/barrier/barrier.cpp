@@ -16,6 +16,9 @@
 #include "GenericLauncher.h"
 #include "barrierKernelArguments.h"
 
+static constexpr int32_t numThreads = 32;
+static constexpr int32_t threadsPerCore = 1;
+
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
 
@@ -103,9 +106,8 @@ public:
     runtime_->freeDevice(devices_[devIdx_], deviceAccumData_);
   }
 
-  static constexpr size_t assignedMinions = 32;
-  std::vector<uint64_t> data_ = std::vector<uint64_t>(assignedMinions, 0);
-  std::vector<uint64_t> accumData_ = std::vector<uint64_t>(assignedMinions, 0);
+  std::vector<uint64_t> data_ = std::vector<uint64_t>(numThreads, 0);
+  std::vector<uint64_t> accumData_ = std::vector<uint64_t>(numThreads, 0);
   std::byte* deviceData_;
   std::byte* deviceAccumData_;
 };
@@ -120,12 +122,13 @@ int main(int argc, char** argv) {
   auto kernelId = launcher.loadKernel(opt.kernel_path);
   launcher.performDeviceAllocs();
 
-  KernelArguments kernelArgs {launcher.data_.size(), (uint64_t *) launcher.deviceData_,
-                        (uint64_t *) launcher.deviceAccumData_};
+  KernelArguments kernelArgs;
+  kernelArgs.data = (uint64_t *) launcher.deviceData_;
+  kernelArgs.accumData = (uint64_t *) launcher.deviceAccumData_;
 
   for (size_t i = 0; i < opt.num_launches; i++) {
     launcher.programHost2DevCopies();
-    launcher.kernelLaunch(kernelId, &kernelArgs);
+    launcher.kernelLaunch(kernelId, numThreads, &kernelArgs);
     // launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);

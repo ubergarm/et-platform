@@ -12,6 +12,8 @@
 #ifndef _ENTRY_POINT_H_
 #define _ENTRY_POINT_H_
 
+#include "environment.h"
+
 /**
  * Forward declaration of KernelArguments, user implementations will define
  */
@@ -52,5 +54,8 @@ struct DeviceConfig {
   KernelEntryPointFuncPtr entryPoint_0 = nullptr;
   KernelEntryPointFuncPtr entryPoint_1 = nullptr;
 };
+
+int get_num_threads();
+int get_relative_thread_id();
 
 #endif 

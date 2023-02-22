@@ -34,7 +34,7 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
   // Because there is unbalance between threads, any non-sync thread would produce incorrect results.
   // Result correctness is easy to check.
   auto minionId = get_minion_id();
-  if (minionId >= args->assignedMinions) {
+  if (minionId >= args->env.numThreads) {
      return 0;
   }
 
@@ -73,31 +73,31 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
                         [ srcValue ] "r" (srcValue)
                       :);
 
-  hart::barrier(0, args->assignedMinions);
+  hart::barrier(0, args->env.numThreads);
 
-  srcPtr = &data[args->assignedMinions - minionId - 1];
+  srcPtr = &data[args->env.numThreads - minionId - 1];
   dstPtr = &accumData[minionId];
 
-  // Atomic global load (using an OR), srcValue = data[assignedMinions - minionId - 1];
+  // Atomic global load (using an OR), srcValue = data[numThreads - minionId - 1];
   __asm__ volatile("amoorg.d %[srcValue], x0, (%[srcPtr])\n"                                      
                   : [srcValue]  "=r" (srcValue)      
                   : [srcPtr]  "r" (srcPtr)
   );
 
-  // data[minionId] += data[assignedMinions - minionId - 1];
+  // data[minionId] += data[numThreads - minionId - 1];
   __asm__ __volatile__("amoaddg.d %[preValue], %[srcValue], (%[dstPtr])\n"
                       : [ preValue ] "=r" (preValue)
                       : [ dstPtr ] "r" (dstPtr),
                         [ srcValue ] "r" (srcValue)
                       :);
 
-  hart::barrier(0, args->assignedMinions);
+  hart::barrier(0, args->env.numThreads);
 
   // All values in the vector should add the same
   if (minionId == 0) {
     auto checkValue = accumData[minionId];
 
-    for (size_t i = 1; i < args->assignedMinions; i++) {
+    for (size_t i = 1; i < args->env.numThreads; i++) {
       if (checkValue != accumData[i]) {
         et_printf("Invalid value data[%lu] %lu\n", i, accumData[i]);
         return -1;

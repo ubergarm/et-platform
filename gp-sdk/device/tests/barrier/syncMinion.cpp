@@ -34,7 +34,8 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
   // Because there is unbalance between threads, any non-sync thread would produce incorrect results.
   // Result correctness is easy to check.
   auto minionId = get_minion_id();
-  if (minionId >= args->assignedMinions) {
+  auto numThreads = args->env.numThreads;
+  if (minionId >= numThreads) {
      return 0;
   }
 
@@ -73,18 +74,18 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
                         [ srcValue ] "r" (srcValue)
                       :);
 
-  hart::barrier(0, args->assignedMinions);
+  hart::barrier(0, numThreads);
   hart::barrier<hart::Scope::minion>();
   // Threads 1 will start computing
 
   // Wait for Threads 1 to finish
   hart::barrier<hart::Scope::minion>();
-  hart::barrier(0, args->assignedMinions);
+  hart::barrier(0, numThreads);
 
   // All values in the vector should add the same
   if (minionId == 0) {
     auto checkValue = accumData[minionId];
-    for (size_t i = 1; i < args->assignedMinions; i++) {
+    for (size_t i = 1; i < numThreads; i++) {
       if (checkValue != accumData[i]) {
         et_printf("Invalid value data[%lu] %lu\n", i, accumData[i]);
         return -1;
@@ -97,7 +98,9 @@ __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {
 
 __attribute__((noinline)) int entryPoint_1(KernelArguments* args) {
   auto minionId = get_minion_id();
-  if (minionId >= args->assignedMinions) {
+  auto numThreads = args->env.numThreads;
+  
+  if (minionId >= numThreads) {
      return 0;
   }
   
@@ -114,7 +117,7 @@ __attribute__((noinline)) int entryPoint_1(KernelArguments* args) {
   auto srcPtr = &data[minionId];
   auto dstPtr = &accumData[minionId];
 
-  srcPtr = &data[args->assignedMinions - minionId - 1];
+  srcPtr = &data[numThreads - minionId - 1];
   dstPtr = &accumData[minionId];
 
   // Atomic global load (using an OR), srcValue = data[assignedMinions - minionId - 1];

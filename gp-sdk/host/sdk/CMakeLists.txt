@@ -20,7 +20,7 @@ add_library(etsoc_gpsdk STATIC
     src/lib/GenericLauncher.cpp 
     src/lib/RuntimeImpWithCoreDump.cpp
 )
-target_include_directories(etsoc_gpsdk PUBLIC include)
+target_include_directories(etsoc_gpsdk PUBLIC include ../../device/sdk/include)
 target_compile_definitions(etsoc_gpsdk PRIVATE $<$<BOOL:${USE_CONAN}>:WITH_CONAN>)
 target_link_libraries(etsoc_gpsdk 
     PUBLIC 

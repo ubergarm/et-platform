@@ -1,0 +1,16 @@
+#ifndef ENVIRONMENT_H
+#define ENVIRONMENT_H
+
+/* @brief This struct information is filled by the runtime when the kernel is launched */
+struct Environment {
+  int32_t numThreads;
+  uint64_t shireMask;
+  int8_t numEntryPoints;
+  int32_t freqMHz;
+} __attribute__ ((packed));
+
+struct Arguments {
+  Environment env;
+} __attribute__ ((packed));
+
+#endif

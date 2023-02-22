@@ -12,8 +12,9 @@
  *-------------------------------------------------------------------------
  */
 
-struct KernelArguments {
-  uint64_t assignedMinions;
+#include "environment.h"
+
+struct KernelArguments : Arguments {
   uint64_t * data;
   uint64_t * accumData;
 } __attribute__ ((packed));
