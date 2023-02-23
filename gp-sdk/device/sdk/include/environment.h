@@ -1,6 +1,8 @@
 #ifndef ENVIRONMENT_H
 #define ENVIRONMENT_H
 
+#include <cstdint>
+
 /* @brief This struct information is filled by the runtime when the kernel is launched */
 struct Environment {
   int32_t numThreads;

@@ -61,3 +61,6 @@ target_link_libraries(oneTrapOnSync.elf etsoc_crt0)
 add_etsoc_riscv_executable(busy10sec.elf busy10sec/busy10sec.cc)
 target_link_libraries(busy10sec.elf etsoc_crt0)
 
+add_etsoc_riscv_executable(check_pmc.elf check_pmc/check_pmc.cc)
+target_link_libraries(check_pmc.elf etsoc_crt0)
+
