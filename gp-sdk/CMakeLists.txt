@@ -9,6 +9,10 @@ endif()
 
 include(ExternalProject)
 
+if (NOT ADDRESS)
+  message(FATAL_ERROR "ADDRESS parameter is missing. Please provide a value for the predicted device load address (e.g: -DADDRESS=0x8005b35000")
+endif()
+
 ExternalProject_Add(
   host
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/host"
@@ -24,6 +28,6 @@ ExternalProject_Add(
   CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/conan_toolchain.cmake
     -DCMAKE_BUILD_TYPE=Release
-    -DADDRESS:STRING=0x8005335000
+    -DADDRESS:STRING=${ADDRESS}
     -DUSE_CONAN=ON
     -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/local)
