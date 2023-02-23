@@ -42,15 +42,14 @@ static inline int checkPMC() {
     auto d1 = std::abs(int64_t(val3) - int64_t(val2));
     auto d2 = std::abs(int64_t(val2) - int64_t(val));
     auto d3 = std::abs(int64_t(val3) - int64_t(val));
-    auto valPrev = counters[(i - 1) % 64];
-
-    auto d4 = std::abs(int64_t(val) - int64_t(valPrev));
+    auto valPrev = (i > 0) ? counters[(i - 1) % 64] : 0;
+    auto d4 = (i > 0) ? std::abs(int64_t(val) - int64_t(valPrev)) : 0;
 
     constexpr auto thr = 1000000;
     auto f1 = d1 > thr;
     auto f2 = d2 > thr;
     auto f3 = d3 > thr;
-    auto f4 = (d4 > thr) and (i > 0);
+    auto f4 = d4 > thr;
 
     if (f1 or f2 or f3 or f4) {
       et_printf("%d %d -- fail  -- [ %lu %lu %lul %lu ] \n", get_hart_id(), i, val, val2, val3, valPrev);
