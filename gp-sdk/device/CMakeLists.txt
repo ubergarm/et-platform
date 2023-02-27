@@ -12,7 +12,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(gp-sdk-device VERSION 1.0.1 LANGUAGES C CXX ASM)
 
-option(BUILD_DOCS "Enable/disable building documentation" ON)
+option(BUILD_DOCS "Enable/disable building documentation" OFF)
 option(BUILD_TESTS "Build GP-SDK test kernels" ON)
 set(GP_SDK_TOOLS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../tools" CACHE PATH "Path to GP-SDK tools")
 set(GP_SDK_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/lib/linker.ld" CACHE PATH "Path to device linker script")

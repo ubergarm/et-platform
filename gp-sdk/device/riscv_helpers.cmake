@@ -8,8 +8,6 @@
 # agreement/contract under which the program(s) have been supplied.
 #------------------------------------------------------------------------------
 
-math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
-message(STATUS "Base address used to relink (debug) ELFs -> ${DEBUG_ADDRESS}")
 
 #
 # Adds a riscv executable prepared for being executed as a kernel on ET-SoC-1.
@@ -22,7 +20,8 @@ message(STATUS "Base address used to relink (debug) ELFs -> ${DEBUG_ADDRESS}")
 #   set with standard cmake functions (target_link_libraries, target_include_directories, etc.).
 #
 macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST) 
-
+  math(EXPR DEBUG_ADDRESS "${ADDRESS} + 0x1000" OUTPUT_FORMAT HEXADECIMAL)
+  message(STATUS "Base address used to relink (debug) ELFs -> ${DEBUG_ADDRESS}")
   # merge parameter list
   set(TARGET_SOURCES ${TARGET_SOURCES_LIST} ${ARGN} ) 
 
