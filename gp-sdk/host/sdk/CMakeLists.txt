@@ -35,7 +35,7 @@ target_link_libraries(etsoc_gpsdk
 # compile specific launcher apps.
 #
 
-if (BUILD_EXAMPLES)
+if (BUILD_TESTS)
 
 add_executable(basic_launcher src/basic_launcher/Launcher.cpp)
 
