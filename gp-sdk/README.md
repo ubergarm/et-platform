@@ -21,7 +21,7 @@ Conceptually the build phase can be divided in:
 ```
 mkdir device/build
 cd device/build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release  -DUSE_CONAN=ON
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
 
 make all
 ```
@@ -30,7 +30,7 @@ make all
 ```
 cd host/build
 
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug -DUSE_CONAN=ON
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug
 
 make all
 
@@ -52,4 +52,83 @@ dt2json traceKernels_dev0_0.bin -t
 (...)
 12362222;string;{plain_string};{"entryPoint_0,24 HELLO WORLD!!!!"}
 ```
+
+## Using the Top-level CMakeLists.txt
+
+A top level makefile has also been provided on the root that is able to configure and build host and device parts on a cmake & make command. Both host and device CMake domains are introduced through ExternalProcectAdd().
+
+``` 
+mkdir build; cd build
+cmake .. -DADDRESS:STRING=0x8006335000
+make all
+```
+
+
+## Building an external-project that uses GP-SDK as a library
+
+It is common to have standalone projects using GP-SDK as an external dependency. This can be achieved by introducing a top-level CMakeLists.txt into the project and setting GP_SDK_HOME env var to the approriate location
+
+
+### Top level CMakeLists.txt
+```
+set(GP_SDK_HOME  ""  CACHE STRING "Path to the GP-SDK")
+
+ ....
+include(ExternalProject)
+
+ExternalProject_Add(
+  host
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/host"
+  CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/host/conan_toolchain.cmake
+    -DCMAKE_BUILD_TYPE=Release
+    -DGP_SDK_HOME=${GP_SDK_HOME}
+    -DBUILD_TESTS=OFF
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/local)
+
+ExternalProject_Add(
+  device
+  SOURCE_DIR "${CMAKE_SOURCE_DIR}/device"
+  CMAKE_ARGS
+    -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/conan_toolchain.cmake
+    -DCMAKE_BUILD_TYPE=Release
+    -DGP_SDK_HOME=${GP_SDK_HOME}
+    -DADDRESS:STRING=${ADDRESS}
+    -DBUILD_TESTS=OFF
+    -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/local)
+```
+
+### host CMakeLists.txt
+
+```
+add_subdirectory(${GP_SDK_HOME}/host gp-sdk-host)
+add_executable(saxpy_launcher saxpy.cpp)
+install(TARGETS saxpy_launcher DESTINATION bin)
+```
+
+
+### device CMakeLists.txt
+
+```
+add_subdirectory(${GP_SDK_HOME}/device gp-sdk-device)
+add_etsoc_riscv_executable(saxpy_scalar.elf saxpy.cpp)
+target_include_directories(saxpy_scalar.elf PRIVATE ../include)
+target_link_libraries(saxpy_scalar.elf etsoc_crt0)
+  ....
+```
+
+### Configuing and building
+
+```
+mkdir build; cd build
+cmake .. -DGP_SDK_HOME=<path_to-gp-sdk> -DADDRESS=0x8005b35000
+make
+
+
+                                                  
+
+
+
+
+
 

@@ -19,7 +19,6 @@ ExternalProject_Add(
   CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/host/conan_toolchain.cmake
     -DCMAKE_BUILD_TYPE=Release
-    -DUSE_CONAN=ON
     -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/local)
 
 ExternalProject_Add(
@@ -29,5 +28,4 @@ ExternalProject_Add(
     -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/conan_toolchain.cmake
     -DCMAKE_BUILD_TYPE=Release
     -DADDRESS:STRING=${ADDRESS}
-    -DUSE_CONAN=ON
     -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/local)
