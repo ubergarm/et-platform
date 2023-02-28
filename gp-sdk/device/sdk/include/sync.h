@@ -97,9 +97,9 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
  * \brief Synchronizes threads per shire.
  *
  * Blocks thread execution until all threads specified in the \p hartMask reach the barrier. This barrier is shared only
- * between threads with the same thread_id (get_thread_id()).
+ * between threads with the same thread_id.
  *
- * Every bit of hartMask maps to a hart in the shire.
+ * Every bit in \p hartMask maps to a hart in the shire.
  *
  * Multiple barriers synchronizing different groups of threads per shire are supported, as long as there is not a thread
  * in more than one group at once.
@@ -107,39 +107,13 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
  * \param hartMask The n-th bit of the mask enables the sync of the n-th thread in the shire.
  * hartMask.count() must be a power of 2.
  * hartMask.count() max value is 32.
- *
+ * \param threadsPerCore number of threads per core
+ * \param numEntryPoints number of kernel entry points
  */
-// template <Scope S>
-// inline typename std::enable_if_t<(S == Scope::shire), void>
-// barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
-//   if (hartMask.count() < 2)
-//     return; // no threads to sync
-
-//   constexpr uint32_t fcc = 0;                // Credit counter 0
-//   const uint32_t thread = get_hart_id() % 2; // Thread 0 or 1
-
-//   // Each minion computes its corresponding FLB (values=[0,31])
-//   size_t flb = (get_minion_id() >> log2(hartMask.count())) % SOC_MINIONS_PER_SHIRE;
-//   if (thread == 1) {
-//     flb += 16; // Shire minion Thread 1's use flbs [16,31]
-//   }
-//   // Last minion to reach the barrier wakes up the others
-//   if (flbarrier(flb, hartMask.count() - 1)) {
-//     fcc_send(SHIRE_OWN, thread, fcc, hartMask.to_ullong());
-//   }
-//   fcc_consume(fcc);
-// }
-
-/// @brief  TEST
-/// @tparam S 
-/// @tparam threadsPerCore 
-/// @tparam numEntryPoints 
-/// @param hartMask 
-/// @return 
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::shire), void>
 barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF), int threadsPerCore = 1, int numEntryPoints = 1) {
-  // TODO; Explore the use of inline constexpr with threadsPerCore and EntryPoint as template parameters to reduce branches in the code.
+  // Suggested: Explore the use of inline constexpr with threadsPerCore and EntryPoint as template parameters to reduce branches in the code.
   // https://stackoverflow.com/questions/30208685/how-to-declare-constexpr-extern
   if (hartMask.count() < 2)
     return; // no threads to sync
@@ -148,7 +122,7 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF), int threadsPerCo
   const uint32_t localThread = get_hart_id() % 2; // Thread 0 or 1
 
   // Get the number of threads to sync under a FLB
-  const uint32_t numThreadsToSync = static_cast<uint32_t>((threadsPerCore / numEntryPoints) * hartMask.count());
+  const auto numThreadsToSync = static_cast<uint32_t>((threadsPerCore / numEntryPoints) * hartMask.count());
 
   // Each minion computes its corresponding FLB (values=[0,31])
   size_t flb = (get_minion_id() >> log2(hartMask.count())) % SOC_MINIONS_PER_SHIRE;
@@ -189,7 +163,7 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
   const bool sameEntryPoint = (config.entryPoint_0 == config.entryPoint_1);
   const uint32_t thread = get_hart_id() % 2;
   const auto startingRelativeMinionId = startingThread / config.threadsPerCore; // (virtual) minionId of the starting kernel thread
-  const auto startingMinion = (static_cast<int>(__builtin_ctzll(args_->env.shireMask)) * SOC_MINIONS_PER_SHIRE) + startingRelativeMinionId; // global starting minion id
+  const auto startingMinion = (__builtin_ctzll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE) + startingRelativeMinionId; // global starting minion id
   const auto masterShireId = (uint32_t) startingMinion / SOC_MINIONS_PER_SHIRE;  // ID of the 'master shire' that coordinates the sync
   const size_t numShires = count / (SOC_MINIONS_PER_SHIRE * config.threadsPerCore);   // number of total shires to sync
 
@@ -232,7 +206,6 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
     // Global sync
     // Each active shire sends a credit to notify masterShire it has reached the barrier.
     if (localId == 0) {
-      et_printf("I am shire: %u, minion: %u, thread: %u, sending a credit to master. \n", shireId, localId, thread);
       const uint64_t masterMinion = 1UL << shireId;
       fcc_send(masterShireId, thread, fcc, masterMinion);
     }
@@ -248,35 +221,9 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
  * Blocks thread execution until all the threads in the specified range reach this barrier. This barrier is shared only
  * between threads with the same thread_id (get_thread_id()). Synchronizes \p count contiguous threads starting at \p
  * startingMinion.
- * \param startingMinion First minion in the synchronization group. Must be a multiple of \p count or 0.
+ * \param startingThread First thread in the synchronization group. Must be a multiple of \p count or 0.
  * \param count Number of threads to synchronize. Must be a multiple of 32 or a power of two <= 32.
  */
-// inline void barrier(const size_t startingMinion, const size_t count) {
-//   // Two count groups of values are supported.
-//   // If count >= 32. count must be a multiple of 32
-//   // If count < 32. count must be a power of two. i.e: {1,2,4,8,16}.
-//   std::bitset<64> cmask = std::bitset<64>(count);
-//   std::bitset<64> smask = std::bitset<64>(startingMinion);
-
-//   // check if count and startingMinion are powers of two (or 0)
-//   bool isPow2 = (cmask.count() == 1) && ((smask.count() == 1) || (smask.count() == 0));
-//   // TODO: et_assert invalid range (start, count) configurations
-
-//   if (count > SOC_MINIONS_PER_SHIRE) {
-//     barrier<Scope::device>(startingMinion, count);
-//   } else {
-//     et_assert(isPow2);
-//     // get the startingMinion id inside the shire
-//     size_t localId = startingMinion % SOC_MINIONS_PER_SHIRE;
-//     std::bitset<64> mask;
-//     // set mask bits fromt local id to
-//     for (size_t i = localId; i < localId + count; i++) {
-//       mask.set(i);
-//     }
-//     barrier<Scope::shire>(mask);
-//   }
-// }
-
 inline void barrier(const size_t startingThread, const size_t count) {
   // Two count groups of values are supported.
   // If count >= 32. count must be a multiple of 32
