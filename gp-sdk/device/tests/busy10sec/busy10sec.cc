@@ -30,7 +30,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   auto start = et_get_timestamp();
   auto elapsed = et_get_delta_timestamp(start);
 
-  while ((elapsed * CLK_600MHZ_CYCLES_TO_SEC) < 10) {
+  while ((elapsed * static_cast<long double>(CLK_600MHZ_CYCLES_TO_SEC)) < 10) {
     elapsed = et_get_delta_timestamp(start);
   }
 

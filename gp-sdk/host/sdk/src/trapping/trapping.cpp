@@ -40,6 +40,7 @@ Options parse_args(int argc, char* const* argv) {
   static const std::vector<struct option> long_opts_vect{{"kernel_path", required_argument, nullptr, 'k'},
                                                          {"kernel_launch_timeout", required_argument, nullptr, 't'},
                                                          {"device_type", required_argument, nullptr, 'd'},
+                                                         {"help", no_argument, nullptr, 'h'},
                                                          {nullptr, 0, nullptr, 0}};
 
   Options opts;

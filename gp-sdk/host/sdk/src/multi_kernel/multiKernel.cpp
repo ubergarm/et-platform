@@ -38,16 +38,18 @@ Options parse_args(int argc, char* const* argv) {
     "  -r, --kernel_path2             path to kernel elf file to execute.\n\n"
     "The following switches are optional:\n"
     "  -t, --kernel_launch_timeout   timeout (in seconds) to wait for kenelLaunch\n"
-    "  -n, --num_launches            Number of times the kernel will be launched.\n";
+    "  -n, --num_launches            Number of times the kernel will be launched.\n"
+    "  -d, --device_type             Device Type to be used (sysemu, fake,silicon.\n";
 
-  static constexpr const char* short_opts = "k:r:t:n:d:h:v";
+  static constexpr const char* short_opts = "k:r:t:n:d:h";
 
-  static const std::vector<struct option> long_opts_vect {{"kernel_path1", required_argument, nullptr, 'k'},
-                                                          {"kernel_path2", required_argument, nullptr, 'r'},                                                          
-                                                          {"kernel_launch_timeout", required_argument, nullptr, 't'},
-                                                          {"num_launches", required_argument, nullptr, 'n'},
-                                                          {"device_type", required_argument, nullptr, 'd'},
-                                                          {nullptr, 0, nullptr, 0}};
+  static const std::vector<struct option> long_opts_vect{{"kernel_path1", required_argument, nullptr, 'k'},
+                                                         {"kernel_path2", required_argument, nullptr, 'r'},
+                                                         {"kernel_launch_timeout", required_argument, nullptr, 't'},
+                                                         {"num_launches", required_argument, nullptr, 'n'},
+                                                         {"device_type", required_argument, nullptr, 'd'},
+                                                         {"help", no_argument, nullptr, 'h'},
+                                                         {nullptr, 0, nullptr, 0}};
 
   Options opts;
 

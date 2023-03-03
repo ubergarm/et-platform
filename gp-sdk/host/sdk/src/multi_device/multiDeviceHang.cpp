@@ -39,14 +39,15 @@ Options parse_args(int argc, char* const* argv) {
     "  -d, --device_type             Device Type to be used (sysemu, fake,silicon.\n"
     "  -v, --nDevices                Number of devices to be used.\n";
 
-  static constexpr const char* short_opts = "k:r:t:d:h:v";
+  static constexpr const char* short_opts = "k:r:t:d:v:h";
 
-  static const std::vector<struct option> long_opts_vect {{"kernel_path1", required_argument, nullptr, 'k'},
-                                                          {"kernel_path2", required_argument, nullptr, 'r'},
-                                                          {"kernel_launch_timeout", required_argument, nullptr, 't'},
-                                                          {"device_type", required_argument, nullptr, 'd'},
-                                                          {"nDevices", required_argument, nullptr, 'v'},
-                                                          {nullptr, 0, nullptr, 0}};
+  static const std::vector<struct option> long_opts_vect{{"kernel_path1", required_argument, nullptr, 'k'},
+                                                         {"kernel_path2", required_argument, nullptr, 'r'},
+                                                         {"kernel_launch_timeout", required_argument, nullptr, 't'},
+                                                         {"device_type", required_argument, nullptr, 'd'},
+                                                         {"nDevices", required_argument, nullptr, 'v'},
+                                                         {"help", no_argument, nullptr, 'h'},
+                                                         {nullptr, 0, nullptr, 0}};
 
   Options opts;
 

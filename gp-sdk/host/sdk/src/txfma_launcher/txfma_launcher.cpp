@@ -40,14 +40,15 @@ Options parse_args(int argc, char* const* argv) {
     "  -d, --device_type             Device Type to be used (sysemu, fake,silicon.\n"
     "  -e, --epsilon                 Delta used for comparison between host and device.\n";
 
-  static constexpr const char* short_opts = "k:t:n:d:h:e";
+  static constexpr const char* short_opts = "k:t:n:d:e:h";
 
-  static const std::vector<struct option> long_opts_vect {{"kernel_path", required_argument, nullptr, 'k'},
-                                                          {"kernel_launch_timeout", required_argument, nullptr, 't'},
-                                                          {"num_launches", required_argument, nullptr, 'n'},
-                                                          {"device_type", required_argument, nullptr, 'd'},
-                                                          {"epsilon", required_argument, nullptr, 'e'},
-                                                          {nullptr, 0, nullptr, 0}};
+  static const std::vector<struct option> long_opts_vect{{"kernel_path", required_argument, nullptr, 'k'},
+                                                         {"kernel_launch_timeout", required_argument, nullptr, 't'},
+                                                         {"num_launches", required_argument, nullptr, 'n'},
+                                                         {"device_type", required_argument, nullptr, 'd'},
+                                                         {"epsilon", required_argument, nullptr, 'e'},
+                                                         {"help", no_argument, nullptr, 'h'},
+                                                         {nullptr, 0, nullptr, 0}};
 
   Options opts;
 

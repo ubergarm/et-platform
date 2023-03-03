@@ -43,15 +43,16 @@ Options parse_args(int argc, char* const* argv) {
     "  -l, --launch_mult             Number of times the kernel is executed for each launch.\n"
     "  -e, --epsilon                 Delta used for comparison between host and device.\n";
 
-  static constexpr const char* short_opts = "k:t:n:d:h:l:e";
+  static constexpr const char* short_opts = "k:t:n:d:l:e:h";
 
-  static const std::vector<struct option> long_opts_vect {{"kernel_path", required_argument, nullptr, 'k'},
-                                                          {"kernel_launch_timeout", required_argument, nullptr, 't'},
-                                                          {"num_launches", required_argument, nullptr, 'n'},
-                                                          {"device_type", required_argument, nullptr, 'd'},
-                                                          {"launch_mult", required_argument, nullptr, 'l'},
-                                                          {"epsilon", required_argument, nullptr, 'e'},
-                                                          {nullptr, 0, nullptr, 0}};
+  static const std::vector<struct option> long_opts_vect{{"kernel_path", required_argument, nullptr, 'k'},
+                                                         {"kernel_launch_timeout", required_argument, nullptr, 't'},
+                                                         {"num_launches", required_argument, nullptr, 'n'},
+                                                         {"device_type", required_argument, nullptr, 'd'},
+                                                         {"launch_mult", required_argument, nullptr, 'l'},
+                                                         {"epsilon", required_argument, nullptr, 'e'},
+                                                         {"help", no_argument, nullptr, 'h'},
+                                                         {nullptr, 0, nullptr, 0}};
 
   Options opts;
 
