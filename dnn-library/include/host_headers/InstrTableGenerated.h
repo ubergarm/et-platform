@@ -4,8 +4,8 @@
 // clang-format off
 
 // File automatically generated with:
-//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/home/gsole/Esperanto/sw-platform4/host-software/dnnLibrary/scripts
+//  ./libManager.py --swplatform-root ../../.. --excel libManager.xlsx --cacheState cacheState.xlsx
+//  cwd=/home/isb/prog/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 

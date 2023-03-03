@@ -696,6 +696,60 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getTa
   }
 }
 
+// Calculates sin(val) by converting val to a number between 0 and pi/4
+// absolute error should be < 3.11612e-7 when approaching pi/4
+template <bool setMask = true> inline __attribute__((always_inline)) float getSin(float val) {
+  constexpr float piQuarter = static_cast<float>(M_PI) * 0.25f;
+  constexpr float invPiQuarter = 4.0f / static_cast<float>(M_PI);
+  bool neg = false;
+  if (val < 0) {
+    val = -val;
+    neg = true;
+  }
+
+  if (val > piQuarter) {
+    val = val * invPiQuarter;
+    float integralPart = truncf(val);
+    int intIntegralPart = static_cast<int>(integralPart);
+    if ((intIntegralPart & 3) >= 2) {
+      neg = not neg;
+    }
+
+    val = (val - integralPart);
+
+    if ((intIntegralPart & 1) != 0) {
+      val = 1.0f - val;
+    }
+
+    val = val * piQuarter;
+  }
+
+  if (val < 1.0e-7f) {
+    return neg ? -val : val;
+  }
+
+  if (val == piQuarter) {
+    return neg ? -1.0f : 1.0f;
+  }
+
+  float valSq = val * val;
+
+  if (neg) {
+    val = -val;
+  }
+
+  constexpr float threeFactInv = 1.0f / 6.0f;
+  constexpr float fiveFactInv = threeFactInv / 20.0f;
+  constexpr float sevenFactInv = fiveFactInv / 42.0f;
+
+  return val * (1.0f - valSq * (threeFactInv + valSq * (fiveFactInv - valSq * sevenFactInv)));
+}
+
+template <bool setMask = true> inline __attribute__((always_inline)) float getCos(float val) {
+  constexpr float piHalf = static_cast<float>(M_PI) * 0.5f;
+  return getSin<setMask>(val + piHalf);
+}
+
 inline __attribute__((always_inline))
 bool isInteger(float f) {
   return (nearbyintf(f) == f);

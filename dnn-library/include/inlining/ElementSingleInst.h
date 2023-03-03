@@ -273,11 +273,13 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
   // others have threaded as generic version (vectorized not implemented)
   ELT_SINGLE_INSTANCE_1K(ElementErf, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(ElementExp, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_1K(ElementNeg, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(ElementIsNaN, Threaded, BoolTy, elK)
   ELT_SINGLE_INSTANCE_1K(Sigmoid, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(Tanh, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_1K(Sin, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_1K(Cos, Threaded, elK, elK)
 
-  
 #undef ELT_SINGLE_INSTANCE_1K
 #undef ELT_SINGLE_INSTANCE_2K
  
