@@ -33,10 +33,11 @@ class DnnLibraryApiConan(ConanFile):
     generators = "CMakeDeps"
 
 
-    python_requires = "conan-common/[>=0.5.0 <1.0.0]"
+    python_requires = "conan-common/[>=1.1.0 <2.0.0]"
 
     def set_version(self):
-        self.version = self.python_requires["conan-common"].module.get_version_from_cmake_project(self, self.name)       
+        get_version = self.python_requires["conan-common"].module.get_version
+        self.version = get_version(self, self.name)
 
     def configure(self):
         if self.options.shared:
