@@ -226,7 +226,6 @@ int main(int argc, char** argv) {
   launcher.performDeviceAllocs();
 
   launcher.programHost2DevCopies();
-  launcher.prepareInput();
   
   // Prepare kernel arguments & launch the kernel.
   TensorDesc inputTensorDesc = {5, {launcher.batch_, launcher.channels_, launcher.planes_, launcher.height_, launcher.width_},
