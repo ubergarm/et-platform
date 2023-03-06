@@ -259,6 +259,13 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
     inlining::fwdLibElementSingleInst##version<dstElK, srcElK, name>(outT, inT, flags, minionOffset, assignedMinions); \
   }
 
+// instances where src and dst have the same type and only one type is allowed
+#define ELT_SINGLE_INSTANCE_SINGLE_K(name, version, elK)                                                               \
+  INLINE_ATTR void fwdLib##name##Inst(LibTensor* outT, LibTensor* inT, uint64_t flags,                                 \
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {           \
+    inlining::fwdLibElementSingleInst##version<elK, elK, name>(outT, inT, flags, minionOffset, assignedMinions);       \
+  }
+
   // instances where src and dst can have different types
 #define ELT_SINGLE_INSTANCE_2K(name, version, dstElK, srcElK)                                                          \
   template <ElemKind elK1, ElemKind elK2>                                                                              \
@@ -274,17 +281,16 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
   ELT_SINGLE_INSTANCE_1K(ElementErf, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(ElementExp, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(ElementNeg, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_1K(ElementSin, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_1K(ElementCos, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(ElementIsNaN, Threaded, BoolTy, elK)
   ELT_SINGLE_INSTANCE_1K(Sigmoid, Threaded, elK, elK)
   ELT_SINGLE_INSTANCE_1K(Tanh, Threaded, elK, elK)
-  ELT_SINGLE_INSTANCE_1K(Sin, Threaded, elK, elK)
-  ELT_SINGLE_INSTANCE_1K(Cos, Threaded, elK, elK)
+  ELT_SINGLE_INSTANCE_SINGLE_K(ElementNot, Threaded, BoolTy)
 
 #undef ELT_SINGLE_INSTANCE_1K
 #undef ELT_SINGLE_INSTANCE_2K
- 
 
-  
 } // namespace inlining
 
 } // namespace dnn_lib

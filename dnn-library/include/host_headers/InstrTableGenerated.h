@@ -450,6 +450,25 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {0x0, 0x0}  // global store mask
   },
 
+  // ET_elementcos
+  {
+    "ElementCos", // name
+    1, // # outs
+    1,  // # ins
+    {}, // members
+    2, // template param mask
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
+  },
+
   // ET_elementdiv
   {
     "ElementDiv", // name
@@ -602,6 +621,44 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {0x0}  // global store mask
   },
 
+  // ET_elementneg
+  {
+    "ElementNeg", // name
+    1, // # outs
+    1,  // # ins
+    {}, // members
+    2, // template param mask
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
+  },
+
+  // ET_elementnot
+  {
+    "ElementNot", // name
+    1, // # outs
+    1,  // # ins
+    {}, // members
+    0, // template param mask
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
+  },
+
   // ET_elementpow
   {
     "ElementPow", // name
@@ -636,6 +693,25 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
+  },
+
+  // ET_elementsin
+  {
+    "ElementSin", // name
+    1, // # outs
+    1,  // # ins
+    {}, // members
+    2, // template param mask
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
   },

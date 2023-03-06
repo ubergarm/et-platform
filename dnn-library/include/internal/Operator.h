@@ -2144,7 +2144,7 @@ public:
   }
 
   //// Sin Operation ////
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Sin>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementSin>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float op;
     convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), op);
@@ -2152,7 +2152,7 @@ public:
     convertFp32ToFp16<setMaskForScalar>(op, dst.raw(d));
   }
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Sin>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementSin>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float op;
     convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), op);
@@ -2160,18 +2160,18 @@ public:
     convertFp32ToFp16<setMaskForScalar>(op, dst.at(p));
   }
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Sin>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementSin>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, uint64_t& d, uint64_t& s) {
     dst.raw(d) = getSin<setMaskForScalar>(src.raw(s));
   }
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Sin>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementSin>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, dim_array_t& p) {
     dst.at(p) = getSin<setMaskForScalar>(src.at(p));
   }
 
   //// Cos Operation ////
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Cos>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementCos>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, uint64_t& d, uint64_t& s) {
     float op;
     convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.raw(s)), op);
@@ -2179,7 +2179,7 @@ public:
     convertFp32ToFp16<setMaskForScalar>(op, dst.raw(d));
   }
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Cos>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementCos>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<uint16_t>& dst, const Handle<uint16_t>& src, dim_array_t& p) {
     float op;
     convertFp16ToFp32<setMaskForScalar>(static_cast<uint16_t>(src.at(p)), op);
@@ -2187,24 +2187,24 @@ public:
     convertFp32ToFp16<setMaskForScalar>(op, dst.at(p));
   }
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Cos>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementCos>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, uint64_t& d, uint64_t& s) {
     dst.raw(d) = getCos<setMaskForScalar>(src.raw(s));
   }
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, Cos>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementCos>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, dim_array_t& p) {
     dst.at(p) = getCos<setMaskForScalar>(src.at(p));
   }
 
-  //// LogicalNot operation ////
+  //// ElementNot operation ////
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, LogicalNot>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementNot>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<bool>& dst, const Handle<bool>& src, uint64_t& d, uint64_t& s) {
     dst.raw(d) = not src.raw(s);
   }
 
-  template <typename U = opType, typename std::enable_if<std::is_same<U, LogicalNot>::value, std::size_t>::type = 0>
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementNot>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<bool>& dst, const Handle<bool>& src, dim_array_t& p) {
     dst.at(p) = not src.at(p);
   }
@@ -2213,7 +2213,7 @@ public:
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementNeg>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<float>& dst, const Handle<float>& src, uint64_t& d, uint64_t& s) {
-    dst.raw(d) = -dst.raw(s);
+    dst.raw(d) = -src.raw(s);
   }
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementNeg>::value, std::size_t>::type = 0>
