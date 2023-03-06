@@ -407,6 +407,17 @@ extern template void fwdLibElementCmpLTInstVectorized<Int32ITy,Int32ITy>(LibTens
 extern template void fwdLibElementCmpLTInstVectorized<Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
+*  ElementCos implementations
+****************************************************************************/
+// declarations
+template <ElemKind in0Type>
+void fwdLibElementCosInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibElementCosInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementCosInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
 *  ElementDiv implementations
 ****************************************************************************/
 // declarations
@@ -506,6 +517,26 @@ extern template void fwdLibElementMulInst<Int32ITy>(LibTensor* out0, LibTensor* 
 extern template void fwdLibElementMulInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
+*  ElementNeg implementations
+****************************************************************************/
+// declarations
+template <ElemKind in0Type>
+void fwdLibElementNegInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibElementNegInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementNegInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
+*  ElementNot implementations
+****************************************************************************/
+// declarations
+
+void fwdLibElementNotInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+
+/****************************************************************************
 *  ElementPow implementations
 ****************************************************************************/
 // declarations
@@ -530,6 +561,17 @@ extern template void fwdLibElementSelectInst<Int8QTy>(LibTensor* out0, LibTensor
 extern template void fwdLibElementSelectInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibElementSelectInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibElementSelectInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, LibTensor* in2, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
+*  ElementSin implementations
+****************************************************************************/
+// declarations
+template <ElemKind in0Type>
+void fwdLibElementSinInst(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibElementSinInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibElementSinInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  ElementSub implementations
