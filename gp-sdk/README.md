@@ -125,6 +125,31 @@ cmake .. -DGP_SDK_HOME=<path_to-gp-sdk> -DADDRESS=0x8005b35000
 make
 
 
+## Generating Doxygen documentation
+
+Doxygen packages are not installed by default in the SDK docker. If needed, install them with:
+
+### Required third-party dependencies
+
+```
+sudo apt update
+sudo apt install texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra
+sudo apt install doxygen
+```
+
+### Generate pdf
+
+Once the required dependencies are installed, perform the 'Building' steps the gp-sdk as explained in a previous section.
+
+```
+cd <path_to-gp-sdk>/docs/host/build/
+make; cd latex; make
+cd <path_to-gp-sdk>/docs/device/build/
+make; cd latex; make
+```
+
+New documentation will appear as refman.pdf inside each host/build and device/build folders.
+
                                                   
 
 
