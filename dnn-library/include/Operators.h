@@ -28,11 +28,15 @@ class ElementLog {};
 class ElementExp {};
 class ElementErf {};
 class ElementIsNaN {};
+class ElementNeg {};
 class Tanh {};
+class Sin {};
+class Cos {};
 class Sigmoid {};
 class And {}; // bit-wise
 class Or {}; // bit-wise
 class Xor {}; // bit-wise
+class LogicalNot {};
 
 #endif //  DNNLIB_OPERATORS_H
 

@@ -1,8 +1,8 @@
 // clang-format off
 
 // File automatically generated with:
-//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/home/gsole/Esperanto/sw-platform4/host-software/dnnLibrary/scripts
+//  ./libManager.py --swplatform-root ../../.. --excel libManager.xlsx --cacheState cacheState.xlsx
+//  cwd=/home/isb/prog/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -569,7 +569,6 @@ template void fwdLibElementCmpNEQInstVectorized<Float16Ty,Float16Ty>(LibTensor* 
 template void fwdLibElementCmpNEQInstVectorized<Int8QTy,Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibElementCmpNEQInstVectorized<Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibElementCmpNEQInstVectorized<Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-
 
   // 
   // Section: ElementCmpLTE
