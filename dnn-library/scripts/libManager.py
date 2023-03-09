@@ -77,7 +77,8 @@ class LibManagerSheet:
                       "CountIncludePads": "bool",
                       "FusedActivation": "size_t",
                       "FusedActivationArgs": "std::array<float, default_fusedActivationArgs> &",
-                      "GenericOperation": "uint32_t"
+                      "GenericOperation": "uint32_t",
+                      "Upper": "bool",
                     }
 
     # members that end up adding another template paramer (they are std::array<T, N>)
