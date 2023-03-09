@@ -33,6 +33,7 @@ SCALAR_MB_DEF(Layout, uint32_t)
 SCALAR_MB_DEF(CountIncludePads, bool)
 SCALAR_MB_DEF(FusedActivation, size_t)
 SCALAR_MB_DEF(GenericOperation, uint32_t)
+SCALAR_MB_DEF(Upper, bool)
 
 VECTOR_MB_DEF(Kernels, uint32_t)
 VECTOR_MB_DEF(Strides, uint32_t)
