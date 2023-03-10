@@ -95,6 +95,7 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TensorViewInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TopKInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TransposeInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TriluInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/inlining.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Addresser.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/FFT.h

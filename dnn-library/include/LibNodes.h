@@ -1230,6 +1230,21 @@ extern template void fwdLibTransposeInstAligned32Bytes<Int32ITy>(LibTensor* out0
 extern template void fwdLibTransposeInstAligned32Bytes<Int16QTy>(LibTensor* out0, LibTensor* in0, const std::array<uint32_t, max_tensor_dimensions> & Shuffle, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
+*  Trilu implementations
+****************************************************************************/
+// declarations
+template <ElemKind in0Type>
+void fwdLibTriluInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Upper, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibTriluInst<FloatTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Upper, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibTriluInst<Float16Ty>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Upper, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibTriluInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Upper, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibTriluInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Upper, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibTriluInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Upper, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibTriluInst<Int16QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const bool Upper, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
 *  ETSOCGenericOp implementations
 ****************************************************************************/
 // declarations
