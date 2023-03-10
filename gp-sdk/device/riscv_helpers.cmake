@@ -37,7 +37,8 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
     et-common-libs::cm-umode
   )
 
-  set(ELF_EXE_LINKER_FLAGS_BASE "-nostdlib -nostartfiles -Wl,--gc-sections  -e _start -Wl,--start-group -lm -lgcc")
+  set(WRAPPED_FUNC "-Wl,--wrap=__ieee754_sqrtf -Wl,--wrap=sqrtf")
+  set(ELF_EXE_LINKER_FLAGS_BASE "-nostdlib -nostartfiles -Wl,--gc-sections  -e _start ${WRAPPED_FUNC} -Wl,--start-group  -lm -lgcc -mno-fdiv")
   
   set(ELF_EXE_LINKER_FLAGS "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH} -Wl,--defsym=BASE_ADDRESS=0")
   set(ELF_EXE_LINKER_FLAGS_DBG "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH} -Wl,--defsym=BASE_ADDRESS=${DEBUG_ADDRESS}")

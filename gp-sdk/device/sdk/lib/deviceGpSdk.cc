@@ -152,7 +152,6 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
     args_->env.numThreads = __builtin_popcountll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * config.threadsPerCore;
     evictCacheLine(0x3, (uint8_t *) &args_);
     evictCacheLine(0x3, (uint8_t *) args_);
-    et_printf("th: %d\n", args_->env.numThreads);
     constexpr uint64_t full_shire_mask = 0xffffffff;
     wakeUpThreads(full_shire_mask);
   }

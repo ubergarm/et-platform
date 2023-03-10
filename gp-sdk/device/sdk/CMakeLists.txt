@@ -22,6 +22,28 @@ target_include_directories(etsoc_crt0
 )
 
 target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
+target_link_libraries(etsoc_crt0 PUBLIC etgcc etm)
+
+add_library(etgcc STATIC
+  libetgcc/divsf.c
+)
+target_include_directories(etgcc
+    PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/libetgcc/include
+)
+
+target_compile_options(etgcc PUBLIC -mno-fdiv)
+
+add_library(etm STATIC
+  libetm/ef_sqrtf.c
+)
+target_include_directories(etm
+    PUBLIC
+        ${CMAKE_CURRENT_LIST_DIR}/libetm/include
+)
+target_compile_options(etm PUBLIC -mno-fdiv)
+
+
 
 add_library(libcpp_throw_stub STATIC libcpp_throw_stub/functexcept.cc)
 target_link_libraries(libcpp_throw_stub
