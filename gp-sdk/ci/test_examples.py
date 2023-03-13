@@ -31,6 +31,7 @@ KERNEL_LAUNCHERS = {
     "txfma": "txfma_launcher",
     "hang": "basic_launcher",
     "exception": "basic_launcher",
+    "fnodiv": "basic_launcher"
 }
 
 KERNELS = list(KERNEL_LAUNCHERS.keys())
@@ -40,6 +41,9 @@ EXTRA_ARGS = defaultdict(list)
 EXTRA_ARGS["saxpy_profiling"] = ["--launch_mult=2"]
 EXTRA_ARGS["hang"] = ["--enableCoreDump"]
 EXTRA_ARGS["exception"] = ["--enableCoreDump"]
+EXTRA_ARGS["bss"] = ["--num_launches=5"]
+EXTRA_ARGS["data"] = ["--num_launches=5"]
+
 
 SHOULD_FAIL = ["hang", "exception"]
 
