@@ -25,7 +25,7 @@
 
 int entryPoint_0(KernelArguments* args);
 int entryPoint_1(KernelArguments* args);
-DeviceConfig config {2, entryPoint_0, entryPoint_1};
+extern  DeviceConfig config {2, entryPoint_0, entryPoint_1};
 
 constexpr uint64_t one = 1;
 

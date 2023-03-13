@@ -16,8 +16,10 @@
 .global _start
 
 _start:
+ #initialize global pointer
 .option push
 .option norelax
+ la gp, __global_pointer$
 .option pop
 
   call  deviceGpSdkEntry

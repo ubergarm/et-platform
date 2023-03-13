@@ -31,7 +31,7 @@
 #include "kernel_arguments.h"
 
 int entryPoint_0(KernelArguments* args);
-DeviceConfig config {1, entryPoint_0, nullptr};
+extern  DeviceConfig config {1, entryPoint_0, nullptr};
 
 using namespace dnn_lib;
 

@@ -22,11 +22,34 @@ SECTIONS
   . = ALIGN(64);
   .text : { *(.text) *(.text.*) }
   . = ALIGN(64);
+
+
+   /* init and fini array for global constructors and destructors */
+  .preinit_array : ALIGN(64) {
+        PROVIDE_HIDDEN (__preinit_array_start = .);
+        KEEP (*(.preinit_array))
+        PROVIDE_HIDDEN (__preinit_array_end = .);
+   } 
+
+  .init_array : ALIGN(64) {
+     PROVIDE_HIDDEN (__init_array_start = .);
+     KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.init_array)))
+     PROVIDE_HIDDEN (__init_array_end = .);
+  }
+
+  .fini_array : ALIGN(64) {
+     PROVIDE_HIDDEN (__fini_array_start = .);
+     KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.fini_array)))
+     PROVIDE_HIDDEN (__fini_array_end = .);
+  }
+
+ 
   .persistentData :
   {
     *(.persistentData);
   }
   . = ALIGN(64);
+
   .data :
   {
     /* This section must be restored every time a kernel is relaunched in the
@@ -35,7 +58,10 @@ SECTIONS
        the first time a kernel is launched. Subsequent launches will restore  
       _data_ro_copy into _data */
     _data_start = .;
-    *(.data* .sdata .sdata.*)  ;
+    . = ALIGN(64);
+    *(.sdata .sdata.*)
+     PROVIDE( __global_pointer$ = . + 0x800 );
+    *(.data .data.*)
     . = ALIGN(64);
     _data_end = .;
     _data_ro_copy_start = .;
@@ -52,6 +78,7 @@ SECTIONS
   .bss(NOLOAD) :
   {
     _bss_start = .;
+    *(.sbss);
     *(.bss*);
     . = ALIGN(64);
     _bss_end = .;

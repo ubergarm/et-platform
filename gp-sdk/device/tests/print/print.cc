@@ -15,7 +15,7 @@
 #include "entryPoint.h"
 
 int entryPoint_0(KernelArguments* args);
-DeviceConfig config {1, entryPoint_0, nullptr};
+extern  DeviceConfig config {1, entryPoint_0, nullptr};
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   if (get_minion_id()==0) {

@@ -24,16 +24,19 @@ using KernelEntryPointFuncPtr = int (*)(KernelArguments*);
 
 KernelEntryPointFuncPtr rebaseEntryPointPtr(KernelEntryPointFuncPtr fnc, uint64_t base);
 
-/// @brief hello
+/// @brief __DeviceConfig
 /// Examples of DeviceConfig
-/// constexpr DeviceConfig config1 {1, entryPoint_0, nullptr};
-/// constexpr DeviceConfig config2 {2, entryPoint_0, entryPoint_0};
-/// constexpr DeviceConfig config3 {2, entryPoint_0, entryPoint_1};
-struct DeviceConfig {
+/// extern DeviceConfig config1 {1, entryPoint_0, nullptr};
+/// extern DeviceConfig config2 {2, entryPoint_0, entryPoint_0};
+/// extern eviceConfig config3 {2, entryPoint_0, entryPoint_1};
+struct alignas(64) __DeviceConfig {
   int32_t threadsPerCore = 0;
   KernelEntryPointFuncPtr entryPoint_0 = nullptr;
   KernelEntryPointFuncPtr entryPoint_1 = nullptr;
 };
+
+// @brief DeviceConfig: type alias to enforce const definition. 
+using DeviceConfig = const __DeviceConfig;
 
 int get_num_threads();
 int get_relative_thread_id();

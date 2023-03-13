@@ -28,7 +28,16 @@ extern uint32_t _data_start;
 extern uint32_t _data_ro_copy_end;
 extern uint32_t _data_ro_copy_start;
 /* Linker label used to rebase entryPoint function pointers */
-extern uint32_t _text_init_start;
+extern const uint32_t _text_init_start;
+// Generic C function pointer.
+using function_t = void (*)();
+/* Linker labels for initialization and fini arrays */
+extern const function_t __preinit_array_start;
+extern const function_t __preinit_array_end;
+extern const function_t __init_array_start;
+extern const function_t __init_array_end;
+extern const function_t __fini_array_start;
+extern const function_t __fini_array_end;
 
 extern DeviceConfig config;
 
@@ -93,12 +102,38 @@ bool hasGlobalData() {
   return !((bss_end == bss_start) && (data_end == data_start));
 }
 
+/// returns true if  there are functions to call on init_arrays
+static bool hasInitArrays() {
+  return !(__preinit_array_start == __preinit_array_end) && 
+         !(__init_array_start == __init_array_end);
+}
+
+
 /// @brief Computes the new memory address of a function after loading the kernel in the device.
 /// @param fnc function pointer which address has been determined in compile time.
 /// @param base new base address of the program
 /// @return Returns the new rebased pointer to the function
-KernelEntryPointFuncPtr rebaseEntryPointPtr(KernelEntryPointFuncPtr fnc, uint64_t base) {
-  return (KernelEntryPointFuncPtr)((uint64_t) fnc + base);
+template <typename T> auto rebaseFunction(T fnc, uint64_t base) -> decltype (fnc) {
+  return (decltype(fnc))((uint64_t) fnc + base);
+}
+
+/// calls init_array functions
+static void callInitArrayFunctions() {
+
+  for (const function_t* entry=&__preinit_array_start;  entry < &__preinit_array_end; ++entry) {
+    auto func = rebaseFunction(*entry, (uint64_t) &_text_init_start);
+    (*func)();
+  }
+
+  for (const function_t* entry=&__init_array_start;  entry < &__init_array_end; ++entry) {
+    auto func = rebaseFunction(*entry, (uint64_t) &_text_init_start);
+    (*func)();
+  }
+}
+
+//FIXME: setting args inhibits fast-path initialization
+static bool needToSetArgs() {
+  return true;
 }
 
 extern "C" int deviceGpSdkEntry(KernelArguments* args) {
@@ -108,8 +143,8 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
   uint32_t shireId = minionId >> 5;
   minionId = minionId & 0x1F;
   uint32_t globalMinionId = shireId * 32 + minionId;
-  auto needSync = hasGlobalData();
-  
+  auto needSync = hasGlobalData() || hasInitArrays() || needToSetArgs();
+
   if (shireId >= 32)
     return 0;
 
@@ -117,17 +152,17 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
   if (!needSync) {
     if (config.threadsPerCore == 1) {
       if(threadId == 0) {
-        KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+        KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0,(uint64_t)(&_text_init_start));
         return rebasedFnc(args);
       } else {
         return 0;
       }
     } else {
       if (threadId == 0) {
-        KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+        KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0,(uint64_t)(&_text_init_start));
         return rebasedFnc(args);
       } else {
-        KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_1,(uint64_t)(&_text_init_start));
+        KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_1,(uint64_t)(&_text_init_start));
         return rebasedFnc(args);
       }
     }
@@ -148,10 +183,16 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
                          : [ increase ] "r"(increment), [ dst ] "r"(&numberOfBoots)
                          :);
 
+    // call init array (dynamic initializatoin) functions from thrad 0 
+    callInitArrayFunctions();
+
+    // FIXME. having to setup args inhibits fast-path startups. we should make a per-core args ptr.
     args_ = (Arguments *) args;
     args_->env.numThreads = __builtin_popcountll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * config.threadsPerCore;
     evictCacheLine(0x3, (uint8_t *) &args_);
-    evictCacheLine(0x3, (uint8_t *) args_);
+    evictCacheLine(0x3, (uint8_t *) &args_->env.numThreads);
+
+    
     constexpr uint64_t full_shire_mask = 0xffffffff;
     wakeUpThreads(full_shire_mask);
   }
@@ -160,17 +201,17 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
   if (config.threadsPerCore == 1) {
     if(threadId == 0) {
       fcc_consume(FCC_0);
-      KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+      KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0,(uint64_t)(&_text_init_start));
       return rebasedFnc(args);
     }
   } else {
     if (threadId == 0) {
       fcc_consume(FCC_0);
-      KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_0,(uint64_t)(&_text_init_start));
+      KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0,(uint64_t)(&_text_init_start));
       return rebasedFnc(args);
     } else {
       fcc_consume(FCC_0);
-      KernelEntryPointFuncPtr rebasedFnc = rebaseEntryPointPtr(config.entryPoint_1,(uint64_t)(&_text_init_start));
+      KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_1,(uint64_t)(&_text_init_start));
       return rebasedFnc(args);
     }
   }

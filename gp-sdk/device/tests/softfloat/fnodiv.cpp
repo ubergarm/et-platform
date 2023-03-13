@@ -24,7 +24,7 @@
 #include "entryPoint.h"
 
 int entryPoint_0(KernelArguments* args);
-DeviceConfig config {1, entryPoint_0, nullptr};
+extern DeviceConfig config {1, entryPoint_0, nullptr};
 
 union uif {
     float f;

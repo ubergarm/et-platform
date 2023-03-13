@@ -24,7 +24,7 @@ constexpr size_t size = 32ULL;
 constexpr size_t smallSize = 4ULL;
 
 int entryPoint_0(KernelArguments* args);
-DeviceConfig config {1, entryPoint_0, nullptr};
+extern  DeviceConfig config {1, entryPoint_0, nullptr};
 static uint8_t smallData[smallSize] = {0,1,2,3}; // will be placed in .sdata section
 static uint8_t initializedData[size] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31}; // will be placed in .data section
 
