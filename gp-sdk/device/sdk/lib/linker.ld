@@ -78,7 +78,7 @@ SECTIONS
   .bss(NOLOAD) :
   {
     _bss_start = .;
-    *(.sbss);
+    *(.sbss*);
     *(.bss*);
     . = ALIGN(64);
     _bss_end = .;
