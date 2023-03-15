@@ -76,7 +76,12 @@ target_link_libraries(cpp_contructors.elf etsoc_crt0)
 add_etsoc_riscv_executable(gp.elf linker/gp.cc)
 target_link_libraries(gp.elf etsoc_crt0)
 
+add_etsoc_riscv_executable(c_tls.elf linker/c_tls.cc)
+target_link_libraries(c_tls.elf etsoc_crt0)
 
-foreach(kernel print print2 bss data saxpy_scalar saxpy_vector saxpy_profiling fftKernel syncDeviceBasic syncMinion txfma oneTrapOnSync busy10sec check_pmc fnodiv c_contructors cpp_contructors gp)
+add_etsoc_riscv_executable(cpp_tls.elf linker/cpp_tls.cc)
+target_link_libraries(cpp_tls.elf etsoc_crt0)
+
+foreach(kernel print print2 bss data saxpy_scalar saxpy_vector saxpy_profiling fftKernel syncDeviceBasic syncMinion txfma oneTrapOnSync busy10sec check_pmc fnodiv c_contructors cpp_contructors gp c_tls cpp_tls)
   install(TARGETS ${kernel}.elf ${kernel}.elf_dbg DESTINATION kernels)
 endforeach()

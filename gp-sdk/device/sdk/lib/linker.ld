@@ -10,6 +10,8 @@
  */
 
 
+MAX_HARTS = 2112;
+
 SECTIONS
 {
   . = BASE_ADDRESS;
@@ -69,11 +71,8 @@ SECTIONS
     _data_ro_copy_end = .;
   }
   . = ALIGN(64);
-  .sdata :
-  {
-    *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
-    *(.gnu.linkonce.s.* )
-  }
+
+
   . = ALIGN(64);
   .bss(NOLOAD) :
   {
@@ -83,5 +82,44 @@ SECTIONS
     . = ALIGN(64);
     _bss_end = .;
   }
+
+  /***********************************************
+   * TLS (Per thread data)
+   * .tdata* holds initialized thread local data.
+   * .tbss*  holds non-initialized & zeroed thread local data.
+   *         this is a ·"backup". upon initialization, each hart
+   *         will get its copy on TLS allocation.
+   *  [__tdata_start .. __tbss_end ]
+   *  (Note: tbss could be marked NOLOAD to save some load-time).
+   ***********************************************/
+   . = ALIGN(64);
+  .tdata :
+   {
+     *(.tdata*)
+     . = ALIGN(64);
+   }
+     __tdata_start = ADDR(.tdata);  
+  .tbss	  : { 
+      __tbss_start = .;
+      *(.tbss*)
+   . = ALIGN(64);
+   }
+   . = . + SIZEOF(.tbss);
+   . = ALIGN(64);
+   __tbss_end = .;
+
+  /***********************************************
+   * TLS (per thread allocation area). 
+   * reserve 2112 times the ammount of memory required by (tdata + tbss)
+   * __tls_alloc_start[0] --> hart_0
+   * __tls_alloc_start[2111 *tls_size] --> hart_2111  
+  /***********************************************/
+  .tls-alloc ALIGN(64) (NOLOAD) : {
+     __tls_alloc_start = .;
+     . = . + (ABSOLUTE(__tbss_end) - ABSOLUTE(__tdata_start)) * MAX_HARTS;
+   } 
+  
+  
+
   _end = .;
 }

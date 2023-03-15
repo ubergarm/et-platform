@@ -27,8 +27,11 @@ static inline void evictCacheLine(uint64_t dst, uint8_t * addr);
 
 /**
  * Copies \p num_bytes bytes from the object pointed to by \p src to the object pointed to by \p dst. Both object
- * pointers must be 32-byte aligned. \brief Copies bytes from a memory position in the device to another. \param src
- * pointer to the memory location to copy from \param dst pointer to the memory location to copy to \param num_bytes
+ * pointers must be 32-byte aligned. \brief Copies bytes from a memory position in the device to another.
+ * global address scope.
+ * \param src pointer to the memory location to copy from
+ * \param dst pointer to the memory location to copy to
+ * \param num_bytes
  * number of bytes to copy
  */
 static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) {
@@ -57,6 +60,45 @@ static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) 
   }
   return 0;
 }
+
+/**
+ * Copies \p num_bytes bytes from the object pointed to by \p src to the object pointed to by \p dst. Both object
+ * pointers must be 32-byte aligned. \brief Copies bytes from a memory position in the device to another.
+ * local address scope.
+ *  \param src  pointer to the memory location to copy from 
+ *  \param dst pointer to the memory location to copy to 
+ *  \param num_bytes  bytes to copy
+ */
+static inline int local_memcpy(void * dst, const void * src, size_t num_bytes) {
+  
+  constexpr size_t stride = 32; // vector width is 32 bytes
+  /* cast to 1-byte ptr type, needed for pointer arithmetic */
+  uint8_t *d = static_cast<uint8_t *>(dst);
+  const uint8_t *s = static_cast<const uint8_t *>(src);
+
+  /* Check 32 byte alignment start and size multiple */
+  bool aligned_ptrs = (reinterpret_cast<uintptr_t>(s) % 32UL == 0) &&
+                      (reinterpret_cast<uintptr_t>(d) % 32UL == 0);
+  bool aligned_size = ((num_bytes >> 5) != 0);
+
+  // slow-path: non aligned.
+  if(!aligned_ptrs || !aligned_size) {
+    et_memcpy(dst,src,num_bytes);
+    return 0;
+  }
+  // fast-path: aligned.
+  float tmp;
+  for (size_t i = 0; i < num_bytes; i += stride) {
+    __asm__ __volatile__("flw.ps %[tmp], (%[src])\n"
+                         "fsw.ps %[tmp], (%[dst])\n"
+                         : [ tmp ] "=&f" (tmp)
+                         : [ src ] "r" (s + i),
+                           [ dst ] "r"(d + i)
+                         :);
+  }
+  return 0;
+}
+
 
 /*! \cond PRIVATE */
 
