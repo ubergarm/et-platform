@@ -37,7 +37,17 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
     et-common-libs::cm-umode
   )
 
-  set(WRAPPED_FUNC "-Wl,--wrap=__ieee754_sqrtf")
+  # Currently released libm has been compiled w/o -mno-div, and ET-SoC-1 does not supprot fdiv family, 
+  # Following wraps are used to patch a small subset of libm into et_libm (compiled with -mno-fdiv).
+  # (note, Those fdivs are typically to generate nans in non-happy path, so typically out of critical path).
+  set(WRAPPED_FUNC "-Wl,--wrap=__ieee754_sqrtf \
+                    -Wl,--wrap=__ieee754_powf -Wl,--wrap=__ieee754_pow -Wl,--wrap=pow   -Wl,--wrap=powf \
+                    -Wl,--wrap=__ieee754_atanhf -Wl,--wrap=__ieee754_atanh -Wl,--wrap=log1pf -Wl,--wrap=log1p  \
+                    -Wl,--wrap=__ieee754_asinf -Wl,--wrap=__ieee754_asin -Wl,--wrap=asinf -Wl,--wrap=asin \
+                    -Wl,--wrap=__ieee754_acosf -Wl,--wrap=__ieee754_acos -Wl,--wrap=acos \
+                    -Wl,--wrap=__ieee754_acoshf -Wl,--wrap=__ieee754_acosh -Wl,--wrap=acosh -Wl,--wrap=acoshf \
+                    -Wl,--wrap=logf -Wl,--wrap=log  -Wl,--wrap=__ieee754_logf -Wl,--wrap=__ieee754_log")
+
   set(ELF_EXE_LINKER_FLAGS_BASE "-nostdlib -nostartfiles -Wl,--gc-sections  -e _start ${WRAPPED_FUNC} -Wl,--start-group  -lm -lgcc")
   
   set(ELF_EXE_LINKER_FLAGS "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH} -Wl,--defsym=BASE_ADDRESS=0")

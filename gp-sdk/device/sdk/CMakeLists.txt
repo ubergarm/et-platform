@@ -36,6 +36,8 @@ target_link_libraries(etsoc_crt0
 )
 
 
+#etgcc lib implements "softfloat" fp32 divs in HW by means of ET-SoC-1  extensions.
+#by linking to this lib, -mno-fdiv option is propagated transparently to clients.
 add_library(etgcc STATIC
   libetgcc/divsf.c
 )
@@ -46,7 +48,33 @@ target_include_directories(etgcc
 
 target_compile_options(etgcc PUBLIC -mno-fdiv)
 
+#etm is just a subset of libm routines (Verbatim from newlib/libm) compiled with-mno-fdiv.
+#libm will then be ganularily patched through wrap mechanism at link time.
 add_library(etm STATIC
+  libetm/w_pow.c
+  libetm/w_log.c
+  libetm/e_log.c
+  libetm/w_acosh.c
+  libetm/w_acos.c
+  libetm/w_asin.c
+  libetm/e_acosh.c 
+  libetm/e_acos.c 
+  libetm/e_asin.c
+  libetm/e_atanh.c
+  libetm/s_log1p.c
+  libetm/e_pow.c
+  libetm/wf_pow.c
+  libetm/wf_log.c
+  libetm/ef_log.c
+  libetm/ef_acosh.c 
+  libetm/ef_acos.c 
+  libetm/wf_acosh.c
+  libetm/wf_acos.c
+  libetm/wf_asin.c
+  libetm/ef_asin.c
+  libetm/ef_atanh.c
+  libetm/sf_log1p.c
+  libetm/ef_pow.c
   libetm/ef_sqrtf.c
 )
 target_include_directories(etm

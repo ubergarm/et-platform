@@ -17,5 +17,6 @@ static inline long et_flt_to_i64(float x)
     return (long)__extendsfdf2(x);
 }
 
+/* IEEE float shapes for RISC-V */
 
 #endif 
