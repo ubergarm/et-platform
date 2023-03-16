@@ -17,9 +17,6 @@
 #include "profiling.h"
 #include "environment.h"
 
-// This define will make the test fail, (not enabled on CI yet)
-// It is just needed until  system-sw components are released
-#define PMC_Get_Current_Cycles_Safe PMC_Get_Current_Cycles
 
 int entryPoint_0(KernelArguments* args);
 int entryPoint_1(KernelArguments* args);
@@ -30,14 +27,14 @@ static inline int checkPMC() {
   uint64_t counters[64] = {0};
   auto fail = false;
 
-  auto start = PMC_Get_Current_Cycles_Safe();
+  auto start = PMC_Get_Current_Cycles();
 
   for (auto i = 0;; i += 3) {
     // hammer cycles read mixing with some other PMC
-    auto val = PMC_Get_Current_Cycles_Safe();
+    auto val = PMC_Get_Current_Cycles();
     volatile uint64_t other = pmu_core_counter_read_unpriv(HPM_COUNTER_4);
-    auto val2 = PMC_Get_Current_Cycles_Safe();
-    auto val3 = PMC_Get_Current_Cycles_Safe();
+    auto val2 = PMC_Get_Current_Cycles();
+    auto val3 = PMC_Get_Current_Cycles();
     counters[i % 64] = val;
     counters[(i + 1) % 64] = val2;
     counters[(i + 2) % 64] = val3;
