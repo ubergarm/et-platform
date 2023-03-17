@@ -9,9 +9,9 @@
  *-------------------------------------------------------------------------
  */
 
-#include "etgcc.h"
 
 
+float __divsf3(float a, float b);
 float __divsf3(float a, float b)
 {
     float d;

@@ -10,13 +10,13 @@
  */
 
 #include <stdint.h>
-#include "etmath.h"
+
+float __wrap___ieee754_sqrtf(float x);
 
 union bitcast {
     float f;
     uint32_t u;
 };
-
 
 
 float __wrap___ieee754_sqrtf(float x)
@@ -98,9 +98,5 @@ float __wrap___ieee754_sqrtf(float x)
         z = u2f.f;
     } while (0);
     return z;
-}
-
-float __wrap_sqrtf(float x) {
-    return __wrap___ieee754_sqrtf(x);
 }
 

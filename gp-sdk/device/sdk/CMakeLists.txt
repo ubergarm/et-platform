@@ -24,6 +24,18 @@ target_include_directories(etsoc_crt0
 target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
 target_link_libraries(etsoc_crt0 PUBLIC etgcc etm)
 
+set_target_properties(etsoc_crt0 PROPERTIES 
+    VERSION ${PROJECT_VERSION}
+    SOVERSION ${PROJECT_VERSION_MAJOR}
+)
+target_link_libraries(etsoc_crt0
+    PUBLIC
+        et-common-libs::cm-umode
+        libcpp_throw_stub
+        libc_stub
+)
+
+
 add_library(etgcc STATIC
   libetgcc/divsf.c
 )
@@ -51,16 +63,9 @@ target_link_libraries(libcpp_throw_stub
         et-common-libs::cm-umode
 )
 
+add_library(libc_stub STATIC libc_stub/et_errno.cc)
 
-set_target_properties(etsoc_crt0 PROPERTIES 
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
-)
-target_link_libraries(etsoc_crt0
-    PUBLIC
-        et-common-libs::cm-umode
-        libcpp_throw_stub
-)
+
 
 
 

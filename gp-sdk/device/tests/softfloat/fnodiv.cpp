@@ -16,11 +16,10 @@
 #include <etsoc/isa/tensors.h>
 #include <etsoc/isa/utils.h>
 
-#include "entryPoint.h"
-
 #include "CommonCode.h"
 
 #include <math.h>
+#include <errno.h>
 #include "entryPoint.h"
 
 int entryPoint_0(KernelArguments* args);
@@ -33,6 +32,7 @@ union uif {
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
     if (get_relative_thread_id() == 0) {
+        
         union uif d, a, b, c;
         union uif pos_inf, neg_inf, pos_nan, neg_zero, pos_zero;
 
@@ -66,12 +66,17 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         d.f = sqrtf(pos_inf.f);     et_printf("sqrt(0x%f) --> 0x%f\n", static_cast<double>(pos_inf.f), static_cast<double>(d.f));
         d.f = sqrtf(neg_inf.f);     et_printf("sqrt(0x%f) --> 0x%f\n", static_cast<double>(neg_inf.f), static_cast<double>(d.f));
         d.f = sqrtf(pos_nan.f);     et_printf("sqrt(0x%f) --> 0x%f\n", static_cast<double>(pos_nan.f), static_cast<double>(d.f));
-
+        
+        auto r = sqrtf(-1);
+        et_printf("sqrtf(-1) = %f, errno: %d \n", double(r), errno);
+        auto val = 15689.3256f;
+        r = sqrt(val);
+        et_printf("sqrtf(%f) = %f, errno: %d \n", double(val), double(r),  errno);
         et_printf("\n");
 
-        et_printf("%f\n", static_cast<double>(d.f));
-        // d.f = a.f / b.f;    print_u  f3(a, b, d);
-        // printf("%ld\n", et_flt_to_i64(d.f));
+        //et_printf("%f\n", static_cast<double>(d.f));
+        //d.f = a.f / b.f;    print_u  f3(a, b, d);
+        //printf("%ld\n", et_flt_to_i64(d.f));
     }
 
   return 0;
