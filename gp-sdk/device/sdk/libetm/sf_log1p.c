@@ -16,8 +16,6 @@
 #include "etmath_private.h"
 #include <math.h>
 
-extern uint32_t __errno;
-
 #ifdef __STDC__
 static const float
 #else

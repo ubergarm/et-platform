@@ -253,6 +253,4 @@ float __wrap___ieee754_powf(float x, float y)
 	return s*z;
 }
 
-float test_powf(float x, float y) { return __wrap___ieee754_powf(x,y); }
-
 #endif /* __OBSOLETE_MATH */

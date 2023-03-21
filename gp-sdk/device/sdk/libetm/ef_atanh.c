@@ -15,10 +15,9 @@
  */
 
 #include "etmath_private.h"
+#include "math.h"
 
 float __wrap___ieee754_atanhf(float x);
-//float __wrap_atanhf(float x);
-//float __atanhf(float x);
 
 
 #ifdef __STDC__

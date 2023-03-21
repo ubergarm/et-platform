@@ -191,12 +191,6 @@ do {								        \
   (d) = sl_u.value;						    \
 } while (0)
 
-// static constexpr void setLowWord(double d, double v) {
-//   ieee_double_shape_type sl_u;			    
-//   sl_u.value = (d);						    
-//   sl_u.parts.lsw = (v);						
-//   (d) = sl_u.value;				
-// }
 typedef union
 {
   float value;

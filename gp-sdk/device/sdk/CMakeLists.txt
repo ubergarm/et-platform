@@ -81,9 +81,11 @@ target_include_directories(etm
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/libetm/include
 )
+
+# Disable warning from code copied from newlib
+target_compile_options(etm PRIVATE -Wno-undef -Wno-sign-conversion -Wno-return-type -Wno-sign-compare -Wno-conversion)
+
 target_compile_options(etm PUBLIC -mno-fdiv)
-
-
 
 add_library(libcpp_throw_stub STATIC libcpp_throw_stub/functexcept.cc)
 target_link_libraries(libcpp_throw_stub

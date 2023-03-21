@@ -25,7 +25,7 @@ static const float
 static float 
 #endif
 one	= 1.0,
-ln2	= 6.9314718246e-01;  /* 0x3f317218 */
+ln2	= 6.9314718246e-01f;  /* 0x3f317218 */
 
 float __wrap___ieee754_acoshf(float x)
 {	
