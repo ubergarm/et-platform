@@ -176,7 +176,7 @@ build:sonarqube-check:
       fi
       
       cd device
-      source build/generators/conanbuild.sh
+      source build/${BUILD_TYPE}/generators/conanbuild.sh
       cmake --preset release -DADDRESS:STRING=${KERNEL_ADDRESS} -DUSE_CONAN=ON -G "Unix Makefiles"
       cmake --build --preset release
       cd ..
