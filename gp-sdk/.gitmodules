@@ -1,4 +1,0 @@
-[submodule "samples"]
-	path = samples
-	url = ../samples.git
-	branch = main
