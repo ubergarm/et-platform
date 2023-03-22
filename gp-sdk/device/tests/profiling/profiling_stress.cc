@@ -16,11 +16,16 @@
 #include "entryPoint.h"
 #include "profiling.h"
 
-int entryPoint(KernelArguments* args);
-extern  DeviceConfig config {2, entryPoint, entryPoint};
+class KernelArguments;
 
 
-int entryPoint([[ maybe_unused ]] KernelArguments* vectors) {
+
+int entryPoint(KernelArguments *);
+
+DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint, nullptr);
+
+
+int entryPoint([[ maybe_unused ]] KernelArguments * vectors) {
   //this test assumes ~4096 bytes per hart trace buffer.
   //1000 is enough to stress the circular buffer wrap-around (4096 bytes) few times.
   //goal is getting all the writes

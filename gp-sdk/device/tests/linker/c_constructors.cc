@@ -15,8 +15,10 @@
 #include "entryPoint.h"
 #include "etsoc/isa/atomic.h"
 
+
+class KernelArguments;
 int entryPoint(KernelArguments* args);
-extern const DeviceConfig config{2, entryPoint, entryPoint};
+DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint, entryPoint);
 
 // Constructors
 static void setupGlobal2(void) __attribute__((constructor(102)));

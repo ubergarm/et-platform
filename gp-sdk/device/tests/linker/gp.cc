@@ -40,8 +40,9 @@ void testVeryVerySmall();
 //   0x0000000000002114 <+20>:	addi	sp,sp,16
 //   0x0000000000002118 <+24>:  ret
 
+class KernelArguments;
 int entryPoint(KernelArguments* args);
-extern constexpr __DeviceConfig config{2, entryPoint, entryPoint};
+DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint, entryPoint);
 
 void __attribute__((noinline)) testBig() {
   volatile auto dummy = testBigData[0];

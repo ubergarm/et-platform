@@ -19,8 +19,9 @@
 
 #include "sync.h"
 
+class KernelArguments;
 int entryPoint_0(KernelArguments* args);
-extern  DeviceConfig config {1, entryPoint_0, nullptr};
+DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint_0, nullptr);
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   // Set a barrier all assinged minions and one

@@ -26,7 +26,7 @@
 constexpr uint64_t one = 1;
 
 int entryPoint_0(KernelArguments* args);
-extern  DeviceConfig config {1, entryPoint_0, nullptr};
+DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint_0, nullptr);
 
 
 __attribute__((noinline)) int entryPoint_0(KernelArguments* args) {

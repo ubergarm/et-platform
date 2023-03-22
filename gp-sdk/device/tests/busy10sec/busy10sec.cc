@@ -14,8 +14,9 @@
 
 #include "entryPoint.h"
 
+class KernelArguments;
 int entryPoint_0(KernelArguments* args);
-extern  DeviceConfig config {1, entryPoint_0, nullptr};
+DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint_0, nullptr);
 
 #define CLK_600MHZ_CYCLES_TO_SEC 1.6667E-09
 

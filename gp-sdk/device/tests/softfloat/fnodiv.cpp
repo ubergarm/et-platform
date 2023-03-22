@@ -23,9 +23,9 @@
 #include "entryPoint.h"
 
 
-extern "C"  { float test_powf(float,float); }
+class KernelArguments;
 int entryPoint_0(KernelArguments* args);
-extern DeviceConfig config {1, entryPoint_0, nullptr};
+DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint_0, nullptr);
 
 union uif {
     float f;

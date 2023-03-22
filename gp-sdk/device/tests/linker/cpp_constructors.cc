@@ -15,9 +15,9 @@
 
 #include "entryPoint.h"
 
+class KernelArguments;
 int entryPoint(KernelArguments* args);
-
-extern const DeviceConfig config{2, entryPoint, entryPoint};
+DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint, entryPoint);
 
 uint32_t global_value1_with_constructor = 1;
 uint32_t global_value2_with_constructor = 2;

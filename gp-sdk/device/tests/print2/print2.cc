@@ -13,10 +13,10 @@
 #include <etsoc/isa/hart.h>
 
 #include "entryPoint.h"
-
+class KernelArguments;
 int entryPoint_0(KernelArguments* args);
 int entryPoint_1(KernelArguments* args);
-extern  DeviceConfig config {2, entryPoint_0, entryPoint_1};
+DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint_0, entryPoint_1);
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   if (get_minion_id()< 32) {

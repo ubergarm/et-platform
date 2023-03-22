@@ -18,7 +18,7 @@
 #include "profiling.h"
 
 int entryPoint_0(KernelArguments* args);
-extern  DeviceConfig config {1, entryPoint_0, nullptr};
+DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint_0, nullptr);
 
 // The prupose of this example is just to show profling across functions.. i
 // that is why the kernel is executed twice.(vector and scalar)

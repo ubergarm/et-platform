@@ -45,7 +45,10 @@ extern const function_t __init_array_end;
 extern const function_t __fini_array_start;
 extern const function_t __fini_array_end;
 
+// Kernel configuration object. needs to be declared by the user throuch DECLARE_DEVICE_CONFIG
+namespace DeviceConfigNS {
 extern DeviceConfig config;
+}
 
 /* Global pointer to arguments provided by the host */
 Arguments* args_;
@@ -56,7 +59,7 @@ uint64_t numberOfBoots __attribute__((section("persistentData"))) = {1};
 void resetBSS();
 void resetData();
 bool hasGlobalData();
-extern "C" int deviceGpSdkEntry(KernelArguments* args);
+extern "C" int deviceGpSdkEntry(void* args);
 
 /* wake up all threads on the shire-Mask group system */
 static inline void wakeUpThreads(uint64_t shire_mask) {
@@ -159,7 +162,8 @@ static bool needToSetArgs() {
   return true;
 }
 
-extern "C" int deviceGpSdkEntry(KernelArguments* args) {
+
+extern "C" int deviceGpSdkEntry(void* args) {
   uint32_t hart = get_hart_id();
   uint32_t threadId = hart & 1;
   uint32_t minionId = hart >> 1;
@@ -173,10 +177,11 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
 
   // fast-path: no global data: fast-forward to user code.
   if (!needSync) {
-    if (config.threadsPerCore == 1) {
+    if (DeviceConfigNS::config.threadsPerCore == 1) {
       if (threadId == 0) {
         initializeTLS();
-        KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0, (uint64_t)(&_text_init_start));
+        KernelEntryPointFuncPtr rebasedFnc =
+          rebaseFunction(DeviceConfigNS::config.entryPoint_0, (uint64_t)(&_text_init_start));
         return rebasedFnc(args);
       } else {
         return 0;
@@ -184,12 +189,14 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
     } else {
       if (threadId == 0) {
         initializeTLS();
-        KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0, (uint64_t)(&_text_init_start));
+        KernelEntryPointFuncPtr rebasedFnc =
+          rebaseFunction(DeviceConfigNS::config.entryPoint_0, (uint64_t)(&_text_init_start));
         return rebasedFnc(args);
       } else {
 
         initializeTLS();
-        KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_1, (uint64_t)(&_text_init_start));
+        KernelEntryPointFuncPtr rebasedFnc =
+          rebaseFunction(DeviceConfigNS::config.entryPoint_1, (uint64_t)(&_text_init_start));
         return rebasedFnc(args);
       }
     }
@@ -214,7 +221,8 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
 
     // FIXME. having to setup args inhibits fast-path startups. we should make a per-core args ptr.
     args_ = (Arguments*)args;
-    args_->env.numThreads = __builtin_popcountll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * config.threadsPerCore;
+    args_->env.numThreads =
+      __builtin_popcountll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE * DeviceConfigNS::config.threadsPerCore;
     evictCacheLine(0x3, (uint8_t*)&args_);
     evictCacheLine(0x3, (uint8_t*)&args_->env.numThreads);
 
@@ -223,23 +231,26 @@ extern "C" int deviceGpSdkEntry(KernelArguments* args) {
   }
 
   // Wait initialization to complete and forward to user-code.
-  if (config.threadsPerCore == 1) {
+  if (DeviceConfigNS::config.threadsPerCore == 1) {
     if (threadId == 0) {
       fcc_consume(FCC_0);
       initializeTLS();
-      KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0, (uint64_t)(&_text_init_start));
+      KernelEntryPointFuncPtr rebasedFnc =
+        rebaseFunction(DeviceConfigNS::config.entryPoint_0, (uint64_t)(&_text_init_start));
       return rebasedFnc(args);
     }
   } else {
     if (threadId == 0) {
       fcc_consume(FCC_0);
       initializeTLS();
-      KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_0, (uint64_t)(&_text_init_start));
+      KernelEntryPointFuncPtr rebasedFnc =
+        rebaseFunction(DeviceConfigNS::config.entryPoint_0, (uint64_t)(&_text_init_start));
       return rebasedFnc(args);
     } else {
       fcc_consume(FCC_0);
       initializeTLS();
-      KernelEntryPointFuncPtr rebasedFnc = rebaseFunction(config.entryPoint_1, (uint64_t)(&_text_init_start));
+      KernelEntryPointFuncPtr rebasedFnc =
+        rebaseFunction(DeviceConfigNS::config.entryPoint_1, (uint64_t)(&_text_init_start));
       return rebasedFnc(args);
     }
   }
@@ -260,6 +271,6 @@ int get_relative_thread_id() {
     return -1;
   }
 
-  int threadId = (hartId / (maxThreadsPerCore / config.threadsPerCore)) - startingHart;
+  int threadId = (hartId / (maxThreadsPerCore / DeviceConfigNS::config.threadsPerCore)) - startingHart;
   return threadId;
 }
