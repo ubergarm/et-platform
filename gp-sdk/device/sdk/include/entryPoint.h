@@ -40,7 +40,7 @@ using DeviceConfig = const __DeviceConfig;
 /// DECLARE_KERNEL_ENTRY_POINTS(2,entryPoint_0, entryPoint_1);
 /// DECLARE_KERNEL_ENTRY_POINTS(2,entryPoint, entryPoint);
 #define DECLARE_KERNEL_ENTRY_POINTS(__threadsPerCore, __entry0, __entry1)                                              \
-  namespace DeviceConfigNS {                                                                                           \
+  namespace device_config_ns {                                                                                         \
   extern constexpr DeviceConfig config{__threadsPerCore, KernelEntryPointFuncPtr(__entry0),                            \
                                        KernelEntryPointFuncPtr(__entry1)};                                             \
   static_assert(config.threadsPerCore == 1 || config.threadsPerCore == 2,                                              \

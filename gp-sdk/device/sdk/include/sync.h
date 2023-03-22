@@ -32,7 +32,7 @@
 
 extern Arguments* args_;
 
-namespace DeviceConfigNS {
+namespace device_config_ns {
 extern DeviceConfig config;
 }
 
@@ -162,34 +162,34 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
   constexpr uint32_t thread_1 = 1;
   constexpr std::bitset<64> allOnesMask = std::bitset<64>(0xFFFFFFFF);
 
-  const bool sameEntryPoint = (DeviceConfigNS::config.entryPoint_0 == DeviceConfigNS::config.entryPoint_1);
+  const bool sameEntryPoint = (device_config_ns::config.entryPoint_0 == device_config_ns::config.entryPoint_1);
   const uint32_t thread = get_hart_id() % 2;
   const auto startingRelativeMinionId =
-    startingThread / DeviceConfigNS::config.threadsPerCore; // (virtual) minionId of the starting kernel thread
+    startingThread / device_config_ns::config.threadsPerCore; // (virtual) minionId of the starting kernel thread
   const auto startingMinion = (__builtin_ctzll(args_->env.shireMask) * SOC_MINIONS_PER_SHIRE) +
                               startingRelativeMinionId; // global starting minion id
   const auto masterShireId =
     (uint32_t)startingMinion / SOC_MINIONS_PER_SHIRE; // ID of the 'master shire' that coordinates the sync
   const size_t numShires =
-    count / (SOC_MINIONS_PER_SHIRE * DeviceConfigNS::config.threadsPerCore); // number of total shires to sync
+    count / (SOC_MINIONS_PER_SHIRE * device_config_ns::config.threadsPerCore); // number of total shires to sync
 
   et_assert((startingMinion % SOC_MINIONS_PER_SHIRE == 0) && "barrier: startingMinion must be multiple of 32");
   et_assert((count % SOC_MINIONS_PER_SHIRE == 0) && "barrier: count must be multiple of 32");
-  et_assert((numShires < 33 && masterShireId < 32) && "barrier: shire DeviceConfigNS::configuration is INCORRECT");
+  et_assert((numShires < 33 && masterShireId < 32) && "barrier: shire configuration is INCORRECT");
 
   const auto localId = get_minion_id() % SOC_MINIONS_PER_SHIRE;
   const auto shireId = get_minion_id() / SOC_MINIONS_PER_SHIRE;
-  const int numEntryPoints = (DeviceConfigNS::config.entryPoint_0 == DeviceConfigNS::config.entryPoint_1 ||
-                              DeviceConfigNS::config.threadsPerCore == 1)
+  const int numEntryPoints = (device_config_ns::config.entryPoint_0 == device_config_ns::config.entryPoint_1 ||
+                              device_config_ns::config.threadsPerCore == 1)
                                ? 1
                                : 2;
 
-  hart::barrier<Scope::shire>(std::bitset<64>(0xFFFFFFFF), DeviceConfigNS::config.threadsPerCore, numEntryPoints);
+  hart::barrier<Scope::shire>(std::bitset<64>(0xFFFFFFFF), device_config_ns::config.threadsPerCore, numEntryPoints);
 
   if (masterShireId == shireId) {
     if (localId > masterShireId && localId < (masterShireId + numShires)) {
       const uint64_t flb = sameEntryPoint ? 0 : thread;
-      const uint64_t flbCount = ((numShires - 1) * (numEntryPoints / DeviceConfigNS::config.threadsPerCore)) - 1;
+      const uint64_t flbCount = ((numShires - 1) * (numEntryPoints / device_config_ns::config.threadsPerCore)) - 1;
 
       // wait for wake-up credit from each active shire
       fcc_consume(fcc);
@@ -242,14 +242,14 @@ inline void barrier(const size_t startingThread, const size_t count) {
 
   // check if count and startingMinion are powers of two (or 0)
   bool isPow2 = (cmask.count() == 1) && ((smask.count() == 1) || (smask.count() == 0));
-  // TODO: et_assert invalid range (start, count) DeviceConfigNS::configurations
-  const auto numMinions = count / DeviceConfigNS::config.threadsPerCore;
+  // TODO: et_assert invalid range (start, count) configurations
+  const auto numMinions = count / device_config_ns::config.threadsPerCore;
 
   if (numMinions > SOC_MINIONS_PER_SHIRE) {
     barrier<Scope::device>(startingThread, count);
   } else {
     et_assert(isPow2);
-    const auto startingMinionId = startingThread / DeviceConfigNS::config.threadsPerCore; // replace by a shift
+    const auto startingMinionId = startingThread / device_config_ns::config.threadsPerCore; // replace by a shift
     size_t localId = startingMinionId % SOC_MINIONS_PER_SHIRE;
 
     // set mask bits fromt local id to
@@ -257,11 +257,11 @@ inline void barrier(const size_t startingThread, const size_t count) {
     for (size_t i = localId; i < localId + numMinions; i++) {
       minionMask.set(i);
     }
-    const int numEntryPoints = (DeviceConfigNS::config.entryPoint_0 == DeviceConfigNS::config.entryPoint_1 ||
-                                DeviceConfigNS::config.threadsPerCore == 1)
+    const int numEntryPoints = (device_config_ns::config.entryPoint_0 == device_config_ns::config.entryPoint_1 ||
+                                device_config_ns::config.threadsPerCore == 1)
                                  ? 1
                                  : 2;
-    barrier<Scope::shire>(minionMask, DeviceConfigNS::config.threadsPerCore, numEntryPoints);
+    barrier<Scope::shire>(minionMask, device_config_ns::config.threadsPerCore, numEntryPoints);
   }
 }
 
@@ -276,14 +276,14 @@ inline void barrier(const size_t startingThread, const size_t count) {
 inline void barrier() {
   const auto numThreads = get_num_threads();
 
-  if ((numThreads / DeviceConfigNS::config.threadsPerCore) > SOC_MINIONS_PER_SHIRE) {
+  if ((numThreads / device_config_ns::config.threadsPerCore) > SOC_MINIONS_PER_SHIRE) {
     barrier<Scope::device>(0, numThreads);
   } else {
-    int numEntryPoints = (DeviceConfigNS::config.entryPoint_0 == DeviceConfigNS::config.entryPoint_1 ||
-                          DeviceConfigNS::config.threadsPerCore == 1)
+    int numEntryPoints = (device_config_ns::config.entryPoint_0 == device_config_ns::config.entryPoint_1 ||
+                          device_config_ns::config.threadsPerCore == 1)
                            ? 1
                            : 2;
-    barrier<Scope::shire>(std::bitset<64>(0xFFFFFFFF), DeviceConfigNS::config.threadsPerCore, numEntryPoints);
+    barrier<Scope::shire>(std::bitset<64>(0xFFFFFFFF), device_config_ns::config.threadsPerCore, numEntryPoints);
   }
 }
 /*! \endcond */
