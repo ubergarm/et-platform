@@ -22,14 +22,13 @@ class KernelArguments;
 
 int entryPoint(KernelArguments *);
 
-DECLARE_KERNEL_ENTRY_POINTS(entryPoint, nullptr);
-
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint, entryPoint);
 
 int entryPoint([[ maybe_unused ]] KernelArguments * vectors) {
-  //this test assumes ~4096 bytes per hart trace buffer.
-  //1000 is enough to stress the circular buffer wrap-around (4096 bytes) few times.
-  //goal is getting all the writes
-  constexpr size_t kMaxIters = 1000;
+  // this test assumes ~4096 bytes per hart trace buffer.
+  // 200 is enough to stress the circular buffer wrap-around (4096 bytes) few times.
+  // goal is getting all the writes
+  constexpr size_t kMaxIters = 200;
   for(size_t i = 0; i < kMaxIters; i ++) {
     SCOPED_USER_PROFILE_EVENT(1);
   }

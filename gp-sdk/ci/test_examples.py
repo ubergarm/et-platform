@@ -18,24 +18,35 @@ import pytest
 
 
 KERNEL_LAUNCHERS = {
+    "bss": "basic_launcher",
+    "busy10sec": "basic_launcher",    
+    "c_contructors": "basic_launcher",
+    "c_tls": "basic_launcher",
+    "check_pmc": "basic_launcher",
+    "cpp_contructors": "basic_launcher",
+    "cpp_tls": "basic_launcher",
+    "data": "basic_launcher",    
+    "exception": "basic_launcher",
+    "fftKernel": "fft_launcher",
+    "fnodiv": "basic_launcher",
+    "gp": "basic_launcher",
+    "hang": "basic_launcher",
+    "OneTrapOnSync": "basic_launcher",    
     "print": "basic_launcher",
     "print2": "basic_launcher",
-    "bss": "basic_launcher",
-    "data": "basic_launcher",
-    "fftKernel": "fft_launcher",
+    "profiling_simple": "basic_launcher",
+    "profiling_stress": "basic_launcher",    
+    "saxpy_profiling": "saxpy_launcher",
     "saxpy_scalar": "saxpy_launcher",
     "saxpy_vector": "saxpy_launcher",
-    "saxpy_profiling": "saxpy_launcher",
     "syncDeviceBasic": "barrier_launcher",
     "syncMinion": "barrier_launcher",
-    "txfma": "txfma_launcher",
-    "hang": "basic_launcher",
-    "exception": "basic_launcher",
-    "fnodiv": "basic_launcher"
+    "txfma": "txfma_launcher"
 }
 
 KERNELS = list(KERNEL_LAUNCHERS.keys())
 
+SKIP_SYSEMU = ["check_pmc", "busy10sec"]
 
 EXTRA_ARGS = defaultdict(list)
 EXTRA_ARGS["saxpy_profiling"] = ["--launch_mult=2"]
@@ -43,9 +54,15 @@ EXTRA_ARGS["hang"] = ["--enableCoreDump"]
 EXTRA_ARGS["exception"] = ["--enableCoreDump"]
 EXTRA_ARGS["bss"] = ["--num_launches=5"]
 EXTRA_ARGS["data"] = ["--num_launches=5"]
+EXTRA_ARGS["check_pmc"] = ["--kernel_launch_timeout=12"]
+EXTRA_ARGS["busy10sec"] = ["--kernel_launch_timeout=12"]
+EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 
+#only needed for device_type = sysemu
+EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=50"]
 
 SHOULD_FAIL = ["hang", "exception"]
+JUST_FAIL = ["OneTrapOnSync"]
 
 ERROR_COMMENT = {
     "hang": "Generate code hang",
@@ -134,6 +151,8 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
     """Run one of the provided examples"""
     if not build_dir.exists():
         pytest.skip("the examples have not been built")
+    if device_type == "sysemu" and kernel in SKIP_SYSEMU:
+        pytest.skip(f"do not run {kernel} on {device_type}")
     logging.info("Running %s on %s", kernel, device_type)
     kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
     launch_cmd = " ".join(
@@ -153,10 +172,14 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
             ERROR_COMMENT[kernel],
             skip_gdb = request.config.getoption("--skip-gdb"),
         )
+    elif kernel in JUST_FAIL:
+        with pytest.raises(subprocess.CalledProcessError):
+            shell.run(launch_cmd)        
     else:
         shell.run(launch_cmd)
 
-    check_run_artifacts(shell, device_type)
+    if kernel not in JUST_FAIL:    
+        check_run_artifacts(shell, device_type)
 
 
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
