@@ -58,5 +58,6 @@ template <typename T0, typename T1> inline constexpr bool getSameEntryPoint(T0 e
 
 int get_num_threads();
 int get_relative_thread_id();
+int get_relative_thread_id(uint64_t shireMask);
 
 #endif
