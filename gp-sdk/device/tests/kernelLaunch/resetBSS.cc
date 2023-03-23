@@ -23,7 +23,7 @@ constexpr size_t size = 256ULL;
 class KernelArguments;
 int entryPoint_0(KernelArguments* args);
 int entryPoint_1(KernelArguments* args);
-DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint_0, entryPoint_1);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, entryPoint_1);
 static uint8_t uninitializedData[size];
 static uint8_t initToZeroData[size] = {0};
 

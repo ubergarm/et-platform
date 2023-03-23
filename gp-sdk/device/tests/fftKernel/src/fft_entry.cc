@@ -31,7 +31,7 @@
 #include "kernel_arguments.h"
 
 int entryPoint_0(KernelArguments* args);
-DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint_0, nullptr);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
 using namespace dnn_lib;
 

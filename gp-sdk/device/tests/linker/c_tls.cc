@@ -16,7 +16,7 @@
 
 class KernelArguments;
 int entryPoint(KernelArguments* args);
-DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint, entryPoint);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint, entryPoint);
 
 __thread uint32_t testTls1;
 

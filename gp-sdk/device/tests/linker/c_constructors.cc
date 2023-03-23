@@ -18,7 +18,7 @@
 
 class KernelArguments;
 int entryPoint(KernelArguments* args);
-DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint, entryPoint);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint, entryPoint);
 
 // Constructors
 static void setupGlobal2(void) __attribute__((constructor(102)));

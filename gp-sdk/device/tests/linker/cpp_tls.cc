@@ -16,7 +16,7 @@
 
 class KernelArguments;
 int entryPoint(KernelArguments* args);
-DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint, entryPoint);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint, entryPoint);
 
 struct CppTls {
   static inline thread_local uint32_t value = 1;

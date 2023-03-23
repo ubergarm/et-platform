@@ -10,7 +10,7 @@
 
 class KernelArguments;
 int entryPoint_0(KernelArguments* args);
-DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint_0, nullptr);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   

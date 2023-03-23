@@ -20,7 +20,7 @@
 class KernelArguments;
 int entryPoint_0(KernelArguments* args);
 int entryPoint_1(KernelArguments* args);
-DECLARE_KERNEL_ENTRY_POINTS(2, entryPoint_0, entryPoint_1);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, entryPoint_1);
 
 static inline int checkPMC() {
 

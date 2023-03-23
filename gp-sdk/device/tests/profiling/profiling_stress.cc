@@ -22,7 +22,7 @@ class KernelArguments;
 
 int entryPoint(KernelArguments *);
 
-DECLARE_KERNEL_ENTRY_POINTS(1, entryPoint, nullptr);
+DECLARE_KERNEL_ENTRY_POINTS(entryPoint, nullptr);
 
 
 int entryPoint([[ maybe_unused ]] KernelArguments * vectors) {
