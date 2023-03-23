@@ -41,8 +41,8 @@ make all
 Executing involves launching a host application that receives as a parameter the computational kernel to be executed on the device, as in the following examples:
 
 ```
-sdk/hello_world_launcher -kernel-path=../../device/build/tests/print.elf -device-type=sysemu
-sdk/hello_world_launcher -kernel-path=../../device/build/tests/print.elf -device-type=silicon
+sdk/hello_world_launcher --kernel_path=../../device/build/tests/print.elf --device_type=sysemu
+sdk/hello_world_launcher --kernel_path=../../device/build/tests/print.elf --device_type=silicon
 ```
 
 and we can see  traces from the device through dt2json application installed on the docker image:
