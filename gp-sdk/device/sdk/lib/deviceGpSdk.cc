@@ -14,7 +14,7 @@
 
 #include "CommonCode.h"
 #include "entryPoint.h"
-#include "system/abi.h"
+#include <system/abi.h>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/barriers.h>
 #include <etsoc/isa/cacheops-umode.h>

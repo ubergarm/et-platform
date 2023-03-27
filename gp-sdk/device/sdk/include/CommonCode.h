@@ -20,6 +20,7 @@
 #include <inttypes.h>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/cacheops-umode.h>
+#include <system/abi.h>
 
 static inline uint8_t readByte(uint8_t * addr);
 static inline void writeByte(uint8_t * addr, uint8_t val);
@@ -171,5 +172,69 @@ static inline void writeByte(uint8_t * addr, uint8_t val)
 void evictCacheLine(uint64_t dst, uint8_t * addr) {
   cache_ops_evict_va(0, dst, (uint64_t)addr, 0, 64, 0);
 }
+
+
+namespace device_config {
+extern const kernel_environment_t * env_;
+}
+
+
+/**
+ * provides the Minion base frequency in Mhz
+ *  \return Minion Base Freq (Mhz)
+ */
+static inline uint32_t getMinionBaseFrequency() {
+  return device_config::env_->frequency;
+}
+
+
+/**
+ * provides the Shire-mask used in the current kernel
+ * \return shireMask (ones-hot mask of active Shires)
+ */
+static inline uint64_t getKernelShireMask() {
+  return device_config::env_->shire_mask;
+}
+
+
+/**
+ * Converts cycles to us.
+ * \param cycles cycles to convert
+ * \return converted time in us.
+ */
+
+static inline uint64_t cyclesToUs(uint64_t cycles) {
+  const uint64_t frequency = getMinionBaseFrequency();
+  return cycles / frequency;
+}
+
+/**
+ * Converts cycles to ns.
+ * \param cycles cycles to convert
+ * \return converted time in ns.
+ */
+static inline uint64_t cyclesToNs(uint64_t cycles) {
+  const uint64_t frequency = getMinionBaseFrequency();
+  return (cycles * 1000) / frequency;
+}
+
+/**
+ * Provides a running kernel timestamp in microsecs. 
+ * \return kernel timestamp in microseconds.
+ */
+static inline uint64_t getTimestampUs() {
+  uint64_t cycles = et_get_timestamp();
+  return cyclesToUs(cycles);
+}
+
+/**
+ * Provides a running kernel timestamp in nanoseconds. 
+ * \return kernel timestamp in nanosecs.
+ */
+static inline uint64_t getTimestampNs() {
+  uint64_t cycles = et_get_timestamp();
+  return cyclesToNs(cycles);
+}
+
 
 #endif

@@ -32,7 +32,7 @@
 
 namespace device_config {
 extern DeviceConfig config;
-extern kernel_environment_t * env_;
+extern const kernel_environment_t * env_;
 }
 
 /// @brief Computes the relative minion id where the relative thread id is located
