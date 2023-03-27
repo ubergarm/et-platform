@@ -39,10 +39,12 @@ extern const kernel_environment_t * env_;
 /// @param relative_thread_id 
 /// @return integer containing the relative minion id
 static inline int get_minion_from_thread(int relative_thread_id) {
+  et_assert(relative_thread_id >= 0 && "Invalid thread Id (relative_thread_id < 0)");
   return relative_thread_id >> (device_config::config.threadsPerCore - 1);
 }
 
 static inline int get_shire_from_minion(int minion_id) {
+  et_assert(minion_id >= 0 && "Invalid minion Id (minion_id < 0)");
   // 32 minions per shire
   return minion_id >> 5;
 }
@@ -74,7 +76,7 @@ namespace hart {
  * \param value The number to apply the logarithm
  * \return The base 2 logarithm of value, floored to the closest integer.
  */
-constexpr size_t log2(size_t value) {
+static constexpr size_t log2(size_t value) {
   size_t result = 0;
   while (value >>= 1) {
     result++;
@@ -153,7 +155,7 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
 
   // Compute number of threads to sync in the FLB
   const auto numEntryPoints = get_num_entrypoints();
-  const auto numThreadsToSync = static_cast<uint32_t>((device_config::config.threadsPerCore / numEntryPoints) * hartMask.count()); 
+  const auto numThreadsToSync = static_cast<uint32_t>((device_config::config.threadsPerCore / numEntryPoints) * hartMask.count()) - 1U; 
 
   // Each minion computes its corresponding FLB (values=[0,31])
   size_t flb = (get_minion_id() >> log2(hartMask.count())) % SOC_MINIONS_PER_SHIRE;
@@ -164,7 +166,7 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
   }
 
   // Last minion to reach the barrier wakes up the others
-  if (flbarrier(flb, numThreadsToSync - 1)) {
+  if (flbarrier(flb, numThreadsToSync)) {
     fcc_send(SHIRE_OWN, localThread, fcc, hartMask.to_ullong());
   }
   fcc_consume(fcc);
@@ -186,21 +188,18 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t startingThread, size_t count) {
   constexpr uint32_t fcc = 1;
-  constexpr uint32_t thread_0 = 0;
-  constexpr uint32_t thread_1 = 1;
   constexpr std::bitset<64> allOnesMask = std::bitset<64>(0xFFFFFFFF);
-  constexpr bool sameEntryPoint = device_config::config.sameEntryPoint;
-  
-  const uint32_t thread = get_hart_id() % 2;
-  auto startingMinion = get_physical_minion_id(static_cast<int>(startingThread));
-  auto masterShireId = get_shire_from_minion(startingMinion);
-  const size_t numShires = count / (SOC_MINIONS_PER_SHIRE * device_config::config.threadsPerCore);
+
+  const auto thread = static_cast<uint32_t>(get_hart_id() % 2);
+  const auto startingMinion = get_physical_minion_id(static_cast<int>(startingThread));
+  const auto masterShireId = get_shire_from_minion(startingMinion);
+  const auto numShires = static_cast<int>(count / (SOC_MINIONS_PER_SHIRE * device_config::config.threadsPerCore));
 
   et_assert((startingMinion % SOC_MINIONS_PER_SHIRE == 0) && "barrier: startingMinion must be multiple of 32");
   et_assert((count % SOC_MINIONS_PER_SHIRE == 0) && "barrier: count must be multiple of 32");
   et_assert((numShires < 33 && masterShireId < 32) && "barrier: shire configuration is INCORRECT");
 
-  const auto localId = get_minion_id() % SOC_MINIONS_PER_SHIRE;
+  const auto localId = static_cast<int>(get_minion_id() % SOC_MINIONS_PER_SHIRE);
   const auto shireId = get_shire_from_minion(get_minion_id());
   const auto numEntryPoints = get_num_entrypoints();
 
@@ -208,16 +207,16 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
 
   if (masterShireId == shireId) {
     if (localId > masterShireId && localId < (masterShireId + numShires)) {
-      const uint64_t flb = sameEntryPoint ? 0 : thread;
-      const uint64_t flbCount = ((numShires - 1) * (numEntryPoints / device_config::config.threadsPerCore)) - 1;
+      const uint64_t flb = device_config::config.sameEntryPoint ? 0 : thread;
+      const uint64_t numThreadsToSync = ((numShires - 1) * (numEntryPoints / device_config::config.threadsPerCore)) - 1;
 
       // wait for wake-up credit from each active shire
       fcc_consume(fcc);
-      if (flbarrier(flb, flbCount)) {
+      if (flbarrier(flb, numThreadsToSync)) {
         // wake-up all minion in master shire
-        if (sameEntryPoint) {
-          fcc_send(masterShireId, thread_0, fcc, allOnesMask.to_ullong());
-          fcc_send(masterShireId, thread_1, fcc, allOnesMask.to_ullong());
+        if constexpr (device_config::config.sameEntryPoint) {
+          fcc_send(masterShireId, 0, fcc, allOnesMask.to_ullong());
+          fcc_send(masterShireId, 1, fcc, allOnesMask.to_ullong());
         } else {
           fcc_send(masterShireId, thread, fcc, allOnesMask.to_ullong());
         }
@@ -272,8 +271,7 @@ inline void barrier(const size_t startingThread, const size_t count) {
     const auto startingMinionId = get_minion_from_thread(static_cast<int>(startingThread));
     // size_t localId = startingMinionId % SOC_MINIONS_PER_SHIRE;
     const size_t localId = startingMinionId & 0x1F;
-
-    // set mask bits fromt local id to
+    // set mask bits corresponding to the range of minions to sync
     std::bitset<64> minionMask;
     for (size_t i = localId; i < localId + numMinions; i++) {
       minionMask.set(i);
@@ -290,9 +288,11 @@ inline void barrier(const size_t startingThread, const size_t count) {
  * TEMPORARY: not working if the assigned minions to the kernel is different than 1024
  * use the overloaded function barrier(startingMinon, count) instead.
  */
-inline void barrier() {
+static inline void barrier() {
+  const auto numShires = __builtin_popcountll(device_config::env_->shire_mask);
   const auto numThreads = get_num_threads();
-  if (__builtin_popcountll(device_config::env_->shire_mask) > 1) {
+
+  if (numShires > 1) {
     barrier<Scope::device>(0, numThreads);
   } else {
     barrier<Scope::shire>();
