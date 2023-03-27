@@ -57,7 +57,7 @@ static inline int get_physical_minion_id(int relative_thread_id) {
 }
 
 static inline int get_num_entrypoints() {
-    return (device_config::config.entryPoint_0 ==  device_config::config.entryPoint_1 || device_config::config.threadsPerCore == 1) ? 1 : 2;
+    return (device_config::config.sameEntryPoint || device_config::config.threadsPerCore == 1) ? 1 : 2;
 }
 
 /**

@@ -27,16 +27,23 @@ struct alignas(64) __DeviceConfig {
   KernelEntryPointFuncPtr entryPoint_1 = nullptr;
 };
 
-// @brief DeviceConfig: type alias to enforce const definition.
+/// @brief DeviceConfig: type alias to enforce const definition.
 using DeviceConfig = const __DeviceConfig;
 
 namespace device_config {
-template <typename T0, typename T1> inline constexpr int32_t getThreadsPerCore(T0 e0, T1 e1) {
+template <typename T0, typename T1> static constexpr int32_t getThreadsPerCore(T0 e0, T1 e1) {
   return e0 ? (e1 ? 2 : 1) : 0;
 }
-template <typename T0, typename T1> inline constexpr bool getSameEntryPoint(T0 e0, T1 e1) {
-  return e0 == e1;
-}
+
+// Note: gcc 8.2 refuses to constexpr-compare function pointers, so we use partial template specialization as a
+// workaround. See  https://gcc.gnu.org/bugzilla/show_bug.cgi?id=77911
+
+// Partial specializatoin when f1!=f2
+template <typename T, T f1, T f2> struct IsSameFuncPtr { static constexpr bool value = false; };
+
+// Partial Specialization when f1==f2
+template <typename T, T f> struct IsSameFuncPtr<T, f, f> { static constexpr bool value = true; };
+
 } // namespace device_config
 
 /// @brief macro for registering a single DeviceConfig singleton
@@ -50,7 +57,8 @@ template <typename T0, typename T1> inline constexpr bool getSameEntryPoint(T0 e
 /// DECLARE_KERNEL_ENTRY_POINTS(entryPoint, entryPoint);
 #define DECLARE_KERNEL_ENTRY_POINTS(__entry0, __entry1)                                                                \
   namespace device_config {                                                                                            \
-  extern constexpr DeviceConfig config{getThreadsPerCore(__entry0, __entry1), getSameEntryPoint(__entry0, __entry0),   \
+  extern constexpr DeviceConfig config{getThreadsPerCore(__entry0, __entry1),                                          \
+                                       IsSameFuncPtr<decltype(&__entry0), __entry0, __entry1>::value,                  \
                                        KernelEntryPointFuncPtr(__entry0), KernelEntryPointFuncPtr(__entry1)};          \
   static_assert(config.threadsPerCore != 0,                                                                            \
                 "1 or 2 Threads per core should be configured (in case of 1 it should be thread 0)");                  \
