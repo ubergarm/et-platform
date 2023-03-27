@@ -12,9 +12,8 @@
  *-------------------------------------------------------------------------
  */
 
-#include "environment.h"
 
-struct KernelArguments : Arguments {
+struct KernelArguments {
   uint64_t numElements;
   float * x;
   float * y;

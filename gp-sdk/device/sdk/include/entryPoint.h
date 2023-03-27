@@ -12,7 +12,7 @@
 #ifndef _ENTRY_POINT_H_
 #define _ENTRY_POINT_H_
 
-#include "environment.h"
+#include <cstdint>
 
 /* EntryPoint kernel function prototype
  * note that user entry points can receive typed ptr (namely KernelArguments *)*/

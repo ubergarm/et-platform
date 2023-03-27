@@ -13,7 +13,6 @@
 #include <string>
 
 #include "GenericLauncher.h"
-#include "environment.h"
 
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
@@ -99,8 +98,7 @@ int main(int argc, char** argv) {
   auto kernelId = launcher.loadKernel(opt.kernel_path);
 
   for (size_t i = 0; i < opt.num_launches; i++) {
-    Arguments args;
-    launcher.kernelLaunch(kernelId, &args, 0, 0xFFFFFFFF);
+    launcher.kernelLaunch(kernelId);
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);

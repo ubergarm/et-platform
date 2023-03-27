@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "environment.h"
 
 #if __has_include("filesystem")
 #include <filesystem>
@@ -137,7 +136,6 @@ public:
    */
   template <typename TParams>
   void kernelLaunch(rt::KernelId kernelId, TParams* params, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
-    params->env.shireMask = shireMask;
     doKernelLaunch(kernelId, (std::byte*)params, sizeof(TParams), shireMask, deviceIdx);
   }
 

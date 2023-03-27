@@ -15,7 +15,6 @@
 #include <etsoc/isa/hart.h>
 
 #include "profiling.h"
-#include "environment.h"
 
 class KernelArguments;
 int entryPoint_0(KernelArguments* args);

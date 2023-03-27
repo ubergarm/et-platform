@@ -49,8 +49,8 @@ extern const function_t __fini_array_end;
 namespace device_config {
 extern DeviceConfig config;
 /* Global pointer to environment struct allocated by the host */
-kernel_environment_t * env_;
-kernel_environment_t fallback_env = {{0,0,0,0}, 0xFFFFFFFF, 600};
+const kernel_environment_t * env_;
+const kernel_environment_t fallback_env = {{0,0,0,0}, 0xFFFFFFFF, 600};
 }
 
 /* Number of times the kernel has been launched */
@@ -223,7 +223,7 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
     } else {
       device_config::env_ = &device_config::fallback_env;
     }
-    evictCacheLine(0x3, (uint8_t*)&device_config::env_);
+    evictCacheLine(cop_dest::to_L3, (uint8_t*)&device_config::env_);
     wakeUpThreads(shireMask);
   }
 
