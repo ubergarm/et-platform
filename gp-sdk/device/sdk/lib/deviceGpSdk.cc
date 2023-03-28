@@ -48,8 +48,9 @@ extern const function_t __fini_array_end;
 // Kernel configuration object. needs to be declared by the user throuch DECLARE_DEVICE_CONFIG
 namespace device_config {
 extern DeviceConfig config;
-/* Global pointer to environment struct allocated by the host */
+// Global pointer to environment struct allocated by the host
 const kernel_environment_t * env_;
+// Fallback environment struct in case an older version of the firmware is used.
 const kernel_environment_t fallback_env = {{0,0,0,0}, 0xFFFFFFFF, 600};
 }
 
@@ -162,6 +163,10 @@ static bool needToSetArgs() {
   return true;
 }
 
+/// @brief Main entryPoint for all threads when the ETSoC-1 starts executing
+/// @param args user kernel arguments
+/// @param env struct containing shire_mask and frequency
+/// @return Returns 0 if the kernel finished execution correctly
 extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
   uint32_t hart = get_hart_id();
   uint32_t threadId = hart & 1;
@@ -254,14 +259,21 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
   return 0;
 }
 
+/// @brief Obtains the number of threads assigned to a kernel
+/// @return Returns an integer, possible values range from 0 to N (where N = get_num_threads()-1).
 int get_num_threads() {
-  return __builtin_popcountll(device_config::env_->shire_mask) * SOC_MINIONS_PER_SHIRE *  device_config::config.threadsPerCore;;
+  return __builtin_popcountll(device_config::env_->shire_mask) * SOC_MINIONS_PER_SHIRE *  device_config::config.threadsPerCore;
 }
 
+/// @brief Obtains the relative thread id assigned to the hart
+/// @return Returns an integer ranging from 32 to 1024 if threadsPerCore == 1, from 64 to 2048 if threadsPerCore == 2
 int get_relative_thread_id() {
   return get_relative_thread_id(device_config::env_->shire_mask);
 }
 
+/// @brief Obtains the relative thread id assigned to the hart based on the provided shireMask
+/// @param shireMask bit-mask of the active shires, must be consecutive
+/// @return Returns an integer ranging from 32 to 1024 if threadsPerCore == 1, from 64 to 2048 if threadsPerCore == 2
 inline int get_relative_thread_id(uint64_t shireMask) {
   constexpr int NUM_HARTS_PER_MINION = 2;
   auto hartId = static_cast<int>(get_hart_id());

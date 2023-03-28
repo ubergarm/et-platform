@@ -35,27 +35,21 @@ extern DeviceConfig config;
 extern const kernel_environment_t * env_;
 }
 
-/// @brief Computes the relative minion id where the relative thread id is located
-/// @param relative_thread_id 
-/// @return integer containing the relative minion id
+/// @brief Obtains the relative minion id where the relative thread id is located
+/// @param relative_thread_id
+/// @return integer containing the relative minion id, values range from 0 to 1024
 static inline int get_minion_from_thread(int relative_thread_id) {
   et_assert(relative_thread_id >= 0 && "Invalid thread Id (relative_thread_id < 0)");
   return relative_thread_id >> (device_config::config.threadsPerCore - 1);
 }
 
+/// @brief Obtains the relative minion id where the relative thread id is located
+/// @param relative_thread_id
+/// @return integer containing the relative minion id, values range from 0 to 1024
 static inline int get_shire_from_minion(int minion_id) {
   et_assert(minion_id >= 0 && "Invalid minion Id (minion_id < 0)");
   // 32 minions per shire
   return minion_id >> 5;
-}
-
-static inline int get_physical_minion_id(int relative_thread_id) {
-  // get the virtual minionId of the thread based on the threads per core configuration
-  const auto relativeMinionId = get_minion_from_thread(relative_thread_id); 
-  // offset is the physical id of the first  minion assigned to the current kernel
-  const auto offset = __builtin_ctzll(device_config::env_->shire_mask) * SOC_MINIONS_PER_SHIRE;
-  // return physical minion id
-  return offset + relativeMinionId;
 }
 
 static inline int get_num_entrypoints() {
@@ -68,6 +62,23 @@ static inline int get_num_entrypoints() {
 namespace hart {
 
 /*! \cond PRIVATE */
+
+
+/**
+ * \brief Obtains the physical minion where the \p relative_thread_id is assigned.
+ *
+ * \param relative_thread_id Thread Id between 0 and get_num_threads()-1.
+ * \return returns an integer with value between 0 and 1023
+ */
+static inline int get_physical_minion_id(int relative_thread_id) {
+  // get the virtual minionId of the thread based on the threads per core configuration
+  const auto relativeMinionId = get_minion_from_thread(relative_thread_id); 
+  // offset is the physical id of the first  minion assigned to the current kernel
+  const auto offset = __builtin_ctzll(device_config::env_->shire_mask) * SOC_MINIONS_PER_SHIRE;
+  // return physical minion id
+  return offset + relativeMinionId;
+}
+
 /**
  * \brief Computes integer log2(value).
  *
@@ -96,7 +107,7 @@ enum class Scope {
 };
 
 /**
- * \brief Synchronizes both threads per minion
+ * \brief Synchronizes both threads in a minion
  *
  * Blocks thread execution until both threads in the minion reach the barrier.
  */
@@ -125,25 +136,21 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
 /**
  * \brief Synchronizes threads per shire.
  *
- * Blocks thread execution until all threads specified in the \p hartMask reach the barrier. This barrier is shared only
- * between threads with the same thread_id.
+ * Blocks thread execution until all threads located in the harts specified in the \p hartMask reach the barrier. This barrier is applied exclusively
+ * between threads executing the same entry point code.
  *
  * Every bit in \p hartMask maps to a hart in the shire.
- *
- * Multiple barriers synchronizing different groups of threads per shire are supported, as long as there is not a thread
- * in more than one group at once.
+ * 
+ * Multiple barriers synchronizing different groups of threads per shire are supported. A thread
+ * CANNOT be in more than one group at once.
  *
  * \param hartMask The n-th bit of the mask enables the sync of the n-th thread in the shire.
  * hartMask.count() must be a power of 2.
  * hartMask.count() max value is 32.
- * \param threadsPerCore number of threads per core
- * \param numEntryPoints number of kernel entry points
  */
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::shire), void>
 barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
-  // Suggested: Explore the use of inline constexpr with threadsPerCore and EntryPoint as template parameters to reduce
-  // branches in the code. https://stackoverflow.com/questions/30208685/how-to-declare-constexpr-extern
   if (hartMask.count() < 2)
     return; // no threads to sync
 
@@ -246,9 +253,8 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
 /**
  * \brief Synchronizes a range of threads in a device.
  *
- * Blocks thread execution until all the threads in the specified range reach this barrier. This barrier is shared only
- * between threads with the same thread_id (get_thread_id()). Synchronizes \p count contiguous threads starting at \p
- * startingMinion.
+ * Blocks thread execution until all the threads in the specified range reach this barrier. 
+ * Synchronizes \p count contiguous threads starting at \p startingThread.
  * \param startingThread First thread in the synchronization group. Must be a multiple of \p count or 0.
  * \param count Number of threads to synchronize. Must be a multiple of 32 or a power of two <= 32.
  */
@@ -285,8 +291,6 @@ inline void barrier(const size_t startingThread, const size_t count) {
  * \brief Synchronizes all threads in the kernel.
  *
  * Blocks thread execution until all the threads (with the same thread_id) reach this barrier.
- * TEMPORARY: not working if the assigned minions to the kernel is different than 1024
- * use the overloaded function barrier(startingMinon, count) instead.
  */
 static inline void barrier() {
   const auto numShires = __builtin_popcountll(device_config::env_->shire_mask);

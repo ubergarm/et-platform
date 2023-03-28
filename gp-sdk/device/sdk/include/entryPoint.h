@@ -47,8 +47,8 @@ template <typename T, T f> struct IsSameFuncPtr<T, f, f> { static constexpr bool
 } // namespace device_config
 
 /// @brief macro for registering a single DeviceConfig singleton
-/// \param entry0 entryPoint for ET-Minion thread 0 (Note, If only 1 ThreadPerCore is in use, it should be 0)
-/// \param entry1 entryPoint for ET-Minion thread 1
+/// @param entry0 entryPoint for ET-Minion thread 0 (Note, If only 1 ThreadPerCore is in use, it should be 0)
+/// @param entry1 entryPoint for ET-Minion thread 1
 //
 // Examples:
 // /// Examples of DeviceConfig
