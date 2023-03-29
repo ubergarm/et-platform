@@ -19,15 +19,15 @@ int entryPoint_1(KernelArguments* args);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, entryPoint_1);
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
-  if (get_minion_id()< 32) {
-    et_printf("%s,%d HELLO WORLD from minion %d  hart %d !!!!\n",__func__,__LINE__, get_minion_id(), get_hart_id());
+  if (get_relative_thread_id() < 32) {
+    et_printf("%s,%d HELLO WORLD from minion %d hart %d !!!!\n",__func__,__LINE__, get_minion_id(), get_hart_id());
   }
   return 0;
 }
 
 
 int entryPoint_1([[maybe_unused]] KernelArguments* args) {
-  if (get_minion_id() < 32) {
+  if (get_relative_thread_id() < 32) {
     et_printf("%s,%d HELLO WORLD fom minion %d hart %d!!!!\n",__func__,__LINE__, get_minion_id(), get_hart_id());
   }
   return 0;

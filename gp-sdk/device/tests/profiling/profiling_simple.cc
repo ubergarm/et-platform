@@ -23,7 +23,7 @@ DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
 int entryPoint_0([[ maybe_unused ]] KernelArguments* vectors) {
 
-  if(get_hart_id() != 0) {
+  if(get_relative_thread_id() != 0) {
    return 0;
   }
   //this test assumes ~4096 bytes per hart trace buffer.

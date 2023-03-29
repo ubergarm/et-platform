@@ -25,7 +25,7 @@ DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   // Set a barrier all assinged minions and one
-  auto minionId = get_minion_id();
+  auto minionId = get_relative_thread_id();
   uint64_t assignedMinions = 32;
   if (minionId >= assignedMinions) {
     return 0;

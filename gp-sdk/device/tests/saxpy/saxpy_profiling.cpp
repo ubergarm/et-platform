@@ -75,10 +75,9 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
 //clang-format on
 
 int entryPoint_0(KernelArguments* vectors) {
-
-  auto minionId = (int)get_minion_id();
+  auto minionId = get_relative_thread_id();
   size_t numWorkers = SOC_MINIONS_PER_SHIRE; // just 1 shire (32 minions).
-  if(get_minion_id() > numWorkers) {
+  if(static_cast<size_t>(get_relative_thread_id()) > numWorkers) {
     return 0;
   }
   size_t elemsPerWorker = (vectors->numElements + numWorkers - 1) / numWorkers;

@@ -136,8 +136,9 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
 /**
  * \brief Synchronizes threads per shire.
  *
- * Blocks thread execution until all threads located in the harts specified in the \p hartMask reach the barrier. This barrier is applied exclusively
- * between threads executing the same entry point code.
+ * Blocks thread execution until all selected harts in the shire reach the barrier. 
+ * Threads in a shire that are synced can progress even if others shires still have not.
+ * Barrier is only applied to threads executing the same entry point code.
  *
  * Every bit in \p hartMask maps to a hart in the shire.
  * 
@@ -162,7 +163,7 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
 
   // Compute number of threads to sync in the FLB
   const auto numEntryPoints = get_num_entrypoints();
-  const auto numThreadsToSync = static_cast<uint32_t>((device_config::config.threadsPerCore / numEntryPoints) * hartMask.count()) - 1U; 
+  const auto numThreadsToSync = static_cast<uint32_t>((device_config::config.threadsPerCore / numEntryPoints) * hartMask.count()) - 1U;
 
   // Each minion computes its corresponding FLB (values=[0,31])
   size_t flb = (get_minion_id() >> log2(hartMask.count())) % SOC_MINIONS_PER_SHIRE;

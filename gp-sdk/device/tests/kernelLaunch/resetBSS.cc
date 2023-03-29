@@ -29,7 +29,7 @@ static uint8_t initToZeroData[size] = {0};
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   bool errorFound = 0;
-  if (get_minion_id()==0) {
+  if (get_relative_thread_id()==0) {
     for(size_t i = 0; i < size; i++) {
       if (uninitializedData[i] != 0 || initToZeroData[i] != 0) {
         errorFound = 1;
@@ -47,7 +47,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
 
 int entryPoint_1([[maybe_unused]] KernelArguments* args) {
   bool errorFound = 0;
-  if (get_minion_id()==0) {
+  if (get_relative_thread_id()==0) {
     for(size_t i = 0; i < size; i++) {
       if (uninitializedData[i] != 0 || initToZeroData[i] != 0) {
         errorFound = 1;

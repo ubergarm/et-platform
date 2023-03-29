@@ -22,10 +22,10 @@ DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
 
-  auto minionId = get_minion_id();
+  auto threadId = get_relative_thread_id();
   uint64_t assignedMinions = 32;
 
-  if (minionId >= assignedMinions) {
+  if (threadId >= assignedMinions) {
     return 0;
   }
   auto start = et_get_timestamp();

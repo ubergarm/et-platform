@@ -41,7 +41,7 @@ static uint8_t initializedData[size] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
   bool errorFound = 0;
 
-  if (get_minion_id() == 0) {
+  if (get_relative_thread_id() == 0) {
 
     // Check data is initialized correctly
     for(size_t i = 0; i < size; i++) {

@@ -18,7 +18,7 @@ int entryPoint_0(KernelArguments* args);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
 int entryPoint_0([[maybe_unused]] KernelArguments* args) {
-  if (get_minion_id()==0) {
+  if (get_relative_thread_id()==0) {
     et_printf("%s,%d HELLO WORLD!!!!\n",__func__,__LINE__);
   }
 

@@ -188,7 +188,7 @@ static inline void doTxFma(Matrix * A, Matrix * B, Matrix * C) {
 
 int entryPoint_0(KernelArguments* vectors) {
   // note entryPoint_0. only hart_0 has access to esperanto tensor extension.
-  auto minionId = (int)get_minion_id();
+  auto minionId = get_relative_thread_id();
 
   // only minion-id 0 will do some work on this example.
   if(minionId !=0) {
