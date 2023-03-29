@@ -32,7 +32,7 @@
 
 namespace device_config {
 extern DeviceConfig config;
-extern const kernel_environment_t * env_;
+extern const __thread kernel_environment_t * env_;
 }
 
 /// @brief Obtains the relative minion id where the relative thread id is located
@@ -303,6 +303,7 @@ static inline void barrier() {
     barrier<Scope::shire>();
   }
 } 
+
 /*! \endcond */
 } // namespace hart
 #endif // GPSDK_SYNC_H

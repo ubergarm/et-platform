@@ -22,6 +22,7 @@ target_include_directories(etsoc_crt0
 )
 
 target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
+target_compile_options(etsoc_crt0 PUBLIC -fno-extern-tls-init)
 target_link_libraries(etsoc_crt0 PUBLIC etgcc etm)
 
 set_target_properties(etsoc_crt0 PROPERTIES 

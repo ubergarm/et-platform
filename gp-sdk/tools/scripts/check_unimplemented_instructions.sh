@@ -8,7 +8,7 @@ BAD_INST_FILE=${TARGET_DEBUG}-BAD-INST.log
 UNIMPLEMENTED_EXPR="fdiv.s\\|fsqrt.s\\|fcvt.l.s\\|fcvt.lu.s\\|fcvt.s.l\\|fcvt.s.lu\\|fdiv.pi\\|fdivu.pi\\|fremu.pi\\|frem.pi\\|fdiv.ps\\|fsqrt.ps\\|frsq.ps\\|fsin.ps"
 
 # dump assembly into .S file
-riscv64-unknown-elf-objdump -lwdS ${TARGET_DEBUG} > ${TARGET_ASM}
+riscv64-unknown-elf-objdump -lwdSC ${TARGET_DEBUG} > ${TARGET_ASM}
 
 # check with grep for unimplemented instructions
 # Note: The exit status is 0 if selected lines are found, and 1 if not found.
@@ -19,7 +19,7 @@ if [ ${ret} -eq 0 ]
 then
     # unimplemented instructions are found
     echo -e "BUILD ERROR: Executable file ${TARGET_DEBUG} contains unimplemented instructions. Please review the lines of code listed in ${BAD_INST_FILE}"
-    echo -e "\t     For further details, please read paragraph 3.5 of the ETSoC-1 Programmer's Reference Manual (PRM)"
+    echo -e "\t     For further details, please read paragraph 3.4 of the ETSoC-1 Programmer's Reference Manual (PRM)"
     
     # addr2line
     grep ${UNIMPLEMENTED_EXPR} ${TARGET_ASM} | cut -d: -f 1 | riscv64-unknown-elf-addr2line -i -e ${TARGET_DEBUG} > ${BAD_INST_FILE}

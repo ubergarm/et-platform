@@ -14,11 +14,11 @@
 
 #include "CommonCode.h"
 #include "entryPoint.h"
-#include <system/abi.h>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/barriers.h>
 #include <etsoc/isa/cacheops-umode.h>
 #include <etsoc/isa/hart.h>
+#include <system/abi.h>
 
 /* Linker labels to global .bss and .data sections */
 extern uint32_t _bss_end;
@@ -33,8 +33,6 @@ extern uint8_t* __tdata_start;
 extern uint8_t* __tbss_end;
 extern uint8_t* __tls_alloc_start;
 
-/* Linker label used to rebase entryPoint function pointers */
-extern const uint32_t _text_init_start;
 // Generic C function pointer.
 using function_t = void (*)();
 /* Linker labels for initialization and fini arrays */
@@ -48,11 +46,10 @@ extern const function_t __fini_array_end;
 // Kernel configuration object. needs to be declared by the user throuch DECLARE_DEVICE_CONFIG
 namespace device_config {
 extern DeviceConfig config;
-// Global pointer to environment struct allocated by the host
-const kernel_environment_t * env_;
-// Fallback environment struct in case an older version of the firmware is used.
-const kernel_environment_t fallback_env = {{0,0,0,0}, 0xFFFFFFFF, 600};
-}
+/* Global pointer to environment struct allocated by the host */
+const __thread kernel_environment_t* env_ = nullptr;
+const kernel_environment_t fallback_env = {{0, 0, 0, 0}, 0xFFFFFFFF, 600};
+} // namespace device_config
 
 /* Number of times the kernel has been launched */
 uint64_t numberOfBoots __attribute__((section("persistentData"))) = {1};
@@ -119,7 +116,7 @@ static bool hasInitArrays() {
 
 /// Initialize per hart  Thread Local Storage.
 /// note: each hart in the system should call this function.
-static void initializeTLS() {
+static void initializeTLS(kernel_environment_t * env) {
 
   auto tlsSize = (&__tbss_end - &__tdata_start) * sizeof(__tbss_end);
   if (tlsSize == 0) {
@@ -127,41 +124,34 @@ static void initializeTLS() {
   }
   auto tlsStart = &__tdata_start;
   auto hartId = get_hart_id();
-  auto tlsHartBase = &__tls_alloc_start + (hartId * tlsSize);
+  auto tlsHartBase = (void *) ((uint64_t)&__tls_alloc_start + (hartId * tlsSize));
 
   // populate tls section for this hart.
   local_memcpy(tlsHartBase, tlsStart, tlsSize);
 
   // initialize tp with the tls Base address for this hart
   asm volatile("mv tp, %[tlsHartBase] \n" : : [ tlsHartBase ] "r"(tlsHartBase));
-}
 
-/// @brief Computes the new memory address of a function after loading the kernel in the device.
-/// @param fnc function pointer which address has been determined in compile time.
-/// @param base new base address of the program
-/// @return Returns the new rebased pointer to the function
-template <typename T> auto rebaseFunction(T fnc, uint64_t base) -> decltype(fnc) {
-  return (decltype(fnc))((uint64_t)fnc + base);
+  // at this point, tls storage is ready to use on this hart. let's setup the env ptr so 
+  // it can be easily acessed. a fallback env is supported for backwads compatibility.
+  device_config::env_ = env ? env : &device_config::fallback_env;
+
 }
 
 /// calls init_array functions
 static void callInitArrayFunctions() {
 
   for (const function_t* entry = &__preinit_array_start; entry < &__preinit_array_end; ++entry) {
-    auto func = rebaseFunction(*entry, (uint64_t)&_text_init_start);
+    auto func = rebaseFunction(*entry);
     (*func)();
   }
 
   for (const function_t* entry = &__init_array_start; entry < &__init_array_end; ++entry) {
-    auto func = rebaseFunction(*entry, (uint64_t)&_text_init_start);
+    auto func = rebaseFunction(*entry);
     (*func)();
   }
 }
 
-// FIXME: setting args inhibits fast-path initialization
-static bool needToSetArgs() {
-  return true;
-}
 
 /// @brief Main entryPoint for all threads when the ETSoC-1 starts executing
 /// @param args user kernel arguments
@@ -173,9 +163,8 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
   uint32_t minionId = hart >> 1;
   uint32_t shireId = minionId >> 5;
   minionId = minionId & 0x1F;
-  uint64_t shireMask = (env != nullptr)? env->shire_mask : 0xFFFFFFFF;
+  uint64_t shireMask = (env != nullptr) ? env->shire_mask : 0xFFFFFFFF;
 
-  auto needSync = hasGlobalData() || hasInitArrays() || needToSetArgs();
 
   if (shireId >= 32)
     return 0;
@@ -185,30 +174,28 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
     return 0;
   }
 
+  auto needSync = hasGlobalData() || hasInitArrays();
   // fast-path: no global data: fast-forward to user code.
   if (!needSync) {
     if (device_config::config.threadsPerCore == 1) {
-      initializeTLS();
-      KernelEntryPointFuncPtr rebasedFnc =
-        rebaseFunction(device_config::config.entryPoint_0, (uint64_t)(&_text_init_start));
+      initializeTLS(env);
+      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
       return rebasedFnc(args);
     } else {
       if (threadId == 0) {
-        initializeTLS();
-        KernelEntryPointFuncPtr rebasedFnc =
-          rebaseFunction(device_config::config.entryPoint_0, (uint64_t)(&_text_init_start));
+        initializeTLS(env);
+        auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
         return rebasedFnc(args);
       } else {
-        initializeTLS();
-        KernelEntryPointFuncPtr rebasedFnc =
-          rebaseFunction(device_config::config.entryPoint_1, (uint64_t)(&_text_init_start));
+        initializeTLS(env);
+        auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_1);
         return rebasedFnc(args);
       }
     }
   }
 
   // global data: initialize and forwared to user-code.
- if (get_relative_thread_id(shireMask) == 0) {
+  if (get_relative_thread_id(shireMask) == 0) {
     // Reset .bss and .data sections on each kernel launch
     resetBSS();
     resetData();
@@ -223,12 +210,6 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
 
     // call init array (dynamic initializatoin) functions from thrad 0
     callInitArrayFunctions();
-    if (env != nullptr) {
-      device_config::env_ = env;
-    } else {
-      device_config::env_ = &device_config::fallback_env;
-    }
-    evictCacheLine(cop_dest::to_L3, (uint8_t*)&device_config::env_);
     wakeUpThreads(shireMask);
   }
 
@@ -236,23 +217,20 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
   if (device_config::config.threadsPerCore == 1) {
     if (threadId == 0) {
       fcc_consume(FCC_0);
-      initializeTLS();
-      KernelEntryPointFuncPtr rebasedFnc =
-        rebaseFunction(device_config::config.entryPoint_0, (uint64_t)(&_text_init_start));
+      initializeTLS(env);
+      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
       return rebasedFnc(args);
     }
   } else {
     if (threadId == 0) {
       fcc_consume(FCC_0);
-      initializeTLS();
-      KernelEntryPointFuncPtr rebasedFnc =
-        rebaseFunction(device_config::config.entryPoint_0, (uint64_t)(&_text_init_start));
+      initializeTLS(env);
+      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
       return rebasedFnc(args);
     } else {
       fcc_consume(FCC_0);
-      initializeTLS();
-      KernelEntryPointFuncPtr rebasedFnc =
-        rebaseFunction(device_config::config.entryPoint_1, (uint64_t)(&_text_init_start));
+      initializeTLS(env);
+      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_1);
       return rebasedFnc(args);
     }
   }
@@ -262,7 +240,8 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
 /// @brief Obtains the number of threads assigned to a kernel
 /// @return Returns an integer, possible values range from 0 to N (where N = get_num_threads()-1).
 int get_num_threads() {
-  return __builtin_popcountll(device_config::env_->shire_mask) * SOC_MINIONS_PER_SHIRE *  device_config::config.threadsPerCore;
+  return __builtin_popcountll(device_config::env_->shire_mask) * SOC_MINIONS_PER_SHIRE *
+         device_config::config.threadsPerCore;
 }
 
 /// @brief Obtains the relative thread id assigned to the hart

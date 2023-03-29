@@ -102,7 +102,6 @@ SECTIONS
   .tbss	  : { 
       __tbss_start = .;
       *(.tbss*)
-   . = ALIGN(64);
    }
    . = . + SIZEOF(.tbss);
    . = ALIGN(64);

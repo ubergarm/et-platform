@@ -175,7 +175,7 @@ void evictCacheLine(uint64_t dst, uint8_t * addr) {
 
 
 namespace device_config {
-extern const kernel_environment_t * env_;
+extern const __thread kernel_environment_t * env_;
 }
 
 
@@ -235,6 +235,20 @@ static inline uint64_t getTimestampNs() {
   uint64_t cycles = et_get_timestamp();
   return cyclesToNs(cycles);
 }
+
+
+/**
+ * @brief Computes the real memory address of a function (i.e relocates) after loading the kernel in the device.
+ * @param fnc function pointer which address has been determined in compile time.
+ * @return Returns the new rebased pointer to the function
+ */
+template <typename T> auto rebaseFunction(T fnc) -> decltype(fnc) {
+   /* Linker script label pointing to the runtime text init */
+  extern const uint32_t _text_init_start;
+  return (decltype(fnc))((uint64_t)fnc + (uint64_t) &_text_init_start);
+}
+
+
 
 
 #endif
