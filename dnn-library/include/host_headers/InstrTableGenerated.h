@@ -310,7 +310,7 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     "CumSum", // name
     1, // # outs
     1,  // # ins
-    {instrMembers::mbExclusive, instrMembers::mbReverse}, // members
+    {instrMembers::mbExclusive, instrMembers::mbReverse, instrMembers::mbAxis}, // members
     2, // template param mask
     {}, // impl versions
     implSel::defaultSel<1>, // custom impl selector
