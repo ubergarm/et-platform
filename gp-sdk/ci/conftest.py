@@ -22,7 +22,7 @@ import re
 import pytest
 
 
-KERNEL_ADDRESS = "0x8005b35000"
+KERNEL_ADDRESS = "0x8006335000"
 
 Sdk = namedtuple("Sdk", ["path", "kernel_address"])
 

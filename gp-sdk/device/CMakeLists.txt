@@ -18,7 +18,7 @@ set(GP_SDK_TOOLS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../tools" CACHE PATH "Path to
 set(GP_SDK_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/lib/linker.ld" CACHE PATH "Path to device linker script")
 
 if (NOT ADDRESS)
-  message(FATAL_ERROR "ADDRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8005b35000")
+  message(FATAL_ERROR "ADDRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8006335000")
 endif()
 
 set(CMAKE_CXX_STANDARD 17)

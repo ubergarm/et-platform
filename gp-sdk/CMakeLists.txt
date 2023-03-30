@@ -11,7 +11,7 @@ endif()
 include(ExternalProject)
 
 if (NOT ADDRESS)
-  message(FATAL_ERROR "ADDRESS parameter is missing. Please provide a value for the predicted device load address (e.g: -DADDRESS=0x8005b35000")
+  message(FATAL_ERROR "ADDRESS parameter is missing. Please provide a value for the predicted device load address (e.g: -DADDRESS=0x8006335000")
 endif()
 
 ExternalProject_Add(

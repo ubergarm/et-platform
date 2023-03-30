@@ -121,7 +121,7 @@ target_link_libraries(saxpy_scalar.elf etsoc_crt0)
 
 ```
 mkdir build; cd build
-cmake .. -DGP_SDK_HOME=<path_to-gp-sdk> -DADDRESS=0x8005b35000
+cmake .. -DGP_SDK_HOME=<path_to-gp-sdk> -DADDRESS=0x8006335000
 make
 
 
