@@ -82,12 +82,16 @@ target_link_libraries(c_tls.elf etsoc_crt0)
 add_etsoc_riscv_executable(cpp_tls.elf linker/cpp_tls.cc)
 target_link_libraries(cpp_tls.elf etsoc_crt0)
 
+
+add_etsoc_riscv_executable(external_tls.elf linker/external_tls_def.cc linker/external_tls_decl.cc)
+target_link_libraries(external_tls.elf etsoc_crt0)
+
 add_etsoc_riscv_executable(profiling_simple.elf profiling/profiling_simple.cc)
 target_link_libraries(profiling_simple.elf etsoc_crt0)
 
 add_etsoc_riscv_executable(profiling_stress.elf profiling/profiling_stress.cc)
 target_link_libraries(profiling_stress.elf etsoc_crt0)
 
-foreach(kernel print print2 bss data saxpy_scalar saxpy_vector saxpy_profiling fftKernel syncDeviceBasic syncMinion txfma oneTrapOnSync busy10sec check_pmc fnodiv c_contructors cpp_contructors gp c_tls cpp_tls profiling_simple profiling_stress)
+foreach(kernel print print2 bss data saxpy_scalar saxpy_vector saxpy_profiling fftKernel syncDeviceBasic syncMinion txfma oneTrapOnSync busy10sec check_pmc fnodiv c_contructors cpp_contructors gp c_tls cpp_tls external_tls profiling_simple profiling_stress)
   install(TARGETS ${kernel}.elf ${kernel}.elf_dbg DESTINATION kernels)
 endforeach()

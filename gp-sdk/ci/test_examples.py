@@ -27,6 +27,7 @@ KERNEL_LAUNCHERS = {
     "cpp_tls": "basic_launcher",
     "data": "basic_launcher",    
     "exception": "basic_launcher",
+    "external_tls": "basic_launcher",
     "fftKernel": "fft_launcher",
     "fnodiv": "basic_launcher",
     "gp": "basic_launcher",
