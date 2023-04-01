@@ -247,7 +247,7 @@ class ShellSession:
 
     def find_symbol(self, elf: Path, symbol: str):
         """Find an ELF symbol using nm"""
-        cmd = self.run(f"nm -S {elf} | awk '$4==\"{symbol}\" {{ print 0x$1 }}'")
+        cmd = self.run(f"riscv64-unknown-elf-nm -SC {elf} | awk '$4 ~ \"{symbol}\" {{ print 0x$1 }}'")
         return int(cmd.stdout.decode("utf-8"), 16)
 
 

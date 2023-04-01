@@ -29,8 +29,8 @@ def gdb_script(entry_pc: int):
             "target remote :1337",
             [
                 "Remote debugging using :1337",
-                "*in deviceGpSdkEntry*",
-                "*deviceGpSdk.cc*",
+                "0x* in*",
+                "at*",
                 "*",
             ],
         ),
@@ -133,10 +133,10 @@ def launch_kernel(shell, launcher: Path, kernel: Path):
         " ".join(
             [
                 f"{launcher}",
-                f"-kernel-path={kernel}",
-                "-device-type=sysemu",
-                f"-simulator-params='-gdb_at_pc={entry_pc:#x}'",
-                "-kernel-launch-timeout=10000",
+                f"--kernel_path={kernel}",
+                "--device_type=sysemu",
+                f"--simulator_params='-gdb_at_pc={entry_pc:#x}'",
+                "--kernel_launch_timeout=10000",
             ]
         ),
     )
