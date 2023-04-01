@@ -328,7 +328,7 @@ rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
 
 void GenericLauncher::parse_args(int argc, char* const* argv) {
 
-  static constexpr const char* short_opts = "c:s:g";
+  static constexpr const char* short_opts = "cs:";
 
   static const std::vector<struct option> long_opts_vect {{"enableCoreDump", no_argument, nullptr, 'c'},
                                                           {"simulator_params", required_argument, nullptr, 's'},

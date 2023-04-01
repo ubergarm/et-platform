@@ -191,8 +191,7 @@ public:
   // static inline constexpr const char* help_msg =
    constexpr static const char* help_msg =  
     "  -c, --enableCoreDump          Write perfetto trace to a file instead\n"
-    "  -s, --simulator_params        Hyperparameters to pass to simulator, overrides default values\n"
-    "  -g, --gp_sdk_device_intalldir Path to gp-sdk-device installation directory\n";
+    "  -s, --simulator_params        Hyperparameters to pass to simulator, overrides default values\n";
 
 private:
   std::vector<std::byte> readFile(const std::string& path);
