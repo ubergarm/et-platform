@@ -92,6 +92,9 @@ target_link_libraries(profiling_simple.elf etsoc_crt0)
 add_etsoc_riscv_executable(profiling_stress.elf profiling/profiling_stress.cc)
 target_link_libraries(profiling_stress.elf etsoc_crt0)
 
-foreach(kernel print print2 bss data saxpy_scalar saxpy_vector saxpy_profiling fftKernel syncDeviceBasic syncMinion txfma oneTrapOnSync busy10sec check_pmc fnodiv c_contructors cpp_contructors gp c_tls cpp_tls external_tls profiling_simple profiling_stress)
+add_etsoc_riscv_executable(cacheops_flush.elf cacheops/flush.cc)
+target_link_libraries(cacheops_flush.elf etsoc_crt0)
+
+foreach(kernel print print2 bss data saxpy_scalar saxpy_vector saxpy_profiling fftKernel syncDeviceBasic syncMinion txfma oneTrapOnSync busy10sec check_pmc fnodiv c_contructors cpp_contructors gp c_tls cpp_tls external_tls profiling_simple profiling_stress cacheops_flush)
   install(TARGETS ${kernel}.elf ${kernel}.elf_dbg DESTINATION kernels)
 endforeach()
