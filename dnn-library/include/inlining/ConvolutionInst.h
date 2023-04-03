@@ -482,10 +482,10 @@ convolutionInstQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, LibT
   if (minionId >= activeMinions)
     return;
 
-  auto output = outT->getRawDataPointer<void>();
-  auto activations = in1T->getRawDataPointer<void>();
-  auto weights = in2T->getRawDataPointer<void>();
-  auto bias = in3T->getRawDataPointer<void>();
+  void* output = outT->getRawDataPointer();
+  void* activations = in1T->getRawDataPointer();
+  void* weights = in2T->getRawDataPointer();
+  void* bias = in3T->getRawDataPointer();
 
   const dim_t* dstIndex = outT->dims().data();
   const dim_t* actIndex = in1T->dims().data();
@@ -593,10 +593,10 @@ convolutionInstNonQuantized(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, L
   if (minionId >= activeMinions)
     return;
 
-  void* dstMatrix = outT->getRawDataPointer<void>();
-  void* activations = in1T->getRawDataPointer<void>();
-  void* weights = in2T->getRawDataPointer<void>();
-  void* bias = in3T->getRawDataPointer<void>();
+  void* dstMatrix = outT->getRawDataPointer();
+  void* activations = in1T->getRawDataPointer();
+  void* weights = in2T->getRawDataPointer();
+  void* bias = in3T->getRawDataPointer();
 
   Addresser<dstElK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<biasElK> tBias(bias, in3T->getScale(), in3T->getOffset());

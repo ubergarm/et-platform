@@ -36,10 +36,10 @@ INLINE_ATTR void fwdLibQuantizeInst(LibTensor* outT, LibTensor* inT, uint64_t fl
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto dstT = outT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
 
   Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
-  const Addresser<srcElK> ptrSrcT(inT->getRawDataPointer<void>(), inT->getScale(), inT->getOffset());
+  const Addresser<srcElK> ptrSrcT(inT->getRawDataPointer(), inT->getScale(), inT->getOffset());
 
   const dim_t *srcIndex = inT->dims().data();
   const dim_t *dstPitch = outT->strides().data();

@@ -52,9 +52,9 @@ INLINE_ATTR void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dst  in1T--> src  in2T--> index*/
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT = in1T->getRawDataPointer<void>();
-  void* indexT = in2T->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* srcT = in1T->getRawDataPointer();
+  void* indexT = in2T->getRawDataPointer();
 
   Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());

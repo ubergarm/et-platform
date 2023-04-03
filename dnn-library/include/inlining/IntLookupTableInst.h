@@ -37,7 +37,7 @@ INLINE_ATTR void fwdLibIntLookupTableInst(LibTensor* outT, LibTensor* in1T, LibT
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto dst = outT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
 
   auto ptrDstT = outT->getRawDataPointer<int8_t>();
   auto ptrSrcT1 = in1T->getRawDataPointer<int8_t>();

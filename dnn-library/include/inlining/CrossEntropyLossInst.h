@@ -40,8 +40,8 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = in1T->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = in1T->getRawDataPointer();
 
   // Addresser<elK> tOutput(dstT, scale[2], offset[2]);
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());

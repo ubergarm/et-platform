@@ -38,8 +38,8 @@ INLINE_ATTR void fwdLibLengthsSumInst(LibTensor* outT, LibTensor* in1T, LibTenso
 
   /* outT --> dst  in1T--> src in2T--> index*/
   /* maintain compatibility through the new Iface Libtensor */
-  auto dst = outT->getRawDataPointer<void>();
-  auto src = in1T->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = in1T->getRawDataPointer();
 
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
   const Addresser<elK> tTmp(dst, outT->getScale(), outT->getOffset());

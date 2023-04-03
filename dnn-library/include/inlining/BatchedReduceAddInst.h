@@ -43,8 +43,8 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, dim
   }
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto* dstT = outT->getRawDataPointer<void>();
-  auto* batchT = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* batchT = inT->getRawDataPointer();
   constexpr bool globalStore = true;
   Addresser<elK, globalStore> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> tBatch(batchT, inT->getScale(), inT->getOffset());

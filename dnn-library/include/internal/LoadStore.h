@@ -266,7 +266,7 @@ INLINE_ATTR void storeLocal(uintptr_t dst, [[maybe_unused]] uint64_t conf, [[may
                            : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
     }
   } else if constexpr (bytesPerElement == 4) {
-    __asm__ __volatile__("fsw.ps %[op0], (%[dst])\n"
+    __asm__ __volatile__("fsw.ps %[op0], 0(%[dst])\n"
                          : [ dstMem ] "=m"(*(char(*)[32])dst)
                          : [ op0 ] "f"(op0), [ dst ] "r"(dst));
   }

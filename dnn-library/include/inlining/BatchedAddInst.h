@@ -40,9 +40,9 @@ INLINE_ATTR void fwdLibBatchedAddInstGeneric(LibTensor* outT, LibTensor* in1T, L
   if (minionId >= activeMinions) return;
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
-  auto* dstT = outT->getRawDataPointer<void>();
-  auto* batchT = in1T->getRawDataPointer<void>();
-  auto* sliceT = in2T->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* batchT = in1T->getRawDataPointer();
+  void* sliceT = in2T->getRawDataPointer();
 
   Addresser<dstElK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<batchElK> tBatch(batchT, in1T->getScale(), in1T->getOffset());
@@ -112,7 +112,7 @@ INLINE_ATTR void fwdLibBatchedAddInsti8i32(LibTensor* outT, LibTensor* in1T, Lib
 
   /* outT --> dst  in1T--> batched  in2T--> slice*/
   /* maintain compatibility through the new Iface Libtensor */
-  void *dstT = outT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
 
   auto tOutput = outT->getRawDataPointer<int8_t>();
   auto tBatch = in1T->getRawDataPointer<int8_t>();

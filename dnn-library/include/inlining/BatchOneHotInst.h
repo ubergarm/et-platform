@@ -39,9 +39,9 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto* dstT = outT->getRawDataPointer<void>();
-  auto* dataT = in1T->getRawDataPointer<void>();
-  auto* valuesT = in3T->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* dataT = in1T->getRawDataPointer();
+  void* valuesT = in3T->getRawDataPointer();
 
   // Addresser<elK> tOutput(pdst, scale[2], offset[2]);
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());

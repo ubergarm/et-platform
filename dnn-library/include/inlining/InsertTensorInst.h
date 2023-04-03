@@ -33,8 +33,8 @@ INLINE_ATTR void fwdLibInsertTensorInst(LibTensor* outT, LibTensor* inT, const d
   using srcType = typename elemKind2elemTy<elK>::type;
   if (get_minion_id() != minionOffset) return;
   /* maintain compatibility through the new Iface Libtensor */
-  auto dst = outT->getRawDataPointer<void>();
-  auto src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = inT->getRawDataPointer();
 
   // Addresser<elK> tOutput(dst, scale[1], offset[1]);
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
@@ -185,8 +185,8 @@ INLINE_ATTR void fwdLibInsertTensorInstThreaded(LibTensor* outT, LibTensor* inT,
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto dst = outT->getRawDataPointer<void>();
-  auto src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = inT->getRawDataPointer();
 
   dim_t dstDimNum = outT->ndims();
   auto typeSize = static_cast<int32_t>(getsize<srcType>());

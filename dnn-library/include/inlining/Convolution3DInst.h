@@ -164,10 +164,10 @@ INLINE_ATTR void convolution3DQuantizedInst(LibTensor* outT, LibTensor* in1T, Li
   if (minionId >= activeMinions)
     return;
 
-  void* output = outT->getRawDataPointer<void>();
-  void* activations = in1T->getRawDataPointer<void>();
-  void* weights = in2T->getRawDataPointer<void>();
-  void* bias = in3T->getRawDataPointer<void>();
+  void* output = outT->getRawDataPointer();
+  void* activations = in1T->getRawDataPointer();
+  void* weights = in2T->getRawDataPointer();
+  void* bias = in3T->getRawDataPointer();
 
   const float inScale = in1T->getScale();
   const float filterScale = in2T->getScale();
@@ -249,10 +249,10 @@ INLINE_ATTR void convolution3DNonQuantizedInst(LibTensor* outT, LibTensor* in1T,
   if (minionId >= activeMinions)
     return;
 
-  void* dstMatrix = outT->getRawDataPointer<void>();
-  void* activations = in1T->getRawDataPointer<void>();
-  void* weights = in2T->getRawDataPointer<void>();
-  void* bias = in3T->getRawDataPointer<void>();
+  void* dstMatrix = outT->getRawDataPointer();
+  void* activations = in1T->getRawDataPointer();
+  void* weights = in2T->getRawDataPointer();
+  void* bias = in3T->getRawDataPointer();
 
   Addresser<elK> tOutput(dstMatrix, outT->getScale(), outT->getOffset());
   const Addresser<elK> tAInput(activations, in1T->getScale(), in1T->getOffset());

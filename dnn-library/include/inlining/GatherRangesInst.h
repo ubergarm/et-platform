@@ -46,10 +46,10 @@ INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTe
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto* dstT = outT->getRawDataPointer<void>();
-  auto* dst2T = out2T->getRawDataPointer<void>();
-  auto* srcT = in1T->getRawDataPointer<void>();
-  auto* prangesT = in2T->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* dst2T = out2T->getRawDataPointer();
+  void* srcT = in1T->getRawDataPointer();
+  void* prangesT = in2T->getRawDataPointer();
 
   // Addresser<srcElK> tOutput(dstT, scale[3], offset[3]);
   Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());

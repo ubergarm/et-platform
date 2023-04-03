@@ -62,8 +62,8 @@ fwdLibSyncopyInst(LibTensor* outT, LibTensor* inT, unsigned int off, [[maybe_unu
     return;
   }
 
-  auto dst = outT->getRawDataPointer<void>();
-  auto src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = inT->getRawDataPointer();
 
   // Need to use the sizes of the output tensor. Graph might change them slightly (vs the input dimensions) to make
   // sure the function doesn't go beyond the tensor limits (can happen when the source tensor is a son with an offset

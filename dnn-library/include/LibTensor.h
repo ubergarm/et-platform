@@ -719,17 +719,25 @@ public:
    */
   template <class ElemTy> ElemTy* getRawDataPointer() {
     //@TODO check Elemty is type_.isType<>()
-    constexpr auto alignment = std::alignment_of<ElemTy>::value;
+    constexpr size_t alignment = alignof(ElemTy);
     assert(uintptr_t(ptrData_) % alignment == 0);
     return reinterpret_cast<ElemTy*>(__builtin_assume_aligned(ptrData_, alignment));
+  }
+
+  void* getRawDataPointer() {
+    return reinterpret_cast<void*>(ptrData_);
   }
 
   /*@brief returns a const pointer to the raw data, of type \p ElemTy.
    */
   template <class ElemTy> const ElemTy* getRawDataPointer() const {
-    constexpr auto alignment = std::alignment_of<ElemTy>::value;
+    constexpr size_t alignment = alignof(ElemTy);
     assert(uintptr_t(ptrData_) % alignment == 0);
     return reinterpret_cast<ElemTy*>(__builtin_assume_aligned(ptrData_, alignment));
+  }
+
+  const void* getRawDataPointer() const {
+    return reinterpret_cast<void*>(ptrData_);
   }
 
   // returns offset and maxRead (in number of elements)

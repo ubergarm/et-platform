@@ -93,8 +93,8 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcT = inT->getRawDataPointer<void>();
-  auto dstT = outT->getRawDataPointer<void>();
+  void* srcT = inT->getRawDataPointer();
+  void* dstT = outT->getRawDataPointer();
 
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
@@ -194,8 +194,8 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
   __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcT = inT->getRawDataPointer<void>();
-  auto dstT = outT->getRawDataPointer<void>();
+  void* srcT = inT->getRawDataPointer();
+  void* dstT = outT->getRawDataPointer();
 
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
@@ -382,8 +382,8 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcT = inT->getRawDataPointer<void>();
-  auto dstT = outT->getRawDataPointer<void>();
+  void* srcT = inT->getRawDataPointer();
+  void* dstT = outT->getRawDataPointer();
 
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
