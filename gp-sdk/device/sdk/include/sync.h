@@ -56,6 +56,11 @@ static inline int get_num_entrypoints() {
     return (device_config::config.sameEntryPoint || device_config::config.threadsPerCore == 1) ? 1 : 2;
 }
 
+
+
+
+
+
 /**
  * \brief Namespace including low-level routines for the minion.
  **/
@@ -93,6 +98,15 @@ static constexpr size_t log2(size_t value) {
     result++;
   }
   return result;
+}
+
+static int getMinionThreadsToSync() {
+  if (device_config::config.sameEntryPoint) {
+    return 2;
+  }
+  else {
+    return 1;
+  } 
 }
 /*! \endcond */
 
@@ -159,23 +173,30 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
   constexpr uint32_t fcc = 0;
 
   // Get the local thread id (values: 0 or 1)
-  const uint32_t localThread = get_hart_id() % 2;
+  const auto hartId = get_hart_id();
+  const uint32_t localThread = hartId & 0x1;
+  const auto locaMinion = (hartId >> 1) & 0x1F;
 
   // Compute number of threads to sync in the FLB
   const auto numEntryPoints = get_num_entrypoints();
-  const auto numThreadsToSync = static_cast<uint32_t>((device_config::config.threadsPerCore / numEntryPoints) * hartMask.count()) - 1U;
+  const auto flbCount = static_cast<uint32_t>(getMinionThreadsToSync() * hartMask.count()) - 1U;
 
   // Each minion computes its corresponding FLB (values=[0,31])
-  size_t flb = (get_minion_id() >> log2(hartMask.count())) % SOC_MINIONS_PER_SHIRE;
+  size_t flb = locaMinion >> log2(hartMask.count());
   
   // If odd and even harts have to sync separatedly
   if (localThread == 1 && numEntryPoints == 2) {
     flb += 16; // Shire minion Thread 1's use flbs [16, 31]
   }
-
   // Last minion to reach the barrier wakes up the others
-  if (flbarrier(flb, numThreadsToSync)) {
-    fcc_send(SHIRE_OWN, localThread, fcc, hartMask.to_ullong());
+  if (flbarrier(flb, flbCount)) {
+    if (device_config::config.sameEntryPoint){
+      fcc_send(SHIRE_OWN, 0, fcc, hartMask.to_ullong());
+      fcc_send(SHIRE_OWN, 1, fcc, hartMask.to_ullong());
+    }
+    else {
+      fcc_send(SHIRE_OWN, localThread, fcc, hartMask.to_ullong());
+    }
   }
   fcc_consume(fcc);
 }
@@ -198,7 +219,7 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
   constexpr uint32_t fcc = 1;
   constexpr std::bitset<64> allOnesMask = std::bitset<64>(0xFFFFFFFF);
 
-  const auto thread = static_cast<uint32_t>(get_hart_id() % 2);
+  const auto thread = static_cast<uint32_t>(get_hart_id() & 0x1);
   const auto startingMinion = get_physical_minion_id(static_cast<int>(startingThread));
   const auto masterShireId = get_shire_from_minion(startingMinion);
   const auto numShires = static_cast<int>(count / (SOC_MINIONS_PER_SHIRE * device_config::config.threadsPerCore));
@@ -207,22 +228,21 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
   et_assert((count % SOC_MINIONS_PER_SHIRE == 0) && "barrier: count must be multiple of 32");
   et_assert((numShires < 33 && masterShireId < 32) && "barrier: shire configuration is INCORRECT");
 
-  const auto localId = static_cast<int>(get_minion_id() % SOC_MINIONS_PER_SHIRE);
+  const auto localId = static_cast<int>(get_minion_id() & 0x1F);
   const auto shireId = get_shire_from_minion(get_minion_id());
-  const auto numEntryPoints = get_num_entrypoints();
 
   hart::barrier<Scope::shire>();
 
   if (masterShireId == shireId) {
     if (localId > masterShireId && localId < (masterShireId + numShires)) {
+      const uint64_t flbCount = ((numShires - 1) * getMinionThreadsToSync()) - 1;
       const uint64_t flb = device_config::config.sameEntryPoint ? 0 : thread;
-      const uint64_t numThreadsToSync = ((numShires - 1) * (numEntryPoints / device_config::config.threadsPerCore)) - 1;
 
       // wait for wake-up credit from each active shire
       fcc_consume(fcc);
-      if (flbarrier(flb, numThreadsToSync)) {
+      if (flbarrier(flb, flbCount)) {
         // wake-up all minion in master shire
-        if constexpr (device_config::config.sameEntryPoint) {
+        if (device_config::config.sameEntryPoint) {
           fcc_send(masterShireId, 0, fcc, allOnesMask.to_ullong());
           fcc_send(masterShireId, 1, fcc, allOnesMask.to_ullong());
         } else {
@@ -231,7 +251,7 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
       }
     }
     fcc_consume(fcc);
-    // Invariant: at this point all shires are successfully synchronized
+    // Invariant: at this point all shires in the device are successfully synchronized
 
     // masterShire wakes up the other shires in the barrier
     if (localId > masterShireId && localId < (masterShireId + numShires)) {
