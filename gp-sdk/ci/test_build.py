@@ -34,6 +34,7 @@ KERNELS = [
     "saxpy_vector",
     "saxpy_profiling",
     "syncDeviceBasic",
+    "syncAll",
     "syncMinion",
     "txfma",
     "hang",

@@ -41,6 +41,7 @@ KERNEL_LAUNCHERS = {
     "saxpy_scalar": "saxpy_launcher",
     "saxpy_vector": "saxpy_launcher",
     "syncDeviceBasic": "barrier_launcher",
+    "syncAll": "basic_launcher",
     "syncMinion": "barrier_launcher",
     "txfma": "txfma_launcher"
 }
