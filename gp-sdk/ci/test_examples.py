@@ -40,11 +40,13 @@ KERNEL_LAUNCHERS = {
     "saxpy_profiling": "saxpy_launcher",
     "saxpy_scalar": "saxpy_launcher",
     "saxpy_vector": "saxpy_launcher",
+    "syncAll": "basic_launcher",
     "syncDeviceBasic": "barrier_launcher",
     "syncAll": "basic_launcher",
     "syncMinion": "barrier_launcher",
     "txfma": "txfma_launcher"
 }
+
 
 KERNELS = list(KERNEL_LAUNCHERS.keys())
 
@@ -71,6 +73,8 @@ ERROR_COMMENT = {
     "exception": "Generate code exception",
 }
 
+MASK_SWEEP_KERNELS = ["syncAll", "syncDeviceBasic", "syncMinion"]
+MASK_SWEEP = ["0x1", "0xF", "0xFF", "0xFFFF", "0xFFFFFFFF"]
 
 def check_device_trace(shell, path: Path):
     """Check whether the device trace exists and is well formatted"""
@@ -176,7 +180,11 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
         )
     elif kernel in JUST_FAIL:
         with pytest.raises(subprocess.CalledProcessError):
-            shell.run(launch_cmd)        
+            shell.run(launch_cmd)
+    elif kernel in MASK_SWEEP_KERNELS:
+        for mask in MASK_SWEEP:
+            mask_cmd = launch_cmd + " --shire_mask=" + mask
+            shell.run(mask_cmd)
     else:
         shell.run(launch_cmd)
 
