@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ### Fixed
 
-## 1.1.0a (2023/03/29)
+## 1.1.0 (2023/04/06)
 ### Added
 - [SW-16515] Added routines for querying time, shire-mask, frequency, ...
 - [SW-15636] full support for libmath (patched previously failing routines to use frcp instead of fpdiv)
