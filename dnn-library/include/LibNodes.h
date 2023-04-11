@@ -283,13 +283,13 @@ extern template void fwdLibCrossEntropyLossInst<Float16Ty>(LibTensor* out0, LibT
 ****************************************************************************/
 // declarations
 template <ElemKind in0Type>
-void fwdLibCumSumInst(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+void fwdLibCumSumInst(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
 
 // extern template declarations
-extern template void fwdLibCumSumInst<FloatTy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibCumSumInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibCumSumInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
-extern template void fwdLibCumSumInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibCumSumInst<FloatTy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibCumSumInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibCumSumInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibCumSumInst<Int64ITy>(LibTensor* out0, LibTensor* in0, const bool Exclusive, const bool Reverse, const dim_t Axis, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  Dequantize implementations
