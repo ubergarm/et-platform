@@ -232,12 +232,6 @@ std::optional<rt::StreamError> AbortManager::retrieveErrorContext(rt::IRuntime* 
   // Used as return value for error cases
   std::optional<rt::StreamError> empty;
 
-  rt::StreamError error(rt::DeviceErrorCode::KernelAbortHostAborted);
-
-  assert((size % sizeof(rt::ErrorContext)) == 0);
-  auto numHarts = size / sizeof(rt::ErrorContext);
-  error.errorContext_.emplace(numHarts);
-
   std::unique_lock lock(mutex_);
 
   // Find the kernel launch
@@ -249,6 +243,12 @@ std::optional<rt::StreamError> AbortManager::retrieveErrorContext(rt::IRuntime* 
 
   // Device for which the core is to be dumped
   auto deviceId = streamToDevice_[kernelLaunch->getStreamId()];
+
+  rt::StreamError error(rt::DeviceErrorCode::KernelAbortHostAborted, deviceId);
+
+  assert((size % sizeof(rt::ErrorContext)) == 0);
+  auto numHarts = size / sizeof(rt::ErrorContext);
+  error.errorContext_.emplace(numHarts);
 
   // Copy the context data into the error context field
   auto copyBackStream = runtime->createStream(deviceId);

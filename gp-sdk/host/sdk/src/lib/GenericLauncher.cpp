@@ -107,8 +107,7 @@ void GenericLauncher::initialize() {
   // Program callbacks for error management.
   auto streamErrorHandler = [this, rt = getRuntime(enableCoreDump_)]([[maybe_unused]] rt::EventId id,
                                                                      const rt::StreamError& error) {
-    // TO IMPROVE: Currently we don't have the deviceId related to this error.
-    std::cout << "streamErrorHandler "
+    std::cout << "streamErrorHandler on deviceId[" << std::to_string((int)error.device_) << "] "
               << "() rt reports an error on a stream command(EventId: " << static_cast<int>(id) << "):\n"
               << error.getString();
     if ((error.errorCode_ == rt::DeviceErrorCode::DmaHostAborted) or
@@ -290,7 +289,7 @@ void GenericLauncher::reportUserException(const rt::StreamError& error) const {
   std::cout << "Exception found, need to dump the execution context\n";
   // Dump execution context into a file
   auto path = std::experimental::filesystem::current_path();
-  auto filename = "device_execution_context.txt";
+  auto filename = "device_"+std::to_string((int)error.device_)+"_execution_context.txt";
   std::ofstream out(path / filename);
   out << error.getString();
   out << "\n---\n";

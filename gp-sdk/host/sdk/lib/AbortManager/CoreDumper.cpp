@@ -284,7 +284,8 @@ void CoreDumper::dumpCore(AbortManager& abortManager, rt::IRuntime* runtime, rt:
     }
   }
 
-  std::string coreFileName = "core." + std::to_string(getpid()) + ".etsoc." + std::to_string((int)eventId);
+  std::string coreFileName = "core." + std::to_string(getpid()) + ".etsoc." + std::to_string((int)error.device_) + "." +
+                             std::to_string((int)eventId);
   std::ofstream out(coreFileName.c_str());
   if (out.bad()) {
     std::cout << "[ERROR] Error creating '" << coreFileName
