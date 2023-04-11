@@ -37,8 +37,8 @@ INLINE_ATTR void fwdLibExtractTensorInst(LibTensor* outT, LibTensor* inT, const 
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dst = outT->getRawDataPointer<void>();
-  void* src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = inT->getRawDataPointer();
 
   // Addresser<elK> tOutput(dst, scale[1], offset[1]);
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());

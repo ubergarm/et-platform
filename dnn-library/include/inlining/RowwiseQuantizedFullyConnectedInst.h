@@ -41,7 +41,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
   /* maintain compatibility through the new Iface Libtensor */
   /* outT->dst in1T->data in2T-> weight in3T->bias in4T->scale in5T->offset */
 
-  auto pdst = outT->getRawDataPointer<void>();
+  void* pdst = outT->getRawDataPointer();
 
   auto tOutput = outT->getRawDataPointer<int8_t>();
   auto tAInput = in1T->getRawDataPointer<int8_t>();
@@ -209,7 +209,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInstAligned32Bytes(LibTenso
   size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * ACTIVE_SHIRES) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  auto pdst = outT->getRawDataPointer<void>();
+  void* pdst = outT->getRawDataPointer();
 
   auto tOutput = outT->getRawDataPointer<int8_t>();
   auto tAInput = in1T->getRawDataPointer<int8_t>();

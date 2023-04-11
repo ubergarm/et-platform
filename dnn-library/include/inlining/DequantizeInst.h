@@ -43,8 +43,8 @@ INLINE_ATTR void fwdLibDequantizeInst(LibTensor* outT, LibTensor* inT, uint64_t 
   }
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcT = inT->getRawDataPointer<void>();
-  auto dstT = outT->getRawDataPointer<void>();
+  void* srcT = inT->getRawDataPointer();
+  void* dstT = outT->getRawDataPointer();
 
   Addresser<dstElK> ptrDstT(dstT, outT->getScale(), outT->getOffset());
   const Addresser<srcElK> ptrSrcT(srcT, inT->getScale(), inT->getOffset());

@@ -121,8 +121,8 @@ inline __attribute__((always_inline)) void fwdLibSparseToDenseInst(
   /* outT --> dst  in2T--> src   in1T--> indices */
   /* maintain compatibility through the new Iface Libtensor */
 
-  auto dstT = outT->getRawDataPointer<void>();
-  auto srcT = in2T->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* srcT = in2T->getRawDataPointer();
   const uint64_t* indices = in1T->getRawDataPointer<uint64_t>();
 
   const dim_t *dstIndex = outT->dims().data();

@@ -343,14 +343,14 @@ INLINE_ATTR void fwdLibFullyConnectedInst(LibTensor* outT, LibTensor* in1T, LibT
 
   /* maintain compatibility through the new Iface Libtensor */
   /* outT --> dst  in1T--> inActT  in2T--> inWeighT in3T-->inBiasT */
-  auto* dstMatrix = outT->getRawDataPointer<void>();
-  auto* activations = in1T->getRawDataPointer<void>();
-  auto* weights = in2T->getRawDataPointer<void>();
+  void* dstMatrix = outT->getRawDataPointer();
+  void* activations = in1T->getRawDataPointer();
+  void* weights = in2T->getRawDataPointer();
   void *biases = nullptr;
   float biasScale = 1.0f;
   int32_t biasOffset = 0;
   if (in3T != nullptr) {
-    biases = in3T->getRawDataPointer<void>();
+    biases = in3T->getRawDataPointer();
     biasScale = in3T->getScale();
     biasOffset = in3T->getOffset();
   }

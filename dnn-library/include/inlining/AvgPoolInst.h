@@ -342,8 +342,8 @@ INLINE_ATTR void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT, cons
   if (minionId >= activeMinions)
     return;
 
-  void* src = inT->getRawDataPointer<void>();
-  void* dst = outT->getRawDataPointer<void>();
+  void* src = inT->getRawDataPointer();
+  void* dst = outT->getRawDataPointer();
 
   Addresser<dstElK> tOutput(dst, outT->getScale(), outT->getOffset());
   const Addresser<dstElK> tAInput(src, inT->getScale(), inT->getOffset());

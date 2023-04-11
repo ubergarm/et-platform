@@ -42,9 +42,9 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInst(LibTensor* out1T, LibTenso
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out1T --> dst  out2T--> dst2  inT--> data */
-  auto dstMatrix = out1T->getRawDataPointer<void>();
-  auto dst2Matrix = out2T->getRawDataPointer<void>();
-  auto activations = inT->getRawDataPointer<void>();
+  void* dstMatrix = out1T->getRawDataPointer();
+  void* dst2Matrix = out2T->getRawDataPointer();
+  void* activations = inT->getRawDataPointer();
 
   Addresser<elK> tOutput(dstMatrix, out1T->getScale(), out1T->getOffset());
   Addresser<elK> tScale(dst2Matrix, out2T->getScale(), out2T->getOffset());
@@ -177,9 +177,9 @@ INLINE_ATTR void fwdLibLocalResponseNormalizationInstVectorized(LibTensor* out1T
     return;
   }
 
-  auto dstMatrix = out1T->getRawDataPointer<void>();
-  auto dst2Matrix = out2T->getRawDataPointer<void>();
-  auto activations = inT->getRawDataPointer<void>();
+  void* dstMatrix = out1T->getRawDataPointer();
+  void* dst2Matrix = out2T->getRawDataPointer();
+  void* activations = inT->getRawDataPointer();
 
   const dim_t *dstIndex = out1T->dims().data();
   const dim_t *actIndex = inT->dims().data();

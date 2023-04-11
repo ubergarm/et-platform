@@ -143,10 +143,10 @@ INLINE_ATTR void fwdLibCopyInst(LibTensor* outT, LibTensor* inT, uint64_t flags,
     return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  
-  uint8_t * src = (uint8_t *) inT->getRawDataPointer<void>();
-  uint8_t * dst = (uint8_t *) outT->getRawDataPointer<void>();
-  
+
+  auto src = inT->getRawDataPointer<uint8_t>();
+  auto dst = outT->getRawDataPointer<uint8_t>();
+
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = inT->dims().data();
   
@@ -253,9 +253,9 @@ INLINE_ATTR void fwdLibCopyInstTensorized(LibTensor* outT, LibTensor* inT, uint6
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  void* src = inT->getRawDataPointer<void>();
-  void* dst = outT->getRawDataPointer<void>();
-  
+  void* src = inT->getRawDataPointer();
+  void* dst = outT->getRawDataPointer();
+
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = inT->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;

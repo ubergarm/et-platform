@@ -37,7 +37,7 @@ INLINE_ATTR void fwdLibRescaleQuantizedInst(LibTensor* outT, LibTensor* inT, uin
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  auto dstT = outT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
   srcType *ptrDstT = outT->getRawDataPointer<srcType>();
   srcType *ptrSrcT = inT->getRawDataPointer<srcType>();
 

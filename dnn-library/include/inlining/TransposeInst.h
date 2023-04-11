@@ -217,8 +217,8 @@ fwdLibTransposeInstAligned32Bytes(LibTensor* outT, LibTensor* inT, const std::ar
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
-  void *dst = outT->getRawDataPointer<void>();
-  void *src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = inT->getRawDataPointer();
 
   uintptr_t dstAddr = reinterpret_cast<uintptr_t>(dst);
   uintptr_t srcAddr = reinterpret_cast<uintptr_t>(src);

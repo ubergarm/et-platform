@@ -43,10 +43,10 @@ INLINE_ATTR void fwdLibElementIsNaNInst(LibTensor* outT, LibTensor* inT, uint64_
   //  using srcType = typename elemKind2elemTy<elK>::type;
   
   if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */  
-  bool* ptrDstT = outT->getRawDataPointer<bool>();  
-  void* srcT1 = inT->getRawDataPointer<void>();
+
+  /* maintain compatibility through the new Iface Libtensor */
+  bool* ptrDstT = outT->getRawDataPointer<bool>();
+  void* srcT1 = inT->getRawDataPointer();
   // bool *ptrDstT = (bool *)dstT;  
   // const Addresser<elK> aSrcT1(srcT1, scale[0], offset[0]);
   const Addresser<elK> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
@@ -118,8 +118,8 @@ INLINE_ATTR void fwdLibElementIsNaNInstThreaded(LibTensor* outT, LibTensor* inT,
   
   /* maintain compatibility through the new Iface Libtensor */
 
-  void* srcT1 = inT->getRawDataPointer<void>();
-  
+  void* srcT1 = inT->getRawDataPointer();
+
   // const Addresser<elK> aSrcT1(srcT1, scale[0], offset[0]);
   const Addresser<elK> aSrcT1(srcT1, inT->getScale(), inT->getOffset());
 

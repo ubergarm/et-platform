@@ -78,7 +78,7 @@ INLINE_ATTR void fwdLibElementSingleInstThreaded(LibTensor* outT, LibTensor* inT
   size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
 
-  auto* dst = outT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
   const auto aSrcT1 = inT->getHandle<srcType>();
   auto aDstT = outT->getHandle<dstType>();
 
@@ -138,9 +138,9 @@ INLINE_ATTR void fwdLibElementSingleInstVectorized(LibTensor* outT, LibTensor* i
 
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT1 = inT->getRawDataPointer<void>();
-  
+  void* dstT = outT->getRawDataPointer();
+  void* srcT1 = inT->getRawDataPointer();
+
   const dim_t *actIndex = inT->dims().data();
   const dim_t *dstPitch = outT->strides().data();
   const dim_t *actPitch = inT->strides().data();

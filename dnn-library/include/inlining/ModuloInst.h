@@ -38,8 +38,8 @@ INLINE_ATTR void fwdLibModuloInst(LibTensor* outT, LibTensor* inT, uint64_t divi
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  auto srcT = inT->getRawDataPointer<void>();
-  auto dstT = outT->getRawDataPointer<void>();
+  void* srcT = inT->getRawDataPointer();
+  void* dstT = outT->getRawDataPointer();
 
   Addresser<elK> tOutput(dstT, outT->getScale(), outT->getOffset());
   const Addresser<elK> tInput(srcT, inT->getScale(), inT->getOffset());

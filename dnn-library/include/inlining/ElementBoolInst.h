@@ -48,11 +48,11 @@ INLINE_ATTR void fwdLibElementBoolInst(LibTensor* outT, LibTensor* in1T, LibTens
                                        [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
   if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */    
-  void* srcT1 = in1T->getRawDataPointer<void>();
-  void* srcT2 = in2T->getRawDataPointer<void>();
-  
+
+  /* maintain compatibility through the new Iface Libtensor */
+  void* srcT1 = in1T->getRawDataPointer();
+  void* srcT2 = in2T->getRawDataPointer();
+
   const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
   const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
   bool* aDstT = outT->getRawDataPointer<bool>();
@@ -135,9 +135,9 @@ INLINE_ATTR void fwdLibElementBoolInstThreaded(LibTensor* outT, LibTensor* in1T,
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto srcT1 = in1T->getRawDataPointer<void>();
-  auto srcT2 = in2T->getRawDataPointer<void>();
-  auto dstT = outT->getRawDataPointer<void>();
+  void* srcT1 = in1T->getRawDataPointer();
+  void* srcT2 = in2T->getRawDataPointer();
+  void* dstT = outT->getRawDataPointer();
 
   const Addresser<src1ElK> aSrcT1(srcT1, in1T->getScale(), in1T->getOffset());
   const Addresser<src2ElK> aSrcT2(srcT2, in2T->getScale(), in2T->getOffset());
@@ -231,10 +231,10 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
   
 
   /* maintain compatibility through the new Iface Libtensor */
-  void* dstT = outT->getRawDataPointer<void>();
-  void* srcT1 = in1T->getRawDataPointer<void>();
-  void* srcT2 = in2T->getRawDataPointer<void>();
-  
+  void* dstT = outT->getRawDataPointer();
+  void* srcT1 = in1T->getRawDataPointer();
+  void* srcT2 = in2T->getRawDataPointer();
+
   // unsigned int *actIndex = (unsigned int *)srcDims;
   const dim_t *actIndex = in1T->dims().data();
   // unsigned int *dstPitch = (unsigned int *)dstPitches;

@@ -43,9 +43,9 @@ INLINE_ATTR void fwdLibSparseToDenseMaskInst(LibTensor* outT, LibTensor* in1T, L
 
   /* maintain compatibility through the new Iface Libtensor */
   /* out--> dest in2T->val in3T->dft in1T->idx in4T->len*/
-  auto pdst = outT->getRawDataPointer<void>();
-  auto pdata = in2T->getRawDataPointer<void>();
-  auto pdefault = in3T->getRawDataPointer<void>();
+  void* pdst = outT->getRawDataPointer();
+  void* pdata = in2T->getRawDataPointer();
+  void* pdefault = in3T->getRawDataPointer();
 
   Addresser<elK> tOutput(pdst, outT->getScale(), outT->getOffset());
   const Addresser<elK> tAInput(pdata, in2T->getScale(), in2T->getOffset());

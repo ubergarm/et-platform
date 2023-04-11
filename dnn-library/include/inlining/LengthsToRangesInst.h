@@ -39,8 +39,8 @@ void fwdLibLengthsToRangesInst(LibTensor* outT, LibTensor* inT, [[maybe_unused]]
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
-  auto dstT = outT->getRawDataPointer<void>();
-  auto plengths = inT->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* plengths = inT->getRawDataPointer();
 
   const Addresser<elK> lengths(plengths, inT->getScale(), inT->getOffset());
   Addresser<elK>    tOutput(dstT, outT->getScale(), outT->getOffset());

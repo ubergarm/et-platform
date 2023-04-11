@@ -38,9 +38,9 @@ INLINE_ATTR void fwdLibElementSelectInst(LibTensor* outT, LibTensor* condT, LibT
   if (minionId >= activeMinions) return;
   
   /* maintain compatibility through the new Iface Libtensor */
-  auto* dstT = outT->getRawDataPointer<void>();
-  auto* srcT1 = in1T->getRawDataPointer<void>();
-  auto* srcT2 = in2T->getRawDataPointer<void>();
+  void* dstT = outT->getRawDataPointer();
+  void* srcT1 = in1T->getRawDataPointer();
+  void* srcT2 = in2T->getRawDataPointer();
 
   // Addresser<elK> ptrDstT(dstT, scale[3], offset[3]);
   Addresser<elK> ptrDstT(dstT, outT->getScale(), outT->getOffset());

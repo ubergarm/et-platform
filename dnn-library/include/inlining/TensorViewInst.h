@@ -88,8 +88,8 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
 
   /* maintain compatibility through the new Iface Libtensor */
 
-  auto dst = outT->getRawDataPointer<void>();
-  auto src = inT->getRawDataPointer<void>();
+  void* dst = outT->getRawDataPointer();
+  void* src = inT->getRawDataPointer();
 
   Addresser<elK> tOutput(dst, outT->getScale(), outT->getOffset());
   const Addresser<elK> tAInput(src, inT->getScale(), inT->getOffset());
