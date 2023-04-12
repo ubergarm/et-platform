@@ -21,7 +21,7 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.5.3
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.7.0
 
 # Only run job in these cases:
 # - if it's a tag pipeline
@@ -113,6 +113,8 @@ build:sonarqube-check:
     CMD_SETUP_EXTRA_DEPS: |
       sudo apt install ninja-build
     CMD_POST_BUILD: |
+      echo $PATH
+      echo $LD_LIBRARY_PATH
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
 
@@ -149,7 +151,8 @@ build:sonarqube-check:
 
     CMD_BUILD: |
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
-      
+      echo $PATH
+      echo $LD_LIBRARY_PATH 
       cp ${ET_SDK_HOME}/.conanfiles/conanfile_device.txt device/conanfile.txt
       echo "[layout]" >> device/conanfile.txt
       echo "cmake_layout" >> device/conanfile.txt

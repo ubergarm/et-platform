@@ -22,6 +22,7 @@ KERNEL_LAUNCHERS = {
     "busy10sec": "basic_launcher",    
     "c_contructors": "basic_launcher",
     "c_tls": "basic_launcher",
+    "cacheops_flush": "basic_launcher",
     "check_pmc": "basic_launcher",
     "cpp_contructors": "basic_launcher",
     "cpp_tls": "basic_launcher",
@@ -63,7 +64,7 @@ EXTRA_ARGS["busy10sec"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 
 #only needed for device_type = sysemu
-EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=50"]
+EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=200"]
 
 SHOULD_FAIL = ["hang", "exception"]
 JUST_FAIL = ["OneTrapOnSync"]
