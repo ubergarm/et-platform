@@ -220,6 +220,7 @@ std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer,
   traceParams.threadMask_ = threadMask;
   traceParams.eventMask_ = TRACE_EVENT_ENABLE_ALL;
   traceParams.filterMask_ = TRACE_FILTER_ENABLE_ALL;
+  traceParams.threshold_ = 0;
   return traceParams;
 }
 
