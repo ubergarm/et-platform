@@ -156,7 +156,7 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
 
 #define GATHER_FLOAT(_addr)                                                                                            \
   "beq %[floatType], zero, 16f \n"                                                                                     \
-  "flw.ps f0, 0x0(" #_addr ") \n"                                                                                      \
+  "flw.ps f0, 0(" #_addr ") \n"                                                                                        \
   "j 32f \n"                                                                                                           \
   "16: \n"                                                                                                             \
   "fgh.ps f0, %[indices](" #_addr ") \n"                                                                               \
@@ -165,7 +165,7 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
 
 #define SCATTER_FLOAT                                                                                                  \
   "beq %[floatType], zero, 16f \n"                                                                                     \
-  "fsw.ps f0, 0x0(%[dstAddrTmp]) \n"                                                                                   \
+  "fsw.ps f0, 0(%[dstAddrTmp]) \n"                                                                                     \
   "j 32f \n"                                                                                                           \
   "16: \n"                                                                                                             \
   "fcvt.f16.ps f0, f0 \n"                                                                                              \

@@ -27,7 +27,7 @@ namespace inlining {
 
 template <typename srcType, typename std::enable_if<(sizeof(srcType) <= 4), int>::type = 0>
 INLINE_ATTR void transposeOp(uintptr_t dst, uintptr_t src, int32_t* scatterValues, int32_t* gatherValues) {
-  __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
+  __asm__ __volatile__("flw.ps f31, %[gatherValues]\n"
                        ".if %[size] == 4\n"
                        "    fgw.ps  f0, f31(%[src]) \n"
                        ".elseif %[size] == 2\n"
@@ -44,11 +44,9 @@ INLINE_ATTR void transposeOp(uintptr_t dst, uintptr_t src, int32_t* scatterValue
                        "    fscb.ps  f0, f31(%[dst]) \n"
                        ".endif\n"
                        :
-                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
-                         [ scatterValues ] "m"(*(const int32_t(*)[8]) scatterValues),
-                         [ dst ] "r"(dst),
-                         [ src ] "r"(src),
-                         [ size] "i" (sizeof(srcType))
+                       : [ gatherValues ] "m"(*(const int32_t(*)[8])gatherValues),
+                         [ scatterValues ] "m"(*(const int32_t(*)[8])scatterValues), [ dst ] "r"(dst), [ src ] "r"(src),
+                         [ size ] "i"(sizeof(srcType))
                        : "f0", "f31", "memory");
 }
 
@@ -175,11 +173,11 @@ template <typename srcType, typename std::enable_if<(sizeof(srcType) <= 4), int>
 INLINE_ATTR void transposeOpAligned32Bytes(uintptr_t dst, uintptr_t src, int32_t* gatherValues) {
   constexpr size_t size = sizeof(srcType);
   constexpr auto g32_conf = size == 2 ? fg32h_conf : fg32b_conf;
-  
+
   __asm__ __volatile__("flw.ps f31, %[gatherValues] \n"
                        ".if %[size] == 4\n"
                        "    fgw.ps  f0, f31(%[src]) \n"
-                       "    fsw.ps  f0, (%[dst]) \n"
+                       "    fsw.ps  f0, 0(%[dst]) \n"
                        ".elseif %[size] == 2\n"
                        "    fgh.ps  f0, f31(%[src]) \n"
                        "    li t0, %[g32_conf]\n"
@@ -190,13 +188,9 @@ INLINE_ATTR void transposeOpAligned32Bytes(uintptr_t dst, uintptr_t src, int32_t
                        "    fsc32b.ps  f0, t0(%[dst]) \n"
                        ".endif\n"
                        :
-                       : [ gatherValues ] "m"( *(const int32_t(*)[8]) gatherValues),
-                         [ src ] "r"(src),
-                         [ dst ] "r"(dst),
-                         [g32_conf] "i" (g32_conf),
-                         [size] "i" (size)
-                       : "f0", "f31", "t0", "memory"
-                       );
+                       : [ gatherValues ] "m"(*(const int32_t(*)[8])gatherValues), [ src ] "r"(src), [ dst ] "r"(dst),
+                         [ g32_conf ] "i"(g32_conf), [ size ] "i"(size)
+                       : "f0", "f31", "t0", "memory");
 }
 
 template <typename srcType, typename std::enable_if<(sizeof(srcType) > 4), int>::type = 0>

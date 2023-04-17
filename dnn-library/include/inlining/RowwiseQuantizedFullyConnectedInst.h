@@ -113,65 +113,60 @@ INLINE_ATTR void fwdLibRowwiseQuantizedFullyConnectedInst(LibTensor* outT, LibTe
     "fadd.pi    f31, f0, f31\n"
 
     int32_t gatherValues[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
-    __asm__ __volatile__(
-      "mov.m.x m0, zero, 0xff\n"        // Mask m0 is set so all lanes are
-                                        //active.
-      "addi t0, %[sum], 0x0\n"          // The value of sum is stored in
-                                        //the integer register t0.
-      "xor t1, t1, t1\n"                // The int register t1 is set to
-                                        //0x0: it will count iterations.
-      "flw.ps f28, %[gthValues]\n" // The gatherValues vector is loaded
-                                        //to f28, one int32 per lane.
-      "fbc.ps f29, 0x0(%[srcoffset])\n" // The int32 srcoffset is broadcast
-                                        //to the 8 lanes of f29.
-      "fbc.ps f30, 0x0(%[woffset])\n"   // The int32 woffset is broadcast to
-                                        //the 8 lanes of f30.
-      "fxor.pi f31, f31, f31\n"         // Vectorial register f31 set to 0x0.
-                                        //Only useful lanes: e0, e4.
+    __asm__ __volatile__("mov.m.x m0, zero, 0xff\n"      // Mask m0 is set so all lanes are
+                                                         // active.
+                         "addi t0, %[sum], 0x0\n"        // The value of sum is stored in
+                                                         // the integer register t0.
+                         "xor t1, t1, t1\n"              // The int register t1 is set to
+                                                         // 0x0: it will count iterations.
+                         "flw.ps f28, %[gthValues]\n"    // The gatherValues vector is loaded
+                                                         // to f28, one int32 per lane.
+                         "fbc.ps f29, 0(%[srcoffset])\n" // The int32 srcoffset is broadcast
+                                                         // to the 8 lanes of f29.
+                         "fbc.ps f30, 0(%[woffset])\n"   // The int32 woffset is broadcast to
+                                                         // the 8 lanes of f30.
+                         "fxor.pi f31, f31, f31\n"       // Vectorial register f31 set to 0x0.
+                                                         // Only useful lanes: e0, e4.
 
-      "1:\n"                            // New loop (tag 1): vectorised scalar
-                                        //product.
-      "addi     t1, t1, 8\n"            // t1 += 8.
-      "ble      %[elemsRow], t1, 2f\n"  // if (elemsRow <= t1), forward to
-                                        //tag 2.
-      MATMUL_ITERATION                  // The scalar product of the data and
-                                        //weights is added to f31.
-      "faddi.pi f28, f28, 0x8\n"        // The gather offset values are updated
-                                        //adding 8 positions.
-      "beq      zero, zero, 1b\n"       // Go back to tag 1.
+                         "1:\n"                           // New loop (tag 1): vectorised scalar
+                                                          // product.
+                         "addi     t1, t1, 8\n"           // t1 += 8.
+                         "ble      %[elemsRow], t1, 2f\n" // if (elemsRow <= t1), forward to
+                                                          // tag 2.
+                         MATMUL_ITERATION                 // The scalar product of the data and
+                                                          // weights is added to f31.
+                         "faddi.pi f28, f28, 0x8\n"       // The gather offset values are updated
+                                                          // adding 8 positions.
+                         "beq      zero, zero, 1b\n"      // Go back to tag 1.
 
-      "2:\n"                            // Tag 2: a new mask is set to finish
-                                        //the row's product.
-      "fxor.pi  f0, f0, f0\n"           // f0 is set to 0's to get a correct
-                                        //final matmul iteration.
-      "addi     t1, t1, -8\n"           // In these two instructions,
-      "sub      t1, %[elemsRow], t1\n"  // we update t1 = elemsRow - (t1 - 8).
-      "addi     t2, zero, 1\n"          // t2 is set to 1.
-      "sll      t2, t2, t1\n"           // Shift Left Logical t1 positions:
-                                        //t2 = 2^(t1).
-      "addi     t2, t2, -1\n"           // Finally, t2 = 2^(t1) - 1.
-      "mov.m.x  m0, t2, 0\n"            // The mask is set to t2, so the first
-                                        //t1 lanes are active.
-      MATMUL_ITERATION
-      "fmvs.x.ps t1, f31, 0x0\n"        // The sum stored in f31.e0 is stored
-                                        //in the int register t1.
-      "add       t0, t0, t1\n"          // This way, it can be summed to its
-                                        //initial value in t0.
-      "fmvs.x.ps t1, f31, 0x4\n"        // The same is done for the sum stored
-                                        //in f31.e4,
-      "add       t0, t0,  t1\n"         // so t0 has now the total value of the
-                                        //scalar product.
-      "addi      %[sum], t0, 0x0\n"     // The value in t0 is then stored in
-                                        //the variable "sum".
+                         "2:\n"                                      // Tag 2: a new mask is set to finish
+                                                                     // the row's product.
+                         "fxor.pi  f0, f0, f0\n"                     // f0 is set to 0's to get a correct
+                                                                     // final matmul iteration.
+                         "addi     t1, t1, -8\n"                     // In these two instructions,
+                         "sub      t1, %[elemsRow], t1\n"            // we update t1 = elemsRow - (t1 - 8).
+                         "addi     t2, zero, 1\n"                    // t2 is set to 1.
+                         "sll      t2, t2, t1\n"                     // Shift Left Logical t1 positions:
+                                                                     // t2 = 2^(t1).
+                         "addi     t2, t2, -1\n"                     // Finally, t2 = 2^(t1) - 1.
+                         "mov.m.x  m0, t2, 0\n"                      // The mask is set to t2, so the first
+                                                                     // t1 lanes are active.
+                         MATMUL_ITERATION "fmvs.x.ps t1, f31, 0x0\n" // The sum stored in f31.e0 is stored
+                                                                     // in the int register t1.
+                         "add       t0, t0, t1\n"                    // This way, it can be summed to its
+                                                                     // initial value in t0.
+                         "fmvs.x.ps t1, f31, 0x4\n"                  // The same is done for the sum stored
+                                                                     // in f31.e4,
+                         "add       t0, t0,  t1\n"                   // so t0 has now the total value of the
+                                                                     // scalar product.
+                         "addi      %[sum], t0, 0x0\n"               // The value in t0 is then stored in
+                                                                     // the variable "sum".
 
-      : [sum] "+&r" (sum)
-      : [gthValues] "m" (* (const int32_t(*)[8]) gatherValues),
-        [srcoffset] "r" (&srcoffset),
-        [woffset]   "r" (&woffset),
-        [actAddr] "r" (actAddr),
-        [wgtAddr] "r" (wgtAddr),
-        [elemsRow]  "r" (dataIndex[1])
-      : "t0", "t1", "t2", "f0", "f1", "f29", "f30", "f31");
+                         : [ sum ] "+&r"(sum)
+                         : [ gthValues ] "m"(*(const int32_t(*)[8])gatherValues), [ srcoffset ] "r"(&srcoffset),
+                           [ woffset ] "r"(&woffset), [ actAddr ] "r"(actAddr), [ wgtAddr ] "r"(wgtAddr),
+                           [ elemsRow ] "r"(dataIndex[1])
+                         : "t0", "t1", "t2", "f0", "f1", "f29", "f30", "f31");
 
     tOutput[offsetOut] = clip<int32_t, int8_t>(static_cast<int32_t>(
       nearbyintf(static_cast<float>(sum) * (matMulScale * invDstScale) + static_cast<float>(outT->getOffset()))));
