@@ -147,7 +147,7 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
       // Sets 1 lane enabled, moves scalar to float
-      "mov.m.x     mt0, %[mask], 0\n"
+      "mov.m.x     m0, %[mask], 0\n"
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
       "li          x31, 2\n"
@@ -194,7 +194,7 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
       // Sets 1 lane enabled, moves scalar to float
-      "mov.m.x     mt0, %[mask], 0\n"
+      "mov.m.x     m0, %[mask], 0\n"
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
       "li          x31, 2\n"
@@ -247,7 +247,7 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
     size_t mask = (1 << elems) - 1;
     __asm__ __volatile__(
       // Sets 1 lane enabled, moves scalar to float
-      "mov.m.x     mt0, %[mask], 0\n"
+      "mov.m.x     m0, %[mask], 0\n"
       "flw.ps      f2, 0(%[sum])\n"            // Loads initial value
       "flw.ps      f3, 0(%[gatherOffsetsA])\n" // Loads gatherOffsets for gathers
       "flw.ps      f4, 0(%[gatherOffsetsW])\n" // Loads gatherOffsets for gathers
