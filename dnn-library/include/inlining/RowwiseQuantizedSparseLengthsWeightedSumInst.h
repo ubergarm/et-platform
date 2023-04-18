@@ -438,19 +438,17 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
 
       if (not Float16Dst) {
         // Store accumulated results.
-        __asm__ __volatile__ (
-          "fsw.ps f0,    (%[dst_ptr])\n"
-          "fsw.ps f1,  32(%[dst_ptr])\n"
-          "fsw.ps f2,  64(%[dst_ptr])\n"
-          "fsw.ps f3,  96(%[dst_ptr])\n"
-          "fsw.ps f4, 128(%[dst_ptr])\n"
-          "fsw.ps f5, 160(%[dst_ptr])\n"
-          "fsw.ps f6, 192(%[dst_ptr])\n"
-          "fsw.ps f7, 224(%[dst_ptr])\n"
-          :
-          : [dst_ptr] "r" (dst_ptr)
-          :
-        );
+        __asm__ __volatile__("fsw.ps f0,   0(%[dst_ptr])\n"
+                             "fsw.ps f1,  32(%[dst_ptr])\n"
+                             "fsw.ps f2,  64(%[dst_ptr])\n"
+                             "fsw.ps f3,  96(%[dst_ptr])\n"
+                             "fsw.ps f4, 128(%[dst_ptr])\n"
+                             "fsw.ps f5, 160(%[dst_ptr])\n"
+                             "fsw.ps f6, 192(%[dst_ptr])\n"
+                             "fsw.ps f7, 224(%[dst_ptr])\n"
+                             :
+                             : [ dst_ptr ] "r"(dst_ptr)
+                             :);
 
         dst_ptr += 64 * dstElemSize;
       }
@@ -569,12 +567,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
 
         if (not Float16Dst) {
           // Store accumulated results.
-          __asm__ __volatile__ (
-            "fsw.ps f0, (%[dst_ptr])\n"
-            :
-            : [dst_ptr] "r" (dst_ptr)
-            :
-          );
+          __asm__ __volatile__("fsw.ps f0, 0(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) :);
         }
 
         if (Float16Dst) {
@@ -642,12 +635,7 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
 
       if (not Float16Dst) {
         // Store accumulated results.
-        __asm__ __volatile__ (
-          "fsw.ps f0, (%[dst_ptr])\n"
-          :
-          : [dst_ptr] "r" (dst_ptr)
-          :
-        );
+        __asm__ __volatile__("fsw.ps f0, 0(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) :);
       }
 
       if (Float16Dst) {

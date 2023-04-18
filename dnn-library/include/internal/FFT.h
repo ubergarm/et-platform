@@ -357,8 +357,8 @@ INLINE_ATTR void vectorReduce(const float* baseTwiddleReal, const float* baseTwi
       "fgw.ps     %[twiddleImg], %[twiddleIndex](%[baseTwiddleImg])\n"   // twiddleImg <- gather(@baseTwiddleImg,
                                                                          // twiddleIndex);
 
-      "flw.ps     %[tmp3], (%[tmpRealOdd])\n" // tmp3 <- load(*tmpRealOdd);
-      "flw.ps     %[tmp4], (%[tmpImgOdd])\n"  // tmp4 <- load(*tmpImgOdd);
+      "flw.ps     %[tmp3], 0(%[tmpRealOdd])\n" // tmp3 <- load(*tmpRealOdd);
+      "flw.ps     %[tmp4], 0(%[tmpImgOdd])\n"  // tmp4 <- load(*tmpImgOdd);
 
       // MULT: termReal
       "fmul.ps    %[termReal], %[twiddleImg], %[tmp4]\n"               // (twiddleImg * tmpImgOdd)
@@ -370,19 +370,19 @@ INLINE_ATTR void vectorReduce(const float* baseTwiddleReal, const float* baseTwi
                                                                     // tmpRealOdd);
 
       // ADD
-      "flw.ps     %[tmp1], (%[tmpRealEven])\n" // tmp1 <- load(*tmpRealEven);
-      "flw.ps     %[tmp2], (%[tmpImgEven])\n"  // tmp2 <- load(*tmpImgEven);
+      "flw.ps     %[tmp1], 0(%[tmpRealEven])\n" // tmp1 <- load(*tmpRealEven);
+      "flw.ps     %[tmp2], 0(%[tmpImgEven])\n"  // tmp2 <- load(*tmpImgEven);
 
       "fadd.ps    %[tmpAddReal], %[tmp1], %[termReal]\n" // resultReal[j] <- tmpRealEven + termReal;
       "fadd.ps    %[tmpAddImg], %[tmp2], %[termImg]\n"
-      "fsw.ps     %[tmpAddReal], (%[resultReal])\n"
-      "fsw.ps     %[tmpAddImg], (%[resultImg])\n"
+      "fsw.ps     %[tmpAddReal], 0(%[resultReal])\n"
+      "fsw.ps     %[tmpAddImg], 0(%[resultImg])\n"
 
       // SUB
       "fsub.ps    %[tmpSubReal], %[tmp1], %[termReal]\n" // resultReal[j+halfsize] <- tmpRealEven - termReal;
       "fsub.ps    %[tmpSubImg], %[tmp2], %[termImg]\n"
-      "fsw.ps     %[tmpSubReal], (%[resultReal2])\n"
-      "fsw.ps     %[tmpSubImg], (%[resultImg2])\n"
+      "fsw.ps     %[tmpSubReal], 0(%[resultReal2])\n"
+      "fsw.ps     %[tmpSubImg], 0(%[resultImg2])\n"
 
       // Stride twiddleIndex
       "fbcx.ps     %[tmp0], %[twiddleStride]\n"
@@ -444,11 +444,11 @@ INLINE_ATTR void vectorFft16Round(const float* twiddleReal, const float* twiddle
     "fbcx.ps    %[twIndices], %[mask]\n"               // twIndices <- 248;
     "fbcx.ps    %[tmp0], %[round]\n"                   //
     "fsra.pi    %[twIndices], %[twIndices], %[tmp0]\n" // twIndices <- twIndices >> round;
-    "flw.ps     %[tmp1], %[vI]\n"
+    "flw.ps     %[tmp1], 0(%[vI])\n"
     "fand.pi    %[twIndices], %[twIndices], %[tmp1]\n" // twIndices[i] <- twIndices[i] * i;
     // load multiply, add, sub gather indices
-    "flw.ps     %[mulIndices], %[selectMultSecond]\n"       // mulIndices <- load(@selectMultSecond, 8);
-    "flw.ps     %[addSubIndices], %[selectAddOrSubFirst]\n" // addSubIndices <- load(@selectAddOrSubFirst, 8);
+    "flw.ps     %[mulIndices], 0(%[selectMultSecond])\n"       // mulIndices <- load(@selectMultSecond, 8);
+    "flw.ps     %[addSubIndices], 0(%[selectAddOrSubFirst])\n" // addSubIndices <- load(@selectAddOrSubFirst, 8);
     // gather twiddle values
     "fslli.pi   %[twIndices], %[twIndices], 2\n"           // twIndices << 2
     "fgw.ps     %[twReal], %[twIndices](%[twiddleReal])\n" // twReal <- gather(@twiddleReal, vTwiddle);
@@ -475,8 +475,8 @@ INLINE_ATTR void vectorFft16Round(const float* twiddleReal, const float* twiddle
     "fadd.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // tmp0 <- xRealAdd + termReal;
     "fadd.ps    %[tmp1], %[xImgAdd], %[termImg]\n"   // tmp1 <- xImgAdd + termImg;
     // store added elems
-    "fsw.ps     %[tmp0], (%[resultReal])\n"
-    "fsw.ps     %[tmp1], (%[resultImg])\n"
+    "fsw.ps     %[tmp0], 0(%[resultReal])\n"
+    "fsw.ps     %[tmp1], 0(%[resultImg])\n"
 
     // sub
     "fsub.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // real <- xRealAdd - termReal;
@@ -537,8 +537,8 @@ INLINE_ATTR void fastVectorFft16Round(const float* twiddle_real, const float* tw
     "fadd.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // tmp0 <- xRealAdd + termReal;
     "fadd.ps    %[tmp1], %[xImgAdd], %[termImg]\n"   // tmp1 <- xImgAdd + termImg;
     // store added elems
-    "fsw.ps     %[tmp0], (%[result_real])\n"
-    "fsw.ps     %[tmp1], (%[result_img])\n"
+    "fsw.ps     %[tmp0], 0(%[result_real])\n"
+    "fsw.ps     %[tmp1], 0(%[result_img])\n"
 
     // sub
     "fsub.ps    %[tmp0], %[xRealAdd], %[termReal]\n" // real <- xRealAdd - termReal;
@@ -619,14 +619,14 @@ INLINE_ATTR void vectorFft16Slice(float* real, float* img, int32_t start, int32_
   __asm__ __volatile__(
     "fbcx.ps    %[tmp0], %[start]\n"                           // tmp0 <- broadcast(start);
     "fbcx.ps    %[tmp1], %[step]\n"                            // tmp1 <- broadcast(step);
-    "flw.ps     %[tmp2], %[mulSecond]\n"                       // tmp2 <- load(*mulSecond);
-    "flw.ps     %[tmp3], %[addSubFirst]\n"                     // tmp3 <- load(*addSubFirst);
+    "flw.ps     %[tmp2], 0(%[mulSecond])\n"                    // tmp2 <- load(*mulSecond);
+    "flw.ps     %[tmp3], 0(%[addSubFirst])\n"                  // tmp3 <- load(*addSubFirst);
     "fmul.pi    %[mulIndices], %[tmp1], %[tmp2]\n"             // mulIndices <- vmul(step, mulSecond);
     "fadd.pi    %[mulIndices], %[tmp0], %[mulIndices]\n"       // mulIndices <- vadd(start, mulSecond);
     "fmul.pi    %[addSubIndices], %[tmp1], %[tmp3]\n"          // addSubIndices <- vmul(step, addSubFirst);
     "fadd.pi    %[addSubIndices], %[tmp0], %[addSubIndices]\n" // addSubIndices <- vadd(start, addSubFirst);
-    "fsw.ps     %[mulIndices], %[mulSecond]\n"
-    "fsw.ps     %[addSubIndices], %[addSubFirst]\n"
+    "fsw.ps     %[mulIndices], 0(%[mulSecond])\n"
+    "fsw.ps     %[addSubIndices], 0(%[addSubFirst])\n"
     : [ mulIndices ] "=&f"(mulIndices), [ addSubIndices ] "=&f"(addSubIndices), [ tmp0 ] "=&f"(tmp0),
       [ tmp1 ] "=&f"(tmp1), [ tmp2 ] "=&f"(tmp2), [ tmp3 ] "=&f"(tmp3)
     : [ start ] "r"(start), [ step ] "r"(step), [ mulSecond ] "m"(*(const int32_t(*)[8])selectMultSecond),

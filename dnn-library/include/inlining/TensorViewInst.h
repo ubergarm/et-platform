@@ -178,8 +178,8 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
 
     __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
     while (lanes.first >= 8) {
-      __asm__ __volatile__("flw.ps f0, 0x0(%[src])\n"
-                           "fsw.ps f0, 0x0(%[dst])\n"
+      __asm__ __volatile__("flw.ps f0, 0(%[src])\n"
+                           "fsw.ps f0, 0(%[dst])\n"
                            :
                            : [ src ] "r"(src8), [ dst ] "r"(dst8)
                            : "f0", "memory");
@@ -189,14 +189,12 @@ INLINE_ATTR void fwdLibTensorViewInst(LibTensor* outT, LibTensor* inT, const dim
     }
     if (lanes.first != 0) {
       uint32_t mask = ((1 << lanes.first) - 1);
-      __asm__ __volatile__(
-        "mov.m.x m0, %[mask], 0\n"
-        "flw.ps f0, 0x0(%[src])\n"
-        "fsw.ps f0, 0x0(%[dst])\n"
-        :
-        : [ src ] "r"(src8), [ dst ] "r"(dst8),
-          [ mask ] "r" (mask)
-        : "f0", "memory");
+      __asm__ __volatile__("mov.m.x m0, %[mask], 0\n"
+                           "flw.ps f0, 0(%[src])\n"
+                           "fsw.ps f0, 0(%[dst])\n"
+                           :
+                           : [ src ] "r"(src8), [ dst ] "r"(dst8), [ mask ] "r"(mask)
+                           : "f0", "memory");
       src8 += 4*lanes.first;
       dst8 += 4*lanes.first;
     }

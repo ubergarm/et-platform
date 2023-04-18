@@ -91,8 +91,8 @@
   do {                                                                                                                 \
     __asm__ __volatile__(/* pack the downconverted fp16 to 128 consecutive bits */                                     \
                          "fpackreph.pi " #FP_REG_ "," #FP_REG_ "\n" /* split 128 bits block in 4 32 bit pieces*/       \
-                         "mov.m.x  m0, zero, 0x0f\n"                                                                   \
-                         "fsw.ps " #FP_REG_ ", (%[dst_ptr])\n"                                                         \
+                         "mov.m.x  m0, zero, 0\n"                                                                      \
+                         "fsw.ps " #FP_REG_ ", 0(%[dst_ptr])\n"                                                        \
                          "mov.m.x  m0, zero, 0xff\n"                                                                   \
                          : [ dst_ptr ] "+&r"(DST_PTR_)                                                                 \
                          :                                                                                             \
@@ -113,7 +113,7 @@
                          "mov.m.x  m0, zero, 0xf0\n"                                                                   \
                          "fpackreph.pi " #FP_REG_0_ "," #FP_REG_1_ "\n" /* pack 8 fp16s in the higher half */          \
                          "mov.m.x  m0, zero, 0xff\n"                    /* restore the mask */                         \
-                         "fsw.ps  " #FP_REG_0_ ", (%[dst_ptr])\n"       /* gloobal store the whole  256 bits reg */    \
+                         "fsw.ps  " #FP_REG_0_ ", 0(%[dst_ptr])\n"      /* gloobal store the whole  256 bits reg */    \
                          "addi        %[dst_ptr], %[dst_ptr], 32\n"                                                    \
                          : [ dst_ptr ] "+&r"(DST_PTR_)                                                                 \
                          :                                                                                             \
@@ -142,7 +142,7 @@ inline __attribute((always_inline)) void pack_and_store_fp16x16(f32x8 src0, cons
                        "mov.m.x  m0, zero, 0xF0 \n"
                        "fpackreph.pi %[src0], %[src1]\n" /* pack 8 fp16s in the higher half */
                        "mov.m.x  m0, zero, 0xFF \n"      /* restore mask */
-                       "fsw.ps %[src0], (%[dst_ptr])\n"  /* store the whole 256 bits reg */
+                       "fsw.ps %[src0], 0(%[dst_ptr])\n" /* store the whole 256 bits reg */
                        : [ dst_ptr ] "+&r"(dstPtr), [ src0 ] "+&f"(src0)
                        : [ src1 ] "f"(src1)
                        :);
@@ -209,14 +209,9 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
         : "f21"
       );
     }
-    
-    if (float32Dst) { 
-      __asm__ __volatile__ (
-        "flw.ps     f10, (%[data_ptr])\n"
-        :
-        : [data_ptr] "r" (data_ptr)
-        : "f10"
-      );
+
+    if (float32Dst) {
+      __asm__ __volatile__("flw.ps     f10, 0(%[data_ptr])\n" : : [ data_ptr ] "r"(data_ptr) : "f10");
       data_ptr += 32;
     } else {
       __asm__ __volatile__ (
@@ -249,7 +244,7 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
       }
     } else {
       // Can use regular store as minions won't collide in same cacheline
-      __asm__ __volatile__("fsw.ps f0, (%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0");
+      __asm__ __volatile__("fsw.ps f0, 0(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0");
     }
   } else {
     // Store sequence for FP16 results
@@ -708,15 +703,13 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* data, LibTensor* we
               "f10", "f11", "f12", "f13"
           );
         } else {    // Float32
-          __asm__ __volatile__ (
-            "flw.ps   f10,   (%[data_ptr])\n"
-            "flw.ps   f11, 32(%[data_ptr])\n"
-            "fmadd.ps f0, f21, f10, f0\n"
-            "fmadd.ps f1, f21, f11, f1\n"
-            :
-            : [data_ptr] "r" (data_ptr)
-            : "f0", "f1", "f10", "f11"
-          );
+          __asm__ __volatile__("flw.ps   f10,  0(%[data_ptr])\n"
+                               "flw.ps   f11, 32(%[data_ptr])\n"
+                               "fmadd.ps f0, f21, f10, f0\n"
+                               "fmadd.ps f1, f21, f11, f1\n"
+                               :
+                               : [ data_ptr ] "r"(data_ptr)
+                               : "f0", "f1", "f10", "f11");
         }
       }
 
@@ -742,9 +735,9 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* data, LibTensor* we
           }
         } else {
           // Store accumulated results.
-          __asm__ __volatile__("fsw.ps f0,  (%[dst_ptr])\n"
+          __asm__ __volatile__("fsw.ps f0, 0(%[dst_ptr])\n"
                                "addi    %[dst_ptr], %[dst_ptr], 32\n"
-                               "fsw.ps f1,  (%[dst_ptr])\n"
+                               "fsw.ps f1, 0(%[dst_ptr])\n"
                                "addi    %[dst_ptr], %[dst_ptr], 32\n"
                                : [ dst_ptr ] "+&r"(dst_ptr)
                                :

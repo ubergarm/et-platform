@@ -150,12 +150,7 @@ inline __attribute((always_inline)) void fusedRowwiseQuantizedSparseLengthsWeigh
   if (float32Dst) {
     // Store accumulated results.
     if (destAligned) {
-      __asm__ __volatile__ (
-        "fsw.ps f0, (%[dst_ptr])\n"
-        :
-        : [dst_ptr] "r" (dst_ptr)
-        : "f0"
-      );
+      __asm__ __volatile__("fsw.ps f0, 0(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) : "f0");
     } else {
       __asm__ __volatile__ (
         "fscwg.ps f0, f29(%[dst_ptr])\n"
@@ -562,19 +557,17 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
       if (float32Dst) {
         if (destAligned) {
           // Store accumulated results.
-          __asm__ __volatile__ (
-            "fsw.ps f0,    (%[dst_ptr])\n"
-            "fsw.ps f1,  32(%[dst_ptr])\n"
-            "fsw.ps f2,  64(%[dst_ptr])\n"
-            "fsw.ps f3,  96(%[dst_ptr])\n"
-            "fsw.ps f4, 128(%[dst_ptr])\n"
-            "fsw.ps f5, 160(%[dst_ptr])\n"
-            "fsw.ps f6, 192(%[dst_ptr])\n"
-            "fsw.ps f7, 224(%[dst_ptr])\n"
-            :
-            : [dst_ptr] "r" (dst_ptr)
-            : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7"
-          );
+          __asm__ __volatile__("fsw.ps f0,   0(%[dst_ptr])\n"
+                               "fsw.ps f1,  32(%[dst_ptr])\n"
+                               "fsw.ps f2,  64(%[dst_ptr])\n"
+                               "fsw.ps f3,  96(%[dst_ptr])\n"
+                               "fsw.ps f4, 128(%[dst_ptr])\n"
+                               "fsw.ps f5, 160(%[dst_ptr])\n"
+                               "fsw.ps f6, 192(%[dst_ptr])\n"
+                               "fsw.ps f7, 224(%[dst_ptr])\n"
+                               :
+                               : [ dst_ptr ] "r"(dst_ptr)
+                               : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7");
 
           dst_ptr += 64 * dstElemSize;
         } else {

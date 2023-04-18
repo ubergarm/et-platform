@@ -265,7 +265,6 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
                        "fgw.ps f0, f31(%[tmpValues])\n"
                        "flw.ps  f31, %[gather_indices]\n"
                        "fgw.ps f1, f31(%[tmpInd])\n"
-
                        :
                        : [ gather_values ]  "m"( *(const int32_t(*)[8]) gather_values),
                          [ gather_indices ] "m"( *(const int32_t(*)[8]) gather_indices),
@@ -565,12 +564,11 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
                          "faddi.pi f31, f31, 0x20\n"
                          "fscw.ps f3, f31(%[indT])\n"
                          "mov.m.x m0, zero, 0x0F\n"
-                         "fsw.ps f0, 0x0+%[tmpT]\n"
-                         "fsw.ps f1, 0x10+%[tmpT]\n"
-
-                         : [ tmpT ] "=m"(*(float(*)[8])tmpT)
+                         "fsw.ps f0, 0(%[tmpT])\n"
+                         "fsw.ps f1, 16(%[tmpT])\n"
+                         : [ tmpTMem ] "=m"(*(float(*)[8])tmpT)
                          : [ indT ] "r"(indT), [ gather_indices ] "m"(*(const int32_t(*)[8])gather_indices),
-                           [ gather_values ] "r"(gather_values)
+                           [ tmpT ] "r"(tmpT), [ gather_values ] "r"(gather_values)
                          : "f0", "f1", "f2", "f3", "f31");
     for (unsigned i = 0; i < k; i++)
       valuesT[batch_offset * valuesPitch[batchDim] + i] = static_cast<srcType>(tmpT[i]);
