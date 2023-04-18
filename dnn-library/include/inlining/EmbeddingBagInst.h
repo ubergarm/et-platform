@@ -214,13 +214,11 @@ embeddingBagsTailVectorized(uintptr_t minionCurrIndex, uintptr_t currSegmentStar
       __asm__ __volatile__("flw.ps     f10, 0(%[data_ptr])\n" : : [ data_ptr ] "r"(data_ptr) : "f10");
       data_ptr += 32;
     } else {
-      __asm__ __volatile__ (
-        "fgh.ps      f10, f20, %[data_ptr]\n"
-        "fcvt.ps.f16 f10, f10\n"
-        :
-        : [data_ptr] "r" (data_ptr)
-        : "f10"
-      );
+      __asm__ __volatile__("fgh.ps      f10, f20(%[data_ptr])\n"
+                           "fcvt.ps.f16 f10, f10\n"
+                           :
+                           : [ data_ptr ] "r"(data_ptr)
+                           : "f10");
     }
 
     __asm__ __volatile__ (
@@ -680,28 +678,25 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* data, LibTensor* we
         }
 
         if (float16Dst) {
-          __asm__ __volatile__ (
-            "fgh.ps      f10, f20, %[data_ptr]\n"
-            "addi        %[data_ptr], %[data_ptr], 16\n"
-            "fgh.ps      f11, f20, %[data_ptr]\n"
-            "addi        %[data_ptr], %[data_ptr], 16\n"
-            "fgh.ps      f12, f20, %[data_ptr]\n"
-            "addi        %[data_ptr], %[data_ptr], 16\n"
-            "fgh.ps      f13, f20, %[data_ptr]\n"
-            "addi        %[data_ptr], %[data_ptr], 16\n"
-            "fcvt.ps.f16 f10, f10\n"
-            "fcvt.ps.f16 f11, f11\n"
-            "fcvt.ps.f16 f12, f12\n"
-            "fcvt.ps.f16 f13, f13\n"
-            "fmadd.ps    f0, f21, f10, f0\n"
-            "fmadd.ps    f1, f21, f11, f1\n"
-            "fmadd.ps    f2, f21, f12, f2\n"
-            "fmadd.ps    f3, f21, f13, f3\n"
-            :
-            : [data_ptr] "r" (data_ptr)
-            : "f0",  "f1",  "f2",  "f3",
-              "f10", "f11", "f12", "f13"
-          );
+          __asm__ __volatile__("fgh.ps      f10, f20(%[data_ptr])\n"
+                               "addi        %[data_ptr], %[data_ptr], 16\n"
+                               "fgh.ps      f11, f20(%[data_ptr])\n"
+                               "addi        %[data_ptr], %[data_ptr], 16\n"
+                               "fgh.ps      f12, f20(%[data_ptr])\n"
+                               "addi        %[data_ptr], %[data_ptr], 16\n"
+                               "fgh.ps      f13, f20(%[data_ptr])\n"
+                               "addi        %[data_ptr], %[data_ptr], 16\n"
+                               "fcvt.ps.f16 f10, f10\n"
+                               "fcvt.ps.f16 f11, f11\n"
+                               "fcvt.ps.f16 f12, f12\n"
+                               "fcvt.ps.f16 f13, f13\n"
+                               "fmadd.ps    f0, f21, f10, f0\n"
+                               "fmadd.ps    f1, f21, f11, f1\n"
+                               "fmadd.ps    f2, f21, f12, f2\n"
+                               "fmadd.ps    f3, f21, f13, f3\n"
+                               :
+                               : [ data_ptr ] "r"(data_ptr)
+                               : "f0", "f1", "f2", "f3", "f10", "f11", "f12", "f13");
         } else {    // Float32
           __asm__ __volatile__("flw.ps   f10,  0(%[data_ptr])\n"
                                "flw.ps   f11, 32(%[data_ptr])\n"

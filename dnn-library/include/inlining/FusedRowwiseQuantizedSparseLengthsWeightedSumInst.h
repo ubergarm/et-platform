@@ -116,35 +116,21 @@ inline __attribute((always_inline)) void fusedRowwiseQuantizedSparseLengthsWeigh
      );
    }
 
-   __asm__ __volatile__ (
-      // Load a full input cache line (64 elements, 8 vregs)
-      "fgb.ps     f25, f31, %[data_ptr]\n"
-      "fand.pi    f25, f25, f30\n"
-      "fcvt.ps.pw f25, f25\n"
-      "fmadd.ps   f25, f25, f28, f27\n"
-     : 
-     : [data_ptr]   "r" (data_ptr),
-       [offset_ptr] "r"   (offset_ptr),
-       [scale_ptr]  "r"   (scale_ptr)
-     : "f25", "f27", "f28", "f30", "f31"
-    );
+   __asm__ __volatile__(
+     // Load a full input cache line (64 elements, 8 vregs)
+     "fgb.ps     f25, f31(%[data_ptr])\n"
+     "fand.pi    f25, f25, f30\n"
+     "fcvt.ps.pw f25, f25\n"
+     "fmadd.ps   f25, f25, f28, f27\n"
+     :
+     : [ data_ptr ] "r"(data_ptr), [ offset_ptr ] "r"(offset_ptr), [ scale_ptr ] "r"(scale_ptr)
+     : "f25", "f27", "f28", "f30", "f31");
 
-    if (Weighted) {
-      __asm__ __volatile__ (
-        "fmadd.ps f0, f26, f25, f0\n"
-        :
-        :
-        : "f0", "f25", "f26"
-      );
-    }
-    else {
-      __asm__ __volatile__ (
-        "fadd.ps f0, f25, f0\n"
-        :
-        :
-        : "f0", "f25"
-      );
-    }
+   if (Weighted) {
+     __asm__ __volatile__("fmadd.ps f0, f26, f25, f0\n" : : : "f0", "f25", "f26");
+   } else {
+     __asm__ __volatile__("fadd.ps f0, f25, f0\n" : : : "f0", "f25");
+   }
   }
   
   if (float32Dst) {
@@ -451,7 +437,7 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
 
         // Load first quantized data to f25 (uint8)
         // Load offset to f27, scale to f28
-        __asm__ __volatile__("fgb.ps  f25, f31, %[data_ptr]\n"
+        __asm__ __volatile__("fgb.ps  f25, f31(%[data_ptr])\n"
                              "fbc.ps  f27, 0x0(%[offset_ptr])\n"
                              "fbc.ps  f28, 0x0(%[scale_ptr])\n"
                              :
@@ -467,27 +453,27 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
                                : "f27", "f28");
         }
 
-        __asm__ __volatile__ (
+        __asm__ __volatile__(
           // Load a full input cache line (64 elements, 8 vregs)
           //
           // NOTE: Moved first gather of data tensor before the
           // converts as an optimization.
           //
-          //"fgb.ps     f25, f31, %[data_ptr]\n"
+          //"fgb.ps     f25, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f24, f31, %[data_ptr]\n"
+          "fgb.ps     f24, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f23, f31, %[data_ptr]\n"
+          "fgb.ps     f23, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f22, f31, %[data_ptr]\n"
+          "fgb.ps     f22, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f21, f31, %[data_ptr]\n"
+          "fgb.ps     f21, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f20, f31, %[data_ptr]\n"
+          "fgb.ps     f20, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f19, f31, %[data_ptr]\n"
+          "fgb.ps     f19, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f18, f31, %[data_ptr]\n"
+          "fgb.ps     f18, f31(%[data_ptr])\n"
           "addi       %[data_ptr], %[data_ptr], 8\n"
           "fand.pi    f25, f25, f30\n"
           "fand.pi    f24, f24, f30\n"
@@ -513,12 +499,9 @@ void fusedRowwiseQuantizedSparseLengthsWeightedSumInstVectorizedImpl(
           "fmadd.ps   f20, f20, f28, f27\n"
           "fmadd.ps   f19, f19, f28, f27\n"
           "fmadd.ps   f18, f18, f28, f27\n"
-         : [data_ptr]   "+&r" (data_ptr)
-         : [offset_ptr] "r"   (offset_ptr),
-           [scale_ptr]  "r"   (scale_ptr)
-         : "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25",
-           "f27", "f28", "f30", "f31"
-        );
+          : [ data_ptr ] "+&r"(data_ptr)
+          : [ offset_ptr ] "r"(offset_ptr), [ scale_ptr ] "r"(scale_ptr)
+          : "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25", "f27", "f28", "f30", "f31");
 
         if (Weighted) {
           __asm__ __volatile__ (
