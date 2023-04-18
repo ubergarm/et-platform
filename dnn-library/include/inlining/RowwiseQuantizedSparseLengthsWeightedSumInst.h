@@ -347,35 +347,31 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
         float            * offset_ptr = (float *) &offsets[rowIndex];
         float            * weight_ptr = (float *) &tWInput[currIndex];
 
-        __asm__ __volatile__ (
-          "fbc.ps  f26, 0x0(%[weight_ptr])\n"
-          "fbc.ps  f27, 0x0(%[offset_ptr])\n"
-          "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+        __asm__ __volatile__("fbc.ps  f26, 0x0(%[weight_ptr])\n"
+                             "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+                             "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
-          // Load a full input cache line (64 elements, 8 vregs)
-          "fgb.ps     f25, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f24, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f23, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f22, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f21, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f20, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f19, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-          "fgb.ps     f18, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-         : [data_ptr]   "+&r" (data_ptr)
-         : [weight_ptr] "r"   (weight_ptr),
-           [offset_ptr] "r"   (offset_ptr),
-           [scale_ptr]  "r"   (scale_ptr)
-         : "f18" , "f19", "f20", "f21", "f22", "f23", "f24",
-           "f25", "f26", "f27", "f28"
-        );
+                             // Load a full input cache line (64 elements, 8 vregs)
+                             "fgb.ps     f25, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f24, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f23, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f22, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f21, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f20, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f19, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f18, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             : [ data_ptr ] "+&r"(data_ptr)
+                             : [ weight_ptr ] "r"(weight_ptr), [ offset_ptr ] "r"(offset_ptr),
+                               [ scale_ptr ] "r"(scale_ptr)
+                             : "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25", "f26", "f27", "f28");
 
         if (Int8Src) {
           // Convert to UInt8_t adding 128.
@@ -529,20 +525,17 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
           float            * offset_ptr = (float *) &offsets[rowIndex];
           float            * weight_ptr = (float *) &tWInput[currIndex];
 
-          __asm__ __volatile__ (
-                "fbc.ps  f26, 0x0(%[weight_ptr])\n"
-            "fbc.ps  f27, 0x0(%[offset_ptr])\n"
-            "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+          __asm__ __volatile__("fbc.ps  f26, 0x0(%[weight_ptr])\n"
+                               "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+                               "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
-            // Load a full input cache line (64 elements, 8 vregs)
-            "fgb.ps     f25, f31, %[data_ptr]\n"
-            "addi       %[data_ptr], %[data_ptr], 8\n"
-           : [data_ptr]   "+&r" (data_ptr)
-           : [weight_ptr] "r"   (weight_ptr),
-             [offset_ptr] "r"   (offset_ptr),
-             [scale_ptr]  "r"   (scale_ptr)
-           : "f25", "f26", "f27", "f28"
-          );
+                               // Load a full input cache line (64 elements, 8 vregs)
+                               "fgb.ps     f25, f31(%[data_ptr])\n"
+                               "addi       %[data_ptr], %[data_ptr], 8\n"
+                               : [ data_ptr ] "+&r"(data_ptr)
+                               : [ weight_ptr ] "r"(weight_ptr), [ offset_ptr ] "r"(offset_ptr),
+                                 [ scale_ptr ] "r"(scale_ptr)
+                               : "f25", "f26", "f27", "f28");
 
           if (Int8Src) {
             // Convert to UInt8_t adding 128.
@@ -597,20 +590,17 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
         float            * offset_ptr = (float *) &offsets[rowIndex];
         float            * weight_ptr = (float *) &tWInput[currIndex];
 
-        __asm__ __volatile__ (
-          "fbc.ps  f26, 0x0(%[weight_ptr])\n"
-          "fbc.ps  f27, 0x0(%[offset_ptr])\n"
-          "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+        __asm__ __volatile__("fbc.ps  f26, 0x0(%[weight_ptr])\n"
+                             "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+                             "fbc.ps  f28, 0x0(%[scale_ptr])\n"
 
-          // Load a full input cache line (64 elements, 8 vregs)
-          "fgb.ps     f25, f31, %[data_ptr]\n"
-          "addi       %[data_ptr], %[data_ptr], 8\n"
-         : [data_ptr]   "+&r" (data_ptr)
-         : [weight_ptr] "r"   (weight_ptr),
-           [offset_ptr] "r"   (offset_ptr),
-           [scale_ptr]  "r"   (scale_ptr)
-         : "f25", "f26", "f27", "f28"
-        );
+                             // Load a full input cache line (64 elements, 8 vregs)
+                             "fgb.ps     f25, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             : [ data_ptr ] "+&r"(data_ptr)
+                             : [ weight_ptr ] "r"(weight_ptr), [ offset_ptr ] "r"(offset_ptr),
+                               [ scale_ptr ] "r"(scale_ptr)
+                             : "f25", "f26", "f27", "f28");
 
         if (Int8Src) {
           // Convert to UInt8_t adding 128.
