@@ -91,7 +91,7 @@
   do {                                                                                                                 \
     __asm__ __volatile__(/* pack the downconverted fp16 to 128 consecutive bits */                                     \
                          "fpackreph.pi " #FP_REG_ "," #FP_REG_ "\n" /* split 128 bits block in 4 32 bit pieces*/       \
-                         "mov.m.x  m0, zero, 0\n"                                                                      \
+                         "mov.m.x  m0, zero, 0x0f\n"                                                                   \
                          "fsw.ps " #FP_REG_ ", 0(%[dst_ptr])\n"                                                        \
                          "mov.m.x  m0, zero, 0xff\n"                                                                   \
                          : [ dst_ptr ] "+&r"(DST_PTR_)                                                                 \
