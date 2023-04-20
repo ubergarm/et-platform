@@ -4,6 +4,7 @@ Test the GP-SDK examples.
 Tests:
     - test_run_example: Run each of the provided examples
     - test_run_multi_kernel: Run multiple kernels
+    - test_run_arguments: Run kernel with different optional arguments
 """
 
 # pylint: disable=fixme # notes about current GP-SDK issues
@@ -15,7 +16,7 @@ import glob
 from pathlib import Path
 import subprocess
 import pytest
-
+from collections import namedtuple
 
 KERNEL_LAUNCHERS = {
     "bss": "basic_launcher",
@@ -76,6 +77,16 @@ ERROR_COMMENT = {
 
 MASK_SWEEP_KERNELS = ["syncAll", "syncDeviceBasic", "syncMinion"]
 MASK_SWEEP = ["0x1", "0xF", "0xFF", "0xFFFF", "0xFFFFFFFF"]
+
+CmdLineArg = namedtuple("CmdLineArg", ["param", "valid"])
+
+KERNEL_PATH = [CmdLineArg("--kernel_path", True), CmdLineArg("-k", True)]
+DEVICE_TYPE = [CmdLineArg("--device_type", True), CmdLineArg("--device-type", False), CmdLineArg("-device_type", True), CmdLineArg("-d", True)]
+SIMULATOR_PARAMS = [CmdLineArg("--simulator_params", True), CmdLineArg("--simulator-params", False), CmdLineArg("-simulator_params", False)]
+SIMULATOR_OPT_ARG = [CmdLineArg("-l -lm 0", True), CmdLineArg("-l -lm 0 -mem_check", True), CmdLineArg("-l -lm 0 -mem-check", False)]
+ENABLE_CORE = [CmdLineArg("--enableCoreDump", True)]
+
+str_example_not_built = "the examples have not been built"
 
 def check_device_trace(shell, path: Path):
     """Check whether the device trace exists and is well formatted"""
@@ -193,11 +204,52 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
         check_run_artifacts(shell, device_type)
 
 
+@pytest.mark.parametrize("kernel", ["print"])
+@pytest.mark.parametrize("kernel_pth_param", KERNEL_PATH)
+@pytest.mark.parametrize("device_type", DEVICE_TYPE)
+@pytest.mark.parametrize("device_type_optarg", ["sysemu", "silicon"])
+@pytest.mark.parametrize("simulator_param", SIMULATOR_PARAMS)
+@pytest.mark.parametrize("simulator_optargs", SIMULATOR_OPT_ARG)
+@pytest.mark.parametrize("enable_core", ENABLE_CORE)
+def test_run_optional_arguments(shell, kernel, kernel_pth_param, device_type,
+                                device_type_optarg, enable_core, simulator_param,
+                                simulator_optargs, build_dir):
+    """Run a single kernel sweeping optional arguments"""
+    if not build_dir.exists():
+        pytest.skip(f'{str_examplesNotBuilt}')
+    if device_type_optarg == "sysemu" and kernel in SKIP_SYSEMU:
+        pytest.skip(f"do not run {kernel} on {device_type_optarg}")
+    logging.info("Running %s on %s", kernel, device_type_optarg)
+    kernel_path = build_dir.device / "tests" / "print.elf"
+
+    launch_cmd = " ".join(
+        [
+            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS[kernel]),
+            f'{kernel_pth_param.param} "{kernel_path}"',
+            f'{device_type.param} "{device_type_optarg}"',
+            f'{simulator_param.param} "{simulator_optargs.param}"' if ("sysemu" in {device_type_optarg}) else f'{""}',
+            f'{enable_core.param}',
+        ]
+        + EXTRA_ARGS[kernel]
+    )
+
+    if (("simulator" in launch_cmd) and
+        (kernel_pth_param.valid and device_type.valid and
+         simulator_param.valid and simulator_optargs.valid)):
+        shell.run(launch_cmd)
+    elif (("simulator" not in launch_cmd) and
+          (kernel_pth_param.valid and device_type.valid)):
+        shell.run(launch_cmd)
+    else:
+        with pytest.raises(subprocess.CalledProcessError):
+            shell.run(launch_cmd)
+
+
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
 def test_run_multi_kernel(shell, device_type, build_dir):
     """Run multi kernel example"""
     if not build_dir.exists():
-        pytest.skip("the examples have not been built")
+        pytest.skip(f'{str_examplesNotBuilt}')
     kernels = ["bss", "saxpy_scalar"]
     logging.info("Running %s on %s", kernels, device_type)
     kernel_paths = [build_dir.device / "tests" / f"{kernel}.elf" for kernel in kernels]

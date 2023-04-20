@@ -189,9 +189,9 @@ public:
   std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
 
   // static inline constexpr const char* help_msg =
-   constexpr static const char* help_msg =  
-    "  -c, --enableCoreDump          Write perfetto trace to a file instead\n"
-    "  -s, --simulator_params        Hyperparameters to pass to simulator, overrides default values\n";
+  constexpr static const char* help_msg =
+    "  '', --enableCoreDump          Write perfetto trace to a file instead\n"
+    "  '', --simulator_params        Hyperparameters to pass to simulator, overrides default values\n";
 
 private:
   std::vector<std::byte> readFile(const std::string& path);
@@ -204,7 +204,7 @@ private:
   rt::IRuntime* getRuntime(bool enableCoreDump);
   AbortManager abortManager_;
 
-  void parse_args(int argc, char* const* argv);
+  void parse_args(int argc, char* argv[]);
 
   // parameters expected
   fs::path gp_sdk_device_installdir_;

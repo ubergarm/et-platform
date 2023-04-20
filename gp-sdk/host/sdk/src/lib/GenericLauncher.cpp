@@ -326,13 +326,13 @@ rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
   }
 }
 
-void GenericLauncher::parse_args(int argc, char* const* argv) {
+void GenericLauncher::parse_args(int argc, char** argv) {
 
   static constexpr const char* short_opts = "cs:";
 
-  static const std::vector<struct option> long_opts_vect {{"enableCoreDump", no_argument, nullptr, 'c'},
-                                                          {"simulator_params", required_argument, nullptr, 's'},
-                                                          {nullptr, 0, nullptr, 0}};
+  static const std::vector<struct option> long_opts_vect{{"enableCoreDump", no_argument, nullptr, 0},
+                                                         {"simulator_params", required_argument, nullptr, 0},
+                                                         {nullptr, 0, nullptr, 0}};
 
   int ret = 0;
   int index = 0;
@@ -350,15 +350,17 @@ void GenericLauncher::parse_args(int argc, char* const* argv) {
   optind = 0;
 
   while ((ret = getopt_long(argc, argv, short_opts, long_opts_vect.data(), &index)) != -1) {
-    switch (ret) {
-    case 'c':
-      enableCoreDump_ = true;
-      break;
-    case 's':
+    if (ret == '?') {
+      std::cout << "This option parameter is not expected: " << argv[optind - 1] << std::endl;
+      exit(1);
+    }
+
+    const char* const name = long_opts_vect.data()[index].name;
+
+    if (!strcmp(name, "simulator_params")) {
       simulator_params_ = optarg;
-      break;
-    default:
-      break;
+    } else if (!strcmp(name, "enableCoreDump")) {
+      enableCoreDump_ = true;
     }
   }
 
