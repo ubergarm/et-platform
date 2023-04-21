@@ -202,20 +202,25 @@ rt::KernelId GenericLauncher::loadKernel(const std::string& kernelName, uint32_t
 // TODO: make it configuraion-aware.
 std::tuple<uint64_t, uint64_t> getTraceMinions() {
   // all (shireMask: threadMask)
-  return {0xFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
+  return {0x1FFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
 }
 
-std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize) {
+constexpr uint64_t getTraceThreadMask() {
+  return 0xFFFFFFFFFFFFFFFFULL;
+}
+
+
+
+std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize, uint64_t shireMask = 0xFFFFFFFFULL) {
   if (not enableKernelTraces) {
     return std::nullopt;
   }
 
   rt::UserTrace traceParams;
-  auto [shireMask, threadMask] = getTraceMinions();
   traceParams.buffer_ = uint64_t(deviceTraceBuffer);
   traceParams.buffer_size_ = deviceTraceBufferSize;
   traceParams.shireMask_ = shireMask;
-  traceParams.threadMask_ = threadMask;
+  traceParams.threadMask_ = getTraceThreadMask();
   traceParams.eventMask_ = TRACE_EVENT_ENABLE_ALL;
   traceParams.filterMask_ = TRACE_FILTER_ENABLE_ALL;
   traceParams.threshold_ = 0;
@@ -276,7 +281,7 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_
 
 void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, uint64_t shireMask,
                                      uint32_t deviceIdx) {
-  std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize);
+  std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize, shireMask);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
 

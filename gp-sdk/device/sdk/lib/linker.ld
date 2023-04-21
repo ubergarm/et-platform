@@ -52,6 +52,7 @@ SECTIONS
   }
   . = ALIGN(64);
 
+
   .data :
   {
     /* This section must be restored every time a kernel is relaunched in the
@@ -87,7 +88,7 @@ SECTIONS
    * TLS (Per thread data)
    * .tdata* holds initialized thread local data.
    * .tbss*  holds non-initialized & zeroed thread local data.
-   *         this is a ·"backup". upon initialization, each hart
+   *         this is a ï¿½"backup". upon initialization, each hart
    *         will get its copy on TLS allocation.
    *  [__tdata_start .. __tbss_end ]
    *  (Note: tbss could be marked NOLOAD to save some load-time).

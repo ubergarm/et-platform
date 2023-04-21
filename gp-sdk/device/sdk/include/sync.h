@@ -226,7 +226,7 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
 
   et_assert((startingMinion % SOC_MINIONS_PER_SHIRE == 0) && "barrier: startingMinion must be multiple of 32");
   et_assert((count % SOC_MINIONS_PER_SHIRE == 0) && "barrier: count must be multiple of 32");
-  et_assert((numShires < 33 && masterShireId < 32) && "barrier: shire configuration is INCORRECT");
+  et_assert((numShires < 33 && masterShireId < 32) && "barrier: number of shires must be <= 32");
 
   const auto localId = static_cast<int>(get_minion_id() & 0x1F);
   const auto shireId = get_shire_from_minion(get_minion_id());
@@ -316,6 +316,7 @@ inline void barrier(const size_t startingThread, const size_t count) {
 static inline void barrier() {
   const auto numShires = __builtin_popcountll(device_config::env_->shire_mask);
   const auto numThreads = get_num_threads();
+  et_assert(numShires < 33 && "barrier: number of shires must be <= 32");
 
   if (numShires > 1) {
     barrier<Scope::device>(0, numThreads);

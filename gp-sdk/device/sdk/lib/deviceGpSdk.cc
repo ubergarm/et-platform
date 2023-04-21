@@ -165,8 +165,8 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
   minionId = minionId & 0x1F;
   uint64_t shireMask = (env != nullptr) ? env->shire_mask : 0xFFFFFFFF;
 
-
-  if (shireId >= 32)
+   
+  if (shireId >= 33)
     return 0;
 
   if (device_config::config.threadsPerCore == 1 && threadId == 1) {
@@ -242,6 +242,12 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
 int get_num_threads() {
   return __builtin_popcountll(device_config::env_->shire_mask) * SOC_MINIONS_PER_SHIRE *
          device_config::config.threadsPerCore;
+}
+
+/// @brief Obtains the mask of shires assigned to the kernel
+/// @return Returns a bitmask, the i-th bit represent the physical i minion shire of the device.
+uint64_t get_shire_mask() {
+  return device_config::env_->shire_mask;
 }
 
 /// @brief Obtains the relative thread id assigned to the hart

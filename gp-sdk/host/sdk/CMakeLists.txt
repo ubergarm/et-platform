@@ -105,6 +105,13 @@ target_link_libraries(trapping_launcher
     PRIVATE
         etsoc_gpsdk
 )
+
+add_executable(matmul_launcher src/autogen_matmul/autogen_matmul.cpp)
+target_include_directories(matmul_launcher PRIVATE ${DEVICE_KERNELS_DIR}/autogenMatmul)
+target_link_libraries(matmul_launcher
+    PRIVATE
+        etsoc_gpsdk
+)
       
 install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}

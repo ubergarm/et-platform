@@ -96,6 +96,9 @@ target_link_libraries(libcpp_throw_stub
 
 add_library(libc_stub STATIC libc_stub/et_errno.cc)
 
+add_subdirectory(libautogen)
+
+
 
 
 

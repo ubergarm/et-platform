@@ -65,6 +65,7 @@ template <typename T, T f> struct IsSameFuncPtr<T, f, f> { static constexpr bool
   }
 
 int get_num_threads();
+uint64_t get_shire_mask();
 int get_relative_thread_id();
 int get_relative_thread_id(uint64_t shireMask);
 
