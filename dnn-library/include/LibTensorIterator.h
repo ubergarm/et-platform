@@ -45,11 +45,13 @@ public:
     , coords_(h.tensor_->offset2Coord(offset))
     , wrap_(buildWrap()) {
     // offset2Coord can return coordinates pointing to padding: adjust to point to first element without offset
-    for(size_t i = ndims_-1; i > 0 ; --i) {
+    for (size_t i = ndims_ - 1; i > 0; --i) {
       if (coords_[i] >= dims_[i]) {
-        offset_+=strides_[i-1] - strides_[i] * coords_[i];
-        coords_[i] = 0;
-        coords_[i-1]++;
+        for (size_t j = ndims_ - 1; j >= i; --j) {
+          offset_ += strides_[j - 1] - strides_[j] * coords_[j];
+          coords_[j] = 0;
+          coords_[j - 1]++;
+        }
       }
     }
   }
