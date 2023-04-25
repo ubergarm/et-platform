@@ -62,6 +62,7 @@ INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std:
                                      uint64_t flags, const uint32_t minionOffset = 0,
                                      const uint32_t assignedMinions = 0) {
   using srcType = typename elemKind2elemTy<elK>::type;
+  constexpr size_t typeSize = sizeof(srcType);
 
   assert(get_minion_id() >= minionOffset);
   size_t minionId = get_minion_id() - minionOffset;
@@ -69,8 +70,8 @@ INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std:
   if (minionId >= activeMinions) return;
 
   /* maintain compatibility through the new Iface Libtensor */
-  auto dst = outT->getRawDataPointer<void*>();
-  auto src = inT->getRawDataPointer<void*>();
+  auto dst = outT->getRawDataPointer<srcType>();
+  auto src = inT->getRawDataPointer<srcType>();
 
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *dstPitch = outT->strides().data();
@@ -80,9 +81,9 @@ INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std:
 
   size_t numElemsDst = dstPitch[0] * dstIndex[0];
   size_t initialAddr, maxRead;
-  size_t typeSize = sizeof(srcType);
   getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dst);
+
   if (maxRead == 0)
     return;
 
@@ -139,7 +140,7 @@ INLINE_ATTR void fwdLibTransposeInst(LibTensor* outT, LibTensor* inT, const std:
     for (size_t i = 0; i < registersInRow; i++) {
       transposeOp <srcType>(dstAddr, srcAddr, scatterValues, gatherValues);
       srcAddr += 8 * typeSize * newPitch[lastDim];
-      dstAddr += 8 * typeSize;
+      dstAddr += 8 * typeSize * dstPitch[lastDim];
     }
 
     if (res > 0) {
