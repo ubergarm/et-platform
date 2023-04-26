@@ -12,6 +12,7 @@
 #ifndef FLOAT16_H
 #define FLOAT16_H
 
+#include "Compiler.h"
 #include <cstdint>
 #include <etsoc/isa/tensors.h>
 
@@ -20,75 +21,80 @@ static const float MAX_FP16_DENORM = ((float(1 << 10) - 1) / float(1 << 24)); //
 namespace dnn_lib {
 
 template <bool setMask = true> inline __attribute__((always_inline)) void convertFp16ToFp32(float src, float& dst) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
-  __asm__ __volatile__("fcvt.ps.f16 %[dst], %[src] \n" : [ dst ] "=f"(dst) : [ src ] "f"(src));
+#endif
+  __asm__ __volatile__("fcvt.ps.f16 %[dst], %[src] \n"
+                       : [ dst ] "=f"(dst)
+                       : FOR_CLANG([ vmask ] "M"(1)) FOR_CLANG_COMMA[src] "f"(src)
+                       :);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) void convertFp16ToFp32(uint16_t src, float& dst) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
+#endif
   __asm__ __volatile__("fmv.s.x %[dst], %[src]\n"
                        "fcvt.ps.f16 %[dst], %[dst] \n"
                        : [ dst ] "=f"(dst)
-                       : [ src ] "r"(src));
+                       : FOR_CLANG([ vmask ] "M"(1)) FOR_CLANG_COMMA[src] "r"(src)
+                       :);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) void convertFp32ToFp16(float src, float& dst) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
-  __asm__ __volatile__("fcvt.f16.ps %[dst], %[src] \n" : [ dst ] "=f"(dst) : [ src ] "f"(src));
+#endif
+  __asm__ __volatile__("fcvt.f16.ps %[dst], %[src] \n"
+                       : [ dst ] "=f"(dst)
+                       : FOR_CLANG([ vmask ] "M"(1)) FOR_CLANG_COMMA[src] "f"(src)
+                       :);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) void convertFp32ToFp16(float src, uint16_t& dst) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
+#endif
   float tmp;
   __asm__ __volatile__("fcvt.f16.ps %[tmp], %[src] \n"
                        "fmv.x.w %[dst], %[tmp] \n"
                        : [ dst ] "=r"(dst), [ tmp ] "=f"(tmp)
-                       : [ src ] "f"(src));
+                       : FOR_CLANG([ vmask ] "M"(1)) FOR_CLANG_COMMA[src] "f"(src)
+                       :);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) void convertBfloat16ToFp32(float src, float& dst) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
-  __asm__ __volatile__("fslli.pi %[dst], %[src], 16 \n" : [ dst ] "=f"(dst) : [ src ] "f"(src));
+#endif
+  __asm__ __volatile__("fslli.pi %[dst], %[src], 16 \n"
+                       : [ dst ] "=f"(dst)
+                       : FOR_CLANG([ vmask ] "M"(1)) FOR_CLANG_COMMA[src] "f"(src)
+                       :);
 }
 
 template <bool setMask = true>
 inline __attribute__((always_inline)) void convertBfloat16ToFp32(uint16_t src, float& dst) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
+#endif
   __asm__ __volatile__("fmv.s.x %[dst], %[src]\n"
                        "fslli.pi %[dst], %[dst], 16 \n"
                        : [ dst ] "=f"(dst)
-                       : [ src ] "r"(src));
-}
-
-template <bool setMask = true> inline __attribute__((always_inline)) void convertFp32ToBfloat16(float src, float& dst) {
-  if constexpr (setMask) {
-    mask_set(0, 0x1);
-  }
-  __asm__ __volatile__("fsrli.pi %[dst], %[src], 16 \n" : [ dst ] "=f"(dst) : [ src ] "f"(src));
-}
-
-template <bool setMask = true>
-inline __attribute__((always_inline)) void convertFp32ToBfloat16(float src, uint16_t& dst) {
-  if constexpr (setMask) {
-    mask_set(0, 0x1);
-  }
-  float tmp;
-  __asm__ __volatile__("fsrli.pi %[tmp], %[src], 16 \n"
-                       "fmv.x.w %[dst], %[tmp] \n"
-                       : [ dst ] "=r"(dst), [ tmp ] "=f"(tmp)
-                       : [ src ] "f"(src));
+                       : FOR_CLANG([ vmask ] "M"(1)) FOR_CLANG_COMMA[src] "r"(src)
+                       :);
 }
 
 /// Use a proxy type in case we need to change it in the future.
@@ -97,7 +103,6 @@ using Float16Storage = float;
 
 class float16 {
 public:
-
   union {
     uint32_t uint32;
     float fp;
@@ -164,20 +169,6 @@ public:
     float dst;
     dnn_lib::convertFp32ToFp16(data_.fp, dst);
     return dst;
-  }
-
-  template <bool setMask = false>
-  inline __attribute__((always_inline)) float fpAddSingleElement(float a, float b) const {
-    if constexpr (setMask) {
-      mask_set(0, 0x1);
-    }
-    __asm__ __volatile__("fcvt.ps.f16 %[a], %[a] \n"
-                         "fcvt.ps.f16 %[b], %[b] \n"
-                         "fadd.ps %[b], %[b], %[a] \n"
-                         "fcvt.f16.ps %[b], %[b] \n"
-                         : [ a ] "+&f"(a), [ b ] "+&f"(b));
-
-    return b;
   }
 };
 
