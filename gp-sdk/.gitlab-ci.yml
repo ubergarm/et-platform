@@ -1,6 +1,6 @@
 include:
   - project: 'software/gitlab-ci-common'
-    ref: 62dd746e59efef47d61463c22bc84254e1437ebe
+    ref: 598eab92c6151682f5b7ac28a5fda2a116ab15d0
     file:
       - rules/generic-workflow-conan.yaml
       - pods/large-pod.yaml
@@ -113,24 +113,24 @@ build:sonarqube-check:
     CMD_SETUP_EXTRA_DEPS: |
       sudo apt install ninja-build
     CMD_POST_BUILD: |
-      echo $PATH
-      echo $LD_LIBRARY_PATH
+      echo $$PATH
+      echo $$LD_LIBRARY_PATH
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
 
       if [ "$BUILD_TYPE" == "Debug" ]; then
         echo "Skip testing when building in Debug"
       else
-        python3 -m pytest ci -k "(artifacts or $DEVICE_TYPE)" --skip-gdb --basetemp=$TEMP_DIR --junitxml=$JUNIT_REPORT $PYTEST_OPTIONS --device-build=$DEVICE_BUILD_PATH --host-build=$HOST_BUILD_PATH
+        python3 -m pytest ci -k "(artifacts or $DEVICE_TYPE)" --skip-gdb --basetemp=$$TEMP_DIR --junitxml=$$JUNIT_REPORT $$PYTEST_OPTIONS --device-build=$$DEVICE_BUILD_PATH --host-build=$$HOST_BUILD_PATH
       fi
   artifacts:
     when: always
     paths:
-      - $JUNIT_REPORT
-      - $TEMP_DIR
+      - $$JUNIT_REPORT
+      - $$TEMP_DIR
     expire_in: 1 day
     reports:
-      junit: $JUNIT_REPORT
+      junit: $$JUNIT_REPORT
 
 
 ###############################################################################
@@ -151,8 +151,8 @@ build:sonarqube-check:
 
     CMD_BUILD: |
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
-      echo $PATH
-      echo $LD_LIBRARY_PATH 
+      echo $$PATH
+      echo $$LD_LIBRARY_PATH 
       cp ${ET_SDK_HOME}/.conanfiles/conanfile_device.txt device/conanfile.txt
       echo "[layout]" >> device/conanfile.txt
       echo "cmake_layout" >> device/conanfile.txt
@@ -164,7 +164,7 @@ build:sonarqube-check:
       conan lock create device/conanfile.txt -pr:b linux-ubuntu18.04-x86_64-gcc7-release -pr:h baremetal-rv64-gcc8.2-release --build missing --lockfile-out device.lock
       conan lock build-order device.lock --json build-order-device.json
       
-      conan lock create host/conanfile.txt -pr:b linux-ubuntu18.04-x86_64-gcc7-release -pr:h linux-ubuntu18.04-x86_64-gcc7-${BUILD_TYPE_LOWER} --build missing --lockfile-out host.lock
+      conan lock create host/conanfile.txt -pr:b linux-ubuntu18.04-x86_64-gcc7-release -pr:h linux-ubuntu18.04-x86_64-gcc7-$${BUILD_TYPE_LOWER} --build missing --lockfile-out host.lock
       conan lock build-order host.lock --json build-order-host.json
       
       conan install device/conanfile.txt --lockfile device.lock --build missing -if device/build
@@ -180,13 +180,13 @@ build:sonarqube-check:
       
       cd device
       source build/Release/generators/conanbuild.sh
-      cmake --preset release -DADDRESS:STRING=${KERNEL_ADDRESS} -DUSE_CONAN=ON -G "Unix Makefiles"
+      cmake --preset release -DADDRESS:STRING=$${KERNEL_ADDRESS} -DUSE_CONAN=ON -G "Unix Makefiles"
       cmake --build --preset release
       cd ..
 
       cd host
-      cmake --preset ${BUILD_TYPE_LOWER} -DUSE_CONAN=ON -G Ninja
-      cmake --build --preset ${BUILD_TYPE_LOWER}
+      cmake --preset $${BUILD_TYPE_LOWER} -DUSE_CONAN=ON -G Ninja
+      cmake --build --preset $${BUILD_TYPE_LOWER}
       cd ..
 
 tests:conan:sw-sysemu:
@@ -212,14 +212,14 @@ tests:conan:sw-sysemu:
     TIMEOUT: 2h
 
     CMD_BUILD: |      
-      mkdir -p $DEVICE_BUILD_PATH
+      mkdir -p $$DEVICE_BUILD_PATH
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
-      cmake -B$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=${KERNEL_ADDRESS} -DUSE_CONAN=ON device
-      cmake --build $DEVICE_BUILD_PATH
+      cmake -B$$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} -DUSE_CONAN=ON device
+      cmake --build $$DEVICE_BUILD_PATH
 
-      mkdir -p $HOST_BUILD_PATH
-      cmake -B$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_CONAN=ON -G Ninja host
-      cmake --build $HOST_BUILD_PATH
+      mkdir -p $$HOST_BUILD_PATH
+      cmake -B$$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_CONAN=ON -G Ninja host
+      cmake --build $$HOST_BUILD_PATH
 
 tests:cmake-only:silicon:
   extends:
