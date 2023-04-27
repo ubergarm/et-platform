@@ -14,15 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
-
 ## 1.1.1 (2023/04/27)
 ### Added
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
+- [SW-16830] Initialize UserTrace struct fields properly.
 - [SW-16671] Improve error checking on wrong cmd-line parameters. Note that GenericLauncher now by default does strict checking of cmd-line params. 
-      it may break compilation of some pre 1.1.1 examples in case the app passes extra args, (e.g pre-existing apps using other libs or parsing stratergies), relaxed check needs to be requested.
+      it may break compilation of some pre 1.1.1 examples in case the app passes extra args, (e.g pre-existing apps using other libs or parsing strategies). In those cases, relaxed check needs to be requested.
 ```
 class Launcher : public GenericLauncher {
 //`...,
