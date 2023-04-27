@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ### Fixed
 
+
+
+## 1.1.1 (2023/04/27)
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- [SW-16671] Improve error checking on wrong cmd-line parameters. Note that GenericLauncher now by default does strict checking of cmd-line params. 
+      it may break compilation of some pre 1.1.1 examples in case the app passes extra args, (e.g pre-existing apps using other libs or parsing stratergies), relaxed check needs to be requested.
+```
+class Launcher : public GenericLauncher {
+//`...,
+};
+
+int main(int argc, char** argv) {
+// ...
+  Launcher launcher(config, argc, argv, /* strictArgs */ false);
+```
+
 ## 1.1.0 (2023/04/06)
 ### Added
 - [SW-16515] Added routines for querying time, shire-mask, frequency, ...
