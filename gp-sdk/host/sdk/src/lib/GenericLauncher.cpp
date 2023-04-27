@@ -27,7 +27,7 @@ constexpr size_t kNumHarts = 2048;
 constexpr size_t kTraceBufferSize = kTraceBytesPerHart * kNumHarts;
 constexpr bool enableKernelTraces = true;
 
-emu::SysEmuOptions getDefaultOptions(std::string const &simulator_params) {
+emu::SysEmuOptions getDefaultOptions(std::string const& simulator_params) {
 
   constexpr uint64_t kSysEmuMaxCycles = std::numeric_limits<uint64_t>::max();
   constexpr uint64_t kSysEmuMinionShiresMask = 0x1FFFFFFFFu;
@@ -156,7 +156,7 @@ void GenericLauncher::unLoadKernel(rt::KernelId kernelId) {
 
 void GenericLauncher::tearDown() {
 
-  if(enableKernelTraces) {
+  if (enableKernelTraces) {
     for (uint32_t deviceIdx = 0; deviceIdx < numDev_; deviceIdx++) {
       runtime_->freeDevice(devices_[deviceIdx], traceDeviceBuffer_[deviceIdx]);
     }
@@ -204,8 +204,6 @@ std::tuple<uint64_t, uint64_t> getTraceMinions() {
   // all (shireMask: threadMask)
   return {0xFFFFFFFFULL, 0xFFFFFFFFFFFFFFFFULL};
 }
-
-
 
 std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize) {
   if (not enableKernelTraces) {
@@ -271,9 +269,8 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_
     std::cout << "[TIMEOUT] " << __func__ << "() event completed succesfuly: " << (int)event << "\n";
     return;
   }
-  std::cout << "[TIMEOUT] " << __func__
-             << "() timeout expired wating for abortStream event: "
-             << (int)event << " to complete\n";
+  std::cout << "[TIMEOUT] " << __func__ << "() timeout expired wating for abortStream event: " << (int)event
+            << " to complete\n";
   return;
 }
 
@@ -290,7 +287,7 @@ void GenericLauncher::reportUserException(const rt::StreamError& error) const {
   std::cout << "Exception found, need to dump the execution context\n";
   // Dump execution context into a file
   auto path = std::experimental::filesystem::current_path();
-  auto filename = "device_"+std::to_string((int)error.device_)+"_execution_context.txt";
+  auto filename = "device_" + std::to_string((int)error.device_) + "_execution_context.txt";
   std::ofstream out(path / filename);
   out << error.getString();
   out << "\n---\n";
@@ -326,7 +323,7 @@ rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
   }
 }
 
-void GenericLauncher::parse_args(int argc, char** argv) {
+void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
 
   static constexpr const char* short_opts = "cs:";
 
@@ -350,7 +347,7 @@ void GenericLauncher::parse_args(int argc, char** argv) {
   optind = 0;
 
   while ((ret = getopt_long(argc, argv, short_opts, long_opts_vect.data(), &index)) != -1) {
-    if (ret == '?') {
+    if (ret == '?' and strict) {
       std::cout << "This option parameter is not expected: " << argv[optind - 1] << std::endl;
       exit(1);
     }

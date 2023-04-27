@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-
 #if __has_include("filesystem")
 #include <filesystem>
 #elif __has_include("experimental/filesystem")
@@ -77,11 +76,16 @@ public:
    * Creates a new GenericLauncher object with a config.
    * \brief Main constructor.
    * \param config specifies device type and device count configuration used in the kernel execution
+   * \param argc number of cmd-line arguments to parse
+   * \param argv pointer to arguments
+   * \param strictArs (defaults to true) if true, unknown parameters error the app, so it
+   * assumes we only receive the parameters of interest.  if false, the check is relaxed (This would allow reparsing
+   * previously parsed command-lines for example).
    */
-  GenericLauncher(const Config& config, int argc, char** argv)
+  GenericLauncher(const Config& config, int argc, char** argv, bool strictArgs = true)
     : config_(config) {
 
-    parse_args(argc, argv);
+    parse_args(argc, argv, strictArgs);
   };
 
   /**
@@ -108,15 +112,16 @@ public:
 
   // /**
   //  * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
-  //  * waitKernelCompletion() is called. 
-  //  * \brief Launches the kernel on the device. 
+  //  * waitKernelCompletion() is called.
+  //  * \brief Launches the kernel on the device.
   //  * \param kernelId id of the kernel to launch.
   //  * \param numThreads number of threads, must be a multiple of 32.
-  //  * \param params launch parameters. 
+  //  * \param params launch parameters.
   //  * \param shireMask mask with the shires that will execute the kernel.
   //  */
   // template <typename TParams>
-  // void kernelLaunch(rt::KernelId kernelId, int32_t numThreads, TParams * params, int32_t numThreadsPerCore = 1, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
+  // void kernelLaunch(rt::KernelId kernelId, int32_t numThreads, TParams * params, int32_t numThreadsPerCore = 1,
+  // uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
   //   // params->env.numThreads = numThreads;
   //   // // Compute shireMask based on numThreads. This should be decided by the runtime in the future.
   //   // uint64_t activeShires = (((numThreads / numThreadsPerCore) + 31) / 32);
@@ -204,7 +209,7 @@ private:
   rt::IRuntime* getRuntime(bool enableCoreDump);
   AbortManager abortManager_;
 
-  void parse_args(int argc, char* argv[]);
+  void parse_args(int argc, char* argv[], bool strict);
 
   // parameters expected
   fs::path gp_sdk_device_installdir_;
