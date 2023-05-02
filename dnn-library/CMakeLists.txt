@@ -102,7 +102,6 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/FFTTables.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/LoadStore.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Operator.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/PackedBufferProxy.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/utils.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/0_filterMask.h
