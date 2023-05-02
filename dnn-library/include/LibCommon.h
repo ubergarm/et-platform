@@ -12,16 +12,15 @@
 #ifndef LIB_COMMON_H
 #define LIB_COMMON_H
 
+#include "Float16.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
 #include <algorithm>
 #include <cmath>
+#include <etsoc/isa/hart.h>
 #include <limits>
 #include <string.h>
 #include <type_traits>
-
-#include "LibTypes.h"
-#include "Float16.h"
-
-#include "LibTensor.h"
 
 #include <etsoc/isa/tensors.h>
 // Shall match wrappers in UberKernel.cc
@@ -84,47 +83,17 @@ inline __attribute__((always_inline)) void fpAddSingleElement(float val1, float 
 
 inline __attribute__((always_inline))
 void loadFp32FromMemory(float* addr, float &res) {
-#if 0
-  // code for simd (as with mask !=1)
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "flw.ps %[res], %[addr] \n"
-                       : [ res ] "=f"(res)
-                       : [addr] "m" (*(const float (*)[8]) addr)
-                       );
-#else
    res = *addr;
-#endif
-
 }
 
 inline __attribute__((always_inline))
 void storeFp32ToMemory(float* addr, float val32) {
-#if 0
-  // code for simd (mask != 1)
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fsw %[val32], %[addr]\n"
-                       : [addr] "=m" (*(float (*)[8]) addr)
-                       : [ val32 ] "f"(val32));
-#else
   *addr = val32;
-#endif
-                         
 }
 
 inline __attribute__((always_inline))
 void storeFp16ToMemory(uint16_t *addr, float val32) {
-#if 0
-  // code for simd
-  uint64_t tmp;
-  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n"
-                       "fmvz.x.ps %[tmp], %[val32], 0 \n"
-                       "sh %[tmp], %[addr]\n"
-                       : [addr] "=m" (*(uint16_t (*)[8]) addr), [tmp] "+r" (tmp)
-                       : [ val32 ] "f"(val32)
-                       );
-#else
   *addr = static_cast<uint16_t>(bitwise_copy<uint32_t>(val32));
-#endif
 }
 
 inline __attribute__((always_inline))

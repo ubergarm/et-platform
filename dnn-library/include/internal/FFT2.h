@@ -9,8 +9,8 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef _FFT_H_
-#define _FFT_H_
+#ifndef _FFT_V2_H_
+#define _FFT_V2_H_
 
 #ifndef CACHE_LINE_BYTES
 #define CACHE_LINE_BYTES 64
@@ -47,7 +47,7 @@ constexpr size_t kImageDefaultFFTSize = 256;
 
 }
 
-namespace dnn_lib {
+namespace dnn_lib_v2 {
 
 class Stack {
 private:
@@ -1225,9 +1225,9 @@ INLINE_ATTR void fft2DInvThreaded([[maybe_unused]] size_t workRowBits, [[maybe_u
                                     resultRealStride, resultImg, resultImgStride);
 }
 
-} // namespace dnn_lib
+} // namespace dnn_lib_v2
 
-#endif // _FFT_H_
+#endif // _FFT_V2_H_
 
 #ifdef FFT_HOST_TEST
 

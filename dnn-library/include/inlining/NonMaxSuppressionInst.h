@@ -12,14 +12,14 @@
 #ifndef _NON_MAX_SUPPRESSION_H_
 #define _NON_MAX_SUPPRESSION_H_
 
-#include <limits>
+#include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "utils.h"
 #include <assert.h>
+#include <limits>
 #include <queue>
 #include <utility>
-#include "utils.h"
-#include "LibTypes.h"
-#include "LibTensor.h"
-#include "LibCommon.h"
 
 namespace dnn_lib {
 

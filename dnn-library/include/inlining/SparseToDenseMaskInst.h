@@ -12,15 +12,15 @@
 #ifndef _SPARSE_TO_DENSE_MASK_INST_H
 #define _SPARSE_TO_DENSE_MASK_INST_H
 
+#include "Addresser.h"
+#include "Float16.h"
+#include "LibTensor.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "Float16.h"
-#include "Addresser.h" // From include/internal path
-#include "utils.h" // From include/internal path
-#include "LibTensor.h"
 
 namespace dnn_lib {
 

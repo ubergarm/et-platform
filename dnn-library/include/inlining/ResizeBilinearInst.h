@@ -12,15 +12,15 @@
 #ifndef _RESIZE_BILINEAR_H_
 #define _RESIZE_BILINEAR_H_
 
-#include <limits>
-#include <assert.h>
-#include <algorithm>
-#include <cmath>
-#include <math.h>
-#include "utils.h"
-#include "LibTypes.h"
-#include "LibTensor.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "utils.h"
+#include <algorithm>
+#include <assert.h>
+#include <cmath>
+#include <limits>
+#include <math.h>
 
 namespace dnn_lib {
 

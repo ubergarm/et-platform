@@ -9,15 +9,15 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef WRITER_H
-#define WRITER_H
+#ifndef WRITER_V2_H
+#define WRITER_V2_H
 
 #include "Float16.h"
 #include "LibCommon.h"
 #include "LibTypes.h"
 #include <etsoc/isa/atomic.h>
 
-namespace dnn_lib {
+namespace dnn_lib_v2 {
 
 template <ElemKind elK, bool globalStore = false> class Writer {
 private:
@@ -84,6 +84,6 @@ public:
 #undef WHEN
 };
 
-} // namespace dnn_lib
+} // namespace dnn_lib_v2
 
-#endif /* WRITER_H */
+#endif /* WRITER_V2_H */

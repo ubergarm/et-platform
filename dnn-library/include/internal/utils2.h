@@ -23,7 +23,7 @@
 #include <sstream>
 #include <utility>
 
-namespace dnn_lib {
+namespace dnn_lib_2 {
 
 #define M_1_LOG2E float(1.0f / static_cast<float>(M_LOG2E))
 
@@ -835,5 +835,5 @@ inline __attribute__((always_inline)) size_t getOffset(dim_array_t& coord, dim_t
   return offset;
 }
 
-} // namespace dnn_lib
+} // namespace dnn_lib_2
 #endif /* UTILS_H */

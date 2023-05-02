@@ -12,22 +12,23 @@
 #ifndef _ELEMENT_BINARY_INST_H_
 #define _ELEMENT_BINARY_INST_H_
 
+#include "Float16.h"
+#include "LibTensor.h"
+#include "LoadStore.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "Float16.h"
-#include "utils.h" // From include/internal path
-#include "LibTensor.h"
 
-namespace dnn_lib {
+ namespace dnn_lib {
 
-namespace inlining {
+ namespace inlining {
 
-////////////////////////////////////////////////////////////////////////////////
-// macro to instantiate compute depending on the operation
-////////////////////////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////////////////////
+ // macro to instantiate compute depending on the operation
+ ////////////////////////////////////////////////////////////////////////////////
 
 #define EB_COMPUTE(OP_, IS_INDEX_, SKIP_CONVERT_, MATCH_x86)                                                           \
   do {                                                                                                                 \
@@ -305,8 +306,8 @@ EB_I64_COMPUTE(Max, std::max(a, b))
 
 #undef EltWiseBinaryInst
 
-} // namespace inlining
+  } // namespace inlining
 
-} // namespace dnn_lib
+  } // namespace dnn_lib
 
 #endif // _ELEMENT_INST_H_

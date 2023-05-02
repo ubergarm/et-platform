@@ -12,97 +12,90 @@
 #ifndef _DNNLIB_INLINING_ALL_H_
 #define _DNNLIB_INLINING_ALL_H_
 
-#include "AdaptiveAvgPoolInst.h"                       // From include/inlining path
-#include "ArgMaxInst.h"                                // From include/inlining path
-#include "AvgPoolInst.h"                               // From include/inlining path
-#include "BatchOneHotInst.h"                           // From include/inlining path
-#include "BatchedAddInst.h"                            // From include/inlining path
-#include "BatchedReduceAddInst.h"                      // From include/inlining path
-#include "BatchedReduceMinInst.h"                      // From include/inlining path
-#include "ChannelWiseQuantizedConvolutionInst.h"       // From include/inlining path
-#include "ConvTransposeInst.h"                         // From include/inlining path
-#include "ConvertToInst.h"                             // From include/inlining path
-#include "Convolution3DInst.h"                         // From include/inlining path
-#include "ConvolutionInst.h"                           // From include/inlining path
-#include "CopyInst.h"                                  // From include/inlining path
-#include "CrossEntropyLossInst.h"                      // From include/inlining path
-#include "CumSumInst.h"                                // From include/inlining path
-#include "DequantizeInst.h"                            // From include/inlining path
-#include "ElementBinaryInst.h"                         // From include/inlining path
-#include "ElementBoolInst.h"                           // From include/inlining path
-#include "ElementImmLogic.h"                           // From include/inlining path
-#include "ElementSelectInst.h"                         // From include/inlining path
-#include "ElementSingleInst.h"                         // From include/inlining path
-#include "EmbeddingBagInst.h"                          // From include/inlining path
-#include "ExtractTensorInst.h"                         // From include/inlining path
-#include "FlipInst.h"                                  // From include/inlining path
-#include "FullyConnectedInst.h"                        // From include/inlining path
-#include "FusedRowwiseQuantizedSparseLengthsSumInst.h" // From include/inlining path error:template overload fix when finish
-#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path  error:template overload fix when finish
-#include "GatherInst.h"                                        // From include/inlining path
-#include "GatherRangesInst.h"                                  // From include/inlining path
-#include "InsertTensorInst.h"                                  // From include/inlining path
-#include "IntLookupTableInst.h"                                // From include/inlining path
-#include "LengthsRangeFillInst.h"                              // From include/inlining path
-#include "LengthsSumInst.h"                                    // From include/inlining path
-#include "LengthsToRangesInst.h"                               // From include/inlining path
-#include "LocalResponseNormalizationInst.h"                    // From include/inlining path
-#include "MatMulInst.h"                                        // From include/inlining path
-#include "MaxPoolInst.h"                                       // From include/inlining path
-#include "MaxSplatInst.h"                                      // From include/inlining path
-#include "ModuloInst.h"                                        // From include/inlining path
-#include "NonMaxSuppressionInst.h"                             // From include/inlining path
-#include "QuantizeInst.h"                                      // From include/inlining path
-#include "RescaleQuantizedInst.h"                              // From include/inlining path
-#include "ResizeBilinearInst.h"                                // From include/inlining path
-#include "ResizeNearestInst.h"                                 // From include/inlining path
-#include "RowwiseQuantizedFullyConnectedInst.h"                // From include/inlining path
-#include "RowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path
-#include "ScatterDataInst.h"                              // From include/inlining path
-#include "SoftMaxInst.h"                                  // From include/inlining path
-#include "SpaceToDepthInst.h"                             // From include/inlining path
-#include "SparseLengthsSumInst.h"                         // From include/inlining path
-#include "SparseLengthsWeightedSumInst.h"                 // From include/inlining path
-#include "SparseToDenseInst.h"                            // From include/inlining path
-#include "SparseToDenseMaskInst.h"                        // From include/inlining path
-#include "SplatInst.h"                                    // From include/inlining path
-#include "SyncopyInst.h"                                  // From include/inlining path
-#include "TensorViewInst.h"                               // From include/inlining path
-#include "TopKInst.h"                                     // From include/inlining path
-#include "TransposeInst.h"                                // From include/inlining path
-#include "TriluInst.h"                                    // From include/inlining path
+#include "AdaptiveAvgPoolInst.h"
+#include "ArgMaxInst.h"
+#include "AvgPoolInst.h"
+#include "BatchOneHotInst.h"
+#include "BatchedAddInst.h"
+#include "BatchedReduceAddInst.h"
+#include "BatchedReduceMinInst.h"
+#include "ChannelWiseQuantizedConvolutionInst.h"
+#include "ConvTransposeInst.h"
+#include "ConvertToInst.h"
+#include "Convolution3DInst.h"
+#include "ConvolutionInst.h"
+#include "CopyInst.h"
+#include "CrossEntropyLossInst.h"
+#include "CumSumInst.h"
+#include "DequantizeInst.h"
+#include "ETSOCGenericOpInst.h"
+#include "ElementBinaryInst.h"
+#include "ElementBoolInst.h"
+#include "ElementImmLogic.h"
+#include "ElementSelectInst.h"
+#include "ElementSingleInst.h"
+#include "EmbeddingBagInst.h"
+#include "ExtractTensorInst.h"
+#include "FlipInst.h"
+#include "FullyConnectedInst.h"
+#include "FusedRowwiseQuantizedSparseLengthsSumInst.h"         // error:template overload fix when finish
+#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // error:template overload fix when finish
+#include "GatherInst.h"
+#include "GatherRangesInst.h"
+#include "InsertTensorInst.h"
+#include "IntLookupTableInst.h"
+#include "LengthsRangeFillInst.h"
+#include "LengthsSumInst.h"
+#include "LengthsToRangesInst.h"
+#include "LocalResponseNormalizationInst.h"
+#include "MatMulInst.h"
+#include "MaxPoolInst.h"
+#include "MaxSplatInst.h"
+#include "ModuloInst.h"
+#include "NonMaxSuppressionInst.h"
+#include "QuantizeInst.h"
+#include "RescaleQuantizedInst.h"
+#include "ResizeBilinearInst.h"
+#include "ResizeNearestInst.h"
+#include "RowwiseQuantizedFullyConnectedInst.h"
+#include "RowwiseQuantizedSparseLengthsWeightedSumInst.h"
+#include "ScatterDataInst.h"
+#include "SoftMaxInst.h"
+#include "SpaceToDepthInst.h"
+#include "SparseLengthsSumInst.h"
+#include "SparseLengthsWeightedSumInst.h"
+#include "SparseToDenseInst.h"
+#include "SparseToDenseMaskInst.h"
+#include "SplatInst.h"
+#include "SyncopyInst.h"
+#include "TensorViewInst.h"
+#include "TopKInst.h"
+#include "TransposeInst.h"
+#include "TriluInst.h"
 
-#define dispatchLibImplEltWiseSingle(functionName, pm1, op, ...) \
-  dnn_lib::inlining::functionName<pm1, op>(__VA_ARGS__)
+#define dispatchLibImplEltWiseSingle(functionName, pm1, op, ...) dnn_lib::inlining::functionName<pm1, op>(__VA_ARGS__)
 
-#define dispatchLibImplEltWise(functionName, pm1, pm2, op, ...) \
+#define dispatchLibImplEltWise(functionName, pm1, pm2, op, ...)                                                        \
   dnn_lib::inlining::functionName<pm1, pm2, op>(__VA_ARGS__)
 
-#define dispatchLibImplEltWiseParal(functionName, pm1, pm2, pm3, op, ...) \
+#define dispatchLibImplEltWiseParal(functionName, pm1, pm2, pm3, op, ...)                                              \
   dnn_lib::inlining::functionName<pm1, pm2, pm3, op>(__VA_ARGS__)
 
-#define dispatchLibImpl2Types(functionName, pm1, pm2, ...) \
-  dnn_lib::inlining::functionName<pm1, pm2>(__VA_ARGS__)
+#define dispatchLibImpl2Types(functionName, pm1, pm2, ...) dnn_lib::inlining::functionName<pm1, pm2>(__VA_ARGS__)
 
-#define dispatchLibImpl3Types(functionName, pm1, pm2, pm3, ...) \
+#define dispatchLibImpl3Types(functionName, pm1, pm2, pm3, ...)                                                        \
   dnn_lib::inlining::functionName<pm1, pm2, pm3>(__VA_ARGS__)
 
-#define dispatchLibImpl(functionName, pm, ...) \
-  dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
+#define dispatchLibImpl(functionName, pm, ...) dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
 
-#define dispatchLibNonInliningImpl(functionName, pm, ...) \
-  dnn_lib::functionName<pm>(__VA_ARGS__)
+#define dispatchLibNonInliningImpl(functionName, pm, ...) dnn_lib::functionName<pm>(__VA_ARGS__)
 
-#define dispatchLibQuantizedTyImpl(functionName, pm, ...) \
-  dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
+#define dispatchLibQuantizedTyImpl(functionName, pm, ...) dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
 
-#define dispatchLibWithIndexImpl(functionName, pm1, pm2, ...) \
-  dnn_lib::inlining::functionName<pm1, pm2>(__VA_ARGS__)
+#define dispatchLibWithIndexImpl(functionName, pm1, pm2, ...) dnn_lib::inlining::functionName<pm1, pm2>(__VA_ARGS__)
 
-#define dispatchLibConvertImpl(functionName, pm1, pm2, ...) \
-  dnn_lib::inlining::functionName<pm1, pm2>(__VA_ARGS__)
+#define dispatchLibConvertImpl(functionName, pm1, pm2, ...) dnn_lib::inlining::functionName<pm1, pm2>(__VA_ARGS__)
 
-#define dispatchLibIntTyImpl(functionName, pm, ...) \
-  dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
+#define dispatchLibIntTyImpl(functionName, pm, ...) dnn_lib::inlining::functionName<pm>(__VA_ARGS__)
 
 #endif

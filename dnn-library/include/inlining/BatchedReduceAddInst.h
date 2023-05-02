@@ -15,8 +15,8 @@
 #include "Addresser.h"
 #include "Float16.h"
 #include "LibTensor.h"
-#include "Operator.h" // From include/internal path
-#include "utils.h"    // From include/internal path
+#include "Operator.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <limits>

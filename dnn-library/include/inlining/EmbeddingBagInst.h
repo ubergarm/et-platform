@@ -24,7 +24,7 @@
 #include "LibTensor.h"
 #include "LibTypes.h"
 #include "etsoc/isa/atomic.h"
-#include "utils.h" // From include/internal path
+#include "utils.h"
 
 // static bool enablePrinting;
 

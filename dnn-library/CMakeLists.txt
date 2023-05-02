@@ -21,7 +21,6 @@ include(GNUInstallDirs)
 
 find_package(et-common-libs REQUIRED COMPONENTS cm-umode)
 
-
 file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Float16.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/Operators.h
@@ -97,14 +96,6 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TransposeInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/TriluInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/inlining.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Addresser.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/FFT.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/FFTTables.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/LoadStore.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Compiler.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Operator.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/utils.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/0_filterMask.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/1_filterMask.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/2_filterMask.h
@@ -115,9 +106,21 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/7_filterMask.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/8_filterMask.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/9_filterMask.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Addresser.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Addresser2.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Compiler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/FFT.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/FFT2.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/FFTTables.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/LoadStore.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/LoadStore2.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Operator.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Operator2.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/utils.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/utils2.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/internal/Writer2.h
 )
-
-
 
 add_library(dnn_lib_host_generated_headers INTERFACE)
 add_library(dnnLibrary::dnn_lib_host_generated_headers ALIAS dnn_lib_host_generated_headers)

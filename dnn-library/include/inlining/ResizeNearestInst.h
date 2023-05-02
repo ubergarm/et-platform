@@ -15,10 +15,10 @@
 #include <limits>
 #include <assert.h>
 
-#include "utils.h"
-#include "LibTypes.h"
-#include "LibTensor.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "utils.h"
 
 namespace dnn_lib {
 

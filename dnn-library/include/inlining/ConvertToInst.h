@@ -18,8 +18,9 @@
 #include <limits>
 #include <string.h>
 
-#include "utils.h" // From include/internal path
 #include "LibTensor.h"
+#include "LoadStore.h"
+#include "utils.h"
 
 namespace dnn_lib {
 

@@ -19,8 +19,8 @@
 #include <string.h>
 
 #include "Float16.h"
-#include "utils.h" // From include/internal path
 #include "LibTensor.h"
+#include "utils.h"
 
 namespace dnn_lib {
 

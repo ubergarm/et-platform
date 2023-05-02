@@ -12,14 +12,14 @@
 #ifndef _FULLY_CONNECTED_INST_H_
 #define _FULLY_CONNECTED_INST_H_
 
+#include "Addresser.h"
+#include "Float16.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "Float16.h"
-#include "Addresser.h" // From include/internal path
-#include "utils.h" // From include/internal path
 
 namespace dnn_lib {
 

@@ -14,7 +14,7 @@
 
 #include "Float16.h"
 #include "LibTensor.h"
-#include "utils.h" // From include/internal path
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>

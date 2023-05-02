@@ -19,11 +19,11 @@
 #include <limits>
 #include <string.h>
 
-#include "utils.h" // From include/internal path
-#include "LibTypes.h"
-#include "LibTensor.h"
-#include "LibUtils.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "LibUtils.h"
+#include "utils.h"
 
 namespace dnn_lib {
 

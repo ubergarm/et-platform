@@ -620,8 +620,7 @@ class LibManagerSheet:
             f.write("""%s
 
 #include "LibTensor.h"
-#include "GenericHeaders.h"
-#include "SpecificHeaders.h"
+#include "inlining.h"
 
 namespace dnn_lib {
 static constexpr size_t default_kernels_size = 2;

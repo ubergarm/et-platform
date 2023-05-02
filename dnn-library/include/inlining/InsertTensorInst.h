@@ -12,15 +12,15 @@
 #ifndef _INSERT_TENSOR_INST_H_
 #define _INSERT_TENSOR_INST_H_
 
+#include "Addresser.h"
+#include "Float16.h"
+#include "LibTensor.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "Addresser.h" // From include/internal path
-#include "Float16.h"
-#include "LibTensor.h"
-#include "utils.h"    // From include/internal path
 
 namespace dnn_lib {
 

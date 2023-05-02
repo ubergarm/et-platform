@@ -12,13 +12,12 @@
 #ifndef _BATCHED_REDUCE_MIN_H_
 #define _BATCHED_REDUCE_MIN_H_
 
-#include <limits>
-#include <assert.h>
-
-#include "utils.h"
-#include "LibTypes.h"
-#include "LibTensor.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "utils.h"
+#include <assert.h>
+#include <limits>
 
 namespace dnn_lib {
 
