@@ -10,6 +10,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(gp-sdk-host VERSION 1.1.1 LANGUAGES C CXX)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
+
 option(BUILD_DOCS "Enable/disable building documentation" OFF)
 option(BUILD_TESTS "Build example launchers" ON)
 
@@ -24,6 +26,8 @@ find_package(deviceLayer REQUIRED)
 find_package(runtime REQUIRED)
 find_package(esperantoTrace REQUIRED)
 find_package(FFTW3f REQUIRED)
+
+include(SanitizerSupport)
 
 add_subdirectory(sdk)
 
