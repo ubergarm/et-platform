@@ -218,7 +218,7 @@ tests:conan:sw-sysemu:
       cmake --build $$DEVICE_BUILD_PATH
 
       mkdir -p $$HOST_BUILD_PATH
-      cmake -B$$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_CONAN=ON -G Ninja host
+      cmake -B$$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_SANITIZER=AddrAndLeaks -DUSE_CONAN=ON -G Ninja host
       cmake --build $$HOST_BUILD_PATH
 
 tests:cmake-only:silicon:
