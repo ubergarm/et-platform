@@ -12,6 +12,7 @@
 #ifndef LIB_COMMON_H
 #define LIB_COMMON_H
 
+#include "Compiler.h"
 #include "Float16.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
@@ -46,39 +47,55 @@ template <typename DestT, typename SrcT> inline __attribute__((always_inline)) D
 
 template <bool setMask = true>
 inline __attribute__((always_inline)) void fpReciprocalSingleElement(float val, float& recval) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
-  __asm__ __volatile__("frcp.ps %[recval], %[val] \n" : [ recval ] "=f"(recval) : [ val ] "f"(val));
+#endif
+  __asm__ __volatile__("frcp.ps %[recval], %[val] \n"
+                       : [ recval ] "=f"(recval)
+                       : [ val ] "f"(val)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(1))
+                       :);
 }
 
 template <bool setMask = true>
 inline __attribute__((always_inline)) void fpPowSingleElement(float val1, float val2, float& res) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
+#endif
   __asm__ __volatile__("flog.ps %[res], %[val1] \n"
                        "fmul.s %[res], %[res], %[val2] \n"
                        "fexp.ps %[res], %[res] \n"
                        : [ res ] "=&f"(res)
-                       : [ val1 ] "f"(val1), [ val2 ] "f"(val2));
+                       : [ val1 ] "f"(val1), [ val2 ] "f"(val2)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(1))
+                       :);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) void fpLog2SingleElement(float val, float& res) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
-  __asm__ __volatile__("flog.ps %[res], %[val] \n" : [ res ] "=f"(res) : [ val ] "f"(val));
+#endif
+  __asm__ __volatile__("flog.ps %[res], %[val] \n"
+                       : [ res ] "=f"(res)
+                       : [ val ] "f"(val)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(1))
+                       :);
 }
 
 template <bool setMask = true>
 inline __attribute__((always_inline)) void fpAddSingleElement(float val1, float val2, float& res) {
+#if COMPILER_GCC
   if constexpr (setMask) {
     mask_set(0, 0x1);
   }
+#endif
   __asm__ __volatile__("fadd.s %[res], %[val1], %[val2] \n"
                        : [ res ] "=f"(res)
-                       : [ val1 ] "f"(val1), [ val2 ] "f"(val2));
+                       : [ val1 ] "f"(val1), [ val2 ] "f"(val2)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(1))
+                       :);
 }
 
 inline __attribute__((always_inline))

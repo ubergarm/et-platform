@@ -12,10 +12,9 @@
 #ifndef _CONVERT_TO_INST_H_
 #define _CONVERT_TO_INST_H_
 
-
 #include "LibTensor.h"
 #include "LoadStore2.h"
-#include "utils2.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>

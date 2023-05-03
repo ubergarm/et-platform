@@ -17,7 +17,7 @@
 #include "LibTypes.h"
 #include "LoadStore2.h"
 #include "Operators.h"
-#include "utils2.h"
+#include "utils.h"
 
 #define OPERATION_STEP1                                                                                                \
   "flw.ps f31, %[gatherValues]\n"                                                                                      \

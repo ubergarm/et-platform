@@ -14,7 +14,6 @@
 
 #include "Float16.h"
 #include "LibCommon.h"
-#include "LoadStore.h"
 #include <cstdint>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/cacheops-umode.h>
