@@ -246,7 +246,7 @@ INLINE_ATTR void load(uintptr_t src, [[maybe_unused]] uint64_t conf, v8s32_t ind
 
 template <typename srcType, size_t bytesPerElement, bool aligned = false>
 INLINE_ATTR void storeLocal(uintptr_t dst, [[maybe_unused]] uint64_t conf, [[maybe_unused]] v8s32_t indices,
-                            v8u32_t srcType) {
+                            srcType op0) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fsc32b.ps %[op0], %[conf](%[dst])\n"
@@ -325,14 +325,14 @@ INLINE_ATTR void store(uintptr_t dst, [[maybe_unused]] uint64_t conf, v8s32_t in
   }
 }
 
-template <typename srcType, tyname dstType, size_t bytesPerElement>
+template <typename srcType, typename dstType, size_t bytesPerElement>
 INLINE_ATTR void copy(srcType source, dstType& destination) {
   __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n"
                        : [ destination ] "=f"(destination)
                        : [ source ] "f"(source));
 }
 
-template <typename srcType, tyname dstType, size_t bytesPerElement>
+template <typename srcType, typename dstType, size_t bytesPerElement>
 INLINE_ATTR void copy(srcType source, [[maybe_unused]] srcType sourceHigh, dstType& destination,
                       dstType& destinationHigh) {
   copy<bytesPerElement>(source, destination);
@@ -341,13 +341,14 @@ INLINE_ATTR void copy(srcType source, [[maybe_unused]] srcType sourceHigh, dstTy
   }
 }
 
-template <typename dstType, [[maybe_unused]] ElemKind elK> INLINE_ATTR void zero(dstType& destination) {
+template <typename dstType, dnn_lib::ElemKind elK> INLINE_ATTR void zero(dstType& destination) {
   __asm__ __volatile__("fbci.pi %[destination], 0\n" : [ destination ] "=f"(destination));
 }
 
-template <typename dstType, ElemKind elK> INLINE_ATTR void zero(dstType& destination, v8u32_t& destinationHigh) {
+template <typename dstType, dnn_lib::ElemKind elK>
+INLINE_ATTR void zero(dstType& destination, v8u32_t& destinationHigh) {
   zero<elK>(destination);
-  if constexpr (Type::getElementSize(elK) > 4) {
+  if constexpr (dnn_lib::Type::getElementSize(elK) > 4) {
     zero<elK>(destinationHigh);
   }
 }
@@ -356,7 +357,8 @@ INLINE_ATTR void setupDequantize(v8f32_t& scale, v8s32_t& offset, float scaleSca
   __asm__ __volatile__("fbcx.ps %[offset], %[offsetScalar]\n"
                        "fbcx.ps %[scale], %[scaleScalar]\n"
                        : [ offset ] "=&f"(offset), [ scale ] "=&f"(scale)
-                       : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
+                       : [ scaleScalar ] "r"(dnn_lib::bitwise_copy<uint32_t>(scaleScalar)),
+                         [ offsetScalar ] "r"(offsetScalar));
 }
 
 /*
@@ -397,7 +399,8 @@ INLINE_ATTR void setupQuantize(v8f32_t& scaleReciprocal, v8s32_t& offset, float 
                        "fbcx.ps %[offset], %[offsetScalar]\n"
                        "fcvt.ps.pw %[offset], %[offset]\n"
                        : [ offset ] "=&f"(offset), [ scaleReciprocal ] "=&f"(scaleReciprocal)
-                       : [ scaleScalar ] "r"(bitwise_copy<uint32_t>(scaleScalar)), [ offsetScalar ] "r"(offsetScalar));
+                       : [ scaleScalar ] "r"(dnn_lib::bitwise_copy<uint32_t>(scaleScalar)),
+                         [ offsetScalar ] "r"(offsetScalar));
 }
 
 INLINE_ATTR void multiplyAdd(v8f32_t& destination, v8f32_t source, v8f32_t scale, v8f32_t offset) {
@@ -438,35 +441,26 @@ template <uint64_t minValue, uint64_t maxValue> INLINE_ATTR void clip(v8u32_t& d
   }
 }
 
-template <typename T> INLINE_ATTR void clip(v8s32_t& destination, v8s32_t source) {
-  clip<std::numeric_limits<T>::min(), std::numeric_limits<T>::max()>(destination, source);
+template <typename LimitTy, typename VectorTy> INLINE_ATTR void clip(VectorTy& destination, VectorTy source) {
+  clip<std::numeric_limits<LimitTy>::min(), std::numeric_limits<LimitTy>::max()>(destination, source);
 }
 
-template <ElemKind dstElK> INLINE_ATTR void clip(v8s32_t& destination, v8s32_t source) {
-  using type = typename elemKind2elemTy<dstElK>::type;
-  clip<type>(destination, source);
+template <dnn_lib::ElemKind dstElK, typename VTy> INLINE_ATTR void clip(VTy& destination, VTy source) {
+  using type = typename dnn_lib::elemKind2elemTy<dstElK>::type;
+  clip<type, VTy>(destination, source);
 }
 
-template <typename T> INLINE_ATTR void clip(v8u32_t& destination, v8u32_t source) {
-  clip<std::numeric_limits<T>::min(), std::numeric_limits<T>::max()>(destination, source);
-}
-
-template <ElemKind dstElK> INLINE_ATTR void clip(v8u32_t& destination, v8u32_t source) {
-  using type = typename elemKind2elemTy<dstElK>::type;
-  clip<type>(destination, source);
-}
-
-template <typename dstType, ElemKind dstElK, bool careAboutNonFinite = false, bool canAboutSignallingNaN = false,
-          RoundingMode roundingMode = RoundingMode::LikeStdRoundAndCast>
+template <typename dstType, dnn_lib::ElemKind dstElK, bool careAboutNonFinite = false,
+          bool canAboutSignallingNaN = false, RoundingMode roundingMode = RoundingMode::LikeStdRoundAndCast>
 INLINE_ATTR void doQuantize(dstType& destination, v8f32_t source, v8f32_t scaleReciprocal, v8s32_t offset) {
-  static_assert(isQuantizedElemKind(dstElK));
+  static_assert(dnn_lib::isQuantizedElemKind(dstElK));
   v8f32_t inFullRange;
   multiplyAdd(inFullRange, source, scaleReciprocal, offset);
   convertFloatToInt32<roundingMode, careAboutNonFinite, canAboutSignallingNaN>(inFullRange, destination);
   clip<dstElK>(destination, destination);
 }
 
-template <typename srcType, ElemKind srcElK, typename dstType, ElemKind dstElK, bool matchx86 = false,
+template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK, bool matchx86 = false,
           RoundingMode roundingMode = RoundingMode::LikeStdRoundAndCast>
 INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, dstType& destination,
                          dstType& destinationHigh, const v8f32_t& srcScale, const v8s32_t& srcOffset,
@@ -499,40 +493,40 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   */
 
 #define DEFAULT_CONVERT                                                                                                \
-  convert<srcType, srcElK, v8f32_t, FloatTy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,    \
-                                             dstScaleReciprocal, dstOffset);                                           \
-  convert<v8f32_t, FloatTy, dstType, dstElK>(destination, destinationHigh, destination, destinationHigh, srcScale,     \
-                                             srcOffset, dstScaleReciprocal, dstOffset);
+  convert<srcType, srcElK, v8u32_t, dnn_lib::FloatTy>(source, sourceHigh, destination, destinationHigh, srcScale,      \
+                                                      srcOffset, dstScaleReciprocal, dstOffset, vmask);                \
+  convert<v8u32_t, dnn_lib::FloatTy, dstType, dstElK>(destination, destinationHigh, destination, destinationHigh,      \
+                                                      srcScale, srcOffset, dstScaleReciprocal, dstOffset, vmask);
 
   [[maybe_unused]] constexpr bool careAboutNonFinite = true;
   [[maybe_unused]] constexpr bool canAboutSignallingNaN = true;
 
   if constexpr (srcElK == dstElK) {
-    constexpr size_t bytesPerElement = Type::getElementSize(srcElK);
+    constexpr size_t bytesPerElement = dnn_lib::Type::getElementSize(srcElK);
     copy<dstType, bytesPerElement>(source, sourceHigh, destination, destinationHigh);
-  } else if constexpr (srcElK == FloatTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Float16Ty) {
     __asm__ __volatile__("fcvt.f16.ps %[destination], %[source]\n"
                          : [ destination ] "=f"(destination)
                          : [ source ] "f"(source));
-  } else if constexpr (srcElK == FloatTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::BFloat16Ty) {
     __asm__ __volatile__("fsrli.pi %[destination], %[source], %[bits]\n"
                          : [ destination ] "=f"(destination)
                          : [ source ] "f"(source), [ bits ] "i"(16));
-  } else if constexpr (srcElK == FloatTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int8QTy) {
     doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
                                                                                          dstScaleReciprocal, dstOffset);
-  } else if constexpr (srcElK == FloatTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::UInt8QTy) {
     doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
                                                                                          dstScaleReciprocal, dstOffset);
-  } else if constexpr (srcElK == FloatTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int16QTy) {
     doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
                                                                                          dstScaleReciprocal, dstOffset);
-  } else if constexpr (srcElK == FloatTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int32QTy) {
     doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
                                                                                          dstScaleReciprocal, dstOffset);
-  } else if constexpr (srcElK == FloatTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int32ITy) {
     convertFloatToInt32<RoundingMode::LikeCast>(source, destination);
-  } else if constexpr (srcElK == FloatTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int64ITy) {
     v8u32_t mask, exponent, implicit, minusExponent, tmp, mantissa;
     __asm__ __volatile__(
       // Build exoring mask for bit-wise negating when negative
@@ -608,19 +602,19 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
       : [ mask ] "=&f"(mask), [ accumulator ] "=&f"(accumulator), [ bit ] "=&f"(bit), [ destination ] "+f"(destination),
         [ destinationHigh ] "+f"(destinationHigh)
       : [ source ] "f"(source));
-  } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::UInt8FusedQTy) {
     // TODO: from FloatTy to UInt8FusedQTy probably not required
     assert(false);
-  } else if constexpr (srcElK == FloatTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     // TODO: from FloatTy to UInt8FusedFP16QTy probably not required
     assert(false);
-  } else if constexpr (srcElK == FloatTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     // TODO: from FloatTy to UInt4FusedFP16QTy probably not required
     assert(false);
-  } else if constexpr (srcElK == FloatTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::UInt4FusedQTy) {
     // TODO: from FloatTy to UInt4FusedQTy probably not required
     assert(false);
-  } else if constexpr (srcElK == FloatTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::BoolTy) {
     v8u32_t mask;
     __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
                          "fandi.pi %[mask], %[mask], 0x18\n"
@@ -629,202 +623,202 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
                          "fsrli.pi %[destination], %[destination], 31\n"
                          : [ mask ] "=f"(mask), [ destination ] "=f"(destination)
                          : [ source ] "f"(source));
-  } else if constexpr (srcElK == Float16Ty and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::FloatTy) {
     __asm__ __volatile__("fcvt.ps.f16 %[destination], %[source]\n"
                          : [ destination ] "=f"(destination)
                          : [ source ] "f"(source));
-  } else if constexpr (srcElK == Float16Ty and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Float16Ty and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::FloatTy) {
     __asm__ __volatile__("fslli.pi %[destination], %[source], %[bits]\n"
                          : [ destination ] "=f"(destination)
                          : [ source ] "f"(source), [ bits ] "i"(16));
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BFloat16Ty and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::FloatTy) {
     doDequantizeInt32(destination, source, srcScale, srcOffset);
-  } else if constexpr (srcElK == Int8QTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int8QTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::FloatTy) {
     doDequantizeUInt32(destination, source, srcScale, srcOffset);
-  } else if constexpr (srcElK == UInt8QTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8QTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::FloatTy) {
     doDequantizeInt32(destination, source, srcScale, srcOffset);
-  } else if constexpr (srcElK == Int16QTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int16QTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::FloatTy) {
     doDequantizeInt32(destination, source, srcScale, srcOffset);
-  } else if constexpr (srcElK == Int32QTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32QTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::FloatTy) {
     __asm__ __volatile__("fcvt.ps.pw %[destination], %[source]\n"
                          : [ destination ] "=f"(destination)
                          : [ source ] "f"(source));
-  } else if constexpr (srcElK == Int32ITy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::Int64ITy) {
     __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n"
                          "fsrai.pi %[destinationHigh], %[source], 31\n"
                          : [ destination ] "=&f"(destination), [ destinationHigh ] "=f"(destinationHigh)
                          : [ source ] "f"(source));
-  } else if constexpr (srcElK == Int32ITy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int32ITy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::BoolTy) {
     __asm__ __volatile__("fbci.pi %[destination], 0\n"
                          "fltu.pi %[destination], %[destination], %[source]\n"
                          "fsrli.pi %[destination], %[destination], 31\n"
                          : [ destination ] "=&f"(destination)
                          : [ source ] "f"(source));
-  } else if constexpr (srcElK == Int64ITy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::FloatTy) {
     v8u32_t mask, abs, absHigh, term, weight;
     __asm__ __volatile__(
       // Complement source and sourceHigh when negative
@@ -844,30 +838,30 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
       : [ mask ] "=&f"(mask), [ abs ] "=&f"(abs), [ absHigh ] "=&f"(absHigh), [ destination ] "=&f"(destination),
         [ term ] "=&f"(term), [ weight ] "=&f"(weight)
       : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
-  } else if constexpr (srcElK == Int64ITy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == Int32ITy) {
-    convert<Int32ITy, Int32ITy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                dstScaleReciprocal, dstOffset);
-  } else if constexpr (srcElK == Int64ITy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Int32ITy) {
+    convert<dnn_lib::Int32ITy, dnn_lib::Int32ITy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                                  dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == Int64ITy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::BoolTy) {
     v8u32_t combinedOr;
     __asm__ __volatile__("for.pi %[combinedOr], %[source], %[sourceHigh]\n"
                          "fbci.pi %[destination], 0\n"
@@ -875,156 +869,156 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
                          "fsrli.pi %[destination], %[destination], 31\n"
                          : [ destination ] "=f"(destination), [ combinedOr ] "=f"(combinedOr)
                          : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::FloatTy) {
     // TODO: from UInt8FusedQTy to FloatTy
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedQTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::FloatTy) {
     // TODO: from UInt8FusedFP16QTy to FloatTy
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt8FusedFP16QTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt8FusedFP16QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::FloatTy) {
     // TODO: from UInt4FusedFP16QTy to FloatTy
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == UInt4FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::UInt4FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedFP16QTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedFP16QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == FloatTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::FloatTy) {
     // TODO: from UInt4FusedQTy to FloatTy
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Float16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == BFloat16Ty) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::Int8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt8QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::UInt8QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::Int16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int32QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int32ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::Int32ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == Int64ITy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::Int64ITy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt8FusedQTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt8FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == UInt4FusedFP16QTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == UInt4FusedQTy and dstElK == BoolTy) {
+  } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
-  } else if constexpr (srcElK == BoolTy and dstElK == FloatTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == Float16Ty) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == BFloat16Ty) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == Int8QTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == UInt8QTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == Int16QTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == Int32QTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == Int32ITy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == Int64ITy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == UInt8FusedQTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == UInt8FusedFP16QTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == UInt4FusedFP16QTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
-  } else if constexpr (srcElK == BoolTy and dstElK == UInt4FusedQTy) {
-    convert<Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal,
-                              dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::FloatTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Float16Ty) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::BFloat16Ty) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int8QTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt8QTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int16QTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int32QTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int32ITy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int64ITy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt8FusedQTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
+  } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt4FusedQTy) {
+    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
+                                       dstScaleReciprocal, dstOffset);
   }
 #undef DEFAULT_CONVERT
 }
 
-template <typename srcType, ElemKind srcElK, typename dstType, ElemKind dstElK>
+template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK>
 INLINE_ATTR void convert(srcType source, srcType sourceHigh, dstType& destination, dstType& destinationHigh) {
-  static_assert(not isQuantizedElemKind(srcElK) and not isQuantizedElemKind(dstElK),
+  static_assert(not dnn_lib::isQuantizedElemKind(srcElK) and not dnn_lib::isQuantizedElemKind(dstElK),
                 "Quantized types are not supported by this simplified convert");
   v8f32_t srcScale;
   v8s32_t srcOffset;
@@ -1034,14 +1028,14 @@ INLINE_ATTR void convert(srcType source, srcType sourceHigh, dstType& destinatio
                                             dstScaleReciprocal, dstOffset);
 }
 
-template <typename srcType, ElemKind srcElK, typename dstType, ElemKind dstElK>
+template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK>
 INLINE_ATTR void convert(v8u32_t& destination, v8u32_t& destinationHigh) {
   if constexpr (srcElK != dstElK) {
     convert<srcType, srcElK, dstType, dstElK>(destination, destinationHigh, destination, destinationHigh);
   }
 }
 
-template <typname srcType, ElemKind srcElK, typename dstType, ElemKind dstElK>
+template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK>
 INLINE_ATTR void convert(v8u32_t& destination) {
   if constexpr (srcElK != dstElK) {
     v8u32_t destinationHigh{0};

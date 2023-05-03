@@ -15,9 +15,9 @@
 #include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
+#include "LoadStore2.h"
 #include "Operators.h"
-#include "internal_v2/LoadStore.h"
-#include "internal_v2/Utils.h"
+#include "utils2.h"
 
 #define OPERATION_STEP1                                                                                                \
   "flw.ps f31, %[gatherValues]\n"                                                                                      \
@@ -37,7 +37,7 @@
   "fmul.ps f0, f0, f29 \n"                                                                                             \
   "fcvt.pw.ps f0, f0 \n"
 
-namespace dnn_lib {
+namespace dnn_lib_v2 {
 
 template <typename src1Type, typename src2Type, typename dstType, typename opType, bool setMaskForScalar = false>
 class Operator {
@@ -2128,6 +2128,6 @@ INLINE_ATTR void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, f
   }
 }
 
-} // namespace dnn_lib
+} // namespace dnn_lib_v2
 
 #endif /* OPERATOR_V2_H */
