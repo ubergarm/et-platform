@@ -55,13 +55,10 @@ INLINE_ATTR void loadConvertStore(const uintptr_t dstAddr, const uintptr_t srcAd
     setupQuantize(dstScaleReciprocal, dstOffset, dstScaleScalar, dstOffsetScalar);
   }
 
-  // Enables only the valid elements
-  if (valid < 8) {
-    uint8_t mask = static_cast<uint8_t>(((1UL << valid) - 1));
-    __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-  } else {
-    __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
-  }
+  // Enable only the valid elements
+  assert(valid <= 8);
+  uint8_t mask = static_cast<uint8_t>(((1UL << valid) - 1));
+  __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
   constexpr bool sameConfig = isSameConfig<srcBytesPerElement, dstBytesPerElement, alignedSrc, alignedDst>();
 

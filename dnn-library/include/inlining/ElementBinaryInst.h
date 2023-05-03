@@ -197,13 +197,10 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
 
   // compute function
   auto compute = [&](const uintptr_t dstAddr, const uintptr_t src1Addr, uintptr_t src2Addr, const dim_t valid) {
-    // set mask
-    if (valid < 8) {
-      uint8_t mask = static_cast<uint8_t>((1UL << valid) - 1);
-      __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-    } else {
-      __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
-    }
+    // Enable only the valid elements
+    assert(valid <= 8);
+    uint8_t mask = static_cast<uint8_t>(((1UL << valid) - 1));
+    __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
     // setup quantization (attribute unused just avoids warnings of variable not being used, which happens if not
     // [de]quantizing)
