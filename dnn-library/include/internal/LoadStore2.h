@@ -1,5 +1,5 @@
 /*-------------------------------------------------------------------------
- * Copyright (C) 2020, Esperanto Technologies Inc.
+ * Copyright (C) 2023, Esperanto Technologies Inc.
  * The copyright to the computer program(s) herein is the
  * property of Esperanto Technologies, Inc. All Rights Reserved.
  * The program(s) may be used and/or copied only with
@@ -35,7 +35,7 @@ enum class RoundingMode {
 
 template <RoundingMode mode = RoundingMode::Dynamic, bool careAboutNonFinite = true,
           bool careAboutSignallingNaN = false>
-INLINE_ATTR void convertFloatToInt32(v8f32_t source, v8s32_t& destination) {
+INLINE_ATTR void convertFloatToInt32(v8f32_t source, v8s32_t& destination, [[maybe_unused]] uint32_t vmask) {
 
   static_assert(mode != RoundingMode::Invalid1 and mode != RoundingMode::Invalid2);
 
@@ -84,52 +84,62 @@ INLINE_ATTR void convertFloatToInt32(v8f32_t source, v8s32_t& destination) {
     __asm__ __volatile__("fclass.ps %[mask], %[source]\n"
                          "fsrli.pi %[bit], %[mask], 9\n"
                          : [ mask ] "=&f"(mask), [ bit ] "=f"(bit)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
 
     if constexpr (careAboutSignallingNaN) {
       __asm__ __volatile__("fsrli.pi %[temp], %[mask], 8\n"
                            "for.pi %[bit], %[temp], %[bit]\n"
                            : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
-                           : [ mask ] "f"(mask));
+                           : [ mask ] "f"(mask)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     }
 
     __asm__ __volatile__("fsrli.pi %[temp], %[mask], 7\n"
                          "for.pi %[bit], %[temp], %[bit]\n"
                          "fandi.pi %[bit], %[bit], 1\n"
                          : [ temp ] "=&f"(temp), [ bit ] "+f"(bit)
-                         : [ mask ] "f"(mask));
+                         : [ mask ] "f"(mask)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   }
 
   if constexpr (mode == RoundingMode::NearestTiesEven) {
     __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rne\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (mode == RoundingMode::TowardsZero) {
     __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rtz\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (mode == RoundingMode::Down) {
     __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rdn\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (mode == RoundingMode::Up) {
     __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rup\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (mode == RoundingMode::NearestTiesMax) {
     __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], rmm\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (mode == RoundingMode::Dynamic) {
     __asm__ __volatile__("fcvt.pw.ps %[destination], %[source], dyn\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   }
 
   if constexpr (careAboutNonFinite) {
     __asm__ __volatile__("fadd.pi %[destination], %[destination], %[bit]\n"
                          : [ destination ] "+f"(destination)
-                         : [ bit ] "f"(bit));
+                         : [ bit ] "f"(bit)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   }
 
   (void)bit;
@@ -156,25 +166,27 @@ constexpr uint64_t getGatherScatterConfig(size_t bytesPerElement) {
 
 template <size_t bytesPerElement, bool aligned = false>
 INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, v8s32_t& indices) {
-
+  [[maybe_unused]] static const uint32_t vmask = (1 << 8) - 1;
   if constexpr (aligned) {
-    __asm__ __volatile__("li %[conf], %[confImm]\n"
-                         : [ conf ] "=r"(conf)
-                         : [ confImm ] "i"(getGatherScatterConfig(bytesPerElement)));
+    __asm__ __volatile__(
+      "li %[conf], %[confImm]\n"
+      : [ conf ] "=r"(conf)
+      : [ confImm ] "i"(getGatherScatterConfig(bytesPerElement))FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+      :);
   } else {
     static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
                                      3 * bytesPerElement, 4 * bytesPerElement, 5 * bytesPerElement,
                                      6 * bytesPerElement, 7 * bytesPerElement};
-
     __asm__ __volatile__("flw.ps %[indices], %[values]\n"
                          : [ indices ] "=f"(indices)
-                         : [ values ] "m"(*(const int32_t(*)[16])values));
+                         : [ values ] "m"(*(const int32_t(*)[16])values)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   }
 }
 
 template <size_t bytesPerElement, bool aligned = false>
 INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, v8s32_t& indices, v8s32_t& indicesHigh) {
-
+  [[maybe_unused]] static const uint32_t vmask = (1 << 8) - 1;
   if constexpr (bytesPerElement == 8) {
     static const int32_t values[] = {0 * bytesPerElement, 1 * bytesPerElement, 2 * bytesPerElement,
                                      3 * bytesPerElement, 4 * bytesPerElement, 5 * bytesPerElement,
@@ -182,7 +194,8 @@ INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, v8s32_t& indices, v8s3
     __asm__ __volatile__("flw.ps %[indices], %[values]\n"
                          "faddi.pi %[indicesHigh], %[indices], 4\n"
                          : [ indices ] "=f"(indices), [ indicesHigh ] "=f"(indicesHigh)
-                         : [ values ] "m"(*(const int32_t(*)[16])values));
+                         : [ values ] "m"(*(const int32_t(*)[16])values)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (bytesPerElement < 4) {
     setupGatherScatterConfig<bytesPerElement, aligned>(conf, indices);
   }
@@ -203,108 +216,138 @@ INLINE_ATTR void setupGatherScatterConfig(uint64_t& conf, v8s32_t& indices, v8s3
 }
 
 template <typename srcType, size_t bytesPerElement, bool aligned = false>
-INLINE_ATTR void load(uintptr_t src, [[maybe_unused]] uint64_t conf, const v8s32_t& indices, srcType& op0) {
+INLINE_ATTR void load(uintptr_t src, [[maybe_unused]] uint64_t conf, const v8s32_t& indices, srcType& op0,
+                      [[maybe_unused]] uint32_t vmask) {
   static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fg32b.ps %[op0], %[conf](%[src])\n"
                            : [ op0 ] "=f"(op0)
-                           : [ conf ] "r"(conf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
+                           : [ conf ] "r"(conf), [ src ] "r"(src),
+                             [ srcMem ] "m"(*(const char(*)[8])src)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     } else {
       __asm__ __volatile__("fgb.ps %[op0], %[indices](%[src])\n"
                            : [ op0 ] "=f"(op0)
-                           : [ indices ] "f"(indices), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[8])src));
+                           : [ indices ] "f"(indices), [ src ] "r"(src),
+                             [ srcMem ] "m"(*(const char(*)[8])src)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     }
   } else if constexpr (bytesPerElement == 2) {
     if constexpr (aligned) {
       __asm__ __volatile__("fg32h.ps %[op0], %[conf](%[src])\n"
                            : [ op0 ] "=f"(op0)
-                           : [ conf ] "r"(conf), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
+                           : [ conf ] "r"(conf), [ src ] "r"(src),
+                             [ srcMem ] "m"(*(const char(*)[16])src)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     } else {
       __asm__ __volatile__("fgh.ps %[op0], %[indices](%[src])\n"
                            : [ op0 ] "=f"(op0)
-                           : [ indices ] "f"(indices), [ src ] "r"(src), [ srcMem ] "m"(*(const char(*)[16])src));
+                           : [ indices ] "f"(indices), [ src ] "r"(src),
+                             [ srcMem ] "m"(*(const char(*)[16])src)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     }
   } else if constexpr (bytesPerElement == 4) {
-    __asm__ __volatile__("flw.ps %[op0], %[src]\n" : [ op0 ] "=f"(op0) : [ src ] "m"(*(const char(*)[32])src));
+    __asm__ __volatile__("flw.ps %[op0], %[src]\n"
+                         : [ op0 ] "=f"(op0)
+                         : [ src ] "m"(*(const char(*)[32])src)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   }
 }
 
 template <typename dstType, size_t bytesPerElement, bool aligned = false>
 INLINE_ATTR void load(uintptr_t src, [[maybe_unused]] uint64_t conf, v8s32_t indices,
-                      [[maybe_unused]] v8s32_t indicesHigh, dstType& op0, dstType& op0High) {
+                      [[maybe_unused]] v8s32_t indicesHigh, dstType& op0, dstType& op0High,
+                      [[maybe_unused]] uint32_t vmask) {
   if constexpr (bytesPerElement == 8) {
     __asm__ __volatile__("fgw.ps %[op0], %[indices](%[src])\n"
                          "fgw.ps %[op0High], %[indicesHigh](%[src])\n"
                          : [ op0 ] "=&f"(op0), [ op0High ] "=f"(op0High)
                          : [ indices ] "f"(indices), [ indicesHigh ] "f"(indicesHigh), [ src ] "r"(src),
-                           [ srcMem ] "m"(*(const char(*)[64])src));
+                           [ srcMem ] "m"(*(const char(*)[64])src)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else {
-    load<bytesPerElement, aligned>(src, conf, indices, op0);
+    load<dstType, bytesPerElement, aligned>(src, conf, indices, op0, vmask);
   }
 }
 
 template <typename srcType, size_t bytesPerElement, bool aligned = false>
 INLINE_ATTR void storeLocal(uintptr_t dst, [[maybe_unused]] uint64_t conf, [[maybe_unused]] v8s32_t indices,
-                            srcType op0) {
+                            srcType op0, [[maybe_unused]] uint32_t vmask) {
   if constexpr (bytesPerElement == 1) {
     if constexpr (aligned) {
       __asm__ __volatile__("fsc32b.ps %[op0], %[conf](%[dst])\n"
                            : [ dstMem ] "=m"(*(char(*)[8])dst)
-                           : [ op0 ] "f"(op0), [ conf ] "r"(conf), [ dst ] "r"(dst));
+                           : [ op0 ] "f"(op0), [ conf ] "r"(conf),
+                             [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     } else {
       __asm__ __volatile__("fscb.ps %[op0], %[indices](%[dst])\n"
                            : [ dstMem ] "=m"(*(char(*)[8])dst)
-                           : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+                           : [ op0 ] "f"(op0), [ indices ] "f"(indices),
+                             [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     }
   } else if constexpr (bytesPerElement == 2) {
     if constexpr (aligned) {
       __asm__ __volatile__("fsc32h.ps %[op0], %[conf](%[dst])\n"
                            : [ dstMem ] "=m"(*(char(*)[16])dst)
-                           : [ op0 ] "f"(op0), [ conf ] "r"(conf), [ dst ] "r"(dst));
+                           : [ op0 ] "f"(op0), [ conf ] "r"(conf),
+                             [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     } else {
       __asm__ __volatile__("fsch.ps %[op0], %[indices](%[dst])\n"
                            : [ dstMem ] "=m"(*(char(*)[16])dst)
-                           : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+                           : [ op0 ] "f"(op0), [ indices ] "f"(indices),
+                             [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     }
   } else if constexpr (bytesPerElement == 4) {
     __asm__ __volatile__("fsw.ps %[op0], 0(%[dst])\n"
                          : [ dstMem ] "=m"(*(char(*)[32])dst)
-                         : [ op0 ] "f"(op0), [ dst ] "r"(dst));
+                         : [ op0 ] "f"(op0), [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   }
 }
 
 template <typename srcType, size_t bytesPerElement, bool aligned = false>
-INLINE_ATTR void storeGlobal(uintptr_t dst, [[maybe_unused]] uint64_t conf, v8s32_t indices, srcType op0) {
+INLINE_ATTR void storeGlobal(uintptr_t dst, [[maybe_unused]] uint64_t conf, v8s32_t indices, srcType op0,
+                             [[maybe_unused]] uint32_t vmask) {
   // TODO [SW-11008] aligned global stores are not optimized on this implementation.
   if constexpr (bytesPerElement == 1) {
     __asm__ __volatile__("fscbg.ps %[op0], %[indices](%[dst])\n"
                          : [ dstMem ] "=m"(*(char(*)[8])dst)
-                         : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+                         : [ op0 ] "f"(op0), [ indices ] "f"(indices),
+                           [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (bytesPerElement == 2) {
     __asm__ __volatile__("fschg.ps %[op0], %[indices](%[dst])\n"
                          : [ dstMem ] "=m"(*(char(*)[16])dst)
-                         : [ op0 ] "f"(op0), [ indices ] "f"(indices), [ dst ] "r"(dst));
+                         : [ op0 ] "f"(op0), [ indices ] "f"(indices),
+                           [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (bytesPerElement == 4) {
     __asm__ __volatile__("fswg.ps %[op0], (%[dst])\n"
                          : [ dstMem ] "=m"(*(char(*)[32])dst)
-                         : [ op0 ] "f"(op0), [ dst ] "r"(dst));
+                         : [ op0 ] "f"(op0), [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   }
 }
 
 template <typename srcType, size_t bytesPerElement, bool aligned = false, bool globalStore = false>
-INLINE_ATTR void store(uintptr_t dst, uint64_t conf, v8s32_t indices, srcType op0) {
+INLINE_ATTR void store(uintptr_t dst, uint64_t conf, v8s32_t indices, srcType op0, [[maybe_unused]] uint32_t vmask) {
   static_assert(bytesPerElement == 1 or bytesPerElement == 2 or bytesPerElement == 4, "Unsupported element size");
   if constexpr (globalStore) {
-    storeGlobal<bytesPerElement, aligned>(dst, conf, indices, op0);
+    storeGlobal<srcType, bytesPerElement, aligned>(dst, conf, indices, op0, vmask);
   } else {
-    storeLocal<bytesPerElement, aligned>(dst, conf, indices, op0);
+    storeLocal<srcType, bytesPerElement, aligned>(dst, conf, indices, op0, vmask);
   }
 }
 
 template <typename srcType, size_t bytesPerElement, bool aligned = false, bool globalStore = false>
 INLINE_ATTR void store(uintptr_t dst, [[maybe_unused]] uint64_t conf, v8s32_t indices,
-                       [[maybe_unused]] v8s32_t indicesHigh, srcType op0, [[maybe_unused]] srcType op0High) {
+                       [[maybe_unused]] v8s32_t indicesHigh, srcType op0, [[maybe_unused]] srcType op0High,
+                       [[maybe_unused]] uint32_t vmask) {
   if constexpr (bytesPerElement == 8) {
     if constexpr (globalStore) {
       // TODO [SW-11008] aligned global stores are not optimized on this implementation.
@@ -312,53 +355,64 @@ INLINE_ATTR void store(uintptr_t dst, [[maybe_unused]] uint64_t conf, v8s32_t in
                            "fscwg.ps %[op0High], %[indicesHigh](%[dst])\n"
                            : [ dstMem ] "=m"(*(char(*)[64])dst)
                            : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices),
-                             [ indicesHigh ] "f"(indicesHigh), [ dst ] "r"(dst));
+                             [ indicesHigh ] "f"(indicesHigh),
+                             [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     } else {
       __asm__ __volatile__("fscw.ps %[op0], %[indices](%[dst])\n"
                            "fscw.ps %[op0High], %[indicesHigh](%[dst])\n"
                            : [ dstMem ] "=m"(*(char(*)[64])dst)
                            : [ op0 ] "f"(op0), [ op0High ] "f"(op0High), [ indices ] "f"(indices),
-                             [ indicesHigh ] "f"(indicesHigh), [ dst ] "r"(dst));
+                             [ indicesHigh ] "f"(indicesHigh),
+                             [ dst ] "r"(dst)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                           :);
     }
   } else {
-    store<bytesPerElement, aligned, globalStore>(dst, conf, indices, op0);
+    store<srcType, bytesPerElement, aligned, globalStore>(dst, conf, indices, op0, vmask);
   }
 }
 
 template <typename srcType, typename dstType, size_t bytesPerElement>
-INLINE_ATTR void copy(srcType source, dstType& destination) {
+INLINE_ATTR void copy(srcType source, dstType& destination, [[maybe_unused]] uint32_t vmask) {
   __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n"
                        : [ destination ] "=f"(destination)
-                       : [ source ] "f"(source));
+                       : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
 template <typename srcType, typename dstType, size_t bytesPerElement>
 INLINE_ATTR void copy(srcType source, [[maybe_unused]] srcType sourceHigh, dstType& destination,
-                      dstType& destinationHigh) {
-  copy<bytesPerElement>(source, destination);
+                      dstType& destinationHigh, [[maybe_unused]] uint32_t vmask) {
+  copy<srcType, dstType, bytesPerElement>(source, destination, vmask);
   if constexpr (bytesPerElement > 4) {
-    copy<bytesPerElement>(sourceHigh, destinationHigh);
+    copy<srcType, dstType, bytesPerElement>(sourceHigh, destinationHigh, vmask);
   }
 }
 
-template <typename dstType, dnn_lib::ElemKind elK> INLINE_ATTR void zero(dstType& destination) {
-  __asm__ __volatile__("fbci.pi %[destination], 0\n" : [ destination ] "=f"(destination));
+template <typename dstType, dnn_lib::ElemKind elK>
+INLINE_ATTR void zero(dstType& destination, [[maybe_unused]] uint32_t vmask) {
+  __asm__ __volatile__("fbci.pi %[destination], 0\n"
+                       : [ destination ] "=f"(destination)
+                       : FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
 template <typename dstType, dnn_lib::ElemKind elK>
-INLINE_ATTR void zero(dstType& destination, v8u32_t& destinationHigh) {
-  zero<elK>(destination);
+INLINE_ATTR void zero(dstType& destination, v8u32_t& destinationHigh, [[maybe_unused]] uint32_t vmask) {
+  zero<elK>(destination, vmask);
   if constexpr (dnn_lib::Type::getElementSize(elK) > 4) {
-    zero<elK>(destinationHigh);
+    zero<elK>(destinationHigh, vmask);
   }
 }
 
 INLINE_ATTR void setupDequantize(v8f32_t& scale, v8s32_t& offset, float scaleScalar, int32_t offsetScalar) {
+  [[maybe_unused]] static const uint32_t vmask = (1 << 8) - 1;
   __asm__ __volatile__("fbcx.ps %[offset], %[offsetScalar]\n"
                        "fbcx.ps %[scale], %[scaleScalar]\n"
                        : [ offset ] "=&f"(offset), [ scale ] "=&f"(scale)
                        : [ scaleScalar ] "r"(dnn_lib::bitwise_copy<uint32_t>(scaleScalar)),
-                         [ offsetScalar ] "r"(offsetScalar));
+                         [ offsetScalar ] "r"(offsetScalar)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
 /*
@@ -369,12 +423,15 @@ source: packed int32 register with source
 scale:  packed float register with the broadcasted scale value
 offset: packed int32 register with the broadcasted offset
 */
-INLINE_ATTR void doDequantizeInt32(v8f32_t& destination, v8s32_t source, v8f32_t scale, v8s32_t offset) {
+INLINE_ATTR void doDequantizeInt32(v8f32_t& destination, v8s32_t source, v8f32_t scale, v8s32_t offset,
+                                   [[maybe_unused]] uint32_t vmask) {
   __asm__ __volatile__("fsub.pi %[destination], %[source], %[offset]\n"
                        "fcvt.ps.pw %[destination], %[destination]\n"
                        "fmul.ps %[destination], %[destination], %[scale]\n"
                        : [ destination ] "=&f"(destination)
-                       : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
+                       : [ source ] "f"(source), [ offset ] "f"(offset),
+                         [ scale ] "f"(scale)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
 /*
@@ -385,33 +442,45 @@ source: packed uint32 register with source
 scale:  packed float register with the broadcasted scale value
 offset: packed uint32 register with the broadcasted offset
 */
-INLINE_ATTR void doDequantizeUInt32(v8f32_t& destination, v8u32_t source, v8f32_t scale, v8u32_t offset) {
+INLINE_ATTR void doDequantizeUInt32(v8f32_t& destination, v8u32_t source, v8f32_t scale, v8u32_t offset,
+                                    [[maybe_unused]] uint32_t vmask) {
   __asm__ __volatile__("fsub.pi %[destination], %[source], %[offset]\n"
                        "fcvt.ps.pwu %[destination], %[destination]\n"
                        "fmul.ps %[destination], %[destination], %[scale]\n"
                        : [ destination ] "=&f"(destination)
-                       : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
+                       : [ source ] "f"(source), [ offset ] "f"(offset),
+                         [ scale ] "f"(scale)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
 INLINE_ATTR void setupQuantize(v8f32_t& scaleReciprocal, v8s32_t& offset, float scaleScalar, int32_t offsetScalar) {
+  [[maybe_unused]] static const uint32_t vmask = (1 << 8) - 1;
   __asm__ __volatile__("fbcx.ps %[scaleReciprocal], %[scaleScalar]\n"
                        "frcp.ps %[scaleReciprocal], %[scaleReciprocal]\n"
                        "fbcx.ps %[offset], %[offsetScalar]\n"
                        "fcvt.ps.pw %[offset], %[offset]\n"
                        : [ offset ] "=&f"(offset), [ scaleReciprocal ] "=&f"(scaleReciprocal)
                        : [ scaleScalar ] "r"(dnn_lib::bitwise_copy<uint32_t>(scaleScalar)),
-                         [ offsetScalar ] "r"(offsetScalar));
+                         [ offsetScalar ] "r"(offsetScalar)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
-INLINE_ATTR void multiplyAdd(v8f32_t& destination, v8f32_t source, v8f32_t scale, v8f32_t offset) {
+INLINE_ATTR void multiplyAdd(v8f32_t& destination, v8f32_t source, v8f32_t scale, v8f32_t offset,
+                             [[maybe_unused]] uint32_t vmask) {
   __asm__ __volatile__("fmadd.ps %[destination], %[source], %[scale], %[offset]\n"
                        : [ destination ] "=f"(destination)
-                       : [ source ] "f"(source), [ offset ] "f"(offset), [ scale ] "f"(scale));
+                       : [ source ] "f"(source), [ offset ] "f"(offset),
+                         [ scale ] "f"(scale)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
-template <int64_t minValue, int64_t maxValue> INLINE_ATTR void clip(v8s32_t& destination, v8s32_t source) {
+template <int64_t minValue, int64_t maxValue>
+INLINE_ATTR void clip(v8s32_t& destination, v8s32_t source, [[maybe_unused]] uint32_t vmask) {
   if constexpr (minValue == -127 and maxValue == 128) {
-    __asm__("fsat8.pi %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source) :);
+    __asm__("fsat8.pi %[destination], %[source]\n"
+            : [ destination ] "=f"(destination)
+            : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+            :);
   } else {
     v8s32_t tmp;
     __asm__ __volatile__("fbci.pi %[tmp], %[minValue]\n"
@@ -420,14 +489,18 @@ template <int64_t minValue, int64_t maxValue> INLINE_ATTR void clip(v8s32_t& des
                          "fmin.pi %[destination], %[destination], %[tmp]\n"
                          : [ destination ] "=f"(destination), [ tmp ] "=&f"(tmp)
                          : [ source ] "f"(source), [ minValue ] "i"(minValue & 0xfffff),
-                           [ maxValue ] "i"(maxValue & 0xfffff)
+                           [ maxValue ] "i"(maxValue & 0xfffff) FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
                          :);
   }
 }
 
-template <uint64_t minValue, uint64_t maxValue> INLINE_ATTR void clip(v8u32_t& destination, v8u32_t source) {
+template <uint64_t minValue, uint64_t maxValue>
+INLINE_ATTR void clip(v8u32_t& destination, v8u32_t source, [[maybe_unused]] uint32_t vmask) {
   if constexpr (minValue == 0 and maxValue == 255) {
-    __asm__("fsatu8.pi %[destination], %[source]\n" : [ destination ] "=f"(destination) : [ source ] "f"(source) :);
+    __asm__("fsatu8.pi %[destination], %[source]\n"
+            : [ destination ] "=f"(destination)
+            : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+            :);
   } else {
     v8s32_t tmp;
     __asm__ __volatile__("fbci.pi %[tmp], %[minValue]\n"
@@ -436,35 +509,38 @@ template <uint64_t minValue, uint64_t maxValue> INLINE_ATTR void clip(v8u32_t& d
                          "fminu.pi %[destination], %[destination], %[tmp]\n"
                          : [ destination ] "=f"(destination), [ tmp ] "=&f"(tmp)
                          : [ source ] "f"(source), [ minValue ] "i"(minValue & 0xfffff),
-                           [ maxValue ] "i"(maxValue & 0xfffff)
+                           [ maxValue ] "i"(maxValue & 0xfffff) FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
                          :);
   }
 }
 
-template <typename LimitTy, typename VectorTy> INLINE_ATTR void clip(VectorTy& destination, VectorTy source) {
-  clip<std::numeric_limits<LimitTy>::min(), std::numeric_limits<LimitTy>::max()>(destination, source);
+template <typename LimitTy, typename VectorTy>
+INLINE_ATTR void clip(VectorTy& destination, VectorTy source, [[maybe_unused]] uint32_t vmask) {
+  clip<std::numeric_limits<LimitTy>::min(), std::numeric_limits<LimitTy>::max()>(destination, source, vmask);
 }
 
-template <dnn_lib::ElemKind dstElK, typename VTy> INLINE_ATTR void clip(VTy& destination, VTy source) {
+template <dnn_lib::ElemKind dstElK, typename VTy>
+INLINE_ATTR void clip(VTy& destination, VTy source, [[maybe_unused]] uint32_t vmask) {
   using type = typename dnn_lib::elemKind2elemTy<dstElK>::type;
-  clip<type, VTy>(destination, source);
+  clip<type, VTy>(destination, source, vmask);
 }
 
 template <typename dstType, dnn_lib::ElemKind dstElK, bool careAboutNonFinite = false,
           bool canAboutSignallingNaN = false, RoundingMode roundingMode = RoundingMode::LikeStdRoundAndCast>
-INLINE_ATTR void doQuantize(dstType& destination, v8f32_t source, v8f32_t scaleReciprocal, v8s32_t offset) {
+INLINE_ATTR void doQuantize(dstType& destination, v8f32_t source, v8f32_t scaleReciprocal, v8s32_t offset,
+                            [[maybe_unused]] uint32_t vmask) {
   static_assert(dnn_lib::isQuantizedElemKind(dstElK));
   v8f32_t inFullRange;
-  multiplyAdd(inFullRange, source, scaleReciprocal, offset);
-  convertFloatToInt32<roundingMode, careAboutNonFinite, canAboutSignallingNaN>(inFullRange, destination);
-  clip<dstElK>(destination, destination);
+  multiplyAdd(inFullRange, source, scaleReciprocal, offset, vmask);
+  convertFloatToInt32<roundingMode, careAboutNonFinite, canAboutSignallingNaN>(inFullRange, destination, vmask);
+  clip<dstElK>(destination, destination, vmask);
 }
 
 template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK, bool matchx86 = false,
           RoundingMode roundingMode = RoundingMode::LikeStdRoundAndCast>
 INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, dstType& destination,
                          dstType& destinationHigh, const v8f32_t& srcScale, const v8s32_t& srcOffset,
-                         const v8f32_t& dstScaleReciprocal, const v8s32_t& dstOffset) {
+                         const v8f32_t& dstScaleReciprocal, const v8s32_t& dstOffset, [[maybe_unused]] uint32_t vmask) {
 
   /*
   # The following python code was used for generating a skeleton for this funcion
@@ -503,29 +579,31 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
 
   if constexpr (srcElK == dstElK) {
     constexpr size_t bytesPerElement = dnn_lib::Type::getElementSize(srcElK);
-    copy<dstType, bytesPerElement>(source, sourceHigh, destination, destinationHigh);
+    copy<srcType, dstType, bytesPerElement>(source, sourceHigh, destination, destinationHigh, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Float16Ty) {
     __asm__ __volatile__("fcvt.f16.ps %[destination], %[source]\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::BFloat16Ty) {
     __asm__ __volatile__("fsrli.pi %[destination], %[source], %[bits]\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source), [ bits ] "i"(16));
+                         : [ source ] "f"(source), [ bits ] "i"(16)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int8QTy) {
-    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
-                                                                                         dstScaleReciprocal, dstOffset);
+    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(
+      destination, source, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::UInt8QTy) {
-    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
-                                                                                         dstScaleReciprocal, dstOffset);
+    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(
+      destination, source, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int16QTy) {
-    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
-                                                                                         dstScaleReciprocal, dstOffset);
+    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(
+      destination, source, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int32QTy) {
-    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(destination, source,
-                                                                                         dstScaleReciprocal, dstOffset);
+    doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(
+      destination, source, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int32ITy) {
-    convertFloatToInt32<RoundingMode::LikeCast>(source, destination);
+    convertFloatToInt32<RoundingMode::LikeCast>(source, destination, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int64ITy) {
     v8u32_t mask, exponent, implicit, minusExponent, tmp, mantissa;
     __asm__ __volatile__(
@@ -578,7 +656,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
       : [ mask ] "=&f"(mask), [ exponent ] "=&f"(exponent), [ implicit ] "=&f"(implicit),
         [ minusExponent ] "=f"(minusExponent), [ tmp ] "=&f"(tmp), [ mantissa ] "=f"(mantissa),
         [ destination ] "=f"(destination), [ destinationHigh ] "=f"(destinationHigh)
-      : [ source ] "f"(source));
+      : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+      :);
     v8u32_t accumulator, bit;
     __asm__ __volatile__(
       // Override as 0x8000 0000 0000 0000 for -Inf, Inf, NaN and sNaN
@@ -601,7 +680,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
       "fcmov.ps %[destinationHigh], %[accumulator], %[bit], %[destinationHigh]\n"
       : [ mask ] "=&f"(mask), [ accumulator ] "=&f"(accumulator), [ bit ] "=&f"(bit), [ destination ] "+f"(destination),
         [ destinationHigh ] "+f"(destinationHigh)
-      : [ source ] "f"(source));
+      : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+      :);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::UInt8FusedQTy) {
     // TODO: from FloatTy to UInt8FusedQTy probably not required
     assert(false);
@@ -622,11 +702,13 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
                          "fltu.pi %[destination], %[mask], %[destination]\n"
                          "fsrli.pi %[destination], %[destination], 31\n"
                          : [ mask ] "=f"(mask), [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::FloatTy) {
     __asm__ __volatile__("fcvt.ps.f16 %[destination], %[source]\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::BFloat16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Float16Ty and dstElK == dnn_lib::Int8QTy) {
@@ -654,7 +736,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::FloatTy) {
     __asm__ __volatile__("fslli.pi %[destination], %[source], %[bits]\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source), [ bits ] "i"(16));
+                         : [ source ] "f"(source), [ bits ] "i"(16)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::Int8QTy) {
@@ -680,7 +763,7 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::BFloat16Ty and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::FloatTy) {
-    doDequantizeInt32(destination, source, srcScale, srcOffset);
+    doDequantizeInt32(destination, source, srcScale, srcOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::BFloat16Ty) {
@@ -706,7 +789,7 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::Int8QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::FloatTy) {
-    doDequantizeUInt32(destination, source, srcScale, srcOffset);
+    doDequantizeUInt32(destination, source, srcScale, srcOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::BFloat16Ty) {
@@ -732,7 +815,7 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::UInt8QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::FloatTy) {
-    doDequantizeInt32(destination, source, srcScale, srcOffset);
+    doDequantizeInt32(destination, source, srcScale, srcOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::BFloat16Ty) {
@@ -758,7 +841,7 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::Int16QTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::FloatTy) {
-    doDequantizeInt32(destination, source, srcScale, srcOffset);
+    doDequantizeInt32(destination, source, srcScale, srcOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int32QTy and dstElK == dnn_lib::BFloat16Ty) {
@@ -786,7 +869,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::FloatTy) {
     __asm__ __volatile__("fcvt.ps.pw %[destination], %[source]\n"
                          : [ destination ] "=f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::BFloat16Ty) {
@@ -803,7 +887,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
     __asm__ __volatile__("for.pi %[destination], %[source], %[source]\n"
                          "fsrai.pi %[destinationHigh], %[source], 31\n"
                          : [ destination ] "=&f"(destination), [ destinationHigh ] "=f"(destinationHigh)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int32ITy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
@@ -817,7 +902,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
                          "fltu.pi %[destination], %[destination], %[source]\n"
                          "fsrli.pi %[destination], %[destination], 31\n"
                          : [ destination ] "=&f"(destination)
-                         : [ source ] "f"(source));
+                         : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::FloatTy) {
     v8u32_t mask, abs, absHigh, term, weight;
     __asm__ __volatile__(
@@ -837,7 +923,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
       "fsgnj.ps %[destination], %[destination], %[sourceHigh]\n"
       : [ mask ] "=&f"(mask), [ abs ] "=&f"(abs), [ absHigh ] "=&f"(absHigh), [ destination ] "=&f"(destination),
         [ term ] "=&f"(term), [ weight ] "=&f"(weight)
-      : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
+      : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+      :);
   } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Float16Ty) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::BFloat16Ty) {
@@ -851,8 +938,8 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Int32QTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::Int32ITy) {
-    convert<dnn_lib::Int32ITy, dnn_lib::Int32ITy>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                                  dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dnn_lib::Int32ITy>(
+      source, sourceHigh, destination, destinationHigh, srcScale, srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::UInt8FusedQTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::Int64ITy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
@@ -868,7 +955,9 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
                          "fltu.pi %[destination], %[destination], %[combinedOr]\n"
                          "fsrli.pi %[destination], %[destination], 31\n"
                          : [ destination ] "=f"(destination), [ combinedOr ] "=f"(combinedOr)
-                         : [ source ] "f"(source), [ sourceHigh ] "f"(sourceHigh));
+                         : [ source ] "f"(source),
+                           [ sourceHigh ] "f"(sourceHigh)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                         :);
   } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::FloatTy) {
     // TODO: from UInt8FusedQTy to FloatTy
   } else if constexpr (srcElK == dnn_lib::UInt8FusedQTy and dstElK == dnn_lib::Float16Ty) {
@@ -974,50 +1063,51 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
   } else if constexpr (srcElK == dnn_lib::UInt4FusedQTy and dstElK == dnn_lib::BoolTy) {
     DEFAULT_CONVERT
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::FloatTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Float16Ty) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::BFloat16Ty) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int8QTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt8QTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int16QTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int32QTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int32ITy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::Int64ITy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt8FusedQTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt8FusedFP16QTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt4FusedFP16QTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::BoolTy and dstElK == dnn_lib::UInt4FusedQTy) {
-    convert<dnn_lib::Int32ITy, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                       dstScaleReciprocal, dstOffset);
+    convert<srcType, dnn_lib::Int32ITy, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale,
+                                                         srcOffset, dstScaleReciprocal, dstOffset, vmask);
   }
 #undef DEFAULT_CONVERT
 }
 
 template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK>
-INLINE_ATTR void convert(srcType source, srcType sourceHigh, dstType& destination, dstType& destinationHigh) {
+INLINE_ATTR void convert(srcType source, srcType sourceHigh, dstType& destination, dstType& destinationHigh,
+                         [[maybe_unused]] uint32_t vmask) {
   static_assert(not dnn_lib::isQuantizedElemKind(srcElK) and not dnn_lib::isQuantizedElemKind(dstElK),
                 "Quantized types are not supported by this simplified convert");
   v8f32_t srcScale;
@@ -1025,34 +1115,36 @@ INLINE_ATTR void convert(srcType source, srcType sourceHigh, dstType& destinatio
   v8f32_t dstScaleReciprocal;
   v8s32_t dstOffset;
   convert<srcType, srcElK, dstType, dstElK>(source, sourceHigh, destination, destinationHigh, srcScale, srcOffset,
-                                            dstScaleReciprocal, dstOffset);
+                                            dstScaleReciprocal, dstOffset, vmask);
 }
 
 template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK>
-INLINE_ATTR void convert(v8u32_t& destination, v8u32_t& destinationHigh) {
+INLINE_ATTR void convert(v8u32_t& destination, v8u32_t& destinationHigh, [[maybe_unused]] uint32_t vmask) {
   if constexpr (srcElK != dstElK) {
-    convert<srcType, srcElK, dstType, dstElK>(destination, destinationHigh, destination, destinationHigh);
+    convert<srcType, srcElK, dstType, dstElK>(destination, destinationHigh, destination, destinationHigh, vmask);
   }
 }
 
 template <typename srcType, dnn_lib::ElemKind srcElK, typename dstType, dnn_lib::ElemKind dstElK>
-INLINE_ATTR void convert(v8u32_t& destination) {
+INLINE_ATTR void convert(v8u32_t& destination, [[maybe_unused]] uint32_t vmask) {
   if constexpr (srcElK != dstElK) {
     v8u32_t destinationHigh{0};
-    convert<srcType, srcElK, dstType, dstElK>(destination, destinationHigh, destination, destinationHigh);
+    convert<srcType, srcElK, dstType, dstElK>(destination, destinationHigh, destination, destinationHigh, vmask);
   }
 }
 
-INLINE_ATTR void saturateInt8(v8s32_t source, v8s32_t& destination) {
+INLINE_ATTR void saturateInt8(v8s32_t source, v8s32_t& destination, [[maybe_unused]] uint32_t vmask) {
   __asm__ __volatile__("fsat8.pi %[destination], %[source]\n"
                        : [ destination ] "=f"(destination)
-                       : [ source ] "f"(source));
+                       : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
-INLINE_ATTR void saturateUInt8(v8u32_t source, v8u32_t& destination) {
+INLINE_ATTR void saturateUInt8(v8u32_t source, v8u32_t& destination, [[maybe_unused]] uint32_t vmask) {
   __asm__ __volatile__("fsatu8.pi %[destination], %[source]\n"
                        : [ destination ] "=f"(destination)
-                       : [ source ] "f"(source));
+                       : [ source ] "f"(source)FOR_CLANG_COMMA FOR_CLANG([ vmask ] "M"(vmask))
+                       :);
 }
 
 } // namespace dnn_lib_v2
