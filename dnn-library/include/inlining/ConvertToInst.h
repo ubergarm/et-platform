@@ -14,8 +14,8 @@
 
 #include "LibTensor.h"
 #include "LoadStore2.h"
+#include "etsoc/common/utils.h"
 #include "utils.h"
-#include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
@@ -56,7 +56,7 @@ INLINE_ATTR void loadConvertStore(const uintptr_t dstAddr, const uintptr_t srcAd
   }
 
   // Enable only the valid elements
-  assert(valid <= 8);
+  et_assert(valid <= 8);
   uint8_t mask = static_cast<uint8_t>(((1UL << valid) - 1));
   __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 

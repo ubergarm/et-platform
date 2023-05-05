@@ -15,8 +15,8 @@
 #include "Float16.h"
 #include "LibTensor.h"
 #include "LoadStore.h"
+#include "etsoc/common/utils.h"
 #include "utils.h"
-#include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
@@ -184,7 +184,7 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   static_assert(elK != Int64ITy, "Int64Ty not supported");
   // just return if minion is not to be used
 
-  assert(get_minion_id() >= minionOffset);
+  et_assert(get_minion_id() >= minionOffset);
   size_t minionId = get_minion_id() - minionOffset;
   size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
@@ -198,7 +198,7 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   // compute function
   auto compute = [&](const uintptr_t dstAddr, const uintptr_t src1Addr, uintptr_t src2Addr, const dim_t valid) {
     // Enable only the valid elements
-    assert(valid <= 8);
+    et_assert(valid <= 8);
     uint8_t mask = static_cast<uint8_t>(((1UL << valid) - 1));
     __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
@@ -259,7 +259,7 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   INLINE_ATTR void fwdLibElementInst<Int64ITy, OP_>(LibTensor * outT, LibTensor * in1T, LibTensor * in2T,              \
                                                     uint64_t flags, const uint32_t minionOffset,                       \
                                                     const uint32_t assignedMinions) {                                  \
-    assert(get_minion_id() >= minionOffset);                                                                           \
+    et_assert(get_minion_id() >= minionOffset);                                                                        \
     size_t minionId = get_minion_id() - minionOffset;                                                                  \
     size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;           \
     if (minionId >= activeMinions)                                                                                     \
