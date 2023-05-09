@@ -619,6 +619,7 @@ class LibManagerSheet:
             footer = self.getIncFooter(incFile)
             f.write("""%s
 
+#include "ETSOCGenericOpInst.h"
 #include "LibTensor.h"
 #include "inlining.h"
 

@@ -11,6 +11,7 @@
 
 
 
+#include "ETSOCGenericOpInst.h"
 #include "LibTensor.h"
 #include "inlining.h"
 

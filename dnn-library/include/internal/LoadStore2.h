@@ -13,6 +13,7 @@
 #define _LOADSTORE_V2_H_
 
 #include "Compiler.h"
+#include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
 #include <limits>

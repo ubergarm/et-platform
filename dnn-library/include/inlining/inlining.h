@@ -28,7 +28,6 @@
 #include "CrossEntropyLossInst.h"
 #include "CumSumInst.h"
 #include "DequantizeInst.h"
-#include "ETSOCGenericOpInst.h"
 #include "ElementBinaryInst.h"
 #include "ElementBoolInst.h"
 #include "ElementImmLogic.h"

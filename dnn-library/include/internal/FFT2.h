@@ -167,8 +167,8 @@ INLINE_ATTR float rec(size_t n) {
 }
 
 INLINE_ATTR void eulerFormula(float angle, float& real, float& img) {
-  real = cos(angle);
-  img = sin(angle);
+  real = cosf(angle);
+  img = sinf(angle);
 }
 
 INLINE_ATTR void w(size_t j, float recN, float& real, float& img) {
@@ -189,8 +189,8 @@ INLINE_ATTR void twiddleVectorBig(size_t n, float real[], float img[]) {
   const float k = 2.f * static_cast<float>(M_PI) * rec(n);
   for (uint32_t j = 1; j < (n >> 3); ++j) {
     const float angle = k * static_cast<float>(j);
-    const float cosine = cos(angle);
-    const float sine = sin(angle);
+    const float cosine = cosf(angle);
+    const float sine = sinf(angle);
     real[n - j] = cosine;
     img[n - j] = sine;
     real[j] = cosine;
@@ -208,7 +208,7 @@ INLINE_ATTR void twiddleVectorBig(size_t n, float real[], float img[]) {
     real[n - (n >> 2) + j] = sine;
     img[n - (n >> 2) + j] = cosine;
   }
-  const float sine = sin(static_cast<float>(M_PI) * 0.25f);
+  const float sine = sinf(static_cast<float>(M_PI) * 0.25f);
   real[n >> 3] = sine;
   img[n >> 3] = -sine;
   real[(n >> 3) + (n >> 2)] = -sine;
