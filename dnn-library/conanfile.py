@@ -1,5 +1,6 @@
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake
+from conan.tools.files import rmdir
 from conan.tools.layout import cmake_layout
 from conans import tools
 from conans.errors import ConanInvalidConfiguration
@@ -47,17 +48,13 @@ class DnnLibraryConan(ConanFile):
         if self.settings.os == "Windows":
             del self.options.fPIC
     
-    def configure(self):
-        if self.options.header_only:
-            del self.settings.arch
-            del self.settings.build_type
-            del self.settings.compiler
-            del self.settings.os
-
     def requirements(self):
         if self.options.with_device_headers:
             self.requires("et-common-libs/[>=0.0.5 <1.0.0]")
 
+    def package_id(self):
+        if self.options.header_only:
+            self.info.clear()
     
     def validate(self):
         if self.options.header_only:
@@ -112,7 +109,8 @@ class DnnLibraryConan(ConanFile):
         else:
             cmake = CMake(self)
             cmake.install()
-            tools.rmdir(os.path.join(self.package_folder, "lib", "cmake"))
+            
+            rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
