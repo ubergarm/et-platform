@@ -12,15 +12,15 @@
 #ifndef _TENSOR_VIEW_INST_H_
 #define _TENSOR_VIEW_INST_H_
 
+#include "Addresser.h"
+#include "LibTensor.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
 #include <utility>
-#include "Addresser.h" // From include/internal path
-#include "utils.h" // From include/internal path
-#include "LibTensor.h"
 
 namespace dnn_lib {
 

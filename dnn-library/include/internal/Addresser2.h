@@ -9,15 +9,15 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef ADDRESSER_H
-#define ADDRESSER_H
+#ifndef ADDRESSER_V2_H
+#define ADDRESSER_V2_H
 
 #include "Float16.h"
 #include "LibCommon.h"
 #include "LibTypes.h"
-#include "Writer.h"
+#include "internal_v2/Writer.h"
 
-namespace dnn_lib {
+namespace dnn_lib_v2 {
 
 #define ONLY_FOR(cond) template <ElemKind U = elK, typename std::enable_if<(cond), size_t>::type = 0>
 
@@ -97,6 +97,6 @@ private:
 
 #undef ONLY_FOR
 
-} // namespace dnn_lib
+} // namespace dnn_lib_v2
 
-#endif /* ADDRESSER_H */
+#endif /* ADDRESSER_V2_H */

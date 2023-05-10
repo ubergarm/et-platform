@@ -13,7 +13,7 @@
 #define __SPLAT_INST_H_
 
 #include "LibTensor.h"
-#include "utils.h" // From include/internal path
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>

@@ -12,6 +12,7 @@
 #ifndef LIB_TYPES_H
 #define LIB_TYPES_H
 
+#include "Compiler.h"
 #include <array>
 #include <stdint.h>
 
@@ -241,5 +242,41 @@ public:
 };
 
 } // namespace dnn_lib
+
+namespace dnn_lib_v2 {
+
+typedef unsigned int u32_t;
+typedef signed int s32_t;
+typedef float f32_t;
+
+enum class ETSoC1ElementKind {
+  none,
+  u32, // Unsigned 32 bits integer
+  s32, // Singed 32 bits integer
+  f32, // Single-precision or 32 bits floating point
+};
+
+template <ETSoC1ElementKind elk> struct s { using type = void; };
+template <> struct s<ETSoC1ElementKind::u32> { using type = u32_t; };
+template <> struct s<ETSoC1ElementKind::s32> { using type = s32_t; };
+template <> struct s<ETSoC1ElementKind::f32> { using type = f32_t; };
+
+#if COMPILER_CLANG
+template <unsigned int n, typename T> struct v {
+  static const int length = n;
+  using type = T __attribute__((vector_size(sizeof(T) * n)));
+};
+#else
+template <unsigned int n, typename T> struct v {
+  static const int length = 1;
+  using type = float;
+};
+#endif
+
+using v8s32_t = v<8, s32_t>::type;
+using v8u32_t = v<8, u32_t>::type;
+using v8f32_t = v<8, f32_t>::type;
+
+} // namespace dnn_lib_v2
 
 #endif // LIB_TYPES_H

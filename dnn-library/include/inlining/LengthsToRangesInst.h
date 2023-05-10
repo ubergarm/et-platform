@@ -18,10 +18,10 @@
 #include <limits>
 #include <string.h>
 
+#include "Addresser.h"
 #include "Float16.h"
-#include "Addresser.h" // From include/internal path
-#include "utils.h" // From include/internal path
 #include "LibTensor.h"
+#include "utils.h"
 
 namespace dnn_lib {
 

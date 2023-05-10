@@ -13,6 +13,7 @@
 #define _IMAGE_CONDITIONING_H_
 
 #include "LibTensor.h"
+#include "etsoc/common/utils.h"
 #include "utils.h"
 #include <algorithm>
 #include <assert.h>

@@ -23,8 +23,9 @@
 #include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
+#include "etsoc/common/utils.h"
 #include "etsoc/isa/atomic.h"
-#include "utils.h" // From include/internal path
+#include "utils.h"
 
 // static bool enablePrinting;
 

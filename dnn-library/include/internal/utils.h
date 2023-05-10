@@ -12,18 +12,15 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include <sstream>
+#include "Float16.h"
+#include "LibCommon.h"
 #include <cstdint>
-#include <utility>
-
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/cacheops-umode.h>
 #include <etsoc/isa/hart.h>
 #include <etsoc/isa/tensors.h>
-
-#include "Float16.h"
-#include "LibCommon.h"
-#include "LoadStore.h"
+#include <sstream>
+#include <utility>
 
 namespace dnn_lib {
 
@@ -40,8 +37,9 @@ namespace dnn_lib {
 // FUNCTION: fence_evict_va
 //
 // just calls evict_va, but doing a fence first
-inline  __attribute__((always_inline))
-void fence_evict_va(uint64_t use_tmask, uint64_t dst, uint64_t addr, uint64_t num_lines = 0, uint64_t stride = 0, uint64_t id = 0) {
+inline __attribute__((always_inline)) void fence_evict_va(uint64_t use_tmask, uint64_t dst, uint64_t addr,
+                                                          uint64_t num_lines = 0, uint64_t stride = 0,
+                                                          uint64_t id = 0) {
   FENCE;
   cache_ops_evict_va(use_tmask, dst, addr, num_lines, stride, id);
 }
@@ -57,26 +55,23 @@ inline __attribute__((always_inline)) void evict_va_multi(uint64_t dst, uintptr_
   FENCE;
   while (num_lines > 16) {
     cache_ops_evict_va(0, dst, addr, 15, CACHE_LINE_BYTES, 0);
-    addr += (CACHE_LINE_BYTES*16);
+    addr += (CACHE_LINE_BYTES * 16);
     num_lines -= 16;
   }
   if (num_lines > 0)
     cache_ops_evict_va(0, dst, addr, static_cast<uint64_t>(num_lines - 1), CACHE_LINE_BYTES, 0);
 }
 
-inline __attribute__((always_inline))
-unsigned int gcd(unsigned int a, unsigned int b) {
+inline __attribute__((always_inline)) unsigned int gcd(unsigned int a, unsigned int b) {
   if (b == 1)
     return a;
   return gcd(b, a % b);
 }
 
-template<class T>
-constexpr std::size_t getsize() {
+template <class T> constexpr std::size_t getsize() {
   return sizeof(T);
 }
-template<>
-constexpr std::size_t getsize<float16>() {
+template <> constexpr std::size_t getsize<float16>() {
   return 2;
 }
 
@@ -102,10 +97,9 @@ template <> constexpr std::size_t getsize<bfloat16>() {
  */
 
 /* overloading while sw-2400 and sw-2429 are WIP */
-template<typename T>
-inline __attribute__((always_inline))
-void getCoordinates(unsigned int *coord, unsigned int offset,
-                    unsigned int dimNum, const T *pitch) {
+template <typename T>
+inline __attribute__((always_inline)) void getCoordinates(unsigned int* coord, unsigned int offset, unsigned int dimNum,
+                                                          const T* pitch) {
   unsigned int rm = offset;
   for (unsigned int i = 0; i < dimNum; i++) {
     assert((pitch[i] != 0) and "Broadcast pitch 0 not supported");
@@ -692,7 +686,7 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getTa
     float e2x, denom;
     dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(M_E), 2 * val, e2x);
     dnn_lib::fpReciprocalSingleElement<setMask>(e2x + 1, denom);
-    return (denom * (e2x-1));
+    return (denom * (e2x - 1));
   }
 }
 
@@ -704,20 +698,18 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getCo
   return cosf(val);
 }
 
-inline __attribute__((always_inline))
-bool isInteger(float f) {
+inline __attribute__((always_inline)) bool isInteger(float f) {
   return (nearbyintf(f) == f);
 }
 
-inline __attribute__((always_inline))
-bool isEven(int val) {
+inline __attribute__((always_inline)) bool isEven(int val) {
   return ((val % 2) == 0);
 }
 
 template <bool setMask = true> inline __attribute__((always_inline)) float getPow(float base, float exp) {
   float dst_tmp, inverted;
   if (base == 0)
-    return (exp==0);
+    return (exp == 0);
   else if ((base < 0) && !isInteger(exp))
     return NAN;
   else if ((base > 0) && exp == 0)
@@ -770,19 +762,16 @@ inline __attribute__((always_inline)) std::pair<int, int> getLanesResFromNElemen
 
   if (getsize<srcType>() == 1) {
     lanes = numofelements / 4;
-    res = numofelements - 4 *lanes;
-  }
-  else if (getsize<srcType>() == 2) {
+    res = numofelements - 4 * lanes;
+  } else if (getsize<srcType>() == 2) {
     lanes = numofelements / 2;
-    res = numofelements -2 *lanes;
-   }
-  else if (getsize<srcType>() == 4) {
-      lanes = numofelements;
-      res = 0;
-  }
-  else if (getsize<srcType>() == 8) {
-      lanes = numofelements * 2;
-      res = 0;
+    res = numofelements - 2 * lanes;
+  } else if (getsize<srcType>() == 4) {
+    lanes = numofelements;
+    res = 0;
+  } else if (getsize<srcType>() == 8) {
+    lanes = numofelements * 2;
+    res = 0;
   }
 
   return std::make_pair(lanes, res);
@@ -790,15 +779,13 @@ inline __attribute__((always_inline)) std::pair<int, int> getLanesResFromNElemen
 
 //@TODO: REPLACE template by const size_t once all operands are using LibTensor
 template <typename T>
-inline __attribute__((always_inline))
-bool getNextStep(unsigned int dimNum,
-                 unsigned int *coord, T *dims) {
+inline __attribute__((always_inline)) bool getNextStep(unsigned int dimNum, unsigned int* coord, T* dims) {
   for (unsigned int i = 0; i < dimNum; i++) {
-    if (coord[i] < dims[i]-1) {
-      coord[i] = coord[i]+1;
+    if (coord[i] < dims[i] - 1) {
+      coord[i] = coord[i] + 1;
       break;
     } else {
-      if (i == dimNum-1) {
+      if (i == dimNum - 1) {
         return true;
       } else {
         coord[i] = 0;
@@ -828,10 +815,8 @@ inline __attribute__((always_inline)) bool getNextStep(dim_t dimNum, dim_array_t
 
 /* Routine getOffset seeems deprecated, cant find any reference */
 
-template<typename T>
-inline __attribute__((always_inline))
-unsigned int getOffset(unsigned int *coord,  unsigned int dimNum,
-                       const T *pitch) {
+template <typename T>
+inline __attribute__((always_inline)) unsigned int getOffset(unsigned int* coord, unsigned int dimNum, const T* pitch) {
   unsigned int offset = 0;
   for (unsigned int i = 0; i < dimNum; i++) {
     offset += coord[i] * pitch[i];

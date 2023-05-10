@@ -12,14 +12,14 @@
 #ifndef _AVG_POOL_INST_H_
 #define _AVG_POOL_INST_H_
 
-#include "Addresser.h" // From include/internal path
+#include "Addresser.h"
 #include "Float16.h"
 #include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
 #include "LibUtils.h"
-#include "Writer.h" // From include/internal path
-#include "utils.h"  // From include/internal path
+#include "Writer.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>

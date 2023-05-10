@@ -19,10 +19,10 @@
 #include <string.h>
 
 #include "Float16.h"
-#include "utils.h" // From include/internal path
-#include "LibTypes.h"
-#include "LibTensor.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "utils.h"
 
 namespace dnn_lib {
 

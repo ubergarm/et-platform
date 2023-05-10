@@ -12,14 +12,14 @@
 #ifndef _FUSED_ROWWISE_QUANTIZED_SPARSE_LENGTHS_SUM_H_
 #define _FUSED_ROWWISE_QUANTIZED_SPARSE_LENGTHS_SUM_H_
 
+#include "Float16.h"
+#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "Float16.h"
-#include "utils.h" // From include/internal path
-#include "FusedRowwiseQuantizedSparseLengthsWeightedSumInst.h" // From include/inlining path
 
 namespace dnn_lib {
 

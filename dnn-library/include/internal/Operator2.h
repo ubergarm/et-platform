@@ -9,13 +9,13 @@
  *-------------------------------------------------------------------------
  */
 
-#ifndef OPERATOR_H
-#define OPERATOR_H
+#ifndef OPERATOR_V2_H
+#define OPERATOR_V2_H
 
 #include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
-#include "LoadStore.h"
+#include "LoadStore2.h"
 #include "Operators.h"
 #include "utils.h"
 
@@ -37,7 +37,7 @@
   "fmul.ps f0, f0, f29 \n"                                                                                             \
   "fcvt.pw.ps f0, f0 \n"
 
-namespace dnn_lib {
+namespace dnn_lib_v2 {
 
 template <typename src1Type, typename src2Type, typename dstType, typename opType, bool setMaskForScalar = false>
 class Operator {
@@ -2037,29 +2037,31 @@ INLINE_ATTR void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, f
 
   // Setup scatter configuration for destination
   uint64_t dstConf;
-  float dstIndices, dstIndicesHigh;
+  v8s32_t dstIndices, dstIndicesHigh;
   setupGatherScatterConfig<dstBytesPerElement, false>(dstConf, dstIndices, dstIndicesHigh);
 
   // Setup gather configuration for LHS
   uint64_t lhsConf;
-  float lhsIndices, lhsIndicesHigh;
+  v8s32_t lhsIndices, lhsIndicesHigh;
   setupGatherScatterConfig<lhsBytesPerElement, false>(lhsConf, lhsIndices, lhsIndicesHigh);
 
   // Setup gather configuration for RHS
   uint64_t rhsConf;
-  float rhsIndices, rhsIndicesHigh;
+  v8s32_t rhsIndices, rhsIndicesHigh;
   setupGatherScatterConfig<rhsBytesPerElement, false>(rhsConf, rhsIndices, rhsIndicesHigh);
 
   // Setup LHS dequantize
-  float lhsScale_, lhsOffset_;
+  v8f32_t lhsScale_;
+  v8s32_t lhsOffset_;
   setupDequantize(lhsScale_, lhsOffset_, lhsScale, lhsOffset);
 
   // Setup RHS dequantize with destination scale pre-multiply
-  float rhsScale_, rhsOffset_;
+  v8f32_t rhsScale_;
+  v8s32_t rhsOffset_;
   setupDequantize(rhsScale_, rhsOffset_, rhsScale * dstScale, rhsOffset);
 
   // Convert dstOffset from int32_t to float
-  float dstOffset_;
+  v8f32_t dstOffset_;
   if constexpr (isQuantizedElemKind(lhsElK)) {
     __asm__ __volatile__("fbcx.ps %[dstOffset_], %[dstOffset]\n"
                          "fcvt.ps.pw %[dstOffset_], %[dstOffset_], rtz\n"
@@ -2070,11 +2072,11 @@ INLINE_ATTR void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, f
   }
 
   // Load LHS
-  float lhs, lhsHigh;
+  v8u32_t lhs, lhsHigh;
   load<lhsBytesPerElement, false>(lhsAddr, lhsConf, lhsIndices, lhsIndicesHigh, lhs, lhsHigh);
 
   // Load RHS
-  float rhs, rhsHigh;
+  v8u32_t rhs, rhsHigh;
   load<rhsBytesPerElement, false>(rhsAddr, rhsConf, rhsIndices, rhsIndicesHigh, rhs, rhsHigh);
 
   // Compute result
@@ -2090,7 +2092,7 @@ INLINE_ATTR void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, f
     __asm__ __volatile__("frcp.ps %[rhs], %[rhs]\n" : [ rhs ] "+f"(rhs));
 
     // Compute lhs * rcp(rhs) + dstOffset
-    float q;
+    v8f32_t q;
     multiplyAdd(q, lhs, rhs, dstOffset_);
 
     // Round like std::round and convert to int32_t
@@ -2126,6 +2128,6 @@ INLINE_ATTR void doOp(uintptr_t dstAddr, uintptr_t lhsAddr, uintptr_t rhsAddr, f
   }
 }
 
-} // namespace dnn_lib
+} // namespace dnn_lib_v2
 
-#endif /* OPERATOR_H */
+#endif /* OPERATOR_V2_H */

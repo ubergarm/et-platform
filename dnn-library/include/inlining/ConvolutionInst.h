@@ -12,13 +12,14 @@
 #ifndef _CONVOLUTION_INST_H_
 #define _CONVOLUTION_INST_H_
 
-#include "Addresser.h" // From include/internal path
+#include "Addresser.h"
 #include "Float16.h"
 #include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
 #include "LibUtils.h"
-#include "utils.h" // From include/internal path
+#include "LoadStore.h"
+#include "utils.h"
 #include <assert.h>
 #include <cmath>
 #include <fenv.h>

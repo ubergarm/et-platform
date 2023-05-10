@@ -12,12 +12,12 @@
 #ifndef _SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
 #define _SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
 
-#include <limits>
-#include <assert.h>
-#include "utils.h"
-#include "LibTypes.h"
-#include "LibTensor.h"
 #include "LibCommon.h"
+#include "LibTensor.h"
+#include "LibTypes.h"
+#include "utils.h"
+#include <assert.h>
+#include <limits>
 
 namespace dnn_lib {
 

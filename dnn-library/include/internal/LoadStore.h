@@ -12,6 +12,7 @@
 #ifndef _LOADSTORE_H_
 #define _LOADSTORE_H_
 
+#include "LibCommon.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
 #include <limits>

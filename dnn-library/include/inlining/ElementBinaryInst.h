@@ -12,22 +12,23 @@
 #ifndef _ELEMENT_BINARY_INST_H_
 #define _ELEMENT_BINARY_INST_H_
 
-#include <assert.h>
+#include "Float16.h"
+#include "LibTensor.h"
+#include "LoadStore.h"
+#include "etsoc/common/utils.h"
+#include "utils.h"
 #include <cmath>
 #include <fenv.h>
 #include <limits>
 #include <string.h>
-#include "Float16.h"
-#include "utils.h" // From include/internal path
-#include "LibTensor.h"
 
-namespace dnn_lib {
+ namespace dnn_lib {
 
-namespace inlining {
+ namespace inlining {
 
-////////////////////////////////////////////////////////////////////////////////
-// macro to instantiate compute depending on the operation
-////////////////////////////////////////////////////////////////////////////////
+ ////////////////////////////////////////////////////////////////////////////////
+ // macro to instantiate compute depending on the operation
+ ////////////////////////////////////////////////////////////////////////////////
 
 #define EB_COMPUTE(OP_, IS_INDEX_, SKIP_CONVERT_, MATCH_x86)                                                           \
   do {                                                                                                                 \
@@ -183,7 +184,7 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   static_assert(elK != Int64ITy, "Int64Ty not supported");
   // just return if minion is not to be used
 
-  assert(get_minion_id() >= minionOffset);
+  et_assert(get_minion_id() >= minionOffset);
   size_t minionId = get_minion_id() - minionOffset;
   size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
@@ -196,13 +197,10 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
 
   // compute function
   auto compute = [&](const uintptr_t dstAddr, const uintptr_t src1Addr, uintptr_t src2Addr, const dim_t valid) {
-    // set mask
-    if (valid < 8) {
-      uint8_t mask = static_cast<uint8_t>((1UL << valid) - 1);
-      __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
-    } else {
-      __asm__ __volatile__("mov.m.x m0, zero, 0xFF \n");
-    }
+    // Enable only the valid elements
+    et_assert(valid <= 8);
+    uint8_t mask = static_cast<uint8_t>(((1UL << valid) - 1));
+    __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
 
     // setup quantization (attribute unused just avoids warnings of variable not being used, which happens if not
     // [de]quantizing)
@@ -261,7 +259,7 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   INLINE_ATTR void fwdLibElementInst<Int64ITy, OP_>(LibTensor * outT, LibTensor * in1T, LibTensor * in2T,              \
                                                     uint64_t flags, const uint32_t minionOffset,                       \
                                                     const uint32_t assignedMinions) {                                  \
-    assert(get_minion_id() >= minionOffset);                                                                           \
+    et_assert(get_minion_id() >= minionOffset);                                                                        \
     size_t minionId = get_minion_id() - minionOffset;                                                                  \
     size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;           \
     if (minionId >= activeMinions)                                                                                     \
@@ -305,8 +303,8 @@ EB_I64_COMPUTE(Max, std::max(a, b))
 
 #undef EltWiseBinaryInst
 
-} // namespace inlining
+  } // namespace inlining
 
-} // namespace dnn_lib
+  } // namespace dnn_lib
 
 #endif // _ELEMENT_INST_H_
