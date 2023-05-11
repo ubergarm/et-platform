@@ -196,6 +196,8 @@ public:
   // static inline constexpr const char* help_msg =
   constexpr static const char* help_msg =
     "  '', --enableCoreDump          Write perfetto trace to a file instead\n"
+    "  '', --useRuntimeMultiProcess  Server/Client mode will be use by app running it as a client.\n"
+    "  '', --runtimeSocket           Socket filename to be use.\n"
     "  '', --simulator_params        Hyperparameters to pass to simulator, overrides default values\n";
 
 private:
@@ -204,7 +206,7 @@ private:
   logging::LoggerDefault loggerDefault_;
   void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, uint64_t shireMask, uint32_t deviceIdx);
   void reportUserException(const rt::StreamError& error) const;
-  void createRuntime(bool enableCoreDump, rt::Options options);
+  void createRuntime(bool enableCoreDump, bool useRuntimeMultiProcess, rt::Options options);
   void resetRuntime(bool enableCoreDump);
   rt::IRuntime* getRuntime(bool enableCoreDump);
   AbortManager abortManager_;
@@ -215,6 +217,7 @@ private:
   fs::path gp_sdk_device_installdir_;
   std::string simulator_params_;
   bool enableCoreDump_ = false;
+  bool useRuntimeMultiProcess_ = false;
 
 protected:
   const Config& config_;
@@ -224,8 +227,8 @@ protected:
   std::vector<rt::DeviceId> devices_;
   std::vector<rt::StreamId> defaultStreams_;
   std::vector<rt::StreamId> traceStreams_;
-
   std::vector<std::byte*> traceDeviceBuffer_;
+  std::string runtimeSocketName_ = "/tmp/pcie.sock";
   uint32_t numDev_ = 0;
   size_t devIdx_ = 0;
 };

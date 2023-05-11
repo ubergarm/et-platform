@@ -67,10 +67,18 @@ std::vector<std::byte> GenericLauncher::readFile(const std::string& path) {
 void GenericLauncher::initialize() {
 
   auto options = rt::getDefaultOptions();
+
+  if (useRuntimeMultiProcess_ && ((config_.mode_ == Mode::SYSEMU) || (config_.mode_ == Mode::FAKE))) {
+    std::cout << "Client not supported with this mode \n";
+    exit(-1);
+  }
+
   switch (config_.mode_) {
   case Mode::PCIE:
     std::cout << "Running tests with PCIE deviceLayer\n";
-    deviceLayer_ = dev::IDeviceLayer::createPcieDeviceLayer();
+    if (!useRuntimeMultiProcess_) {
+      deviceLayer_ = dev::IDeviceLayer::createPcieDeviceLayer();
+    }
     break;
   case Mode::SYSEMU: {
     std::cout << "Running tests with SYSEMU deviceLayer\n";
@@ -81,12 +89,14 @@ void GenericLauncher::initialize() {
       vopts.back().logFile += std::to_string(i);
     }
     deviceLayer_ = dev::IDeviceLayer::createSysEmuDeviceLayer(vopts);
+
     break;
   }
   case Mode::FAKE:
     std::cout << "Running tests with FAKE deviceLayer\n";
     deviceLayer_ = std::make_unique<dev::DeviceLayerFake>();
     options.checkDeviceApiVersion_ = false;
+
     break;
   case Mode::LAST:
     std::cout << "Unsupported device \n";
@@ -94,11 +104,11 @@ void GenericLauncher::initialize() {
     break;
   }
 
-  createRuntime(enableCoreDump_, options);
+  createRuntime(enableCoreDump_, useRuntimeMultiProcess_, options);
 
   devices_ = runtime_->getDevices();
 
-  for (auto i = 0U; i < static_cast<uint32_t>(deviceLayer_->getDevicesCount()); ++i) {
+  for (auto i = 0U; i < devices_.size(); ++i) {
     defaultStreams_.emplace_back(runtime_->createStream(devices_[i]));
     traceStreams_.emplace_back(runtime_->createStream(devices_[i]));
     numDev_++;
@@ -209,9 +219,8 @@ constexpr uint64_t getTraceThreadMask() {
   return 0xFFFFFFFFFFFFFFFFULL;
 }
 
-
-
-std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize, uint64_t shireMask = 0xFFFFFFFFULL) {
+std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize,
+                                                   uint64_t shireMask = 0xFFFFFFFFULL) {
   if (not enableKernelTraces) {
     return std::nullopt;
   }
@@ -257,6 +266,7 @@ void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId, 
 }
 
 void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_t deviceIdx) {
+
   auto success = runtime_->waitForStream(defaultStreams_[deviceIdx], timeout);
 
   if (success) {
@@ -281,7 +291,8 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_
 
 void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, uint64_t shireMask,
                                      uint32_t deviceIdx) {
-  std::optional<rt::UserTrace> optUserTrace = fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize, shireMask);
+  std::optional<rt::UserTrace> optUserTrace =
+    fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize, shireMask);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
 
@@ -299,13 +310,21 @@ void GenericLauncher::reportUserException(const rt::StreamError& error) const {
   out.close();
 }
 
-void GenericLauncher::createRuntime(bool enableCoreDump, rt::Options options) {
+void GenericLauncher::createRuntime(bool enableCoreDump, bool useRuntimeMultiProcess, rt::Options options) {
   if (enableCoreDump) {
-    // If core dump is enabled, runtime wrapper with core dump capabilities is used
-    runtimeBase_ = rt::IRuntime::create(deviceLayer_.get(), options);
-    runtime_ = std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_);
+    if (useRuntimeMultiProcess) {
+      runtimeBase_ = rt::IRuntime::create(runtimeSocketName_);
+    } else {
+      // If core dump is enabled, runtime wrapper with core dump capabilities is used
+      runtimeBase_ = rt::IRuntime::create(deviceLayer_.get(), options);
+    }
+    runtime_ = std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_, useRuntimeMultiProcess);
   } else {
-    runtime_ = rt::IRuntime::create(deviceLayer_.get(), options);
+    if (useRuntimeMultiProcess) {
+      runtime_ = rt::IRuntime::create(runtimeSocketName_);
+    } else {
+      runtime_ = rt::IRuntime::create(deviceLayer_.get(), options);
+    }
   }
 }
 
@@ -333,6 +352,7 @@ void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
   static constexpr const char* short_opts = "cs:";
 
   static const std::vector<struct option> long_opts_vect{{"enableCoreDump", no_argument, nullptr, 0},
+                                                         {"useRuntimeMultiProcess", no_argument, nullptr, 0},
                                                          {"simulator_params", required_argument, nullptr, 0},
                                                          {nullptr, 0, nullptr, 0}};
 
@@ -363,6 +383,10 @@ void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
       simulator_params_ = optarg;
     } else if (!strcmp(name, "enableCoreDump")) {
       enableCoreDump_ = true;
+    } else if (!strcmp(name, "useRuntimeMultiProcess")) {
+      useRuntimeMultiProcess_ = true;
+    } else if (!strcmp(name, "runtimeSocket")) {
+      runtimeSocketName_ = optarg;
     }
   }
 

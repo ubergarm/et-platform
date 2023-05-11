@@ -19,9 +19,10 @@
 //------------------------------------------------------------------------------------------------
 class RuntimeImpWithCoreDump : public rt::IRuntime {
 public:
-  RuntimeImpWithCoreDump(rt::IRuntime* runtime, AbortManager* abortManager)
+  RuntimeImpWithCoreDump(rt::IRuntime* runtime, AbortManager* abortManager, bool useRuntimeMultiProcess = false)
     : runtime_(runtime)
-    , abortManager_(abortManager) {
+    , abortManager_(abortManager)
+    , useRuntimeMultiProcess_(useRuntimeMultiProcess) {
   }
   ~RuntimeImpWithCoreDump() final;
 
@@ -57,6 +58,7 @@ public:
 private:
   rt::IRuntime* runtime_;
   AbortManager* abortManager_;
+  bool useRuntimeMultiProcess_;
 };
 
 #endif // RUNTIME_WITH_CORE_DUMP_IMP_H
