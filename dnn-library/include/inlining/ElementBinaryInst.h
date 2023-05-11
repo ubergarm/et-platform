@@ -17,6 +17,7 @@
 #include "LoadStore.h"
 #include "etsoc/common/utils.h"
 #include "utils.h"
+#include <cassert>
 #include <cmath>
 #include <fenv.h>
 #include <limits>
@@ -184,7 +185,8 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   static_assert(elK != Int64ITy, "Int64Ty not supported");
   // just return if minion is not to be used
 
-  et_assert(get_minion_id() >= minionOffset);
+  // SW-17085: Enable et_assert on dnnLib
+  assert(get_minion_id() >= minionOffset);
   size_t minionId = get_minion_id() - minionOffset;
   size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
   if (minionId >= activeMinions) return;
@@ -259,7 +261,8 @@ INLINE_ATTR void fwdLibElementInst(LibTensor* outT, LibTensor* in1T, LibTensor* 
   INLINE_ATTR void fwdLibElementInst<Int64ITy, OP_>(LibTensor * outT, LibTensor * in1T, LibTensor * in2T,              \
                                                     uint64_t flags, const uint32_t minionOffset,                       \
                                                     const uint32_t assignedMinions) {                                  \
-    et_assert(get_minion_id() >= minionOffset);                                                                        \
+    /* SW-17085: Enable et_assert on dnnLib */                                                                         \
+    assert(get_minion_id() >= minionOffset);                                                                           \
     size_t minionId = get_minion_id() - minionOffset;                                                                  \
     size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;           \
     if (minionId >= activeMinions)                                                                                     \
