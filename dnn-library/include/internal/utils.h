@@ -30,8 +30,6 @@ namespace dnn_lib {
 
 #define print(s) et_printf((s))
 
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
-
 //-------------------------------------------------------------------------------------------------
 //
 // FUNCTION: fence_evict_va
