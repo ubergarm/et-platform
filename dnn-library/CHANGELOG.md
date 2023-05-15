@@ -10,6 +10,29 @@
 ### Fixed
 ### Security
 
+## [0.6.0]
+### Added
+- [SW-16352] Add implementation for Neg/Not/Sin/Cos in DNN Library
+- [SW-16351] Add empty implementation for Trilu in dnn library
+- [SW-11312] Added explicit zero offset zero to {flw|fsw}.ps instances
+### Changed
+- [SW-16712] Extend CumSum to support multiple dims and axis
+- [SW-16750] Make fgh.ps occurrences to follow the official format
+- Forked core files from "./internal/" for supporting vector data types
+- [SW-17085] Leaving pre-existing asserts alone on ElementBinaryInst.h
+### Deprecated
+### Removed
+### Fixed
+- [SW-16407] Fix ElementSin/ElementCos/ElementNot
+- Fixed an alignof(void) statement that did not build with LLVM
+- [SW-16748] Fixed a typo in FullyConnected operator
+- [SW-16876] Fix typo in EmbeddingBag implementation
+- [SW-16192] Fix creation of tensor iterator from offset pointing to padding
+- [SW-16893] Fix transpose writing out of bounds
+- [SW-11425] Declare vector mask register usages for clang in include/Float16.h
+- [SW-16749] Fixed out of bounds access on AvgPoolInst.h
+### Security
+
 ## [0.5.0]
 ### Added
 ### Changed
