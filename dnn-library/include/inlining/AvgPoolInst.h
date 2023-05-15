@@ -365,7 +365,7 @@ INLINE_ATTR void fwdLibAvgPoolInstThreaded(LibTensor* outT, LibTensor* inT, cons
 
   dim_array_t coord = {0};
   dim_t k = 0;
-  getNonPaddingCoordinates(coord, initialAddr, static_cast<dim_t>(ARRAY_SIZE(coord)), dstPitch, dstIndex, k);
+  getNonPaddingCoordinates(coord, initialAddr, 4, dstPitch, dstIndex, k);
 
   size_t offsetOut = 0;
   for (dim_t i = 0; i < k; i++) {
