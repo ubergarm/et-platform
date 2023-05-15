@@ -30,6 +30,8 @@ KERNEL_LAUNCHERS = {
     "data": "basic_launcher",    
     "exception": "basic_launcher",
     "external_tls": "basic_launcher",
+    "fail_abort": "basic_launcher",
+    "fail_assert": "basic_launcher",
     "fftKernel": "fft_launcher",
     "fnodiv": "basic_launcher",
     "gp": "basic_launcher",
@@ -68,7 +70,7 @@ EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=200"]
 
 SHOULD_FAIL = ["hang", "exception"]
-JUST_FAIL = ["OneTrapOnSync"]
+JUST_FAIL = ["OneTrapOnSync", "fail_abort", "fail_assert"]
 
 ERROR_COMMENT = {
     "hang": "Generate code hang",
