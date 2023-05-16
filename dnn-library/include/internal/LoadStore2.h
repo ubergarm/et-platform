@@ -34,9 +34,9 @@ enum class RoundingMode {
   LikeCast = TowardsZero
 };
 
-template <RoundingMode mode = RoundingMode::Dynamic, bool careAboutNonFinite = true,
+template <typename dstTy = v8s32_t, RoundingMode mode = RoundingMode::Dynamic, bool careAboutNonFinite = true,
           bool careAboutSignallingNaN = false>
-INLINE_ATTR void convertFloatToInt32(v8f32_t source, v8s32_t& destination, [[maybe_unused]] uint32_t vmask) {
+INLINE_ATTR void convertFloatToInt32(v8f32_t source, dstTy& destination, [[maybe_unused]] uint32_t vmask) {
 
   static_assert(mode != RoundingMode::Invalid1 and mode != RoundingMode::Invalid2);
 
@@ -533,7 +533,8 @@ INLINE_ATTR void doQuantize(dstType& destination, v8f32_t source, v8f32_t scaleR
   static_assert(dnn_lib::isQuantizedElemKind(dstElK));
   v8f32_t inFullRange;
   multiplyAdd(inFullRange, source, scaleReciprocal, offset, vmask);
-  convertFloatToInt32<roundingMode, careAboutNonFinite, canAboutSignallingNaN>(inFullRange, destination, vmask);
+  convertFloatToInt32<dstType, roundingMode, careAboutNonFinite, canAboutSignallingNaN>(inFullRange, destination,
+                                                                                        vmask);
   clip<dstElK>(destination, destination, vmask);
 }
 
@@ -604,7 +605,7 @@ INLINE_ATTR void convert(srcType source, [[maybe_unused]] srcType sourceHigh, ds
     doQuantize<dstType, dstElK, careAboutNonFinite, canAboutSignallingNaN, roundingMode>(
       destination, source, dstScaleReciprocal, dstOffset, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int32ITy) {
-    convertFloatToInt32<RoundingMode::LikeCast>(source, destination, vmask);
+    convertFloatToInt32<dstType, RoundingMode::LikeCast>(source, destination, vmask);
   } else if constexpr (srcElK == dnn_lib::FloatTy and dstElK == dnn_lib::Int64ITy) {
     v8u32_t mask, exponent, implicit, minusExponent, tmp, mantissa;
     __asm__ __volatile__(
