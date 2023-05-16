@@ -11,8 +11,6 @@
 
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/hart.h>
-#include <stdlib.h>
-#include <stdio.h>
 
 #include "entryPoint.h"
 class KernelArguments;
