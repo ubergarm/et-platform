@@ -14,20 +14,21 @@ import csv
 import logging
 import glob
 from pathlib import Path
+import re
 import subprocess
 import pytest
 from collections import namedtuple
 
 KERNEL_LAUNCHERS = {
     "bss": "basic_launcher",
-    "busy10sec": "basic_launcher",    
+    "busy10sec": "basic_launcher",
     "c_contructors": "basic_launcher",
     "c_tls": "basic_launcher",
     "cacheops_flush": "basic_launcher",
     "check_pmc": "basic_launcher",
     "cpp_contructors": "basic_launcher",
     "cpp_tls": "basic_launcher",
-    "data": "basic_launcher",    
+    "data": "basic_launcher",
     "exception": "basic_launcher",
     "external_tls": "basic_launcher",
     "fail_abort": "basic_launcher",
@@ -36,11 +37,11 @@ KERNEL_LAUNCHERS = {
     "fnodiv": "basic_launcher",
     "gp": "basic_launcher",
     "hang": "basic_launcher",
-    "OneTrapOnSync": "basic_launcher",    
+    "OneTrapOnSync": "basic_launcher",
     "print": "basic_launcher",
     "print2": "basic_launcher",
     "profiling_simple": "basic_launcher",
-    "profiling_stress": "basic_launcher",    
+    "profiling_stress": "basic_launcher",
     "saxpy_profiling": "saxpy_launcher",
     "saxpy_scalar": "saxpy_launcher",
     "saxpy_vector": "saxpy_launcher",
@@ -48,13 +49,15 @@ KERNEL_LAUNCHERS = {
     "syncDeviceBasic": "barrier_launcher",
     "syncAll": "basic_launcher",
     "syncMinion": "barrier_launcher",
-    "txfma": "txfma_launcher"
+    "txfma": "txfma_launcher",
+    "variableStrings": "basic_launcher"
 }
 
 
 KERNELS = list(KERNEL_LAUNCHERS.keys())
 
 SKIP_SYSEMU = ["check_pmc", "busy10sec"]
+SKIP_ANY = ["variableStrings"]
 
 EXTRA_ARGS = defaultdict(list)
 EXTRA_ARGS["saxpy_profiling"] = ["--launch_mult=2"]
@@ -66,7 +69,7 @@ EXTRA_ARGS["check_pmc"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["busy10sec"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 
-#only needed for device_type = sysemu
+# only needed for device_type = sysemu
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=200"]
 
 SHOULD_FAIL = ["hang", "exception"]
@@ -83,20 +86,59 @@ MASK_SWEEP = ["0x1", "0xF", "0xFF", "0xFFFF", "0xFFFFFFFF"]
 CmdLineArg = namedtuple("CmdLineArg", ["param", "valid"])
 
 KERNEL_PATH = [CmdLineArg("--kernel_path", True), CmdLineArg("-k", True)]
-DEVICE_TYPE = [CmdLineArg("--device_type", True), CmdLineArg("--device-type", False), CmdLineArg("-device_type", True), CmdLineArg("-d", True)]
-SIMULATOR_PARAMS = [CmdLineArg("--simulator_params", True), CmdLineArg("--simulator-params", False), CmdLineArg("-simulator_params", False)]
-SIMULATOR_OPT_ARG = [CmdLineArg("-l -lm 0", True), CmdLineArg("-l -lm 0 -mem_check", True), CmdLineArg("-l -lm 0 -mem-check", False)]
+DEVICE_TYPE = [CmdLineArg("--device_type", True), CmdLineArg("--device-type",
+                                                             False), CmdLineArg("-device_type", True), CmdLineArg("-d", True)]
+SIMULATOR_PARAMS = [CmdLineArg("--simulator_params", True), CmdLineArg(
+    "--simulator-params", False), CmdLineArg("-simulator_params", False)]
+SIMULATOR_OPT_ARG = [CmdLineArg("-l -lm 0", True), CmdLineArg(
+    "-l -lm 0 -mem_check", True), CmdLineArg("-l -lm 0 -mem-check", False)]
 ENABLE_CORE = [CmdLineArg("--enableCoreDump", True)]
 
 str_example_not_built = "the examples have not been built"
+
+
+def check_variable_strings(trace):
+    """ This function validates the trace which contains et_printf output.
+    It contains a total of 23 lines, and the first line contains the information of the file name "variableStrings". 
+    It is a hardcoded token used to identify the correct traces. It also contains the number of characters for the next et_printf call. 
+    For a better understanding, refer to the print loop in device\tests\variableStrings\variableStrings.cc. 
+    The trace looks like below:
+    1575921352789;string;{plain_string};{"variableStrings,2\n"}
+    1575921355817;string;{plain_string};{"01"}
+    1575921360652;string;{plain_string};{"variableStrings,4\n"}
+    1575921362805;string;{plain_string};{"0123"}
+    1575921367638;string;{plain_string};{"variableStrings,8\n"}
+    1575921370124;string;{plain_string};{"01234567"}"""
+
+    for i in range(1, len(trace), 2):
+        if i + 1 <= len(trace):
+            trace_identifier = re.findall(
+                r'\b\w+\b', trace[i][3].split(',')[-2])
+            number_of_chars = re.findall(r'\d+', trace[i][3].split(',')[-1])
+            actual_string = re.findall(r'\d+', trace[i + 1][3])
+            if trace_identifier[0] == "variableStrings":
+                logging.info(f"Checking srting size of {number_of_chars}")
+                assert int(number_of_chars[0]) == len(actual_string[0])
+
+
+def trace_contains_token(trace, token: str) -> bool:
+    for substr in trace:
+        if any(token in item for item in substr):
+            return True
+    return False
+
 
 def check_device_trace(shell, path: Path):
     """Check whether the device trace exists and is well formatted"""
     assert path.exists()
     dt2json = shell.run(f"dt2json -t {path}")
-    trace = list(csv.reader(dt2json.stdout.decode("utf-8").splitlines(), delimiter=";"))
+    trace = list(csv.reader(dt2json.stdout.decode(
+        "utf-8").splitlines(), delimiter=";"))
     assert trace[0][0] == "TIMESTAMP"
     assert trace[0][1] == "STATS_TYPE"
+
+    if trace_contains_token(trace, 'variableStrings'):
+        check_variable_strings(trace)
 
 
 def check_run_artifacts(shell, device_type: str, nkernels: int = 1):
@@ -173,6 +215,8 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
         pytest.skip("the examples have not been built")
     if device_type == "sysemu" and kernel in SKIP_SYSEMU:
         pytest.skip(f"do not run {kernel} on {device_type}")
+    if kernel in SKIP_ANY:
+        pytest.skip(f"Skipping {kernel} on {device_type}")
     logging.info("Running %s on %s", kernel, device_type)
     kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
     launch_cmd = " ".join(
@@ -190,7 +234,7 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
             gdb,
             kernel_path.parent / (kernel_path.name + "_dbg"),
             ERROR_COMMENT[kernel],
-            skip_gdb = request.config.getoption("--skip-gdb"),
+            skip_gdb=request.config.getoption("--skip-gdb"),
         )
     elif kernel in JUST_FAIL:
         with pytest.raises(subprocess.CalledProcessError):
@@ -202,7 +246,7 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
     else:
         shell.run(launch_cmd)
 
-    if kernel not in JUST_FAIL:    
+    if kernel not in JUST_FAIL:
         check_run_artifacts(shell, device_type)
 
 
@@ -229,7 +273,8 @@ def test_run_optional_arguments(shell, kernel, kernel_pth_param, device_type,
             str(build_dir.host / "sdk" / KERNEL_LAUNCHERS[kernel]),
             f'{kernel_pth_param.param} "{kernel_path}"',
             f'{device_type.param} "{device_type_optarg}"',
-            f'{simulator_param.param} "{simulator_optargs.param}"' if ("sysemu" in {device_type_optarg}) else f'{""}',
+            f'{simulator_param.param} "{simulator_optargs.param}"' if (
+                "sysemu" in {device_type_optarg}) else f'{""}',
             f'{enable_core.param}',
         ]
         + EXTRA_ARGS[kernel]
@@ -254,7 +299,8 @@ def test_run_multi_kernel(shell, device_type, build_dir):
         pytest.skip(f'{str_examplesNotBuilt}')
     kernels = ["bss", "saxpy_scalar"]
     logging.info("Running %s on %s", kernels, device_type)
-    kernel_paths = [build_dir.device / "tests" / f"{kernel}.elf" for kernel in kernels]
+    kernel_paths = [build_dir.device / "tests" /
+                    f"{kernel}.elf" for kernel in kernels]
     launch_cmd = " ".join(
         [
             str(build_dir.host / "sdk/multiKernel_launcher"),
