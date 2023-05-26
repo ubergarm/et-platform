@@ -24,6 +24,10 @@
 #include <limits>
 #include <string.h>
 
+#ifdef GPSDK
+#include "sync.h"
+#endif
+
 namespace dnn_lib {
 
 namespace inlining {
@@ -262,8 +266,12 @@ INLINE_ATTR void fft(LibTensor* outT, LibTensor* inT, [[maybe_unused]] uint64_t 
   }
   fcc_consume(fcc);
 
+#ifdef GPSDK
+  hart::barrier();
+#else
   // Synchronize all the shires, for when not using them all
   barrier(minionOffset, numMinions, 1);
+#endif
 }
 
 INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t flags, const uint32_t minionOffset,
