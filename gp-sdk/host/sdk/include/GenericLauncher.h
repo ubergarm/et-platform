@@ -228,7 +228,7 @@ protected:
   std::vector<rt::StreamId> defaultStreams_;
   std::vector<rt::StreamId> traceStreams_;
   std::vector<std::byte*> traceDeviceBuffer_;
-  std::string runtimeSocketName_ = "/tmp/pcie.sock";
+  std::string runtimeSocketName_ = "/var/run/et_runtime/pcie.sock";
   uint32_t numDev_ = 0;
   size_t devIdx_ = 0;
 };

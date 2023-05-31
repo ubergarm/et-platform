@@ -353,6 +353,7 @@ void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
 
   static const std::vector<struct option> long_opts_vect{{"enableCoreDump", no_argument, nullptr, 0},
                                                          {"useRuntimeMultiProcess", no_argument, nullptr, 0},
+                                                         {"runtimeSocket", required_argument, nullptr, 0},
                                                          {"simulator_params", required_argument, nullptr, 0},
                                                          {nullptr, 0, nullptr, 0}};
 
