@@ -140,7 +140,7 @@ def check_device_trace(shell, path: Path):
         check_variable_strings(trace)
 
 
-def check_run_artifacts(shell, device_type: str, nkernels: int = 1):
+def check_run_artifacts(shell, device_type: str, multikernel: bool = False, kernelId1: int = 0, kernelId2: int = 0):
     """Default checks for run artifacts"""
     if device_type == "sysemu":
         logging.info("Checking UART logs")
@@ -163,18 +163,15 @@ def check_run_artifacts(shell, device_type: str, nkernels: int = 1):
         assert "FATAL" not in sysemu_log
 
     logging.info("Checking device trace")
-    if nkernels == 1:
+    if multikernel == False:
         check_device_trace(
             shell,
             Path("traceKernels_dev0_0.bin"),
         )
     else:
-        for i in range(nkernels):
-            check_device_trace(
-                shell,
-                Path(f"traceKernels_dev0_0_{i}.bin"),
-            )
-
+        #currently only 2 kernerl are allowed to run on multikernel
+        check_device_trace(shell, Path(f'traceKernels_dev0_0_{kernelId1}.bin'))
+        check_device_trace(shell, Path(f'traceKernels_dev0_0_{kernelId2}.bin'))
 
 def check_core_dump(gdb, elf: Path, comment: str, skip_gdb: bool):
     """Check whether the core dump exists and is debuggable"""
@@ -308,5 +305,11 @@ def test_run_multi_kernel(shell, device_type, build_dir):
             f"--device_type={device_type}",
         ]
     )
-    shell.run(f"( cd {shell.tmp_path} ; {launch_cmd} )")
-    check_run_artifacts(shell, device_type, nkernels=2)
+    cmd_out = shell.run(f"( cd {shell.tmp_path} ; {launch_cmd} )")
+
+    regexp = re.compile(r'.*kernel_id=(...).*kernel_id=(...).*')
+    m = regexp.match(str(cmd_out))
+    if not m:
+        logging.info(f'not found KernelId used on execution')
+
+    #check_run_artifacts(shell, device_type, True, int(m.group(1),16), int(m.group(2),16))

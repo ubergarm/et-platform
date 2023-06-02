@@ -100,6 +100,18 @@ rt::EventId RuntimeImpWithCoreDump::doMemcpyDeviceToHost(rt::StreamId stream, rt
   return this->runtime_->memcpyDeviceToHost(stream, memcpyList, barrier, cmaCopyFunction);
 }
 
+rt::EventId RuntimeImpWithCoreDump::doMemcpyDeviceToDevice(rt::StreamId streamSrc, rt::DeviceId deviceDst,
+                                                           const std::byte* d_src, std::byte* d_dst, size_t size,
+                                                           bool barrier) {
+  return this->runtime_->memcpyDeviceToDevice(streamSrc, deviceDst, d_src, d_dst, size, barrier);
+}
+
+rt::EventId RuntimeImpWithCoreDump::doMemcpyDeviceToDevice(rt::DeviceId deviceSrc, rt::StreamId streamDst,
+                                                           const std::byte* d_src, std::byte* d_dst, size_t size,
+                                                           bool barrier) {
+  return this->runtime_->memcpyDeviceToDevice(deviceSrc, streamDst, d_src, d_dst, size, barrier);
+}
+
 bool RuntimeImpWithCoreDump::doWaitForEvent(rt::EventId event, std::chrono::seconds timeout) {
   return this->runtime_->waitForEvent(event, timeout);
 }

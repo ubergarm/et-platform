@@ -44,6 +44,10 @@ public:
                                    const rt::CmaCopyFunction&) final;
   rt::EventId doMemcpyDeviceToHost(rt::StreamId stream, rt::MemcpyList memcpyList, bool barrier,
                                    const rt::CmaCopyFunction&) final;
+  rt::EventId doMemcpyDeviceToDevice(rt::StreamId streamSrc, rt::DeviceId deviceDst, const std::byte* d_src,
+                                     std::byte* d_dst, size_t size, bool barrier) final;
+  rt::EventId doMemcpyDeviceToDevice(rt::DeviceId deviceSrc, rt::StreamId streamDst, const std::byte* d_src,
+                                     std::byte* d_dst, size_t size, bool barrier) final;
   bool doWaitForEvent(rt::EventId event, std::chrono::seconds timeout = std::chrono::hours(24)) final;
   bool doWaitForStream(rt::StreamId stream, std::chrono::seconds timeout = std::chrono::hours(24)) final;
   std::vector<rt::StreamError> doRetrieveStreamErrors(rt::StreamId stream) final;

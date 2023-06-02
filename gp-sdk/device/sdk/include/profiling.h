@@ -17,6 +17,14 @@
     \brief Functions and macros for tracing of user-defined events
 */
 
+static inline void Et_Trace_User_Profile_Event(uint16_t regionId, bool start, const char* func, uint32_t line) {
+  et_trace_user_profile_event(regionId, start, func, line, nullptr)
+}
+
+static inline void Et_Trace_User_Profile_Event(const char* regionId, bool start, const char* func, uint32_t line) {
+  et_trace_user_profile_event(0, start, func, line, regionId)
+}
+
 /**
  * \brief adapters to user_profile_events provided by tracing_subsystem.
  * Note at the moment function-name is part of the event identifier, so events should start and complete on the same
@@ -37,7 +45,14 @@ public:
     : func_(func)
     , line_(line)
     , regionId_(regionId) {
-    et_trace_user_profile_event(regionId_, /*start*/ true, func_, line_);
+    et_trace_user_profile_event(regionId_, /*start*/ true, func_, line_, regname_);
+  }
+
+  ScopedUserProfileEvent(const char* func, uint32_t line, const char* regionName)
+    : func_(func)
+    , line_(line)
+    , regname_(regionName) {
+    et_trace_user_profile_event(regionId_, /*start*/ true, func_, line_, regname_);
   }
 
   /**
@@ -45,13 +60,14 @@ public:
    * \brief Stops registering the event and destroys the object
    */
   ~ScopedUserProfileEvent() {
-    et_trace_user_profile_event(regionId_, /*start*/ false, func_, line_);
+    et_trace_user_profile_event(regionId_, /*start*/ false, func_, line_, regname_);
   }
 
 private:
   const char* func_ = nullptr;
   uint32_t line_ = 0;
   uint16_t regionId_ = 0;
+  const char* regname_ = nullptr;
 };
 
 /*! \cond PRIVATE */
@@ -70,6 +86,7 @@ private:
 */
 #define SCOPED_USER_PROFILE_EVENT(regionId)                                                                            \
   ScopedUserProfileEvent UNIQUE(scopedUserProfileEvent)(__func__, __LINE__, regionId)
+
 /**
  * \brief
  * Generates the start of a user profiling event. function name and line will also be quoted.
@@ -78,7 +95,7 @@ private:
  */
 #define USER_PROFILE_EVENT_START(regionId)                                                                             \
   do {                                                                                                                 \
-    et_trace_user_profile_event(regionId, true, __func__, __LINE__);                                                   \
+    Et_Trace_User_Profile_Event(regionId, true, __func__, __LINE__);                                                   \
   } while (0)
 
 /**
@@ -87,7 +104,7 @@ private:
  */
 #define USER_PROFILE_EVENT_END(regionId)                                                                               \
   do {                                                                                                                 \
-    et_trace_user_profile_event(regionId, false, __func__, __LINE__);                                                  \
+    Et_Trace_User_Profile_Event(regionId, false, __func__, __LINE__);                                                  \
   } while (0)
 
 #endif // GPSDK_PROFILING_H

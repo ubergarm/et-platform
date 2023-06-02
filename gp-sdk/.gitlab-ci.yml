@@ -21,8 +21,7 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:0.7.0
-
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:1.2.0rC2-21931aed0f091dee5e9c43a27d59337b5e614eee
 # Only run job in these cases:
 # - if it's a tag pipeline
 # - if there is a commit pushed or merged to the default branch (pre-release)
@@ -154,12 +153,12 @@ build:sonarqube-check:
       echo $$PATH
       echo $$LD_LIBRARY_PATH 
       cp ${ET_SDK_HOME}/.conanfiles/conanfile_device.txt device/conanfile.txt
-      echo "[layout]" >> device/conanfile.txt
-      echo "cmake_layout" >> device/conanfile.txt
+      echo -e "\n[layout]" >> device/conanfile.txt
+      echo -e "\ncmake_layout" >> device/conanfile.txt
       
       cp ${ET_SDK_HOME}/.conanfiles/conanfile_host.txt host/conanfile.txt
-      echo "[layout]" >> host/conanfile.txt
-      echo "cmake_layout" >> host/conanfile.txt
+      echo -e "\n[layout]" >> host/conanfile.txt
+      echo -e "\ncmake_layout" >> host/conanfile.txt
       
       conan lock create device/conanfile.txt -pr:b linux-ubuntu18.04-x86_64-gcc7-release -pr:h baremetal-rv64-gcc8.2-release --build missing --lockfile-out device.lock
       conan lock build-order device.lock --json build-order-device.json

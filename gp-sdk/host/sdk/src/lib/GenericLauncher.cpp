@@ -68,7 +68,8 @@ void GenericLauncher::initialize() {
 
   auto options = rt::getDefaultOptions();
 
-  if (std::filesystem::exists(runtimeSocketName_) && (std::filesystem::is_socket(runtimeSocketName_))) {
+  if (std::filesystem::exists(runtimeSocketName_) && std::filesystem::is_socket(runtimeSocketName_) &&
+      (config_.mode_ == Mode::PCIE)) {
     useRuntimeMultiProcess_ = true;
   }
 

@@ -20,6 +20,7 @@ class KernelArguments;
 int entryPoint_0(KernelArguments* vectors);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
+const char MYREGIONNAME[] = "myRegion1";
 
 int entryPoint_0([[ maybe_unused ]] KernelArguments* vectors) {
 
@@ -31,7 +32,25 @@ int entryPoint_0([[ maybe_unused ]] KernelArguments* vectors) {
   //goal is getting all the writes
   constexpr size_t kMaxIters = 1000;
   for(size_t i = 0; i < kMaxIters; i ++) {
+
+    SCOPED_USER_PROFILE_EVENT("first_region");
+    SCOPED_USER_PROFILE_EVENT("second_region");
+    SCOPED_USER_PROFILE_EVENT("third_region");
     SCOPED_USER_PROFILE_EVENT(1);
+    SCOPED_USER_PROFILE_EVENT(2);
+
+    USER_PROFILE_EVENT_START(3);
+    USER_PROFILE_EVENT_START(4);
+    USER_PROFILE_EVENT_START("user_event_start");
+    USER_PROFILE_EVENT_START("user_event_start2");
+
+    SCOPED_USER_PROFILE_EVENT(MYREGIONNAME);
+
+    USER_PROFILE_EVENT_END("user_event_start2");
+    USER_PROFILE_EVENT_END("user_event_start");
+    USER_PROFILE_EVENT_END(4);
+    USER_PROFILE_EVENT_END(3);
   }
+
   return 0;
 }
