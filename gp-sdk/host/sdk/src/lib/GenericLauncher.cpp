@@ -68,6 +68,10 @@ void GenericLauncher::initialize() {
 
   auto options = rt::getDefaultOptions();
 
+  if (std::filesystem::exists(runtimeSocketName_) && (std::filesystem::is_socket(runtimeSocketName_))) {
+    useRuntimeMultiProcess_ = true;
+  }
+
   if (useRuntimeMultiProcess_ && ((config_.mode_ == Mode::SYSEMU) || (config_.mode_ == Mode::FAKE))) {
     std::cout << "Client not supported with this mode \n";
     exit(-1);
