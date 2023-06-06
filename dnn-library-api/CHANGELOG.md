@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 ### Changed
+- Depend on dnnLibrary >=0.7.0 <0.8.0
 ### Deprecated
 ### Removed
 ### Fixed
