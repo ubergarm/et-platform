@@ -5,6 +5,8 @@
 ## Unreleased
 ### Added
 ### Changed
+- Revert package_id changes. Need to keep host packages separated form RISC-V ones to avoid consuming RISC-V dependencies
+  in X86 builds.
 ### Deprecated
 ### Removed
 ### Fixed
