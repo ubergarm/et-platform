@@ -47,6 +47,11 @@ class DnnLibraryConan(ConanFile):
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
+
+    def configure(self):
+        if self.options.header_only:
+            self.options.rm_safe('fPIC')
+            self.options.rm_safe('warnings_as_errors')
     
     def requirements(self):
         if self.options.with_device_headers:
@@ -54,7 +59,10 @@ class DnnLibraryConan(ConanFile):
 
     def package_id(self):
         if self.options.header_only:
-            self.info.clear()
+            del self.info.settings.arch
+            del self.info.settings.build_type
+            del self.info.settings.compiler
+            del self.info.settings.os
     
     def validate(self):
         if self.options.header_only:
