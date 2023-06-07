@@ -44,7 +44,7 @@ class DnnLibraryApiConan(ConanFile):
             del self.options.fPIC
 
     def requirements(self):
-        self.requires("dnnLibrary/0.7.0-alpha")
+        self.requires("dnnLibrary/[>0.6.0 <0.8.0, include_prerelease=True]")
     
     def validate(self):
         check_req_min_cppstd = self.python_requires["conan-common"].module.check_req_min_cppstd
