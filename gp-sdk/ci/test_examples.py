@@ -72,8 +72,7 @@ EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 # only needed for device_type = sysemu
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=200"]
 
-SHOULD_FAIL = ["hang", "exception"]
-JUST_FAIL = ["OneTrapOnSync", "fail_abort", "fail_assert"]
+SHOULD_FAIL = ["hang", "exception", "OneTrapOnSync", "fail_abort", "fail_assert"]
 
 ERROR_COMMENT = {
     "hang": "Generate code hang",
@@ -132,8 +131,8 @@ def check_device_trace(shell, path: Path):
     """Check whether the device trace exists and is well formatted"""
     assert path.exists()
     dt2json = shell.run(f"dt2json -t {path}")
-    trace = list(csv.reader(dt2json.stdout.decode(
-        "utf-8").splitlines(), delimiter=";"))
+    #some traceKernels_dev0_0.bin contains a null character which can't be readed by csv as fail_assert and fail_abort
+    trace = list(csv.reader(dt2json.stdout.decode("utf-8").replace('\0','').splitlines(), delimiter=";"))
     assert trace[0][0] == "TIMESTAMP"
     assert trace[0][1] == "STATS_TYPE"
 
@@ -230,15 +229,15 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
     if kernel in SHOULD_FAIL:
         with pytest.raises(subprocess.CalledProcessError):
             shell.run(launch_cmd)
-        check_core_dump(
-            gdb,
-            kernel_path.parent / (kernel_path.name + "_dbg"),
-            ERROR_COMMENT[kernel],
-            skip_gdb=request.config.getoption("--skip-gdb"),
-        )
-    elif kernel in JUST_FAIL:
-        with pytest.raises(subprocess.CalledProcessError):
-            shell.run(launch_cmd)
+
+        if ((kernel=="hang") or (kernel=="exception")) :
+            check_core_dump(
+                gdb,
+                kernel_path.parent / (kernel_path.name + "_dbg"),
+                ERROR_COMMENT[kernel],
+                skip_gdb = request.config.getoption("--skip-gdb"),
+            )
+             
     elif kernel in MASK_SWEEP_KERNELS:
         for mask in MASK_SWEEP:
             mask_cmd = launch_cmd + " --shire_mask=" + mask
@@ -246,8 +245,8 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
     else:
         shell.run(launch_cmd)
 
-    if kernel not in JUST_FAIL:
-        check_run_artifacts(shell, device_type)
+    if kernel not in SHOULD_FAIL:
+      check_run_artifacts(shell, device_type)
 
 
 @pytest.mark.parametrize("kernel", ["print"])
