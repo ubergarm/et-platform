@@ -21,6 +21,8 @@
 #include <etsoc/isa/hart.h>
 #include <etsoc/isa/tensors.h>
 #include <etsoc/isa/utils.h>
+#include <etsoc/isa/atomic.h>
+
 
 // FW syscall IDs
 #include <etsoc/isa/syscall.h>
@@ -34,6 +36,16 @@ namespace device_config {
 extern DeviceConfig config;
 extern const __thread kernel_environment_t * env_;
 }
+
+#ifndef CACHE_LINE_SIZE
+#define CACHE_LINE_SIZE 64
+#endif
+typedef struct {
+        uint32_t flag_0;
+        uint32_t flag_1;
+} __attribute__((aligned(CACHE_LINE_SIZE))) minionlock_t;
+enum LOCK_STATUS : uint32_t { LOCK_WAIT, LOCK_CONTINUE };
+extern minionlock_t __barrierLock[1024];
 
 /// @brief Obtains the relative minion id where the relative thread id is located
 /// @param relative_thread_id
@@ -55,11 +67,6 @@ static inline int get_shire_from_minion(int minion_id) {
 static inline int get_num_entrypoints() {
     return (device_config::config.sameEntryPoint || device_config::config.threadsPerCore == 1) ? 1 : 2;
 }
-
-
-
-
-
 
 /**
  * \brief Namespace including low-level routines for the minion.
@@ -126,25 +133,47 @@ enum class Scope {
  * Blocks thread execution until both threads in the minion reach the barrier.
  */
 template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> barrier() {
-  constexpr uint32_t fcc = 1;                // Credit counter 0
-  const uint32_t thread = get_hart_id() & 0x1; // Thread 0 or 1
-  const auto localId = get_minion_id() % SOC_MINIONS_PER_SHIRE;
-  const size_t hartMask = 1 << localId;
-
   // Note: barrier<shire> assumes full availability of FLB's for its synchronizations
   // Therefore we cannot make use of FLB's to implement barrier<minion> as they might be in use by the first.
   // We implement a 'ring-synchronization' method
 
+  // Note: barrier<shire> assumes full availability of FLB's for its synchronizations
+  // Therefore we cannot make use of FLB's to implement barrier<minion> as they might be in use by the first.
+  // Additionally, an FCC-based solution is not possible because barrier<shire> and barrier<device> use both FCC0 and FCC1
+  // so sends using either FCC would conflict.
+  const uint32_t thread = get_hart_id() & 0x1; // Thread 0 or 1
+  const auto minionId = get_hart_id() >> 1;
+
+  uint32_t * selfFlag;
+  uint32_t * otherFlag;
+
   if (thread == 1) {
-    fcc_consume(fcc);
-    constexpr size_t destThread = 0;
-    fcc_send(SHIRE_OWN, destThread, fcc, hartMask);
+    selfFlag = &__barrierLock[minionId].flag_1;
+    otherFlag = &__barrierLock[minionId].flag_0;
   } else {
-    et_assert(thread == 0);
-    constexpr size_t destThread = 1;
-    fcc_send(SHIRE_OWN, destThread, fcc, hartMask);
-    fcc_consume(fcc);
+    selfFlag = &__barrierLock[minionId].flag_0;
+    otherFlag = &__barrierLock[minionId].flag_1;
   }
+   
+  // Loop until the 'other' thread lock is available (LOCK_WAIT)
+  while (atomic_load_local_32(otherFlag) != LOCK_STATUS::LOCK_WAIT) {
+      asm volatile("fence\n" ::: "memory");
+  }
+  asm volatile("fence\n" ::: "memory");
+
+  // Set other thread flag to LOCK_CONTINUE idicating self thread arrived to the barrier.
+  atomic_store_local_32(otherFlag, LOCK_STATUS::LOCK_CONTINUE);
+  asm volatile("fence\n" ::: "memory");
+
+  // Loop until selfFlag is set to LOCK_CONTINUE
+  while (atomic_load_local_32(selfFlag) != LOCK_STATUS::LOCK_CONTINUE) {
+      asm volatile("fence\n" ::: "memory");
+  }
+  asm volatile("fence\n" ::: "memory");
+
+  // Before exit, set selfFlag as available (LOCK_WAIT).
+  atomic_store_local_32(selfFlag, LOCK_STATUS::LOCK_WAIT);
+  asm volatile("fence\n" ::: "memory");
 }
 
 /**
@@ -166,7 +195,8 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::shire), void>
 barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
-  if (hartMask.count() < 2)
+  auto threadsToSync = getMinionThreadsToSync();
+  if ((hartMask.count() * threadsToSync) < 2)
     return; // no threads to sync
 
   // Use credit counter 0
@@ -179,7 +209,7 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
 
   // Compute number of threads to sync in the FLB
   const auto numEntryPoints = get_num_entrypoints();
-  const auto flbCount = static_cast<uint32_t>(getMinionThreadsToSync() * hartMask.count()) - 1U;
+  const auto flbCount = static_cast<uint32_t>(threadsToSync * hartMask.count()) - 1U;
 
   // Each minion computes its corresponding FLB (values=[0,31])
   size_t flb = locaMinion >> log2(hartMask.count());
@@ -280,21 +310,19 @@ inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t star
  * \param count Number of threads to synchronize. Must be a multiple of 32 or a power of two <= 32.
  */
 inline void barrier(const size_t startingThread, const size_t count) {
-  // Two count groups of values are supported.
-  // If count >= 32. count must be a multiple of 32
-  // If count < 32. count must be a power of two. i.e: {1,2,4,8,16}.
-  std::bitset<64> cmask = std::bitset<64>(count);
-  std::bitset<64> smask = std::bitset<64>(startingThread);
-
-  // TODO: et_assert invalid range (start, count) configurations
+  if (count < 2)
+    return;
+  
+  const std::bitset<64> cmask = std::bitset<64>(count);
   const auto numMinions = count / device_config::config.threadsPerCore;
-
+  // Assert if count is a power of two
+  et_assert(cmask.count() == 1 && "Count must be a power of two");
+  // Assert if startingThread is multiple of count (or 0)
+  et_assert((startingThread % count == 0 || startingThread == 0) && "startingThread must be a multiple of count");
+  
   if (numMinions > SOC_MINIONS_PER_SHIRE) {
     barrier<Scope::device>(startingThread, count);
   } else {
-    // check if count and startingMinion are powers of two (or 0)
-    const bool isPow2 = (cmask.count() == 1) && ((smask.count() == 1) || (smask.count() == 0));
-    et_assert(isPow2);
     const auto startingMinionId = get_minion_from_thread(static_cast<int>(startingThread));
     // size_t localId = startingMinionId % SOC_MINIONS_PER_SHIRE;
     const size_t localId = startingMinionId & 0x1F;

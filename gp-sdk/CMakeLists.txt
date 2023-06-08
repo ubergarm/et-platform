@@ -17,6 +17,7 @@ endif()
 ExternalProject_Add(
   host
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/host"
+  BUILD_ALWAYS 1
   CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/host/conan_toolchain.cmake
     -DCMAKE_BUILD_TYPE=Release
@@ -25,6 +26,7 @@ ExternalProject_Add(
 ExternalProject_Add(
   device
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/device"
+  BUILD_ALWAYS 1
   CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/conan_toolchain.cmake
     -DCMAKE_BUILD_TYPE=Release
