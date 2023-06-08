@@ -124,10 +124,58 @@ def gdb_script(entry_pc: int):
     ]
 
 
-def launch_kernel(shell, launcher: Path, kernel: Path):
+def gdb_tls_script(entry_pc: int):
+    """Generate the GDB script for testing"""
+    return [
+        Command(
+            "target remote :1337",
+            [
+                "Remote debugging using :1337",
+                "0x* in*",
+                "at*",
+                "*",
+            ],
+        ),
+        Command(
+            "break entryPoint",
+            [
+                f"Breakpoint 1 at {entry_pc:#x}:*",
+            ],
+        ),
+        Command(
+            "continue",
+            [
+                "Continuing.",
+                "*Switching to Thread*",
+            ],
+        ),
+        Command(
+            "break testTlsVarSimple",
+            [
+                "*",
+            ],
+        ),
+        Command(
+            "continue",
+            [
+                'Thread * "S1:M1:T0" hit Breakpoint 1, entryPoint *',
+            ],
+        ),
+        Command(
+            "print testTls1",
+            [
+                "*",
+            ],
+        ),
+        Command("delete", []),
+        Command("continue", []),
+    ]
+
+
+def launch_kernel(shell, launcher: Path, kernel: Path, entry_point: str):
     """Launch a test kernel"""
-    entry_pc = shell.find_symbol(Path(f"{kernel}_dbg"), "entryPoint_0")
-    logging.debug("PC of entryPoint_0: %#x", entry_pc)
+    entry_pc = shell.find_symbol(Path(f"{kernel}_dbg"), entry_point)
+    logging.debug(f"PC of {entry_point}: %#{entry_pc}")
 
     return entry_pc, shell.popen(
         " ".join(
@@ -142,7 +190,11 @@ def launch_kernel(shell, launcher: Path, kernel: Path):
     )
 
 
-def test_gdb_sysemu(request, build_dir, shell, gdb):
+@pytest.mark.parametrize("kernel_info, script", [
+    pytest.param(["saxpy_vector", "saxpy_launcher", "entryPoint_0"], gdb_script),
+    pytest.param(["c_tls", "basic_launcher", "entryPoint"], gdb_tls_script),
+])
+def test_gdb_sysemu(kernel_info, script, request, build_dir, shell, gdb):
     """Execute a saxpy kernel and debug with GDB"""
     if not build_dir.exists():
         pytest.skip("the examples have not been built")
@@ -151,8 +203,9 @@ def test_gdb_sysemu(request, build_dir, shell, gdb):
     logging.info("Starting kernel launcher")
     entry_pc, launcher = launch_kernel(
         shell,
-        launcher=build_dir.host / "sdk/saxpy_launcher",
-        kernel=build_dir.device / "tests/saxpy_vector.elf",
+        launcher=build_dir.host / f"sdk/{kernel_info[1]}",
+        kernel=build_dir.device / f"tests/{kernel_info[0]}.elf",
+        entry_point=kernel_info[2],
     )
 
     time.sleep(2)  # Wait some time for the launcher to start
@@ -160,10 +213,10 @@ def test_gdb_sysemu(request, build_dir, shell, gdb):
     if request.config.getoption("--gdb-custom"):
         logging.info("Waiting for gdb connection")
     else:
-        gdb = gdb(str(build_dir.device / "tests/saxpy_vector.elf_dbg"))
+        gdb = gdb(str(build_dir.device / f"tests/{kernel_info[0]}.elf_dbg"))
         gdb.read_until("Reading symbols")
         logging.info("Running gdb commands")
-        for cmd in gdb_script(entry_pc):
+        for cmd in script(entry_pc):
             time.sleep(0.4)
             gdb.eval(cmd.input, cmd.expected_output)
         gdb.close()
