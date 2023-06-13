@@ -307,9 +307,9 @@ def test_run_multi_kernel(shell, device_type, build_dir):
     )
     cmd_out = shell.run(f"( cd {shell.tmp_path} ; {launch_cmd} )")
 
-    regexp = re.compile(r'.*kernel_id=(...).*kernel_id=(...).*')
+    regexp = re.compile(r'.*kernel_id=([0-9a-fA-F]+).*kernel_id=([0-9a-fA-F]+).*')
     m = regexp.match(str(cmd_out))
     if not m:
         logging.info(f'not found KernelId used on execution')
 
-    #check_run_artifacts(shell, device_type, True, int(m.group(1),16), int(m.group(2),16))
+    check_run_artifacts(shell, device_type, True, int(m.group(1),16), int(m.group(2),16))
