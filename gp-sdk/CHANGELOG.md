@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 ### Fixed
 
+## 1.2.0 (2023/06/13)
+### Added
+- [SW-17172] Quote arbitrary strings instead of func-name:code in profiling.
+- [SYSQA-178] Cover TLS checking on gdb QA / CI tests
+- [SW-17293] Fixed bug in barriers(start,count) if count=2
+- [SW-17063] Add some fixes to make CI fail on MultiProcess if error callbacks...
+- [SYSQA-171] Test various string lengths on CI
+- [SW-17371] Autodected Multiprocess feature.
+- [SW-17062] Fixed file socket path.
+- Remove unused includes.
+- [SW-17063] Add test failing to be check on runtimeMP.
+- [SW-17062] runtime-MP basic implementation.
+- [SW-16559] Added toolchain to add neuralizer code on GP-SDK
+- [SW-16832] Add support for address sanitizer ASAN an LSAN.
+### Changed
+### Deprecated
+### Removed
+### Fixed
 
 ## 1.1.1 (2023/04/27)
 ### Added

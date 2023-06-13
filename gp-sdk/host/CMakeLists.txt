@@ -8,7 +8,7 @@
 # agreement/contract under which the program(s) have been supplied.
 #------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.5)
-project(gp-sdk-host VERSION 1.1.1 LANGUAGES C CXX)
+project(gp-sdk-host VERSION 1.2.0 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
