@@ -137,34 +137,24 @@ def gdb_tls_script(entry_pc: int):
             ],
         ),
         Command(
-            "break entryPoint",
+            "break testTlsVarSimple thread 1",
             [
-                f"Breakpoint 1 at {entry_pc:#x}:*",
+                'Breakpoint 1 at*',
             ],
         ),
         Command(
             "continue",
             [
-                "Continuing.",
-                "*Switching to Thread*",
-            ],
-        ),
-        Command(
-            "break testTlsVarSimple",
-            [
-                "*",
-            ],
-        ),
-        Command(
-            "continue",
-            [
-                'Thread * "S1:M1:T0" hit Breakpoint 1, entryPoint *',
+                'Continuing.',
+                '*',
+                'Thread 1 "S0:M0:T0" hit Breakpoint 1, testTlsVarSimple*',
+                '30*testTls1++;',
             ],
         ),
         Command(
             "print testTls1",
             [
-                "*",
+                '$1 = 0',
             ],
         ),
         Command("delete", []),
