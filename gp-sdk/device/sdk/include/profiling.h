@@ -17,11 +17,11 @@
     \brief Functions and macros for tracing of user-defined events
 */
 
-static inline void Et_Trace_User_Profile_Event(uint16_t regionId, bool start, const char* func, uint32_t line) {
+static inline void etTraceUserProfileEvent(uint16_t regionId, bool start, const char* func, uint32_t line) {
   et_trace_user_profile_event(regionId, start, func, line, nullptr)
 }
 
-static inline void Et_Trace_User_Profile_Event(const char* regionId, bool start, const char* func, uint32_t line) {
+static inline void etTraceUserProfileEvent(const char* regionId, bool start, const char* func, uint32_t line) {
   et_trace_user_profile_event(0, start, func, line, regionId)
 }
 
@@ -95,7 +95,7 @@ private:
  */
 #define USER_PROFILE_EVENT_START(regionId)                                                                             \
   do {                                                                                                                 \
-    Et_Trace_User_Profile_Event(regionId, true, __func__, __LINE__);                                                   \
+    etTraceUserProfileEvent(regionId, true, __func__, __LINE__);                                                   \
   } while (0)
 
 /**
@@ -104,7 +104,7 @@ private:
  */
 #define USER_PROFILE_EVENT_END(regionId)                                                                               \
   do {                                                                                                                 \
-    Et_Trace_User_Profile_Event(regionId, false, __func__, __LINE__);                                                  \
+    etTraceUserProfileEvent(regionId, false, __func__, __LINE__);                                                  \
   } while (0)
 
 #endif // GPSDK_PROFILING_H
