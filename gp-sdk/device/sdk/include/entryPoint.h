@@ -12,7 +12,7 @@
 #ifndef _ENTRY_POINT_H_
 #define _ENTRY_POINT_H_
 
-#include <cstdint>
+#include <stdint.h>
 
 /* EntryPoint kernel function prototype
  * note that user entry points can receive typed ptr (namely KernelArguments *)*/
@@ -55,14 +55,15 @@ template <typename T, T f> struct IsSameFuncPtr<T, f, f> { static constexpr bool
 /// DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 /// DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, entryPoint_1);
 /// DECLARE_KERNEL_ENTRY_POINTS(entryPoint, entryPoint);
-#define DECLARE_KERNEL_ENTRY_POINTS(__entry0, __entry1)                                                                \
-  namespace device_config {                                                                                            \
-  extern constexpr DeviceConfig config{getThreadsPerCore(__entry0, __entry1),                                          \
-                                       IsSameFuncPtr<decltype(&__entry0), __entry0, __entry1>::value,                  \
-                                       KernelEntryPointFuncPtr(__entry0), KernelEntryPointFuncPtr(__entry1)};          \
-  static_assert(config.threadsPerCore != 0,                                                                            \
-                "1 or 2 Threads per core should be configured (in case of 1 it should be thread 0)");                  \
-  }
+#define DECLARE_KERNEL_ENTRY_POINTS(__entry0, __entry1)                                                 \
+  namespace device_config {                                                                             \
+       static constexpr uint32_t threadsPerCore = getThreadsPerCore(__entry0, __entry1);	        \
+       static_assert(threadsPerCore != 0,                                                               \
+                  "1 or 2 Threads per core should be configured (in case of 1 it should be thread 0)"); \
+       extern DeviceConfig config{getThreadsPerCore(__entry0, __entry1),	                        \
+                                        IsSameFuncPtr<decltype(&__entry0), __entry0, __entry1>::value,  \
+       KernelEntryPointFuncPtr(__entry0), KernelEntryPointFuncPtr(__entry1)};	                        \
+   }
 
 int get_num_threads();
 uint64_t get_shire_mask();
