@@ -119,13 +119,6 @@ bool RuntimeImpWithCoreDump::doWaitForEvent(rt::EventId event, std::chrono::seco
 bool RuntimeImpWithCoreDump::doWaitForStream(rt::StreamId stream, std::chrono::seconds timeout) {
   auto success = this->runtime_->waitForStream(stream, timeout);
   if(success){
-    // On ending stream we don't know if it failed or not because there are asynchronous events
-    // related to it which could be pending of being received.
-    // As a preventive way we set a bit delay to wait them if they existed.
-    // [SW-17079] has to be solved to remove the delay.
-    if (useRuntimeMultiProcess_) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(100ms));
-    }
     abortManager_->clearKernelLaunches(stream);
   }
   return success;

@@ -12,7 +12,7 @@
 #ifndef _ENTRY_POINT_H_
 #define _ENTRY_POINT_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 /* EntryPoint kernel function prototype
  * note that user entry points can receive typed ptr (namely KernelArguments *)*/
@@ -60,7 +60,7 @@ template <typename T, T f> struct IsSameFuncPtr<T, f, f> { static constexpr bool
        static constexpr uint32_t threadsPerCore = getThreadsPerCore(__entry0, __entry1);	        \
        static_assert(threadsPerCore != 0,                                                               \
                   "1 or 2 Threads per core should be configured (in case of 1 it should be thread 0)"); \
-       extern DeviceConfig config{getThreadsPerCore(__entry0, __entry1),	                        \
+       extern DeviceConfig config{getThreadsPerCore(__entry0, __entry1),	                                \
                                         IsSameFuncPtr<decltype(&__entry0), __entry0, __entry1>::value,  \
        KernelEntryPointFuncPtr(__entry0), KernelEntryPointFuncPtr(__entry1)};	                        \
    }
