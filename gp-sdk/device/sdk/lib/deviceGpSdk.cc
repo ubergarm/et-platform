@@ -15,6 +15,7 @@
 #include "CommonCode.h"
 #include "entryPoint.h"
 #include "sync.h"
+#include "flbLock.h"
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/barriers.h>
 #include <etsoc/isa/cacheops-umode.h>
@@ -44,8 +45,9 @@ extern const function_t __init_array_end;
 extern const function_t __fini_array_start;
 extern const function_t __fini_array_end;
 
-// sync locks
+// Structs and classes to manage locks in barriers
 minionlock_t __barrierLock[1024] = {0U, 0U};
+flbLock __shireLock;
 
 // Kernel configuration object. needs to be declared by the user throuch DECLARE_DEVICE_CONFIG
 namespace device_config {

@@ -31,6 +31,7 @@
 #include <profiling.h>
 
 #include "entryPoint.h"
+#include "flbLock.h"
 
 namespace device_config {
 extern DeviceConfig config;
@@ -40,6 +41,8 @@ extern const __thread kernel_environment_t * env_;
 #ifndef CACHE_LINE_SIZE
 #define CACHE_LINE_SIZE 64
 #endif
+
+// lock structs for cross entry-point sync
 typedef struct {
         uint32_t flag_0;
         uint32_t flag_1;
@@ -47,17 +50,20 @@ typedef struct {
 enum LOCK_STATUS : uint32_t { LOCK_WAIT, LOCK_CONTINUE };
 extern minionlock_t __barrierLock[1024];
 
+// flb register locks
+extern flbLock __shireLock;
+
 /// @brief Obtains the relative minion id where the relative thread id is located
 /// @param relative_thread_id
-/// @return integer containing the relative minion id, values range from 0 to 1024
+/// @return integer containing the relative minion id, values range from 0 to 2047
 static inline int get_minion_from_thread(int relative_thread_id) {
   et_assert(relative_thread_id >= 0 && "Invalid thread Id (relative_thread_id < 0)");
   return relative_thread_id >> (device_config::config.threadsPerCore - 1);
 }
 
-/// @brief Obtains the relative minion id where the relative thread id is located
+/// @brief Obtains the shire id of a global or relative minion id.
 /// @param relative_thread_id
-/// @return integer containing the relative minion id, values range from 0 to 1024
+/// @return int containing the shire id, values range from 0 to 31
 static inline int get_shire_from_minion(int minion_id) {
   et_assert(minion_id >= 0 && "Invalid minion Id (minion_id < 0)");
   // 32 minions per shire
@@ -65,7 +71,7 @@ static inline int get_shire_from_minion(int minion_id) {
 }
 
 static inline int get_num_entrypoints() {
-    return (device_config::config.sameEntryPoint || device_config::config.threadsPerCore == 1) ? 1 : 2;
+  return (device_config::config.sameEntryPoint || device_config::config.threadsPerCore == 1) ? 1 : 2;
 }
 
 /**
@@ -205,28 +211,42 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
   // Get the local thread id (values: 0 or 1)
   const auto hartId = get_hart_id();
   const uint32_t localThread = hartId & 0x1;
-  const auto locaMinion = (hartId >> 1) & 0x1F;
-
+  // Get the local minion id [0,31]
+  const auto localMinion = (hartId >> 1) & 0x1F;
+  // Get the global shire Id
+  const auto shireId = (hartId >> 6) & 0x1F;
   // Compute number of threads to sync in the FLB
   const auto numEntryPoints = get_num_entrypoints();
   const auto flbCount = static_cast<uint32_t>(threadsToSync * hartMask.count()) - 1U;
 
   // Each minion computes its corresponding FLB (values=[0,31])
-  size_t flb = locaMinion >> log2(hartMask.count());
+  size_t flb = localMinion >> log2(hartMask.count());
   
-  // If odd and even harts have to sync separatedly
+  // If we have 2 entry-points: EP1 flbs are [0,15] and EP2 flbs are [16,31]
   if (localThread == 1 && numEntryPoints == 2) {
-    flb += 16; // Shire minion Thread 1's use flbs [16, 31]
+    flb += 16;
   }
+  
+  // Wait (spinlock) until you can join the FLB barrier
+  // range of threads that can acquire/join the FLB lock
+  uint32_t begin = __builtin_ctzll(hartMask.to_ullong()) * threadsToSync;
+  uint32_t end = begin + flbCount;
+  // Id of this thread in the range
+  uint32_t tId = localMinion * threadsToSync;
+
+  __shireLock.acquire(shireId, flb, tId, begin, end);
+
   // Last minion to reach the barrier wakes up the others
   if (flbarrier(flb, flbCount)) {
-    if (device_config::config.sameEntryPoint){
+    if (device_config::config.sameEntryPoint) {
       fcc_send(SHIRE_OWN, 0, fcc, hartMask.to_ullong());
       fcc_send(SHIRE_OWN, 1, fcc, hartMask.to_ullong());
     }
     else {
       fcc_send(SHIRE_OWN, localThread, fcc, hartMask.to_ullong());
     }
+    // only last thread releases the lock
+    __shireLock.release(shireId, flb, tId);
   }
   fcc_consume(fcc);
 }

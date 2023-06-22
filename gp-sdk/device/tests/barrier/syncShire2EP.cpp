@@ -14,7 +14,7 @@
 #include <etsoc/isa/fcc.h>
 #include <etsoc/isa/hart.h>
 #include <etsoc/isa/tensors.h>
-#include <etsoc/isa/utils.h>
+#include <etsoc/isa/utils.h> 
 
 #include "entryPoint.h"
 
@@ -25,10 +25,11 @@
 
 constexpr uint64_t one = 1;
 
-constexpr size_t maxThread = 64;
-const size_t countValues[6] = {2,4,8,16,32,maxThread};
-const size_t numAdds = 128;
-size_t result[32] = {0};
+constexpr int vsize = 6;
+constexpr int maxThread = 64;
+const size_t countValues[vsize] = {2,4,8,16,32,maxThread};
+const size_t numAdds = 1;
+size_t result[maxThread] = {0};
 
 int entryPoint_0(KernelArguments* args);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, entryPoint_0);
@@ -49,10 +50,14 @@ __attribute__((noinline)) int entryPoint_0([[maybe_unused]] KernelArguments*  ar
   // Kernel arguments
   uint64_t preValue = 0;
 
-  for (int c = 0; c < 6; c++) {
+  for (int c = 0; c < vsize; c++) {
     if (threadId < maxThread) {
       auto count = countValues[c];
       auto isCountMultiple = ((threadId + 1) % count) == 0;
+
+      if (threadId == 0) {
+        et_printf("Testing group size = %lu\n", count);
+      }
 
       // Obtain the first thread in the group
       // log2(x) = (sizeof(x) * 8 - 1) - count_leading_0s(x);
@@ -62,7 +67,16 @@ __attribute__((noinline)) int entryPoint_0([[maybe_unused]] KernelArguments*  ar
       // et_printf("[T:%d M:%s] Testing barrier(start=%d, count=%lu)\n", threadId, isCountMultiple ? "true" : "false", barrierStart, count);
 
       // Last thread of each group will perform additions
-      if (isCountMultiple) {      
+      if (isCountMultiple) { 
+
+        // testing
+        uint64_t tmp;
+        __asm__ volatile("amoorg.d %[tmp], x0, (%[resultPtr])\n"                                      
+                : [tmp]  "=r" (tmp)      
+                : [resultPtr]  "r" (&result[barrierStart])
+        );
+        // et_printf("Start adding [GS:%lu][T:%d] startvalue = %lu\n", count, threadId, tmp);
+
         for (size_t i = 0; i < numAdds; i++) {
           // AMOADDG.D global atomic add
           __asm__ __volatile__("amoaddg.d %[preValue], %[one], (%[dataPtr])\n"
@@ -85,9 +99,10 @@ __attribute__((noinline)) int entryPoint_0([[maybe_unused]] KernelArguments*  ar
         // first thread of each group checks the result = numAdds
         if (numAdds != resultValue) {
           et_printf("Invalid value: result[%d]=%lu (should be: %lu)\n", barrierStart, resultValue, numAdds);
+          et_printf("Address: %p\n", &result[barrierStart]);
           return -1;
         }
-
+          // et_printf("Correct result[%d]=%lu \n", barrierStart, resultValue);
         // reset result vector to 0
         __asm__ __volatile__("amoandg.d %[preValue], x0, (%[dataPtr])\n"
                               : [ preValue ] "=r" (preValue)

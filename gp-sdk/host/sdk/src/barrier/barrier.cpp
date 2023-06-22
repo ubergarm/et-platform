@@ -16,7 +16,7 @@
 #include "GenericLauncher.h"
 #include "barrierKernelArguments.h"
 
-static constexpr size_t numElements = 1024;
+static constexpr size_t numElements = 2048;
 
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
