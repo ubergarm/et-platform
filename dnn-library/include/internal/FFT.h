@@ -41,6 +41,12 @@
 #define likely(expr) __builtin_expect(!!(expr), 1)
 #endif
 
+#ifdef GPSDK
+#define MAYBE_STATIC_THREAD_LOCAL static thread_local
+#else
+#define MAYBE_STATIC_THREAD_LOCAL
+#endif
+
 namespace {
 
 constexpr size_t kImageDefaultFFTSize = 256;
@@ -279,8 +285,8 @@ INLINE_ATTR void fft16Slice(float* real, float* img, int32_t start, int32_t step
                             const float* twiddleReal, const float* twiddleImg, float resReal[16], float resImg[16]) {
 
   assert(size == 16);
-  float tmpReal[16];
-  float tmpImg[16];
+  MAYBE_STATIC_THREAD_LOCAL float tmpReal[16];
+  MAYBE_STATIC_THREAD_LOCAL float tmpImg[16];
 
   int32_t selectMultSecond[8] = {8, 12, 10, 14, 9, 13, 11, 15};
   int32_t selectAddOrSubFirst[8] = {0, 4, 2, 6, 1, 5, 3, 7};
@@ -565,8 +571,8 @@ INLINE_ATTR void fastVectorFft16Slice(float* real, float* img, size_t start, siz
                                       const int32_t* addsubIndices2) {
   assert(size == 16);
   float tmp0, tmp1, mi, si;
-  float tmpReal[16];
-  float tmpImg[16];
+  MAYBE_STATIC_THREAD_LOCAL float tmpReal[16];
+  MAYBE_STATIC_THREAD_LOCAL float tmpImg[16];
 
   __asm__ __volatile__("flw.ps     %[mi], %[mulIndices]\n"    // mi <- load(*mulIndices);
                        "flw.ps     %[si], %[addsubIndices]\n" // si <- load(*addsubIndices);
