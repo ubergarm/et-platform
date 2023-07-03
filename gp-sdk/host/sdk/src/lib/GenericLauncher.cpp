@@ -165,6 +165,30 @@ void GenericLauncher::initialize() {
   }
 }
 
+void GenericLauncher::initialize(rt::IRuntime* runtime) {
+
+  if (runtimeParams_) {
+    std::cout << "Error: Some command-line parameters are not allowed when runtime instance is provisioned externally."
+              << std::endl;
+  }
+
+  runtime_ = runtime;
+  devices_ = runtime_->getDevices();
+
+  for (auto i = 0U; i < devices_.size(); ++i) {
+    defaultStreams_.emplace_back(runtime_->createStream(devices_[i]));
+    traceStreams_.emplace_back(runtime_->createStream(devices_[i]));
+    numDev_++;
+  }
+
+  // Alloc space on device for user traces. Note: This buffer will be reused across differnet kernel launches.
+  if (enableKernelTraces) {
+    for (uint32_t idx = 0; idx < numDev_; idx++) {
+      traceDeviceBuffer_.emplace_back(runtime_->mallocDevice(devices_[idx], kTraceBufferSize));
+    }
+  }
+}
+
 void GenericLauncher::unLoadKernel(rt::KernelId kernelId) {
   runtime_->unloadCode(kernelId);
 }
@@ -316,6 +340,10 @@ void GenericLauncher::reportUserException(const rt::StreamError& error) const {
 }
 
 void GenericLauncher::createRuntime(bool enableCoreDump, bool useRuntimeMultiProcess, rt::Options options) {
+
+  // Only creates the logger if IRuntime will be created by GenericLauncher
+  LoggerLauncher logger;
+
   if (enableCoreDump) {
     if (useRuntimeMultiProcess) {
       runtimeBase_ = rt::IRuntime::create(runtimeSocketName_);
@@ -323,21 +351,27 @@ void GenericLauncher::createRuntime(bool enableCoreDump, bool useRuntimeMultiPro
       // If core dump is enabled, runtime wrapper with core dump capabilities is used
       runtimeBase_ = rt::IRuntime::create(deviceLayer_.get(), options);
     }
-    runtime_ = std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_, useRuntimeMultiProcess);
+    runtimeOwned_ =
+      std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_, useRuntimeMultiProcess);
   } else {
     if (useRuntimeMultiProcess) {
-      runtime_ = rt::IRuntime::create(runtimeSocketName_);
+      runtimeOwned_ = rt::IRuntime::create(runtimeSocketName_);
     } else {
-      runtime_ = rt::IRuntime::create(deviceLayer_.get(), options);
+      runtimeOwned_ = rt::IRuntime::create(deviceLayer_.get(), options);
     }
   }
+
+  // get a raw-pointer
+  runtime_ = runtimeOwned_.get();
 }
 
 void GenericLauncher::resetRuntime(bool enableCoreDump) {
   if (enableCoreDump) {
     runtimeBase_.reset();
   }
-  runtime_.reset();
+  if (runtimeOwned_) {
+    runtimeOwned_.reset();
+  }
 }
 
 // Passes pointer to runtime instance without core dump capabilities
@@ -348,7 +382,7 @@ rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
   if (enableCoreDump) {
     return runtimeBase_.get();
   } else {
-    return runtime_.get();
+    return runtime_;
   }
 }
 
@@ -387,8 +421,10 @@ void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
 
     if (!strcmp(name, "simulator_params")) {
       simulator_params_ = optarg;
+      runtimeParams_ = true;
     } else if (!strcmp(name, "enableCoreDump")) {
       enableCoreDump_ = true;
+      runtimeParams_ = true;
     } else if (!strcmp(name, "useRuntimeMultiProcess")) {
       useRuntimeMultiProcess_ = true;
     } else if (!strcmp(name, "runtimeSocket")) {

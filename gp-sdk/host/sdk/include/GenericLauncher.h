@@ -65,6 +65,18 @@ struct Config {
 };
 
 /**
+ * Creates a LoggerLauncher object, we have to create in runtime depending on who is in charge of creating the IRuntime
+ * instance. \brief LoggerLauncher class to enable the logger.
+ */
+class LoggerLauncher {
+public:
+  LoggerLauncher() {
+  }
+  // just to enable glog-logger on runtime.
+  logging::LoggerDefault loggerDefault_;
+};
+
+/**
  * Creates a GenericLauncher object, provides methods to load and execute kernels in ETSoC-1 devices.
  * Kernels are compiled RISC-V ETSoC-1 compatible binary files in Extensible Linkable Format (ELF).
  * \brief GenericLauncher class to load and run kernels in a device.
@@ -93,6 +105,13 @@ public:
    * \brief Initializes the execution device.
    */
   void initialize(); // setup
+
+  /**
+   * Initializes the PCIE, SYSEMU or FAKE device interface where the kernel will run.
+   * \brief Initializes the execution device over a given IRuntime instance.
+   * \param runtime pointer to Iruntime instance.
+   */
+  void initialize(rt::IRuntime* runtime); // setup
 
   /**
    * Destroys the launcher.
@@ -202,8 +221,6 @@ public:
 
 private:
   std::vector<std::byte> readFile(const std::string& path);
-  // just to enable glog-logger on runtime.
-  logging::LoggerDefault loggerDefault_;
   void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, uint64_t shireMask, uint32_t deviceIdx);
   void reportUserException(const rt::StreamError& error) const;
   void createRuntime(bool enableCoreDump, bool useRuntimeMultiProcess, rt::Options options);
@@ -222,7 +239,8 @@ private:
 protected:
   const Config& config_;
   std::unique_ptr<dev::IDeviceLayer> deviceLayer_;
-  rt::RuntimePtr runtime_;
+  rt::IRuntime* runtime_;
+  rt::RuntimePtr runtimeOwned_ = nullptr;
   rt::RuntimePtr runtimeBase_;
   std::vector<rt::DeviceId> devices_;
   std::vector<rt::StreamId> defaultStreams_;
@@ -231,6 +249,7 @@ protected:
   std::string runtimeSocketName_ = "/var/run/et_runtime/pcie.sock";
   uint32_t numDev_ = 0;
   size_t devIdx_ = 0;
+  bool runtimeParams_ = false;
 };
 
 #endif // GENERIC_LAUNCHER_H
