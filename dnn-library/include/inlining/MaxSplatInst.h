@@ -14,6 +14,7 @@
 
 #include "Float16.h"
 #include "LibTensor.h"
+#include "LoadStore2.h"
 #include "utils.h"
 #include <assert.h>
 #include <cmath>
@@ -27,11 +28,12 @@ namespace dnn_lib {
 namespace inlining {
 
 template <ElemKind elK, bool srcAligned, bool dstAligned>
-INLINE_ATTR void maxSplatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t src, const dim_t valid,
-                            [[maybe_unused]] uint64_t srcConf, [[maybe_unused]] float srcIndices,
-                            [[maybe_unused]] float srcIndicesHigh, [[maybe_unused]] uint64_t dstConf,
-                            [[maybe_unused]] float dstIndices, [[maybe_unused]] float dstIndicesHigh, float splatLow,
-                            [[maybe_unused]] float splatHigh) {
+INLINE_ATTR void
+maxSplatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_t src, [[maybe_unused]] const dim_t valid,
+           [[maybe_unused]] uint64_t srcConf, [[maybe_unused]] dnn_lib_v2::v8s32_t srcIndices,
+           [[maybe_unused]] dnn_lib_v2::v8s32_t srcIndicesHigh, [[maybe_unused]] uint64_t dstConf,
+           [[maybe_unused]] dnn_lib_v2::v8s32_t dstIndices, [[maybe_unused]] dnn_lib_v2::v8s32_t dstIndicesHigh,
+           dnn_lib_v2::v8u32_t splatLow, [[maybe_unused]] dnn_lib_v2::v8u32_t splatHigh) {
 
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
@@ -60,32 +62,44 @@ INLINE_ATTR void maxSplatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_
                 isAKnownSuitableForMaxInt64);
 
   // Enable only the valid elements
-  __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"((1 << valid) - 1));
+  uint32_t mask = (1 << valid) - 1;
+#if COMPILER_GCC
+  __asm__ __volatile__("mov.m.x m0, %[maskValue], 0\n" : : [ maskValue ] "r"(mask) :);
+#endif
 
-  float srcLow, srcHigh;
-  load<bytesPerElement, srcAligned>(src, srcConf, srcIndices, srcIndicesHigh, srcLow, srcHigh);
+  dnn_lib_v2::v8u32_t srcLow, srcHigh;
+  dnn_lib_v2::load<dnn_lib_v2::v8u32_t, bytesPerElement, srcAligned>(src, srcConf, srcIndices, srcIndicesHigh, srcLow,
+                                                                     srcHigh, mask);
 
-  float resultLow;
-  float resultHigh = 0;
+  dnn_lib_v2::v8u32_t resultLow;
+  dnn_lib_v2::v8u32_t resultHigh = {0};
+
+  static_assert(isAKnownSuitableForMaxInt32 or isAKnownSuitableForMaxUInt32 or isAKnownSuitableForMaxFloat or
+                isAKnownSuitableForMaxInt64);
+
   if constexpr (isAKnownSuitableForMaxInt32) {
     __asm__ __volatile__("fmax.pi %[resultLow], %[srcLow], %[splatLow]\n"
                          : [ resultLow ] "=f"(resultLow)
-                         : [ srcLow ] "f"(srcLow), [ splatLow ] "f"(splatLow));
+                         : FOR_CLANG([ vmask ] "M"(mask)) FOR_CLANG_COMMA[srcLow] "f"(srcLow),
+                           [ splatLow ] "f"(splatLow));
   } else if constexpr (isAKnownSuitableForMaxUInt32) {
     __asm__ __volatile__("fmaxu.pi %[resultLow], %[srcLow], %[splatLow]\n"
                          : [ resultLow ] "=f"(resultLow)
-                         : [ srcLow ] "f"(srcLow), [ splatLow ] "f"(splatLow));
+                         : FOR_CLANG([ vmask ] "M"(mask)) FOR_CLANG_COMMA[srcLow] "f"(srcLow),
+                           [ splatLow ] "f"(splatLow));
   } else if constexpr (isAKnownSuitableForMaxFloat) {
     if constexpr (elK != FloatTy) {
-      convert<elK, FloatTy>(srcLow, srcLow);
+      dnn_lib_v2::convert<dnn_lib_v2::v8u32_t, elK, dnn_lib_v2::v8u32_t, FloatTy>(srcLow, srcLow, mask);
     }
     __asm__ __volatile__("fmax.ps %[resultLow], %[srcLow], %[splatLow]\n"
                          : [ resultLow ] "=f"(resultLow)
-                         : [ srcLow ] "f"(srcLow), [ splatLow ] "f"(splatLow));
+                         : FOR_CLANG([ vmask ] "M"(mask)) FOR_CLANG_COMMA[srcLow] "f"(srcLow),
+                           [ splatLow ] "f"(splatLow));
     if constexpr (elK != FloatTy) {
-      convert<FloatTy, elK>(resultLow, resultLow);
+      dnn_lib_v2::convert<dnn_lib_v2::v8u32_t, FloatTy, dnn_lib_v2::v8u32_t, elK>(resultLow, resultLow, mask);
     }
-  } else if constexpr (isAKnownSuitableForMaxInt64) {
+  } else {
+    assert(isAKnownSuitableForMaxInt64);
     __asm__ __volatile__("flt.pi %[tmp], %[srcLow], %[splatLow]\n"
                          "feq.pi %[tmp2], %[srcHigh], %[splatHigh]\n"
                          "fand.pi %[tmp], %[tmp], %[tmp2]\n"
@@ -94,11 +108,12 @@ INLINE_ATTR void maxSplatOp(const uintptr_t dst, [[maybe_unused]] const uintptr_
                          "fcmov.ps %[tmp2], %[tmp], %[splatHigh], %[srcHigh]\n"
                          "fcmov.ps %[tmp], %[tmp], %[splatLow], %[srcLow]\n"
                          : [ tmp ] "=&f"(resultLow), [ tmp2 ] "=&f"(resultHigh)
-                         : [ srcLow ] "f"(srcLow), [ splatLow ] "f"(splatLow), [ srcHigh ] "f"(srcHigh),
-                           [ splatHigh ] "f"(splatHigh));
+                         : FOR_CLANG([ vmask ] "M"(mask)) FOR_CLANG_COMMA[srcLow] "f"(srcLow),
+                           [ splatLow ] "f"(splatLow), [ srcHigh ] "f"(srcHigh), [ splatHigh ] "f"(splatHigh));
   }
 
-  store<bytesPerElement, dstAligned>(dst, srcConf, srcIndices, srcIndicesHigh, resultLow, resultHigh);
+  dnn_lib_v2::store<dnn_lib_v2::v8u32_t, bytesPerElement, dstAligned>(dst, srcConf, srcIndices, srcIndicesHigh,
+                                                                      resultLow, resultHigh, mask);
 }
 
 // Define a dispatcher for the kernel
@@ -122,46 +137,45 @@ INLINE_ATTR void maxSplatTensor(LibTensor* outT, LibTensor* inT, uint64_t valueB
     return;
   }
 
+  constexpr size_t length = 8;
+  constexpr uint32_t mask = (1 << length) - 1;
+#if COMPILER_GCC
+  __asm__ __volatile__("mov.m.x m0, zero, %[maskImm]\n" : : [ maskImm ] "i"(mask) :);
+#endif
+
   constexpr size_t bytesPerElement = Type::getElementSize(elK);
 
-  __asm__ __volatile__("mov.m.x m0, zero, 0xff\n");
-
   uint64_t srcConf;
-  float srcIndices;
-  float srcIndicesHigh;
-  setupGatherScatterConfig<bytesPerElement, srcAligned>(srcConf, srcIndices, srcIndicesHigh);
+  dnn_lib_v2::v8s32_t srcIndices;
+  dnn_lib_v2::v8s32_t srcIndicesHigh;
+  dnn_lib_v2::setupGatherScatterConfig<bytesPerElement, srcAligned>(srcConf, srcIndices, srcIndicesHigh);
 
   uint64_t dstConf;
-  float dstIndices;
-  float dstIndicesHigh;
-  setupGatherScatterConfig<bytesPerElement, dstAligned>(dstConf, dstIndices, dstIndicesHigh);
+  dnn_lib_v2::v8s32_t dstIndices;
+  dnn_lib_v2::v8s32_t dstIndicesHigh;
+  dnn_lib_v2::setupGatherScatterConfig<bytesPerElement, dstAligned>(dstConf, dstIndices, dstIndicesHigh);
 
-  float splatLow;
-  __asm__ __volatile__("fbcx.ps %[splatLow], %[lower]\n" : [ splatLow ] "=f"(splatLow) : [ lower ] "r"(valueBits));
+  dnn_lib_v2::v8u32_t splatLow;
+  __asm__ __volatile__("fbcx.ps %[splatLow], %[lower]\n"
+                       : [ splatLow ] "=f"(splatLow)
+                       : FOR_CLANG([ vmask ] "M"(mask)) FOR_CLANG_COMMA[lower] "r"(valueBits));
 
-  [[maybe_unused]] float splatHigh = 0.f;
+  [[maybe_unused]] dnn_lib_v2::v8u32_t splatHigh = {0};
   if constexpr (bytesPerElement > 4) {
     __asm__ __volatile__("fbcx.ps %[splatHigh], %[higher]\n"
                          : [ splatHigh ] "=f"(splatHigh)
-                         : [ higher ] "r"(valueBits >> 32));
+                         : FOR_CLANG([ vmask ] "M"(mask)) FOR_CLANG_COMMA[higher] "r"(valueBits >> 32));
   }
 
   if constexpr (elK == Float16Ty or elK == BFloat16Ty) {
-    convert<elK, FloatTy>(splatLow, splatLow);
+    dnn_lib_v2::convert<dnn_lib_v2::v8u32_t, elK, dnn_lib_v2::v8u32_t, FloatTy>(splatLow, splatLow, mask);
   }
 
-#if 0
-  outT->partitionLoop<srcType>(minionId, activeMinions, flags, inT, maxSplatOp<elK, srcAligned, dstAligned>,   
-                       srcConf, srcIndices, srcIndicesHigh,
-                       dstConf, dstIndices, dstIndicesHigh,
-                       splatLow, splatHigh);
-#else
   using elemType = typename elemKind2elemTy<elK>::type;
   maxSplatDispatch<elK, srcAligned, dstAligned>(minionId, activeMinions, flags, outT, elemType{}, std::make_tuple(inT),
                                                 std::make_tuple(elemType{}), std::make_index_sequence<1>{}, srcConf,
                                                 srcIndices, srcIndicesHigh, dstConf, dstIndices, dstIndicesHigh,
                                                 splatLow, splatHigh);
-#endif
 }
 
 // Generic version is vectorized and threaded
