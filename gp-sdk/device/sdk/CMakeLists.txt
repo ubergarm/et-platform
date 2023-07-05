@@ -22,8 +22,12 @@ target_include_directories(etsoc_crt0
 )
 
 target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
-target_compile_options(etsoc_crt0 PUBLIC -fno-extern-tls-init)
+target_compile_options(etsoc_crt0 PUBLIC -fno-threadsafe-statics -ftls-model=local-exec $<$<C_COMPILER_ID:GNU>:-fno-extern-tls-init>)
+
+#FIXME: At the moment, etgcc and etm require to -mnodiv to be compiled and it is not yet supported in clang.
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 target_link_libraries(etsoc_crt0 PUBLIC etgcc etm)
+endif()
 
 set_target_properties(etsoc_crt0 PROPERTIES 
     VERSION ${PROJECT_VERSION}

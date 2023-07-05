@@ -203,9 +203,13 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
   // global data: initialize and forwared to user-code.
   if (get_relative_thread_id(shireMask) == 0) {
     // Reset .bss and .data sections on each kernel launch
+    // FIXME: restore data initialzation on clang (see [SW-17676]
+  #ifdef __clang__
+    #warning, "data ad bss not initialized with clang (see [SW-17676]. tests relying on specific global-data values might fail"
+  #else
     resetBSS();
     resetData();
-
+  #endif
     // increase number of boots atomically
     const uint32_t increment = 1;
     uint32_t result;

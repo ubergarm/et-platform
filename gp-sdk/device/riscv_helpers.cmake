@@ -48,12 +48,20 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
                     -Wl,--wrap=__ieee754_acoshf -Wl,--wrap=__ieee754_acosh -Wl,--wrap=acosh -Wl,--wrap=acoshf \
                     -Wl,--wrap=logf -Wl,--wrap=log  -Wl,--wrap=__ieee754_logf -Wl,--wrap=__ieee754_log")
 
-  set(ELF_EXE_LINKER_FLAGS_BASE "-nostdlib -nostartfiles -Wl,--gc-sections  -e _start ${WRAPPED_FUNC} -Wl,--start-group  -lm -lgcc")
+  
+ #Linker relaxation does not work correctly in clang. relaxed code for data refs becomes position dependent 
+ # instead of pc-relative [SW-17713]. 
+ # also,  adding a sysroot-relative path (=) look for gnu-libgcc.a
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    SET(EXTRA_LINKER_OPTIONS "-Wl,--no-relax -L =../lib/gcc/riscv64-unknown-elf/8.2.0/")
+  endif() 
+
+  set(ELF_EXE_LINKER_FLAGS_BASE "-nostdlib -nostartfiles -Wl,--gc-sections  -e _start ${EXTRA_LINKER_OPTIONS} ${WRAPPED_FUNC} -Wl,--start-group  -lm -lgcc")
   
   set(ELF_EXE_LINKER_FLAGS "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH} -Wl,--defsym=BASE_ADDRESS=0")
   set(ELF_EXE_LINKER_FLAGS_DBG "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH} -Wl,--defsym=BASE_ADDRESS=${DEBUG_ADDRESS}")
 
-  target_compile_options(${TARGET_NAME} PRIVATE -falign-functions=64 -O3 -g3 -Wstack-usage=4096)
+  target_compile_options(${TARGET_NAME} PRIVATE -falign-functions=64 -O3 -g3 $<$<C_COMPILER_ID:GNU>:-Wstack-usage=4096>)
   #baremetal & startup related options.
   target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions -fno-rtti -fno-unwind-tables  -fno-use-cxa-atexit -fno-threadsafe-statics -ffreestanding)
 

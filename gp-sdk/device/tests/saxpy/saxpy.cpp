@@ -15,6 +15,7 @@
 
 #include "entryPoint.h"
 #include "saxpy_kernel_arguments.h"
+#include <etsoc/isa/tensors.h>
 
 int entryPoint_0(KernelArguments* args);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
@@ -26,10 +27,17 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
 {
     constexpr int vlen = 8;
     float alphaVector;
+    constexpr uint32_t mask = 0xff;
+#ifndef __clang__
+    mask_set(0, mask);
+#endif
     auto i = begin;
      __asm__ __volatile__("fbcx.ps %[alphaVector], %[alpha]\n"
                           : [ alphaVector ] "=&f"(alphaVector)
                           : [ alpha ] "r"(alpha)
+                        #if COMPILER_CLANG
+                          , [ mask ] "M"(mask) 
+                        #endif
                           :);
     for (; i < end - (vlen - 1); i += vlen) {
         float xValue;
@@ -38,11 +46,15 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
         const float *yv = &y[i];
         const float *wv = &w[i];
         // load x and y
-        __asm__ __volatile__ ("flw.ps %[xValue], (%[xv])\n"
-                              "flw.ps %[yValue], (%[yv])\n"
+        __asm__ __volatile__ ("flw.ps %[xValue], 0(%[xv])\n"
+                              "flw.ps %[yValue], 0(%[yv])\n"
                               : [xValue] "=&f"(xValue),
                                 [yValue] "=&f"(yValue)
                               : [xv] "r" (xv), [yv] "r" (yv)
+
+                          #ifdef __clang__
+                              , [ mask ] "M"(mask) 
+                          #endif
                               : );
 
         // w[i] = a * x[i] + y[i] 
@@ -51,12 +63,18 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
                             "fmadd.ps %[yValue], %[xValue], %[alphaVector], %[yValue]\n"
                             : [yValue] "+&f"(yValue)
                             : [ xValue ] "f"(xValue), [ alphaVector ] "f"(alphaVector)
+                          #ifdef __clang__
+                            , [ mask ] "M"(mask) 
+                          #endif
                             :);
 
         // store w[i]
         __asm__ __volatile__ ("fsw.ps %[yValue], (%[wv])\n"
                               :         
                               : [wv] "r" (wv), [yValue] "f"(yValue)
+                          #ifdef __clang__
+                              , [ mask ] "M"(mask)
+                          #endif 
                               : );
     }
 

@@ -20,6 +20,7 @@
 #include <inttypes.h>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/cacheops-umode.h>
+#include <etsoc/isa/tensors.h>
 #include <system/abi.h>
 
 static inline uint8_t readByte(uint8_t * addr);
@@ -51,12 +52,19 @@ static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) 
   et_assert(aligned_size && "num_bytes is not multiple of 32-bytes")
 
   float tmp;
+  constexpr uint32_t mask = 0xff;
+#ifndef __clang__
+    mask_set(0, mask);
+#endif
   for (size_t i = 0; i < num_bytes; i += stride) {
     __asm__ __volatile__("flwg.ps %[tmp], (%[src])\n"
                          "fswg.ps %[tmp], (%[dst])\n"
                          : [ tmp ] "=&f" (tmp)
                          : [ src ] "r" (s + i),
                            [ dst ] "r"(d + i)
+                       #ifdef __clang__
+                         , [ mask ] "M"(mask) 
+                       #endif
                          :);
   }
   return 0;
@@ -89,12 +97,19 @@ static inline int local_memcpy(void * dst, const void * src, size_t num_bytes) {
   }
   // fast-path: aligned.
   float tmp;
+  constexpr uint32_t mask = 0xff;
+#ifndef __clang__
+    mask_set(0, mask);
+#endif
   for (size_t i = 0; i < num_bytes; i += stride) {
-    __asm__ __volatile__("flw.ps %[tmp], (%[src])\n"
-                         "fsw.ps %[tmp], (%[dst])\n"
+    __asm__ __volatile__("flw.ps %[tmp], 0(%[src])\n"
+                         "fsw.ps %[tmp], 0(%[dst])\n"
                          : [ tmp ] "=&f" (tmp)
                          : [ src ] "r" (s + i),
                            [ dst ] "r"(d + i)
+                       #ifdef __clang__
+                         , [ mask ] "M"(mask) 
+                       #endif
                          :);
   }
   return 0;
@@ -127,15 +142,25 @@ static inline int global_memset(void * ptr, const int value, size_t num_bytes) {
 
   // Broadcast value
   float valueVector;
+  constexpr uint32_t mask = 0xff;
+#ifndef __clang__
+    mask_set(0, mask);
+#endif
   __asm__ __volatile__("fbcx.ps %[valueVector], %[value]\n"
                       : [ valueVector ] "=&f" (valueVector)
                       : [ value ] "r" (value)
+                     #ifdef __clang__
+                       , [ mask ] "M"(mask) 
+                     #endif
                       :);
   int64_t i;
   for (i = 0; i < (int64_t) num_bytes - (stride - 1); i += stride) {
     __asm__ __volatile__( "fswg.ps %[valueVector], (%[ptr])\n"
                           :  
                           : [ ptr ] "r"(p + i), [ valueVector ] "f" (valueVector)
+                       #ifdef __clang__
+                         , [ mask ] "M"(mask) 
+                       #endif
                           :);
   }
   // this line will be evicted
