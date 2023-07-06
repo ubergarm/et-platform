@@ -32,7 +32,7 @@ using DeviceConfig = const __DeviceConfig;
 
 namespace device_config {
 template <typename T0, typename T1> static constexpr int32_t getThreadsPerCore(T0 e0, T1 e1) {
-  return e0 ? (e1 ? 2 : 1) : 0;
+  return (e0 != nullptr) ? ((e1 != nullptr)  ? 2 : 1) : 0;
 }
 
 // Note: gcc 8.2 refuses to constexpr-compare function pointers, so we use partial template specialization as a

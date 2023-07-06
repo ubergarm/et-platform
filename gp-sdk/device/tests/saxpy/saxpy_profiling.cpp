@@ -53,8 +53,8 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
         const float *yv = &y[i];
         const float *wv = &w[i];
         // load x and y
-        __asm__ __volatile__ ("flw.ps %[xValue], (%[xv])\n"
-                              "flw.ps %[yValue], (%[yv])\n"
+        __asm__ __volatile__ ("flw.ps %[xValue], 0(%[xv])\n"
+                              "flw.ps %[yValue], 0(%[yv])\n"
                               : [xValue] "=&f"(xValue),
                                 [yValue] "=&f"(yValue)
                               : [xv] "r" (xv), [yv] "r" (yv)
@@ -75,7 +75,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
                             :);
 
         // store w[i]
-        __asm__ __volatile__ ("fsw.ps %[yValue], (%[wv])\n"
+        __asm__ __volatile__ ("fsw.ps %[yValue], 0(%[wv])\n"
                               :         
                               : [wv] "r" (wv), [yValue] "f"(yValue)
                             #if COMPILER_CLANG
