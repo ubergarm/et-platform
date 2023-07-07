@@ -161,23 +161,75 @@ def gdb_tls_script(entry_pc: int):
         Command("continue", []),
     ]
 
+def gdb_script_silicon(entry_pc: int):
+    """Generate the GDB script for testing"""
+    return [
+        Command(
+            "target remote :51000",
+            [
+                "Remote debugging using :51000",
+                "0x* in*",
+            ],
+        ),
+        Command(
+            "b saxpy.cpp:86",
+            [
+                'Breakpoint 1*',
+            ],
+        ),
+        Command(
+            "continue",
+            [
+                'Continuing.',
+                '',
+                'Breakpoint 1, entryPoint_0*',
+                '*',
+            ],
+        ),
+        Command(
+            "print *vectors",
+            [
+                "*{numElements = 256, x = 0x800*, y = 0x800*, a = 3}",
+            ],
+        ),
+        Command("delete", []),
+        Command("continue", []),
+    ]
 
-def launch_kernel(shell, launcher: Path, kernel: Path, entry_point: str):
+def launch_gdb_server(shell):
+    """Launch GDB server for silicon debugging"""
+    return shell.popen(
+        " ".join(
+            [
+                "debug-server -n 0 -s 0 -m 0x1 -t 200000",
+                "&"
+                "sleep 10 && kill $!"
+            ]
+        ),
+    )
+
+
+def launch_kernel(shell, launcher: Path, kernel: Path, entry_point: str, device: str):
     """Launch a test kernel"""
     entry_pc = shell.find_symbol(Path(f"{kernel}_dbg"), entry_point)
     logging.debug(f"PC of {entry_point}: %#{entry_pc}")
 
-    return entry_pc, shell.popen(
-        " ".join(
-            [
-                f"{launcher}",
-                f"--kernel_path={kernel}",
-                "--device_type=sysemu",
-                f"--simulator_params='-gdb_at_pc={entry_pc:#x}'",
-                "--kernel_launch_timeout=10000",
-            ]
-        ),
-    )
+    command_parts = [
+        str(launcher),
+        f"--kernel_path={kernel}",
+        f"--device_type={device}",
+        "--kernel_launch_timeout=10000",
+    ]
+
+    if device == "sysemu":
+        command_parts.append(f"--simulator_params='-gdb_at_pc={entry_pc:#x}'")
+    elif device == "silicon":
+        command_parts.insert(0, "sleep 3 &&")
+        command_parts.append("&")
+
+    command = " ".join(command_parts)
+    return entry_pc, shell.popen(command)
+
 
 
 @pytest.mark.parametrize("kernel_info, script", [
@@ -196,9 +248,48 @@ def test_gdb_sysemu(kernel_info, script, request, build_dir, shell, gdb):
         launcher=build_dir.host / f"sdk/{kernel_info[1]}",
         kernel=build_dir.device / f"tests/{kernel_info[0]}.elf",
         entry_point=kernel_info[2],
+        device="sysemu"
     )
 
     time.sleep(2)  # Wait some time for the launcher to start
+
+    if request.config.getoption("--gdb-custom"):
+        logging.info("Waiting for gdb connection")
+    else:
+        gdb = gdb(str(build_dir.device / f"tests/{kernel_info[0]}.elf_dbg"))
+        gdb.read_until("Reading symbols")
+        logging.info("Running gdb commands")
+        for cmd in script(entry_pc):
+            time.sleep(0.4)
+            gdb.eval(cmd.input, cmd.expected_output)
+        gdb.close()
+
+    err = launcher.wait()
+    assert err == 0, "launcher returned non-zero exit-code"
+
+
+@pytest.mark.parametrize("kernel_info, script", [
+    pytest.param(["saxpy_vector", "saxpy_launcher", "entryPoint_0"], gdb_script_silicon),
+])
+def test_gdb_silicon(kernel_info, script, request, build_dir, shell, gdb):
+    """Execute a saxpy kernel and debug with GDB"""
+    if not build_dir.exists():
+        pytest.skip("the examples have not been built")
+    if request.config.getoption("--skip-gdb"):
+        pytest.skip("gdb tests are is disabled")
+    logging.info("Starting GDB server")
+    launch_gdb_server(shell)
+    time.sleep(2)  # Wait some time for the server to start
+    logging.info("Starting kernel launcher")
+    entry_pc, launcher = launch_kernel(
+        shell,
+        launcher=build_dir.host / f"sdk/{kernel_info[1]}",
+        kernel=build_dir.device / f"tests/{kernel_info[0]}.elf",
+        entry_point=kernel_info[2],
+        device="silicon",
+    )
+
+    time.sleep(1)  # Wait some time for the launcher to start
 
     if request.config.getoption("--gdb-custom"):
         logging.info("Waiting for gdb connection")
