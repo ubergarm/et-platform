@@ -98,19 +98,19 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         d.f = asinf(0.7f);                et_printf("asinf(0.7) --> %f\n", static_cast<double>(d.f));
         d.f = asinf(a.f);                 et_printf("asinf(%f) --> %f\n", da, static_cast<double>(d.f));
         // asin - f64
-        dd = asin(0.7d);                  et_printf("asin(0.7) --> %f\n", dd);
+        dd = asin(0.7);                   et_printf("asin(0.7) --> %f\n", dd);
         dd = asin(da);                    et_printf("asin(%f) --> %f\n", da, static_cast<double>(d.f));
         // acos - f32
         d.f = acosf(0.7f);                et_printf("acosf(0.7) --> %f\n", static_cast<double>(d.f));
         d.f = acosf(a.f);                 et_printf("acosf(%f) --> %f\n", da, static_cast<double>(d.f));
         // acos - f64
-        dd = acos(0.7d);                  et_printf("acos(0.7) --> %f\n", dd);
+        dd = acos(0.7);                   et_printf("acos(0.7) --> %f\n", dd);
         dd = acos(da);                    et_printf("acos(%f) --> %f\n", da, static_cast<double>(d.f));
         // acos - f32
         d.f = acoshf(0.7f);                et_printf("acoshf(0.7) --> %f\n", static_cast<double>(d.f));
         d.f = acoshf(a.f);                 et_printf("acoshf(%f) --> %f\n", da, static_cast<double>(d.f));
         // acos - f64
-        dd = acosh(0.7d);                  et_printf("acosh(0.7) --> %f\n", dd);
+        dd = acosh(0.7);                   et_printf("acosh(0.7) --> %f\n", dd);
         dd = acosh(da);                    et_printf("acosh(%f) --> %f\n", da, static_cast<double>(d.f));
         
         auto expected = 484.0f;

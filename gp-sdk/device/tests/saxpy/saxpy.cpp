@@ -69,7 +69,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
                             :);
 
         // store w[i]
-        __asm__ __volatile__ ("fsw.ps %[yValue], (%[wv])\n"
+        __asm__ __volatile__ ("fsw.ps %[yValue], 0(%[wv])\n"
                               :         
                               : [wv] "r" (wv), [yValue] "f"(yValue)
                           #ifdef __clang__
