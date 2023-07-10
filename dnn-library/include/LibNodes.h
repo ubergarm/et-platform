@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../.. --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/home/isb/prog/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/home/clesmes/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -51,6 +51,12 @@ extern template void fwdLibArgMaxInst<Int64ITy,FloatTy>(LibTensor* out0, LibTens
 extern template void fwdLibArgMaxInst<Int32ITy,FloatTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibArgMaxInst<Int64ITy,Int8QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibArgMaxInst<Int32ITy,Int8QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibArgMaxInst<Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibArgMaxInst<Int64ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibArgMaxInst<Int64ITy,Int32QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibArgMaxInst<Int32ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibArgMaxInst<Int32ITy,Int32ITy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibArgMaxInst<Int32ITy,Int32QTy>(LibTensor* out0, LibTensor* in0, const dim_t Axis, const bool KeepDims, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  AvgPool implementations

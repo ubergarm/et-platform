@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../.. --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/home/isb/prog/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/home/clesmes/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 

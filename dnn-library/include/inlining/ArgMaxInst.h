@@ -21,6 +21,7 @@
 #include <fenv.h>
 #include <limits>
 #include <string.h>
+#include <type_traits>
 
 namespace dnn_lib {
 
@@ -35,10 +36,12 @@ INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, dim_t axis, b
 
   using inElemTy = typename elemKind2elemTy<inelK>::type;
   using outElemTy = typename elemKind2elemTy<outelK>::type;
+  using midElemTy = typename std::conditional<((inelK == Float16Ty) || (inelK == FloatTy)), float, inElemTy>::type;
 
-  assert(((inT->getElementType() == FloatTy) || 
-	  (inT->getElementType() == Float16Ty) ||
-          (inT->getElementType() == Int8QTy)) && "Not expected input Type");
+  assert(((inT->getElementType() == FloatTy) || (inT->getElementType() == Float16Ty) ||
+          (inT->getElementType() == Int8QTy) || (inT->getElementType() == Int32QTy) ||
+          (inT->getElementType() == Int32ITy) || (inT->getElementType() == Int64ITy)) &&
+         "Not expected input Type");
   assert(((outT->getElementType() == Int64ITy) || 
           (outT->getElementType() == Int32ITy)) && "Not expected output Type");
 
@@ -59,9 +62,8 @@ INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, dim_t axis, b
           for (dim_t idx4 = 0; idx4 < outDims[4]; idx4++) {
             for (dim_t idx5 = 0; idx5 < outDims[5]; idx5++) {
 
-              //Init max value/index
-              //inElemTy maxVal = std::numeric_limits<inElemTy>::lowest();
-              float maxVal = std::numeric_limits<float>::lowest();
+              // Init max value/index
+              midElemTy maxVal = std::numeric_limits<midElemTy>::lowest();
               dim_t maxIdx = 0;
 
               //Iterate input axis dimension
@@ -70,10 +72,10 @@ INLINE_ATTR void fwdLibArgMaxInst(LibTensor* outT, LibTensor* inT, dim_t axis, b
                   {idx0, idx1, idx2, idx3, idx4, idx5};
                 
                 inpIdx[axis] = axisIdx;
-                /* inElemTy inpVal = 0.0; */
-                float inpVal = 0.0;
 
-                if (inelK == Float16Ty) {
+                midElemTy inpVal = static_cast<midElemTy>(0);
+
+                if constexpr (inelK == Float16Ty) {
                   convertFp16ToFp32(static_cast<uint16_t>(srcH.at(inpIdx)), inpVal);
                 } else {
                   inpVal = srcH.at(inpIdx);
