@@ -42,7 +42,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
      __asm__ __volatile__("fbcx.ps %[alphaVector], %[alpha]\n"
                           : [ alphaVector ] "=&f"(alphaVector)
                           : [ alpha ] "r"(alpha)
-                        #if COMPILER_CLANG
+                        #ifdef __clang__
                           , [ mask ] "M"(mask) 
                         #endif
                           :);
@@ -58,7 +58,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
                               : [xValue] "=&f"(xValue),
                                 [yValue] "=&f"(yValue)
                               : [xv] "r" (xv), [yv] "r" (yv)
-                           #if COMPILER_CLANG
+                           #ifdef __clang__
                              , [ mask ] "M"(mask) 
                            #endif
                               : );
@@ -69,7 +69,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
                             "fmadd.ps %[yValue], %[xValue], %[alphaVector], %[yValue]\n"
                             : [yValue] "+&f"(yValue)
                             : [ xValue ] "f"(xValue), [ alphaVector ] "f"(alphaVector)
-                          #if COMPILER_CLANG
+                          #ifdef __clang__
                             , [ mask ] "M"(mask) 
                           #endif
                             :);
@@ -78,7 +78,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
         __asm__ __volatile__ ("fsw.ps %[yValue], 0(%[wv])\n"
                               :         
                               : [wv] "r" (wv), [yValue] "f"(yValue)
-                            #if COMPILER_CLANG
+                            #ifdef __clang__
                               , [ mask ] "M"(mask) 
                             #endif
                               : );
