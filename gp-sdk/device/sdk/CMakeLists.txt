@@ -99,7 +99,7 @@ target_link_libraries(libcpp_throw_stub
         et-common-libs::cm-umode
 )
 
-add_library(libc_stub STATIC libc_stub/et_errno.cc)
+add_library(libc_stub STATIC libc_stub/et_errno.cc libc_stub/et_atexit.cc)
 
 add_subdirectory(libautogen)
 
