@@ -24,10 +24,7 @@ target_include_directories(etsoc_crt0
 target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
 target_compile_options(etsoc_crt0 PUBLIC -fno-threadsafe-statics -ftls-model=local-exec $<$<C_COMPILER_ID:GNU>:-fno-extern-tls-init>)
 
-#FIXME: At the moment, etgcc and etm require to -mnodiv to be compiled and it is not yet supported in clang.
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 target_link_libraries(etsoc_crt0 PUBLIC etgcc etm)
-endif()
 
 set_target_properties(etsoc_crt0 PROPERTIES 
     VERSION ${PROJECT_VERSION}
@@ -51,7 +48,9 @@ target_include_directories(etgcc
         ${CMAKE_CURRENT_LIST_DIR}/libetgcc/include
 )
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 target_compile_options(etgcc PUBLIC -mno-fdiv)
+endif()
 
 #etm is just a subset of libm routines (Verbatim from newlib/libm) compiled with-mno-fdiv.
 #libm will then be ganularily patched through wrap mechanism at link time.
@@ -90,7 +89,9 @@ target_include_directories(etm
 # Disable warning from code copied from newlib
 target_compile_options(etm PRIVATE -Wno-undef -Wno-sign-conversion -Wno-return-type -Wno-sign-compare -Wno-conversion)
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 target_compile_options(etm PUBLIC -mno-fdiv)
+endif()
 
 add_library(libcpp_throw_stub STATIC libcpp_throw_stub/functexcept.cc)
 target_link_libraries(libcpp_throw_stub

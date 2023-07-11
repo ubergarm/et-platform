@@ -37,7 +37,7 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
     et-common-libs::cm-umode
   )
 
-  # Currently released libm has been compiled w/o -mno-div, and ET-SoC-1 does not supprot fdiv family, 
+  # Currently released libm has been compiled without -mno-fdiv and ET-SoC-1 does not support fdiv family.
   # Following wraps are used to patch a small subset of libm into et_libm (compiled with -mno-fdiv).
   # (note, Those fdivs are typically to generate nans in non-happy path, so typically out of critical path).
   set(WRAPPED_FUNC "-Wl,--wrap=__ieee754_sqrtf \
