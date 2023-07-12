@@ -11,6 +11,7 @@
 
 extern "C" {
 int atexit(void (*function)(void)) {
+  (void) function;
   return 0;
 }
 }

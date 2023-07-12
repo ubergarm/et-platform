@@ -23,6 +23,10 @@ then
     
     # addr2line
     grep ${UNIMPLEMENTED_EXPR} ${TARGET_ASM} | cut -d: -f 1 | riscv64-unknown-elf-addr2line -i -e ${TARGET_DEBUG} > ${BAD_INST_FILE}
+    grep ${UNIMPLEMENTED_EXPR} ${TARGET_ASM} >> ${BAD_INST_FILE}
+    echo "------------------------------------------------------------"
+    cat ${BAD_INST_FILE}
+    echo "------------------------------------------------------------"
     exit 1
 
 else 

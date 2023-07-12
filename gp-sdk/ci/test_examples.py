@@ -22,11 +22,11 @@ from collections import namedtuple
 KERNEL_LAUNCHERS = {
     "bss": "basic_launcher",
     "busy10sec": "basic_launcher",
-    "c_contructors": "basic_launcher",
+    "c_constructors": "basic_launcher",
     "c_tls": "basic_launcher",
     "cacheops_flush": "basic_launcher",
     "check_pmc": "basic_launcher",
-    "cpp_contructors": "basic_launcher",
+    "cpp_constructors": "basic_launcher",
     "cpp_tls": "basic_launcher",
     "data": "basic_launcher",
     "exception": "basic_launcher",
