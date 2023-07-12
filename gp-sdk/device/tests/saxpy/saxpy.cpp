@@ -35,7 +35,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
      __asm__ __volatile__("fbcx.ps %[alphaVector], %[alpha]\n"
                           : [ alphaVector ] "=&f"(alphaVector)
                           : [ alpha ] "r"(alpha)
-                        #if __clang__
+                        #ifdef __clang__
                           , [ mask ] "M"(mask) 
                         #endif
                           :);
