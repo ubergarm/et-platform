@@ -112,12 +112,12 @@ int main(int argc, char** argv) {
     launcher.kernelLaunch(kernelId, 0, opt.shire_mask);
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
-
+    launcher.dumpTracesToFile(i);
+    
     if (launcher.kernelError_ || launcher.kernelAbort_) {
       return -1;
     }
 
-    launcher.dumpTracesToFile(i);
   }
 
   launcher.unLoadKernel(kernelId); 
