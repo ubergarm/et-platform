@@ -112,8 +112,15 @@ target_link_libraries(matmul_launcher
     PRIVATE
         etsoc_gpsdk
 )
+
+
+add_executable(p2p_launcher src/p2p_launcher/p2p_launcher.cpp)
+target_link_libraries(p2p_launcher
+    PRIVATE
+        etsoc_gpsdk
+)
       
-install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher
+install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher p2p_launcher
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}
