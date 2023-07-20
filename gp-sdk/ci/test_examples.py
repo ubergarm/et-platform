@@ -11,6 +11,7 @@ Tests:
 
 from collections import defaultdict
 import csv
+import fnmatch
 import logging
 import glob
 from pathlib import Path
@@ -97,6 +98,12 @@ ENABLE_CORE = [CmdLineArg("--enableCoreDump", True)]
 str_example_not_built = "the examples have not been built"
 
 
+def check_fail_assert(trace):
+    for line in trace:
+        if 'Assertion' in line[-1]:
+            assert fnmatch.fnmatch(line[-1], "*Assertion*failed:*")
+
+
 def check_variable_strings(trace):
     """ This function validates the trace which contains et_printf output.
     It contains a total of 23 lines, and the first line contains the information of the file name "variableStrings". 
@@ -139,6 +146,8 @@ def check_device_trace(shell, path: Path):
 
     if trace_contains_token(trace, 'variableStrings'):
         check_variable_strings(trace)
+    if trace_contains_token(trace, 'fail_assert'):
+        check_fail_assert(trace)
 
 
 def check_run_artifacts(shell, device_type: str, multikernel: bool = False, kernelId1: int = 0, kernelId2: int = 0):
@@ -243,7 +252,7 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
     else:
         shell.run(launch_cmd)
 
-    if kernel not in SHOULD_FAIL:
+    if kernel not in SHOULD_FAIL or kernel == "fail_assert":
       check_run_artifacts(shell, device_type)
 
 
