@@ -127,7 +127,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         d.f = asinf(a.f);                 et_printf("asinf(%f) --> %f\n", da, static_cast<double>(d.f));
         et_assert(std::isnan(d.f));
         // asin - f64
-        dd = asin(0.7d);                  et_printf("asin(0.7) --> %f\n", dd);
+        dd = asin(0.7);                  et_printf("asin(0.7) --> %f\n", dd);
         expected = 0.775397;
         et_assert(isEqualWithPrecision(static_cast<double>(dd), expected, precision));
         dd = asin(da);                    et_printf("asin(%f) --> %f\n", da, static_cast<double>(d.f));
