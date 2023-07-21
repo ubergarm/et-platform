@@ -11,8 +11,8 @@
 
 #include <cstdlib>
 #include <getopt.h>
-#include <string>
 #include <numeric>
+#include <string>
 
 #include "GenericLauncher.h"
 
@@ -34,9 +34,7 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
   static constexpr const char* short_opts = "d:";
 
   static const std::vector<struct option> long_opts_vect{
-                                                         {"device_type", required_argument, nullptr, 'd'},
-                                                         {"help", no_argument, nullptr, 'h'},
-                                                         {nullptr, 0, nullptr, 0}};
+    {"device_type", required_argument, nullptr, 'd'}, {"help", no_argument, nullptr, 'h'}, {nullptr, 0, nullptr, 0}};
 
   Options opts;
 
@@ -71,53 +69,50 @@ struct P2PLauncher : public GenericLauncher {
   void test();
 };
 
-
 void P2PLauncher::test() {
 
- if(getNumDevices() < 2) {
+  if (getNumDevices() < 2) {
     std::cout << "Error: at least 2 devices needed for p2p test\n";
     exit(1);
   }
 
   auto source = devices_[0];
   auto destination = devices_[1];
-  if(!runtime_->isP2PEnabled(source, destination)){
-    std::cout << "p2p not enabled betweedn devs " << (uint32_t) source << " and " << (uint32_t) destination << "\n";
+  if (!runtime_->isP2PEnabled(source, destination)) {
+    std::cout << "p2p not enabled betweedn devs " << (uint32_t)source << " and " << (uint32_t)destination << "\n";
     exit(1);
   }
 
-  constexpr  size_t size = 1024*1024;
-  
-  std::vector<uint32_t>cleaner(size/sizeof(uint32_t));
-  std::vector<uint32_t>dataIn(size/sizeof(uint32_t));
-  std::vector<uint32_t>dataOut(size/sizeof(uint32_t));
+  constexpr size_t size = 1024 * 1024;
+
+  std::vector<uint32_t> cleaner(size / sizeof(uint32_t));
+  std::vector<uint32_t> dataIn(size / sizeof(uint32_t));
+  std::vector<uint32_t> dataOut(size / sizeof(uint32_t));
 
   std::fill(cleaner.begin(), cleaner.end(), 0);
   std::iota(dataIn.begin(), dataIn.end(), 0);
-  
+
   // alloc a buffers on  source  and destination.
   auto sourceDevPtr = runtime_->mallocDevice(source, size);
   auto destinationDevPtr = runtime_->mallocDevice(destination, size);
 
-
   // clean the buffers on both devices so we are sure we have no side effects from prev executions.
   auto sourceStream = defaultStreams_[0];
   auto destinationStream = defaultStreams_[1];
-  runtime_->memcpyHostToDevice(sourceStream, (std::byte *) cleaner.data(),sourceDevPtr, size);
-  runtime_->memcpyHostToDevice(destinationStream, (std::byte *) cleaner.data(),destinationDevPtr, size);
+  runtime_->memcpyHostToDevice(sourceStream, (std::byte*)cleaner.data(), sourceDevPtr, size);
+  runtime_->memcpyHostToDevice(destinationStream, (std::byte*)cleaner.data(), destinationDevPtr, size);
   runtime_->waitForStream(sourceStream);
   runtime_->waitForStream(destinationStream);
 
-
   // copy a buffer to source-device
-  runtime_->memcpyHostToDevice(sourceStream, (std::byte *) dataIn.data(),sourceDevPtr, size);
+  runtime_->memcpyHostToDevice(sourceStream, (std::byte*)dataIn.data(), sourceDevPtr, size);
   runtime_->waitForStream(sourceStream);
-  
+
   // p2p copy this buffer from source-device to destination-device
   runtime_->memcpyDeviceToDevice(source, destinationStream, sourceDevPtr, destinationDevPtr, size);
 
   // copy back from destination-device to the host, (queued into the p2p-copy stream).
-  runtime_->memcpyDeviceToHost(destinationStream, destinationDevPtr, (std::byte *) dataOut.data(), size);
+  runtime_->memcpyDeviceToHost(destinationStream, destinationDevPtr, (std::byte*)dataOut.data(), size);
   runtime_->waitForStream(destinationStream);
 
   // check that the loopback copy succeeded.
@@ -125,7 +120,7 @@ void P2PLauncher::test() {
     std::cout << "Error: buffers do not match, p2p copy failed\n";
     exit(1);
   }
-  
+
   std::cout << "p2p copy succeeded\n";
 }
 

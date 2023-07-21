@@ -55,7 +55,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         
         et_printf("\n");
         auto expected = -3.142857;
-        double precision = 0.001;  // Set your desired precision here
+        double precision = 0.001; // Set your desired precision here
         d.f = a.f        / b.f;             et_printf("0x%x / 0x%x --> 0x%x\n", a.i, b.i, d.i);
         et_assert(isEqualWithPrecision(static_cast<double>(d.f), expected, precision));
         d.f = pos_zero.f / pos_zero.f;      et_printf("0x%x / 0x%x --> 0x%x\n", pos_zero.i, pos_zero.i, d.i);
@@ -93,7 +93,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         et_assert(std::isnan(d.f));
         d.f = sqrtf(pos_nan.f);     et_printf("sqrt(0x%f) --> 0x%f\n", static_cast<double>(pos_nan.f), static_cast<double>(d.f));
         et_assert(std::isnan(d.f));
-        
+
         auto r = sqrtf(-1);
         et_assert(std::isnan(r));
         et_printf("sqrtf(-1) = %f, errno: %d \n", double(r), errno);
@@ -122,12 +122,13 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
 
         // asin - f32
         d.f = asinf(0.7f);                et_printf("asinf(0.7) --> %f\n", static_cast<double>(d.f));
-        expected =  0.775397;
+        expected = 0.775397;
         et_assert(isEqualWithPrecision(static_cast<double>(d.f), expected, precision));
         d.f = asinf(a.f);                 et_printf("asinf(%f) --> %f\n", da, static_cast<double>(d.f));
         et_assert(std::isnan(d.f));
         // asin - f64
-        dd = asin(0.7);                  et_printf("asin(0.7) --> %f\n", dd);
+        dd = asin(0.7);
+        et_printf("asin(0.7) --> %f\n", dd);
         expected = 0.775397;
         et_assert(isEqualWithPrecision(static_cast<double>(dd), expected, precision));
         dd = asin(da);                    et_printf("asin(%f) --> %f\n", da, static_cast<double>(d.f));
@@ -154,7 +155,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         et_assert(std::isnan(dd));
         dd = acosh(da);                    et_printf("acosh(%f) --> %f\n", da, static_cast<double>(d.f));
         et_assert(isEqualWithPrecision(static_cast<double>(dd), expected, precision));
-        
+
         expected = 484.0f;
         float res = powf(22,2);
         et_printf("powf(22,2): %f vs %f", double(res), double(expected));
@@ -168,7 +169,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         res = logf(-1);
         et_printf("logf(-1): %f vs %s", double(res), "nan");
         et_assert(std::isnan(res));
-       
+
         res = log1pf(0.3f);
         expected = 0.26236f;
         et_printf("log: %f vs %f", double(res), double(expected));
@@ -177,13 +178,11 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         res = log1pf(-2.0f);
         et_printf("log1pf(-2.0): %f vs %s", double(res), "nan");
         et_assert(std::isnan(res));
-         
+
         res = log1pf(-1.0f);
-        et_printf("log1p(-1.0): %f vs %s", double(res), "-inf"); 
+        et_printf("log1p(-1.0): %f vs %s", double(res), "-inf");
         et_assert(std::isinf(res));
 
-
-       
         expected = 3.091043f;
         auto resf = log(22);
         et_printf("log(22): %f vs %f", double(resf), double(expected));
@@ -192,7 +191,7 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         resf = log(-1);
         et_printf("log(-1): %f vs %s", double(resf), "nan");
         et_assert(std::isnan(resf));
-       
+
         resf = log1p(0.3);
         expected = 0.26236f;
         et_printf("log1p(0.3): %f vs %f", double(resf), double(expected));
@@ -201,17 +200,16 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
         resf = log1p(-2.0);
         et_printf("log10(-2.0): %f vs %s", double(resf), "nan");
         et_assert(std::isnan(resf));
-         
+
         resf = log1p(-1.0);
-        et_printf("log1p(-1.0): %f vs %s", double(resf), "-inf"); 
+        et_printf("log1p(-1.0): %f vs %s", double(resf), "-inf");
         et_assert(std::isinf(resf));
- 
     }
 
   return 0;
 }
 
 bool isEqualWithPrecision(double value1, double value2, double precision) {
-    double diff = std::abs(value1 - value2);
-    return diff <= precision;
+  double diff = std::abs(value1 - value2);
+  return diff <= precision;
 }

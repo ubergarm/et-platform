@@ -16,6 +16,7 @@
 #include <hostUtils/logging/Logger.h>
 
 #include <string>
+#include <unistd.h>
 #include <vector>
 
 #if __has_include("filesystem")
@@ -99,6 +100,12 @@ public:
 
     parse_args(argc, argv, strictArgs);
   };
+
+  ~GenericLauncher() {
+    if (config_.mode_ == Mode::SYSEMU) {
+      removeSysemuTraceDumpCookie();
+    }
+  }
 
   /**
    * Initializes the PCIE, SYSEMU or FAKE device interface where the kernel will run.
@@ -225,6 +232,9 @@ private:
   void reportUserException(const rt::StreamError& error) const;
   void createRuntime(bool enableCoreDump, bool useRuntimeMultiProcess, rt::Options options);
   void resetRuntime(bool enableCoreDump);
+  void createUserTraces(void);
+  void writeSysemuTraceDumpCookie(void);
+  void removeSysemuTraceDumpCookie(void);
   rt::IRuntime* getRuntime(bool enableCoreDump);
   AbortManager abortManager_;
 
@@ -235,6 +245,9 @@ private:
   std::string simulator_params_;
   bool enableCoreDump_ = false;
   bool useRuntimeMultiProcess_ = false;
+  std::string sysemuTraceDumpCookiePath_ =
+    std::filesystem::path(std::filesystem::temp_directory_path().string() + "/" + "sysemuTraceDumpCookie." +
+                          std::to_string(getuid()) + "." + std::to_string(getpid()) + ".bin");
 
 protected:
   const Config& config_;

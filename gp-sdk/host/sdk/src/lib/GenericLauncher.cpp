@@ -17,6 +17,7 @@
 #include <sw-sysemu/SysEmuOptions.h>
 
 #include <getopt.h>
+#include <stdio.h>
 
 #include "GenericLauncher.h"
 #include "RuntimeImpWithCoreDump.h"
@@ -157,10 +158,37 @@ void GenericLauncher::initialize() {
   runtime_->setOnStreamErrorsCallback(streamErrorHandler);
   runtime_->setOnKernelAbortedErrorCallback(abortedKernelHandler);
 
+  createUserTraces();
+}
+
+void GenericLauncher::writeSysemuTraceDumpCookie(void) {
+
+  auto traceAddrPtrInfo = std::ofstream(sysemuTraceDumpCookiePath_, std::ios::binary | std::ios::out);
+
+  if (traceAddrPtrInfo.good()) {
+
+    traceAddrPtrInfo.write((char*)&numDev_, sizeof(uint32_t));
+
+    for (uint16_t i = 0; i < traceDeviceBuffer_.size(); i++) {
+      traceAddrPtrInfo.write((const char*)&traceDeviceBuffer_.at(i), sizeof(uint64_t));
+      traceAddrPtrInfo.write((const char*)&kTraceBufferSize, sizeof(kTraceBufferSize));
+    }
+  } else {
+    std::cout << "WARNING!!!, Could not write " << sysemuTraceDumpCookiePath_ << std::endl;
+  }
+}
+
+void GenericLauncher::createUserTraces(void) {
   // Alloc space on device for user traces. Note: This buffer will be reused across differnet kernel launches.
   if (enableKernelTraces) {
+
     for (uint32_t idx = 0; idx < numDev_; idx++) {
-      traceDeviceBuffer_.emplace_back(runtime_->mallocDevice(devices_[idx], kTraceBufferSize));
+      std::byte* addrptr = runtime_->mallocDevice(devices_[idx], kTraceBufferSize);
+      traceDeviceBuffer_.emplace_back(addrptr);
+    }
+
+    if (config_.mode_ == Mode::SYSEMU) {
+      writeSysemuTraceDumpCookie();
     }
   }
 }
@@ -181,16 +209,23 @@ void GenericLauncher::initialize(rt::IRuntime* runtime) {
     numDev_++;
   }
 
-  // Alloc space on device for user traces. Note: This buffer will be reused across differnet kernel launches.
-  if (enableKernelTraces) {
-    for (uint32_t idx = 0; idx < numDev_; idx++) {
-      traceDeviceBuffer_.emplace_back(runtime_->mallocDevice(devices_[idx], kTraceBufferSize));
-    }
-  }
+  createUserTraces();
 }
 
 void GenericLauncher::unLoadKernel(rt::KernelId kernelId) {
   runtime_->unloadCode(kernelId);
+}
+
+void GenericLauncher::removeSysemuTraceDumpCookie(void) {
+
+  std::error_code ec;
+
+  std::filesystem::remove(sysemuTraceDumpCookiePath_, ec);
+
+  if (ec) { // Error on remove
+    std::cout << "WARNING!!!, Could not remove " << sysemuTraceDumpCookiePath_ << ", error was: " << ec.value() << " "
+              << ec.message() << std::endl;
+  }
 }
 
 void GenericLauncher::tearDown() {
