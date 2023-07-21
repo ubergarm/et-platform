@@ -18,12 +18,7 @@
 
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
-
-  fs::path kernel_path = "";
-  int kernel_launch_timeout = 10;
-  int num_launches = 1;
   std::string device_type = "sysemu";
-  uint32_t shire_mask = 0xFFFFFFFF;
 };
 
 Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
@@ -109,7 +104,7 @@ void P2PLauncher::test() {
   auto sourceStream = defaultStreams_[0];
   auto destinationStream = defaultStreams_[1];
   runtime_->memcpyHostToDevice(sourceStream, (std::byte *) cleaner.data(),sourceDevPtr, size);
-  runtime_->memcpyHostToDevice(destinationStream, (std::byte *) cleaner.data(),sourceDevPtr, size);
+  runtime_->memcpyHostToDevice(destinationStream, (std::byte *) cleaner.data(),destinationDevPtr, size);
   runtime_->waitForStream(sourceStream);
   runtime_->waitForStream(destinationStream);
 
