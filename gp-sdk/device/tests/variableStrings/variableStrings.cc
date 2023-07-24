@@ -27,7 +27,7 @@ void createString(int length, char *str) {
 
   // Fill the string with characters
   for (int i = 0; i < length; ++i) {
-    str[i] = '0' + (char)(i % 10);  // Add consecutive digits '0' to '9'
+    str[i] = (char)('0' + (i % 10));  // Add consecutive digits '0' to '9'
   }
   str[length] = '\0';  // Null-terminate the string
 }
