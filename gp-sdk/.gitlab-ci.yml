@@ -1,12 +1,12 @@
 include:
-  - project: 'software/gitlab-ci-common'
-    ref: 598eab92c6151682f5b7ac28a5fda2a116ab15d0
+  - project: 'esperantotech/software/gitlab-ci-common'
+    ref: 98b1c375911297a65e227ce0c45e73140ea125f5
     file:
       - rules/generic-workflow-conan.yaml
       - pods/large-pod.yaml
       - jobs/generic-k8s-job.yaml
       - rules/exec_maybe_interactively.yaml
-  - project: 'software/gitlab-ci-common'
+  - project: 'esperantotech/software/gitlab-ci-common'
     ref: master
     file:
       - 'jobs/conan-jobs.yaml'
