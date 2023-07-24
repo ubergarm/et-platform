@@ -17,7 +17,6 @@
 #include <etsoc/isa/cacheops-umode.h>
 #include <etsoc/isa/hart.h>
 
-
 class KernelArguments;
 int entryPoint(KernelArguments* args);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint, nullptr);
@@ -42,13 +41,16 @@ int entryPoint([[maybe_unused]] KernelArguments* args) {
   constexpr uint64_t useTensorMask = 0;
   constexpr uint64_t numLinesMinusOne = 1 - 1;
 
+  // Flushing cache op requires a fence before and a tensor wait after
+  __asm__ volatile("fence\n" ::: "memory");
   cache_ops_flush_va(useTensorMask, cop_dest::to_L3, (uint64_t)&buffer[threadId], numLinesMinusOne, 0, 0);
-
+  __asm__ __volatile__("csrwi tensor_wait, 6\n" : :);
+  
   hart::barrier(); // All assigned threads synchronize
 
   // each thread reads data produced by prev ones... let's skip 2 for the sake of simplicity.
 
-  if (threadId >= 2) {
+  if (threadId >= 2) { 
     auto producerId = threadId - 2;
     auto val = buffer[producerId].element;
     et_assert(val == ((0x1234ull << 16) | producerId));
