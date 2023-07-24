@@ -1,13 +1,14 @@
 from conan import ConanFile
-from conan.tools.cmake import CMake, CMakeToolchain,CMakeDeps
-from conans import tools
-from conans.errors import ConanInvalidConfiguration
+from conan.errors import ConanInvalidConfiguration
+from conan.tools.cmake import CMake, CMakeToolchain, CMakeDeps, cmake_layout
+from conan.tools.files import collect_libs, rmdir
 import os
 
 
 class DnnLibraryApiConan(ConanFile):
     name = "dnnLibraryApi"
-    url = "https://gitlab.esperanto.ai/software/dnn-library-api.git"
+    url = "git@gitlab.com:esperantotech/software/dnn-library-api.git"
+    homepage = "https://gitlab.com/esperantotech/software/dnn-library-api"
     description = "DnnLibrary Host API"
     topics = ("dnnLibraryApi", "dnnLibrary", "neuralizer")
     license = "Esperanto Technologies"
@@ -25,20 +26,24 @@ class DnnLibraryApiConan(ConanFile):
         "enable_warnings_as_errors": False,
     }
 
-    scm = {
-        "type": "git",
-        "url": "git@gitlab.esperanto.ai:software/dnn-library-api.git",
-        "revision": "auto",
-    }
-    generators = "CMakeDeps"
-
-
     python_requires = "conan-common/[>=1.1.0 <2.0.0]"
 
     def set_version(self):
         get_version = self.python_requires["conan-common"].module.get_version
         self.version = get_version(self, self.name)
 
+    def export(self):
+        register_scm_coordinates = self.python_requires["conan-common"].module.register_scm_coordinates
+        register_scm_coordinates(self)
+
+    def export_sources(self):
+        copy_sources_if_scm_dirty = self.python_requires["conan-common"].module.copy_sources_if_scm_dirty
+        copy_sources_if_scm_dirty(self)
+    
+    def config_options(self):
+        if self.settings.os == "Windows":
+            del self.options.fPIC
+    
     def configure(self):
         if self.options.shared:
             del self.options.fPIC
@@ -58,11 +63,20 @@ class DnnLibraryApiConan(ConanFile):
         if not dnn_library.options.get_safe(dnn_library_flag):
             raise ConanInvalidConfiguration("{0} requires {1} package with '-o {1}:{2}'".format(self.name, "dnnLibrary", dnn_library_flag))
     
+    def layout(self):
+        cmake_layout(self)
+
     def generate(self):
         tc = CMakeToolchain(self)
         tc.variables["ENABLE_WARNINGS_AS_ERRORS"] = self.options.enable_warnings_as_errors
         tc.variables["CMAKE_INSTALL_LIBDIR"] = "lib"
         tc.generate()
+        deps = CMakeDeps(self)
+        deps.generate()
+
+    def source(self):
+        get_sources_if_scm_pristine = self.python_requires["conan-common"].module.get_sources_if_scm_pristine
+        get_sources_if_scm_pristine(self)
 
     def build(self):
         cmake = CMake(self)
@@ -72,7 +86,7 @@ class DnnLibraryApiConan(ConanFile):
     def package(self):
         cmake = CMake(self)
         cmake.install()
-        tools.rmdir(os.path.join(self.package_folder, "lib", "cmake"))
+        rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = collect_libs(self)
