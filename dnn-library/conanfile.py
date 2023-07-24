@@ -1,9 +1,8 @@
 from conan import ConanFile
+from conan.errors import ConanInvalidConfiguration
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake
-from conan.tools.files import rmdir
+from conan.tools.files import collect_libs, rmdir
 from conan.tools.layout import cmake_layout
-from conans import tools
-from conans.errors import ConanInvalidConfiguration
 import os
 import shutil
 
@@ -12,7 +11,8 @@ class DnnLibraryConan(ConanFile):
     name = "dnnLibrary"
     license = "Esperanto Technologies"
     author = "Pau Farre <pau.farre@esperantotech.com>" # recipe author
-    url = "https://gitlab.esperanto.ai/software/dnn-library"
+    url = "git@gitlab.com:esperantotech/software/dnn-library.git"
+    homepage = "https://gitlab.com/esperantotech/software/dnn-library"
     description = "<Description of DnnLibrary here>"
     topics = ("dnnLibrary", "dnn", "neuralizer")
 
@@ -32,18 +32,20 @@ class DnnLibraryConan(ConanFile):
         "with_host_headers": True
     }
 
-    scm = {
-        "type": "git",
-        "url": "git@gitlab.esperanto.ai:software/dnn-library.git",
-        "revision": "auto",
-    }
-
     python_requires = "conan-common/[>=1.1.0 <2.0.0]"
 
     def set_version(self):
         get_version = self.python_requires["conan-common"].module.get_version
         self.version = get_version(self, self.name)
     
+    def export(self):
+        register_scm_coordinates = self.python_requires["conan-common"].module.register_scm_coordinates
+        register_scm_coordinates(self)
+
+    def export_sources(self):
+        copy_sources_if_scm_dirty = self.python_requires["conan-common"].module.copy_sources_if_scm_dirty
+        copy_sources_if_scm_dirty(self)
+
     def config_options(self):
         if self.settings.os == "Windows":
             del self.options.fPIC
@@ -85,6 +87,10 @@ class DnnLibraryConan(ConanFile):
             cmake_layout(self)
             self.folders.source = "."
     
+    def source(self):
+        get_sources_if_scm_pristine = self.python_requires["conan-common"].module.get_sources_if_scm_pristine
+        get_sources_if_scm_pristine(self)
+
     def generate(self):
         if not self.options.header_only:
             deps = CMakeDeps(self)
@@ -121,7 +127,7 @@ class DnnLibraryConan(ConanFile):
             rmdir(self, os.path.join(self.package_folder, "lib", "cmake"))
 
     def package_info(self):
-        self.cpp_info.libs = tools.collect_libs(self)
+        self.cpp_info.libs = collect_libs(self)
 
         if self.options.with_device_headers:
             self.cpp_info.components["dnnLibrary"].set_property("cmake_target_name", "dnnLibrary::dnn_lib")
