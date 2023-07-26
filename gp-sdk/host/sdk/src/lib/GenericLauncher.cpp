@@ -388,8 +388,6 @@ rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
 
 void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
 
-  static constexpr const char* short_opts = "cs:";
-
   static const std::vector<struct option> long_opts_vect{{"enableCoreDump", no_argument, nullptr, 0},
                                                          {"useRuntimeMultiProcess", no_argument, nullptr, 0},
                                                          {"runtimeSocket", required_argument, nullptr, 0},
@@ -411,10 +409,14 @@ void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
 
   optind = 0;
 
-  while ((ret = getopt_long(argc, argv, short_opts, long_opts_vect.data(), &index)) != -1) {
-    if (ret == '?' and strict) {
-      std::cout << "This option parameter is not expected: " << argv[optind - 1] << std::endl;
-      exit(1);
+  while ((ret = getopt_long(argc, argv, "", long_opts_vect.data(), &index)) != -1) {
+    if (ret == '?') {
+      if (strict) {
+        std::cout << "This option parameter is not expected: " << argv[optind - 1] << std::endl;
+        exit(1);
+      } else {
+        continue;
+      }
     }
 
     const char* const name = long_opts_vect.data()[index].name;
