@@ -1,6 +1,6 @@
 include:
   - project: 'esperantotech/software/gitlab-ci-common'
-    ref: 98b1c375911297a65e227ce0c45e73140ea125f5
+    ref: a782d2470d791ff3340dc0468cc6cf7c8956e3fd
     file:
       - rules/generic-workflow-conan.yaml
       - pods/large-pod.yaml
@@ -122,6 +122,7 @@ build:sonarqube-check:
       else
         python3 -m pytest ci -k "(artifacts or $DEVICE_TYPE)" --skip-gdb --basetemp=$$TEMP_DIR --junitxml=$$JUNIT_REPORT $$PYTEST_OPTIONS --device-build=$$DEVICE_BUILD_PATH --host-build=$$HOST_BUILD_PATH
       fi
+
   artifacts:
     when: always
     paths:
