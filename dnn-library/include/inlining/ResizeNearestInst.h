@@ -26,8 +26,8 @@ namespace inlining {
 
 /**
  * @brief Resizes Generate an Output tensor with the spatial dimensions of the input
- * using nearest neighbor interpolation. The width_scale and height_scale arguments 
- * control the size of the output, which is given by: 
+ * using nearest neighbor interpolation. The width_scale and height_scale arguments
+ * control the size of the output, which is given by:
  * output_width = floor(input_width * width_scale)
  * output_height = floor(output_height * height_scale)
  *
@@ -41,54 +41,82 @@ namespace inlining {
  * @param[flags] flags Gives the information of the Active Shires and the
  * type of evict required.
  */
+
 template <ElemKind elKind, size_t N>
 INLINE_ATTR typename std::enable_if_t<(elKind != BoolTy), void>
 fwdLibResizeNearestInst(LibTensor* outT, LibTensor* inT, const std::array<float, N>& rszScale, uint64_t flags,
                         const uint32_t minionOffset = 0, [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
-  if (get_minion_id() != minionOffset) return;
+  using elkType = typename elemKind2elemTy<elKind>::type;
 
-  assert(inT->getElementType() == outT->getElementType());
-
-  using elkType = typename elemKind2elemTy<elKind>::type; 
+  et_assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
 
   auto inH = inT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
-  std::array<float, N> invRszScale = {0.0,};
+
+  et_assert(inT->getElementType() == outT->getElementType());
+
+  std::array<float, N> invRszScale = {
+    0.0,
+  };
 
   for (size_t i = 0; i < N; i++) {
     getReciprocal(rszScale[i], invRszScale[i]);
   }
 
-  for (size_t ob = 0; ob < outT->dims()[0]; ++ob) {
-    /* auto ib = std::min(size_t(ob / rszScale[0]), inT->dims()[0] - 1); */ 
-    /**/
-    /* Watch out! we lose precision */
-    /* cast_to_32 avoids fcvt.s.l instruction which is not supported natively in our Hw */
-    /**/
-    auto x = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(ob)) * invRszScale[0]);
+  void* dst = outT->getRawDataPointer();
+
+  const dim_t* actIndex = outT->dims().data();
+  const dim_t* dstPitch = outT->strides().data();
+
+  dim_t srcDimNum = inT->ndims();
+
+  auto numElemsDst = dstPitch[0] * actIndex[0];
+
+  size_t initialAddr, maxRead;
+  size_t typeSize = getsize<elkType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
+  if (maxRead == 0)
+    return;
+
+  // We move the initialAddr to the next non-padding position
+  dim_array_t coord = {0}; // Vector of coordinates
+  dim_t k = 0;             // Amount of non-zero coordinates
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
+
+  // We get the actual initialAddr, in the input and output.
+  uint64_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
+    offsetOut += dstPitch[j] * coord[j];
+  }
+  size_t posMax = maxRead + initialAddr;
+  bool done = false;
+
+  while (!done && (offsetOut < posMax)) {
+    // We get first coordinate (batch)
+    auto x = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(coord[0])) * invRszScale[0]);
     auto xx = static_cast<uint32_t>(inT->dims()[0] - 1);
     auto ib = std::min(x, xx);
-    for (size_t oh = 0; oh < outT->dims()[1]; ++oh) {
-      /* auto ih = std::min(size_t(oh / rszScale[1]), inT->dims()[1] - 1); */
-      auto y = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(oh)) * invRszScale[1]);
-      auto yy = static_cast<uint32_t>(inT->dims()[1] - 1);
-      auto ih = std::min(y, yy);
-      for (size_t ow = 0; ow < outT->dims()[2]; ++ow) {
-        /* auto iw = std::min(size_t(ow / rszScale[2]), inT->dims()[2] - 1); */
-        auto t = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(ow)) * invRszScale[2]);
-        auto tt = static_cast<uint32_t>(inT->dims()[2] - 1);
-        auto iw = std::min(t, tt);
-        for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
-          /* auto ic = std::min(size_t(oc / rszScale[3]), inT->dims()[3] - 1); */
-          auto z = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(oc)) * invRszScale[3]);
-          auto zz = static_cast<uint32_t>(inT->dims()[3] - 1);
-          auto ic = std::min(z, zz);
-          outH.at(std::array<size_t,4>{ob, oh, ow, oc}) = 
-	    inH.at(std::array<size_t,4>{ib, ih, iw, ic});
-        }
-      }
-    }
+    // We get second coordinate (height)
+    auto y = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(coord[1])) * invRszScale[1]);
+    auto yy = static_cast<uint32_t>(inT->dims()[1] - 1);
+    auto ih = std::min(y, yy);
+    // We get third coordinate (width)
+    auto t = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(coord[2])) * invRszScale[2]);
+    auto tt = static_cast<uint32_t>(inT->dims()[2] - 1);
+    auto iw = std::min(t, tt);
+    // We get forth coordinate (channels)
+    auto z = static_cast<uint32_t>(static_cast<float>(static_cast<uint32_t>(coord[3])) * invRszScale[3]);
+    auto zz = static_cast<uint32_t>(inT->dims()[3] - 1);
+    auto ic = std::min(z, zz);
+
+    outH.at(std::array<size_t, 4>{coord[0], coord[1], coord[2], coord[3]}) =
+      inH.at(std::array<size_t, 4>{ib, ih, iw, ic});
+    done = getOffsets(srcDimNum, coord, offsetOut, actIndex, dstPitch);
   }
 
   outT->evict(DO_EVICTS);
