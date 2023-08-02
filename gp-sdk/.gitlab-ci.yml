@@ -104,6 +104,7 @@ build:sonarqube-check:
     KERNEL_ADDRESS: 0x8005b35000
     JUNIT_REPORT: report.xml
     TEMP_DIR: temp
+    CI_ARTIFACTS: $$TEMP_DIR
     PYTEST_OPTIONS: --log-cli-level=DEBUG --tb=short -q
     DEVICE_BUILD_PATH: device/build/Release
     HOST_BUILD_PATH: host/build/$BUILD_TYPE
@@ -114,6 +115,7 @@ build:sonarqube-check:
     CMD_POST_BUILD: |
       echo $$PATH
       echo $$LD_LIBRARY_PATH
+    CMD_SCRIPT: |
       source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
 
@@ -126,11 +128,11 @@ build:sonarqube-check:
   artifacts:
     when: always
     paths:
-      - $$JUNIT_REPORT
-      - $$TEMP_DIR
+      - report.xml
+      - temp
     expire_in: 1 day
     reports:
-      junit: $$JUNIT_REPORT
+      junit: report.xml
 
 
 ###############################################################################
