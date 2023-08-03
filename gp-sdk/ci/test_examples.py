@@ -51,6 +51,7 @@ KERNEL_LAUNCHERS = {
     "syncShire2EP": "barrier_launcher",
     "syncAll": "basic_launcher",
     "syncMinion": "barrier_launcher",
+    "sysemu_fatal": "basic_launcher",
     "txfma": "txfma_launcher",
     "variableStrings": "basic_launcher"
 }
@@ -59,7 +60,8 @@ KERNEL_LAUNCHERS = {
 KERNELS = list(KERNEL_LAUNCHERS.keys())
 
 SKIP_SYSEMU = ["check_pmc", "busy10sec"]
-SKIP_ANY = ["variableStrings"]
+#remove sysemu_fatal from SKIP_ANY when sysemu submodule is updated see [SW-17597]
+SKIP_ANY = ["variableStrings", "sysemu_fatal"]
 
 EXTRA_ARGS = defaultdict(list)
 EXTRA_ARGS["saxpy_profiling"] = ["--launch_mult=2"]
@@ -74,7 +76,7 @@ EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 # only needed for device_type = sysemu
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=200"]
 
-SHOULD_FAIL = ["hang", "exception", "OneTrapOnSync", "fail_abort", "fail_assert"]
+SHOULD_FAIL = ["hang", "exception", "OneTrapOnSync", "fail_abort", "fail_assert", "sysemu_fatal"]
 
 ERROR_COMMENT = {
     "hang": "Generate code hang",
@@ -212,7 +214,23 @@ def check_core_dump(gdb, elf: Path, comment: str, skip_gdb: bool):
     gdb.read_until(comment)
     gdb.close()
 
+def check_fatal(shell, path: Path):
+    """Check the Fatal file generated on sysemu crashes."""
+    assert path.exists()
 
+    regexp = re.compile(r'.*(HELLO.*hart:[0-9]+).*')
+
+    #Caught traces with strings while header is broken
+    output = shell.run(f"strings {path}", stdout = subprocess.PIPE, universal_newlines=True)
+
+    m = regexp.match(output.stdout.splitlines()[0])
+    if not m:
+        return False
+    m = regexp.match(output.stdout.splitlines()[1])
+    if not m:
+        return False
+    
+    
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
 @pytest.mark.parametrize("kernel", KERNEL_LAUNCHERS.keys())
 def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
@@ -244,6 +262,9 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
                 ERROR_COMMENT[kernel],
                 skip_gdb = request.config.getoption("--skip-gdb"),
             )
+
+        if (kernel == "sysemu_fatal"):
+            check_fatal(shell, Path(f'traceKernels_OnFatal_dev_0.bin'))
              
     elif kernel in MASK_SWEEP_KERNELS:
         for mask in MASK_SWEEP:

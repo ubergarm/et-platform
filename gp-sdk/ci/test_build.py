@@ -28,6 +28,7 @@ KERNELS = [
     "print",
     "print2",
     "bss",
+    "sysemu_fatal",
     "data",
     "fftKernel",
     "saxpy_scalar",
