@@ -74,7 +74,8 @@ EXTRA_ARGS["busy10sec"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 
 # only needed for device_type = sysemu
-EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=200"]
+EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=400"]
+EXTRA_ARGS["profiling_simple"] = ["--kernel_launch_timeout=40"]
 
 SHOULD_FAIL = ["hang", "exception", "OneTrapOnSync", "fail_abort", "fail_assert", "sysemu_fatal"]
 

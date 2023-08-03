@@ -104,7 +104,10 @@ build:sonarqube-check:
     KERNEL_ADDRESS: 0x8005b35000
     JUNIT_REPORT: report.xml
     TEMP_DIR: temp
-    CI_ARTIFACTS: $$TEMP_DIR
+    CI_ARTIFACTS: >-
+      $$TEMP_DIR
+      ./host/build
+      ./device/build
     PYTEST_OPTIONS: --log-cli-level=DEBUG --tb=short -q
     DEVICE_BUILD_PATH: device/build/Release
     HOST_BUILD_PATH: host/build/$BUILD_TYPE
