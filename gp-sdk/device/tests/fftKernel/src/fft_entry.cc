@@ -73,14 +73,11 @@ int entryPoint_0(KernelArguments* kernelArgs) {
 
   
   uint32_t op = operation == FFTOp::FFT?  uint32_t(dnn_lib::inlining::Operation::FFT) : uint32_t(dnn_lib::inlining::Operation::IFFT);
-  auto start = et_get_timestamp();
   
-  dnn_lib::inlining::fwdLibETSOCGenericOpInst<inputElk>(&outputTensor, &inputTensor, op, flags, minionOffset, assignedMinions);
+  {
+    SCOPED_TIMED_REGION("fft");
 
-  auto elapsed = et_get_delta_timestamp(start);
- 
-  if(get_minion_id() == 0) {
-    et_printf("%s %d fft took %lu Cycles\n", __func__,1,elapsed);
+    dnn_lib::inlining::fwdLibETSOCGenericOpInst<inputElk>(&outputTensor, &inputTensor, op, flags, minionOffset, assignedMinions);
   }
  
   return 0;

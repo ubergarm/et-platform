@@ -12,6 +12,8 @@
 #define GPSDK_PROFILING_H
 
 #include "trace/trace_umode.h"
+#include <etsoc/common/utils.h>
+#include "CommonCode.h"
 
 /*! \file profiling.h
     \brief Functions and macros for tracing of user-defined events
@@ -106,5 +108,57 @@ private:
   do {                                                                                                                 \
     etTraceUserProfileEvent(regionId, false, __func__, __LINE__);                                                  \
   } while (0)
+
+/**
+ * \internal
+ * \brief Mark a span of code to be timed. The timing result will be printed to the trace.
+ */
+struct ScopedTimedRegion {
+  ScopedTimedRegion() = delete;
+  ScopedTimedRegion(ScopedTimedRegion&) = delete;
+  ScopedTimedRegion(ScopedTimedRegion&&) = delete;
+  ScopedTimedRegion& operator=(const ScopedTimedRegion&) = delete;
+  ScopedTimedRegion& operator=(ScopedTimedRegion&&) = delete;
+
+  /**
+   * \internal
+   * \brief Begin the timed span providing a location and name.
+   *
+   * Use SCOPED_TIMED_REGION()
+   */
+  ScopedTimedRegion(const char* name, const char* func, unsigned int line, bool allThreads = false)
+    : name_(name)
+    , func_(func)
+    , line_(line)
+    , allThreads_(allThreads){};
+
+  ~ScopedTimedRegion() {
+    auto totalTime = et_get_delta_timestamp(startTimestamp_);
+    if (allThreads_ || get_relative_thread_id() == 0)
+      et_printf("[%s:%u] region %s took %lu cycles (%.3f us)", func_, line_, name_, totalTime,
+                double(cyclesToNs(totalTime)) / 1000.0);
+  };
+
+private:
+  uint64_t startTimestamp_ = et_get_timestamp();
+  const char* name_;
+  const char* func_;
+  unsigned int line_;
+  bool allThreads_;
+};
+
+/**
+ * \brief Mark a region of code to be timed. The time will appear in the trace.
+ *
+ * The time will be printed to the trace, with the region name, function name, and line number.
+ *  - The region begins when where code is placed.
+ *  - The region ends where the current C++ scope ends
+ *
+ * This is useful for simple benchmarking tasks. It doesn't replace real benchmarking, but it eliminates the
+ * need for explicit "get start time, get stop time, then print the difference" code.
+ *
+ * \param name The name of the region
+*/
+#define SCOPED_TIMED_REGION(name) ScopedTimedRegion UNIQUE(scopedTimedRegion)(name, __func__, __LINE__)
 
 #endif // GPSDK_PROFILING_H

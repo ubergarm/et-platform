@@ -221,6 +221,12 @@ static inline uint64_t getKernelShireMask() {
   return device_config::env_->shire_mask;
 }
 
+int get_num_threads();
+
+int get_relative_thread_id();
+
+int get_relative_thread_id(uint64_t shireMask);
+
 
 /**
  * Converts cycles to us.

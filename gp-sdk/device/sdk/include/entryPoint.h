@@ -13,6 +13,7 @@
 #define _ENTRY_POINT_H_
 
 #include <cstdint>
+#include "CommonCode.h"
 
 /* EntryPoint kernel function prototype
  * note that user entry points can receive typed ptr (namely KernelArguments *)*/
@@ -65,9 +66,6 @@ template <typename T, T f> struct IsSameFuncPtr<T, f, f> { static constexpr bool
        KernelEntryPointFuncPtr(__entry0), KernelEntryPointFuncPtr(__entry1)};	                        \
    }
 
-int get_num_threads();
 uint64_t get_shire_mask();
-int get_relative_thread_id();
-int get_relative_thread_id(uint64_t shireMask);
 
 #endif
