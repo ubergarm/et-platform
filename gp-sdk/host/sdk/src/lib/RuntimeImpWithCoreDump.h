@@ -35,7 +35,7 @@ public:
   void doUnloadCode(rt::KernelId kernel) final;
   rt::EventId doKernelLaunch(rt::StreamId stream, rt::KernelId kernel, const std::byte* kernel_args,
                              size_t kernel_args_size, uint64_t shire_mask, bool barrier, bool flushL3,
-                             std::optional<rt::UserTrace> userTraceConfig) final;
+                             std::optional<rt::UserTrace> userTraceConfig, const std::string& coreDumpFilePath) final;
   rt::EventId doMemcpyHostToDevice(rt::StreamId stream, const std::byte* h_src, std::byte* d_dst, size_t size,
                                    bool barrier, const rt::CmaCopyFunction&) final;
   rt::EventId doMemcpyDeviceToHost(rt::StreamId stream, const std::byte* d_src, std::byte* h_dst, size_t size,

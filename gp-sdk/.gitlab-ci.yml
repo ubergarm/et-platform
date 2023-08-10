@@ -21,7 +21,7 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:1.2.0rC2-21931aed0f091dee5e9c43a27d59337b5e614eee
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:1.2.3
 # Only run job in these cases:
 # - if it's a tag pipeline
 # - if there is a commit pushed or merged to the default branch (pre-release)
@@ -84,8 +84,9 @@ build:sonarqube-check:
     - export PATH=$PATH:$PWD/${SONAR_BUILD_WRAPPER}:$PWD/${SONAR_SCANNER_UNZIPED_NAME}/bin
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/${SONAR_BUILD_WRAPPER}:$PWD/${SONAR_SCANNER_UNZIPED_NAME}/lib
   script:
-    - source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
-    - cmake -S device -B .ci/sonarqube/build_device -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON -G "Unix Makefiles"
+    - source ${ET_SDK_HOME}/.builds/device/gcc8.2/conanbuild.sh
+    - cmake -S device -B .ci/sonarqube/build_device -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/gcc8.2/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON -G "Unix Makefiles"
+    - source ${ET_SDK_HOME}/.builds/device/gcc8.2/deactivate_conanbuild.sh
     - cmake -S host -B .ci/sonarqube/build_host -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DUSE_CONAN=ON -G "Unix Makefiles"
     - build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make -C .ci/sonarqube/ clean all
     - sonar-scanner
@@ -119,7 +120,7 @@ build:sonarqube-check:
       echo $$PATH
       echo $$LD_LIBRARY_PATH
     CMD_SCRIPT: |
-      source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
+      source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
       source ${ET_SDK_HOME}/.builds/host/conanrun.sh
 
       if [ "$BUILD_TYPE" == "Debug" ]; then
@@ -151,6 +152,7 @@ build:sonarqube-check:
   parallel:
     matrix:
       - BUILD_TYPE: [ Release, Debug ]
+        DEV_COMPILER: [gcc8.2]
   variables:
     TIMEOUT: 2h
 
@@ -187,6 +189,7 @@ build:sonarqube-check:
       source build/Release/generators/conanbuild.sh
       cmake --preset release -DADDRESS:STRING=$${KERNEL_ADDRESS} -DUSE_CONAN=ON -G "Unix Makefiles"
       cmake --build --preset release
+      source build/Release/generators/deactivate_conanbuild.sh
       cd ..
 
       cd host
@@ -213,14 +216,17 @@ tests:conan:sw-sysemu:
   parallel:
     matrix:
       - BUILD_TYPE: [ Release, RelWithDebInfo, Debug ]
+        # DEV_COMPILER: [gcc8.2, clang11]
+        DEV_COMPILER: gcc8.2
   variables:
     TIMEOUT: 2h
 
     CMD_BUILD: |      
       mkdir -p $$DEVICE_BUILD_PATH
-      source ${ET_SDK_HOME}/.builds/device/conanbuild.sh
-      cmake -B$$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} -DUSE_CONAN=ON device
+      source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
+      cmake -B$$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} -DUSE_CONAN=ON device
       cmake --build $$DEVICE_BUILD_PATH
+      source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/deactivate_conanbuild.sh
 
       mkdir -p $$HOST_BUILD_PATH
       cmake -B$$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_SANITIZER=AddrAndLeaks -DUSE_CONAN=ON -G Ninja host
@@ -239,6 +245,8 @@ tests:cmake-only:silicon:
   parallel:
     matrix:
       - BUILD_TYPE: [ Release ]
+        # DEV_COMPILER: [gcc8.2, clang11]
+        DEV_COMPILER: gcc8.2
   tags:
     - silicon
     - 1-card-silicon

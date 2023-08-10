@@ -63,7 +63,8 @@ void RuntimeImpWithCoreDump::doUnloadCode(rt::KernelId kernel) {
 rt::EventId RuntimeImpWithCoreDump::doKernelLaunch(rt::StreamId stream, rt::KernelId kernel,
                                                    const std::byte* kernel_args, size_t kernel_args_size,
                                                    uint64_t shire_mask, bool barrier, bool flushL3,
-                                                   std::optional<rt::UserTrace> userTraceConfig) {
+                                                   std::optional<rt::UserTrace> userTraceConfig, 
+                                                   const std::string& coreDumpFilePath){
 
   // This promise is used to avoid a race condition where the RT responds with
   // an abort before the core dumper has registered the event id
@@ -71,7 +72,7 @@ rt::EventId RuntimeImpWithCoreDump::doKernelLaunch(rt::StreamId stream, rt::Kern
   promisedEventId = abortManager_->registerKernelLaunch(stream, kernel);
 
   auto eventId = this->runtime_->kernelLaunch(stream, kernel, kernel_args, kernel_args_size, shire_mask, barrier, flushL3,
-                                      userTraceConfig);
+                                      userTraceConfig, coreDumpFilePath);
 
   promisedEventId.set_value(eventId);
 
