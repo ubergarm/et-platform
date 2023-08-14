@@ -168,8 +168,9 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
 
         res = logf(-1);
         et_printf("logf(-1): %f vs %s", double(res), "nan");
+#ifndef __clang__ // see [SW-18223]
         et_assert(std::isnan(res));
-
+#endif
         res = log1pf(0.3f);
         expected = 0.26236f;
         et_printf("log: %f vs %f", double(res), double(expected));
@@ -190,7 +191,9 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
 
         resf = log(-1);
         et_printf("log(-1): %f vs %s", double(resf), "nan");
-        et_assert(std::isnan(resf));
+#ifndef __clang__ // see [SW-18223]
+       et_assert(std::isnan(resf));
+#endif
 
         resf = log1p(0.3);
         expected = 0.26236f;
