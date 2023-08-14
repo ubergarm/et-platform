@@ -22,7 +22,7 @@ target_include_directories(etsoc_crt0
 )
 
 target_compile_options(etsoc_crt0 PRIVATE -fno-exceptions -falign-functions=64 -O3 -g3)
-target_compile_options(etsoc_crt0 PUBLIC -fno-threadsafe-statics -ftls-model=local-exec $<$<C_COMPILER_ID:GNU>:-fno-extern-tls-init>)
+target_compile_options(etsoc_crt0 PUBLIC -fno-threadsafe-statics -ftls-model=local-exec -fno-extern-tls-init)
 
 target_link_libraries(etsoc_crt0 PUBLIC etgcc etm)
 
