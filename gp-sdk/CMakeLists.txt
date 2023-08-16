@@ -7,7 +7,11 @@ if(NOT DEFINED ENV{ET_SDK_HOME})
     FATAL_ERROR
       "Missing $ET_SDK_HOME. Please run from inside the et_docker environment")
 endif()
-
+if(NOT DEFINED ENV{DEV_COMPILER})
+  message(
+    FATAL_ERROR
+      "Missing $DEV_COMPILER. Please choose device compiler (clang11 or gcc8.2)")
+endif()
 include(ExternalProject)
 
 if (NOT ADDRESS)
@@ -28,7 +32,7 @@ ExternalProject_Add(
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/device"
   BUILD_ALWAYS 1
   CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/conan_toolchain.cmake
+    -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/$ENV{DEV_COMPILER}/conan_toolchain.cmake
     -DCMAKE_BUILD_TYPE=Release
     -DADDRESS:STRING=${ADDRESS}
     -DCMAKE_INSTALL_PREFIX=${CMAKE_CURRENT_BINARY_DIR}/local)

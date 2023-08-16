@@ -19,9 +19,13 @@ Conceptually the build phase can be divided in:
 
 1. Building device kernel code
 ```
+
+
+export DEV_COMPILER=gcc8.2 #available options are gcc8.2 and clang11
+source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
 mkdir device/build
 cd device/build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
 
 make all
 ```

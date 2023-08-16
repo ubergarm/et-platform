@@ -126,7 +126,7 @@ def test_build_device(gp_sdk, shell, build_dir):
         source_dir=gp_sdk.path / "device",
         build_dir=Path("build"),
         generator="make",
-        cmake_toolchain_file="$ET_SDK_HOME/.builds/device/conan_toolchain.cmake",
+        cmake_toolchain_file="$ET_SDK_HOME/.builds/device/$DEV_COMPILER/conan_toolchain.cmake",
         cmake_build_type="Release",
         address=gp_sdk.kernel_address,
         use_conan=True,

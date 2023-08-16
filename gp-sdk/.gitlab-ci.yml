@@ -216,8 +216,7 @@ tests:conan:sw-sysemu:
   parallel:
     matrix:
       - BUILD_TYPE: [ Release, RelWithDebInfo, Debug ]
-        # DEV_COMPILER: [gcc8.2, clang11]
-        DEV_COMPILER: gcc8.2
+        DEV_COMPILER: [gcc8.2, clang11]
   variables:
     TIMEOUT: 2h
 
@@ -245,8 +244,8 @@ tests:cmake-only:silicon:
   parallel:
     matrix:
       - BUILD_TYPE: [ Release ]
-        # DEV_COMPILER: [gcc8.2, clang11]
-        DEV_COMPILER: gcc8.2
+        DEV_COMPILER: [gcc8.2, clang11]
+     
   tags:
     - silicon
     - 1-card-silicon
