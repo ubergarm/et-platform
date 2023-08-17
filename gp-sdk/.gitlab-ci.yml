@@ -120,8 +120,16 @@ build:sonarqube-check:
       echo $$PATH
       echo $$LD_LIBRARY_PATH
     CMD_SCRIPT: |
-      source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
-      source ${ET_SDK_HOME}/.builds/host/conanrun.sh
+
+      BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
+
+      if [ $JOB_TYPE == "conan" ]; then
+        source device/build/Release/generators/conanbuild.sh
+        source host/build/${BUILD_TYPE}/generators/conanrun.sh
+      else
+        source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
+        source ${ET_SDK_HOME}/.builds/host/conanrunenv-$${BUILD_TYPE_LOWER}-x86_64.sh
+      fi
 
       if [ "$BUILD_TYPE" == "Debug" ]; then
         echo "Skip testing when building in Debug"
@@ -197,6 +205,17 @@ build:sonarqube-check:
       cmake --build --preset $${BUILD_TYPE_LOWER}
       cd ..
 
+  artifacts:
+    when: always
+    paths:
+      - device.lock
+      - host.lock
+      - report.xml
+      - temp
+    expire_in: 1 day
+    reports:
+      junit: report.xml
+
 tests:conan:sw-sysemu:
   extends:
     - .tests:conan:common
@@ -205,6 +224,7 @@ tests:conan:sw-sysemu:
     - *development_job_rule
   variables:
     DEVICE_TYPE: sysemu
+    JOB_TYPE: "conan"
 
 
 .tests:cmake-only:common:
@@ -241,6 +261,7 @@ tests:cmake-only:silicon:
     - *development_job_rule
   variables:
     DEVICE_TYPE: silicon
+    JOB_TYPE: "cmake-only"
   parallel:
     matrix:
       - BUILD_TYPE: [ Release ]
@@ -259,3 +280,4 @@ tests:cmake-only:sw-sysemu:
     - *development_job_rule
   variables:
     DEVICE_TYPE: sysemu
+    JOB_TYPE: "cmake-only"

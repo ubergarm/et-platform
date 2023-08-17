@@ -60,8 +60,8 @@ KERNEL_LAUNCHERS = {
 KERNELS = list(KERNEL_LAUNCHERS.keys())
 
 SKIP_SYSEMU = ["check_pmc", "busy10sec"]
-#remove sysemu_fatal from SKIP_ANY when sysemu submodule is updated see [SW-17597]
-SKIP_ANY = ["variableStrings", "sysemu_fatal"]
+SKIP_SILICON = ["sysemu_fatal"]
+SKIP_ANY = ["variableStrings"]
 
 EXTRA_ARGS = defaultdict(list)
 EXTRA_ARGS["saxpy_profiling"] = ["--launch_mult=2"]
@@ -76,6 +76,7 @@ EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 # only needed for device_type = sysemu
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=400"]
 EXTRA_ARGS["profiling_simple"] = ["--kernel_launch_timeout=40"]
+EXTRA_ARGS["sysemu_fatal"] = ["--kernel_launch_timeout=40"]
 
 SHOULD_FAIL = ["hang", "exception", "OneTrapOnSync", "fail_abort", "fail_assert", "sysemu_fatal"]
 
@@ -240,6 +241,8 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
         pytest.skip("the examples have not been built")
     if device_type == "sysemu" and kernel in SKIP_SYSEMU:
         pytest.skip(f"do not run {kernel} on {device_type}")
+    if device_type == "silicon" and kernel in SKIP_SILICON:
+        pytest.skip(f'do not run {kernel} on {device_type}')
     if kernel in SKIP_ANY:
         pytest.skip(f"Skipping {kernel} on {device_type}")
     logging.info("Running %s on %s", kernel, device_type)
