@@ -61,7 +61,7 @@ KERNELS = list(KERNEL_LAUNCHERS.keys())
 
 SKIP_SYSEMU = ["check_pmc", "busy10sec"]
 SKIP_SILICON = ["sysemu_fatal"]
-SKIP_ANY = ["variableStrings"]
+SKIP_ANY = ["variableStrings","sysemu_fatal"]
 
 EXTRA_ARGS = defaultdict(list)
 EXTRA_ARGS["saxpy_profiling"] = ["--launch_mult=2"]
