@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 ### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [0.6.0]
+### Added
+### Changed
+- Adapt CI to v15
+- Adapt CI to gitlab.com
 - Depend on dnnLibrary >=0.7.0 <0.8.0
 ### Deprecated
 ### Removed
