@@ -58,7 +58,7 @@ const kernel_environment_t fallback_env = {{0, 0, 0, 0}, 0xFFFFFFFF, 600};
 } // namespace device_config
 
 /* Number of times the kernel has been launched */
-uint64_t numberOfBoots __attribute__((section("persistentData"))) = {1};
+alignas (CACHE_LINE_SIZE) uint64_t numberOfBoots __attribute__((section("persistentData"))) = {1};
 
 void resetBSS();
 void resetData();

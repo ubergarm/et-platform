@@ -46,8 +46,7 @@ SECTIONS
   }
 
  
-  .persistentData :
-  {
+  .persistentData : ALIGN(64) {
     *(.persistentData);
   }
   . = ALIGN(64);
