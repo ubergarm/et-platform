@@ -8,11 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
+- [SW-18144] Add SCOPED_TIMED_REGION
 - [SW-17597] Dump Trace-buffer on sysemu Fatals.
+- [SW-17595] Auto-attach gdbserver on user code.
+- [SW-17450] Support for clang compiler on device side along with gcc.  Please, refer to README.md and companion docs for further detail.  In general an envoronment variable DEV_COMPILER (gcc8.2 or clang11) needs to be provided when configuring the build on device side:
+
+```
+DEV_COMILER=clang11 cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
+```
+
+
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
+- [SW-18330] properly align porsistentData section
+- [SW-18331] globally disabled linker-relaxation in search for debug-builds with reproducible layout across base-address linkage.
+
+
+## 1.2.1 (2023/07/26)
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- [SW-17429] fixed hart::barrier() race conditions on flbs in barrier().count < 32
+- [SW-17783] fixed assert retrieval on basic_launcher.
+- [SW-17923] fixed cmd-line parsing in legacy-code bases using strict=false.
 
 ## 1.2.0 (2023/06/13)
 ### Added
