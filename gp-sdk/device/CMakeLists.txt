@@ -12,10 +12,19 @@ cmake_minimum_required(VERSION 3.5)
 
 project(gp-sdk-device VERSION 1.2.0 LANGUAGES C CXX ASM)
 
+
 option(BUILD_DOCS "Enable/disable building documentation" OFF)
 option(BUILD_TESTS "Build GP-SDK test kernels" ON)
 set(GP_SDK_TOOLS_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../tools" CACHE PATH "Path to GP-SDK tools")
 set(GP_SDK_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/sdk/lib/linker.ld" CACHE PATH "Path to device linker script")
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  message(STATUS "Configuring Device build for clang Compiler.. ")
+  string(APPEND CMAKE_ASM_FLAGS " ${CMAKE_C_FLAGS}")
+else()
+  message(STATUS "Configuring Device build for gcc Compiler.. ")
+endif()
+ 
 
 if (NOT ADDRESS)
   message(FATAL_ERROR "ADDRESS parameter is missing. Please provide a value (e.g: -DADDRESS:STRING=0x8006335000")

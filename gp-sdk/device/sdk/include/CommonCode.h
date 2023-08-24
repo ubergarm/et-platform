@@ -29,8 +29,8 @@ static inline void evictCacheLine(uint64_t dst, uint8_t * addr);
 
 /**
  * Copies \p num_bytes bytes from the object pointed to by \p src to the object pointed to by \p dst. Both object
- * pointers must be 32-byte aligned. \brief Copies bytes from a memory position in the device to another.
- * global address scope.
+ * pointers must be 32-byte aligned. 
+ * \brief Copies bytes from a memory position in the device to another. global address scope.
  * \param src pointer to the memory location to copy from
  * \param dst pointer to the memory location to copy to
  * \param num_bytes
@@ -72,8 +72,8 @@ static inline int global_memcpy(void * dst, const void * src, size_t num_bytes) 
 
 /**
  * Copies \p num_bytes bytes from the object pointed to by \p src to the object pointed to by \p dst. Both object
- * pointers must be 32-byte aligned. \brief Copies bytes from a memory position in the device to another.
- * local address scope.
+ * pointers must be 32-byte aligned. 
+ * \brief Copies bytes from a memory position in the device to another. local address scope.
  *  \param src  pointer to the memory location to copy from 
  *  \param dst pointer to the memory location to copy to 
  *  \param num_bytes  bytes to copy

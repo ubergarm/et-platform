@@ -66,7 +66,7 @@ struct Config {
 };
 
 /**
- * Creates a LoggerLauncher object, we have to create in runtime depending on who is in charge of creating the IRuntime
+ * Creates a LoggerLauncher object, (It needs to be created before creating the runtime instance).
  * instance. \brief LoggerLauncher class to enable the logger.
  */
 class LoggerLauncher {
@@ -79,7 +79,7 @@ public:
 
 /**
  * Creates a GenericLauncher object, provides methods to load and execute kernels in ETSoC-1 devices.
- * Kernels are compiled RISC-V ETSoC-1 compatible binary files in Extensible Linkable Format (ELF).
+ * Kernels are compiled RISC-V ETSoC-1 compatible binary files in elf format
  * \brief GenericLauncher class to load and run kernels in a device.
  */
 class GenericLauncher {
@@ -114,7 +114,7 @@ public:
   void initialize(); // setup
 
   /**
-   * Initializes the PCIE, SYSEMU or FAKE device interface where the kernel will run.
+   * Initializes device interface by using an externally provided runtime instance.
    * \brief Initializes the execution device over a given IRuntime instance.
    * \param runtime pointer to Iruntime instance.
    */
@@ -128,7 +128,6 @@ public:
 
   /**
    * Dumps the selected kernel event trace into a formatted text file.
-   * If multiple instances of the same kernel are launched,
    * \brief Dumps a kernel trace
    * \param fileIdx numeric index appended to the trace file name
    * \param KernelId id of the kernel to dump
@@ -136,31 +135,13 @@ public:
    */
   void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1), uint32_t deviceIdx = 0);
 
-  // /**
-  //  * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
-  //  * waitKernelCompletion() is called.
-  //  * \brief Launches the kernel on the device.
-  //  * \param kernelId id of the kernel to launch.
-  //  * \param numThreads number of threads, must be a multiple of 32.
-  //  * \param params launch parameters.
-  //  * \param shireMask mask with the shires that will execute the kernel.
-  //  */
-  // template <typename TParams>
-  // void kernelLaunch(rt::KernelId kernelId, int32_t numThreads, TParams * params, int32_t numThreadsPerCore = 1,
-  // uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
-  //   // params->env.numThreads = numThreads;
-  //   // // Compute shireMask based on numThreads. This should be decided by the runtime in the future.
-  //   // uint64_t activeShires = (((numThreads / numThreadsPerCore) + 31) / 32);
-  //   // uint64_t smask = (1UL << activeShires) - 1UL;
-  //   params->env.shireMask = shireMask;
-  //   doKernelLaunch(kernelId, (std::byte *) params, sizeof(TParams), smask, deviceIdx);
-  // }
 
   /**
    * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
    * waitKernelCompletion() is called.
    * \brief Launches the kernel on the device. \param kernelId id of the kernel to
    * launch.
+   * \param kernelId id of the kernel to launch.
    * \param params launch parameters.
    * \param shireMask mask with the shires that will execute the kernel.
    * \param deviceIdx device target to work with

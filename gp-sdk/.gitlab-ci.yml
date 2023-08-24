@@ -84,10 +84,8 @@ build:sonarqube-check:
     - export PATH=$PATH:$PWD/${SONAR_BUILD_WRAPPER}:$PWD/${SONAR_SCANNER_UNZIPED_NAME}/bin
     - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/${SONAR_BUILD_WRAPPER}:$PWD/${SONAR_SCANNER_UNZIPED_NAME}/lib
   script:
-    - source ${ET_SDK_HOME}/.builds/device/gcc8.2/conanbuild.sh
-    - cmake -S device -B .ci/sonarqube/build_device -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/gcc8.2/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -DUSE_CONAN=ON -G "Unix Makefiles"
-    - source ${ET_SDK_HOME}/.builds/device/gcc8.2/deactivate_conanbuild.sh
-    - cmake -S host -B .ci/sonarqube/build_host -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DUSE_CONAN=ON -G "Unix Makefiles"
+    - cmake -S device -B .ci/sonarqube/build_device -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/gcc8.2/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -G "Unix Makefiles"
+    - cmake -S host -B .ci/sonarqube/build_host -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles"
     - build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make -C .ci/sonarqube/ clean all
     - sonar-scanner
 
@@ -124,10 +122,8 @@ build:sonarqube-check:
       BUILD_TYPE_LOWER=$(echo "${BUILD_TYPE}" | tr '[:upper:]' '[:lower:]')
 
       if [ $JOB_TYPE == "conan" ]; then
-        source device/build/Release/generators/conanbuild.sh
         source host/build/${BUILD_TYPE}/generators/conanrun.sh
       else
-        source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
         source ${ET_SDK_HOME}/.builds/host/conanrunenv-$${BUILD_TYPE_LOWER}-x86_64.sh
       fi
 
@@ -195,13 +191,13 @@ build:sonarqube-check:
       
       cd device
       source build/Release/generators/conanbuild.sh
-      cmake --preset release -DADDRESS:STRING=$${KERNEL_ADDRESS} -DUSE_CONAN=ON -G "Unix Makefiles"
+      cmake --preset release -DADDRESS:STRING=$${KERNEL_ADDRESS} -G "Unix Makefiles"
       cmake --build --preset release
       source build/Release/generators/deactivate_conanbuild.sh
       cd ..
 
       cd host
-      cmake --preset $${BUILD_TYPE_LOWER} -DUSE_CONAN=ON -G Ninja
+      cmake --preset $${BUILD_TYPE_LOWER} -G Ninja
       cmake --build --preset $${BUILD_TYPE_LOWER}
       cd ..
 
@@ -243,12 +239,12 @@ tests:conan:sw-sysemu:
     CMD_BUILD: |      
       mkdir -p $$DEVICE_BUILD_PATH
       source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
-      cmake -B$$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} -DUSE_CONAN=ON device
+      cmake -B$$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} device
       cmake --build $$DEVICE_BUILD_PATH
       source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/deactivate_conanbuild.sh
-
+      
       mkdir -p $$HOST_BUILD_PATH
-      cmake -B$$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_SANITIZER=AddrAndLeaks -DUSE_CONAN=ON -G Ninja host
+      cmake -B$$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_SANITIZER=AddrAndLeaks -G Ninja host
       cmake --build $$HOST_BUILD_PATH
 
 tests:cmake-only:silicon:

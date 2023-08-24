@@ -22,7 +22,6 @@ Conceptually the build phase can be divided in:
 
 
 export DEV_COMPILER=gcc8.2 #available options are gcc8.2 and clang11
-source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
 mkdir device/build
 cd device/build
 cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
@@ -33,16 +32,30 @@ make all
 
 ```
 cd host/build
-
 cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug
-
 make all
 
-```
+``` 
 
 ## Executing
 
-Executing involves launching a host application that receives as a parameter the computational kernel to be executed on the device, as in the following examples:
+### Preparing host runtime env.
+
+Executing involves launching a host application that receives as a parameter the computational kernel to be executed on the device. Please, note that we need to activate the virtual conan environment for Debug or Release on the host accordignly with the BuildType used. The docker entry point by default activates Relase runtime environment, that needs explicit deactivation:
+
+````
+source  ${ET_SDK_HOME}/.builds/host/deactivate_conanrunenv-release-x86_64.sh
+source  ${ET_SDK_HOME}/.builds/host/conanrunenv-debug-x86_64.sh
+```
+
+Also, if we transition from a Debug env to a Release env, we need:
+
+```
+source  ${ET_SDK_HOME}/.builds/host/deactivate_conanrunenv-debug-x86_64.sh
+source  ${ET_SDK_HOME}/.builds/host/conanrunenv-release-x86_64.sh
+```
+
+#### Executing.
 
 ```
 sdk/hello_world_launcher --kernel_path=../../device/build/tests/print.elf --device_type=sysemu
@@ -61,7 +74,9 @@ dt2json traceKernels_dev0_0.bin -t
 
 A top level makefile has also been provided on the root that is able to configure and build host and device parts on a cmake & make command. Both host and device CMake domains are introduced through ExternalProcectAdd().
 
-``` 
+```
+
+export DEV_COMPILER={gcc8.2,clang11} 
 mkdir build; cd build
 cmake .. -DADDRESS:STRING=0x8006335000
 make all
@@ -94,7 +109,7 @@ ExternalProject_Add(
   device
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/device"
   CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/conan_toolchain.cmake
+    -DCMAKE_TOOLCHAIN_FILE=$ENV{ET_SDK_HOME}/.builds/device/$ENV{DEV_COMPILER}/conan_toolchain.cmake
     -DCMAKE_BUILD_TYPE=Release
     -DGP_SDK_HOME=${GP_SDK_HOME}
     -DADDRESS:STRING=${ADDRESS}
@@ -124,6 +139,7 @@ target_link_libraries(saxpy_scalar.elf etsoc_crt0)
 ### Configuing and building
 
 ```
+export DEV_COMPILER={gcc8.2,clang11}
 mkdir build; cd build
 cmake .. -DGP_SDK_HOME=<path_to-gp-sdk> -DADDRESS=0x8006335000
 make
