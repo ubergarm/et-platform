@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [SW-17450] Support for clang compiler on device side along with gcc.  Please, refer to README.md and companion docs for further detail.  In general an envoronment variable DEV_COMPILER (gcc8.2 or clang11) needs to be provided when configuring the build on device side:
 
 ```
-DEV_COMILER=clang11 cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
+DEV_COMPILER=clang11 cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
 ```
 
 
