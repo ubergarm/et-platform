@@ -53,7 +53,10 @@ KERNEL_LAUNCHERS = {
     "syncMinion": "barrier_launcher",
     "sysemu_fatal": "basic_launcher",
     "txfma": "txfma_launcher",
-    "variableStrings": "basic_launcher"
+    "variableStrings": "basic_launcher",
+    "tracing_busywait": "basic_launcher",
+    "tracing_factorial": "basic_launcher"
+
 }
 
 
@@ -76,6 +79,8 @@ EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 # only needed for device_type = sysemu
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=400"]
 EXTRA_ARGS["profiling_simple"] = ["--kernel_launch_timeout=40"]
+EXTRA_ARGS["tracing_busywait"] = ["--kernel_launch_timeout=600"]
+EXTRA_ARGS["tracing_factorial"] = ["--kernel_launch_timeout=100"]
 EXTRA_ARGS["sysemu_fatal"] = ["--kernel_launch_timeout=40"]
 
 SHOULD_FAIL = ["hang", "exception", "OneTrapOnSync", "fail_abort", "fail_assert", "sysemu_fatal"]
