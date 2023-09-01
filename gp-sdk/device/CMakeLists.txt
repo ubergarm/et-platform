@@ -12,6 +12,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(gp-sdk-device VERSION 1.3.0 LANGUAGES C CXX ASM)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(BUILD_DOCS "Enable/disable building documentation" OFF)
 option(BUILD_TESTS "Build GP-SDK test kernels" ON)

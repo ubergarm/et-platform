@@ -56,7 +56,6 @@ KERNEL_LAUNCHERS = {
     "variableStrings": "basic_launcher",
     "tracing_busywait": "basic_launcher",
     "tracing_factorial": "basic_launcher"
-
 }
 
 

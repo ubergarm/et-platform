@@ -78,10 +78,10 @@ static inline void wakeUpThreads(uint64_t shire_mask) {
   *broadcast_data = thread_mask;
   // broadcast to threads 0
   *broadcast_address =
-    (shire_mask & 0xFFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_0) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
+    (shire_mask & 0x1FFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_0) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
   // braodcast to threads 1.
   *broadcast_address =
-    (shire_mask & 0xFFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_2) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
+    (shire_mask & 0x1FFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_2) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
 }
 
 /// @brief Resets global memory region .bss to zero
