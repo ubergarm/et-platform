@@ -96,6 +96,11 @@ int entryPoint_0(KernelArguments* vectors) {
   }
   size_t begin = elemsPerWorker * minionId;
   size_t end = std::min(elemsPerWorker * (minionId + 1), vectors->numElements);
+
+  if (begin > (vectors->numElements - 1)) {
+    return 0;
+  }
+
 #ifdef SAXPY_VECTOR
     saxpy_vector(begin, end, vectors->a, vectors->x, vectors->y, vectors->y);
 #else
