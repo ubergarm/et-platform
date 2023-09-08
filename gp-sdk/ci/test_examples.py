@@ -63,7 +63,7 @@ KERNELS = list(KERNEL_LAUNCHERS.keys())
 
 SKIP_SYSEMU = ["check_pmc", "busy10sec"]
 SKIP_SILICON = ["sysemu_fatal"]
-SKIP_ANY = ["variableStrings","sysemu_fatal"]
+SKIP_ANY = ["variableStrings"]
 
 EXTRA_ARGS = defaultdict(list)
 EXTRA_ARGS["saxpy_profiling"] = ["--launch_mult=2"]
@@ -80,7 +80,6 @@ EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=400"]
 EXTRA_ARGS["profiling_simple"] = ["--kernel_launch_timeout=40"]
 EXTRA_ARGS["tracing_busywait"] = ["--kernel_launch_timeout=600"]
 EXTRA_ARGS["tracing_factorial"] = ["--kernel_launch_timeout=100"]
-EXTRA_ARGS["sysemu_fatal"] = ["--kernel_launch_timeout=40"]
 
 SHOULD_FAIL = ["hang", "exception", "OneTrapOnSync", "fail_abort", "fail_assert", "sysemu_fatal"]
 
