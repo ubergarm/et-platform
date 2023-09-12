@@ -80,8 +80,19 @@ static inline void wakeUpThreads(uint64_t shire_mask) {
   *broadcast_address =
     (shire_mask & 0x1FFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_0) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
   // braodcast to threads 1.
-  *broadcast_address =
-    (shire_mask & 0x1FFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_2) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
+  if (device_config::config.threadsPerCore == 2) {
+    *broadcast_address =
+      (shire_mask & 0xFFFFFFFF) | (((ESR_SHIRE(0, FCC_CREDINC_2) >> 3) & 0x7FFFF) << ESR_BROADCAST_ESR_ADDR_SHIFT);
+  }
+
+  // [SW-17765: fixed bug affecting kernels using the Shire 32]
+  if (shire_mask & 0x100000000) {
+    // wake shire 32 if it is used
+    fcc_send(32, THREAD_0, FCC_0, 0xFFFFFFFF);
+    if (device_config::config.threadsPerCore == 2) {
+      fcc_send(32, THREAD_1, FCC_0, 0xFFFFFFFF);
+    }
+  }
 }
 
 /// @brief Resets global memory region .bss to zero
