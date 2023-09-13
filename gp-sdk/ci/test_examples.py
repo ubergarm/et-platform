@@ -55,7 +55,8 @@ KERNEL_LAUNCHERS = {
     "txfma": "txfma_launcher",
     "variableStrings": "basic_launcher",
     "tracing_busywait": "basic_launcher",
-    "tracing_factorial": "basic_launcher"
+    "tracing_factorial": "basic_launcher",
+    "autogen_matmul": "matmul_launcher"
 }
 
 
