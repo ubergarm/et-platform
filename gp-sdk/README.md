@@ -43,7 +43,7 @@ make all
 
 Executing involves launching a host application that receives as a parameter the computational kernel to be executed on the device. Please, note that we need to activate the virtual conan environment for Debug or Release on the host accordignly with the BuildType used. The docker entry point by default activates Relase runtime environment, that needs explicit deactivation:
 
-````
+```
 source  ${ET_SDK_HOME}/.builds/host/deactivate_conanrunenv-release-x86_64.sh
 source  ${ET_SDK_HOME}/.builds/host/conanrunenv-debug-x86_64.sh
 ```
