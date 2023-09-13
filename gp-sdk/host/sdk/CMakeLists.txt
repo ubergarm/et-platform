@@ -1,16 +1,6 @@
 
 set(DEVICE_KERNELS_DIR ${PROJECT_SOURCE_DIR}/../device/tests)
 
-# 
-# create abort_manager lib
-#
-
-add_library(abort_manager STATIC 
-    lib/AbortManager/AbortManager.cpp
-    lib/AbortManager/CoreDumper.cpp
-)
-target_include_directories (abort_manager PUBLIC lib/AbortManager)
-target_link_libraries(abort_manager PUBLIC runtime::etrt)
 
 # 
 # compile generic_launcher lib
@@ -18,14 +8,12 @@ target_link_libraries(abort_manager PUBLIC runtime::etrt)
 
 add_library(etsoc_gpsdk STATIC 
     src/lib/GenericLauncher.cpp 
-    src/lib/RuntimeImpWithCoreDump.cpp
 )
 target_include_directories(etsoc_gpsdk PUBLIC include sdk/include)
 target_link_libraries(etsoc_gpsdk 
     PUBLIC 
         deviceLayer::deviceLayer
         runtime::etrt
-        abort_manager
     PRIVATE
         esperantoTrace::et_trace
         $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0.0>>:stdc++fs>

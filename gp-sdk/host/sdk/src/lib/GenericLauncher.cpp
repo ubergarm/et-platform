@@ -20,7 +20,6 @@
 #include <stdio.h>
 
 #include "GenericLauncher.h"
-#include "RuntimeImpWithCoreDump.h"
 
 // Trace Buffer realted constants.
 constexpr size_t kTraceBytesPerHart = 4096;
@@ -110,7 +109,17 @@ void GenericLauncher::initialize() {
     break;
   }
 
-  createRuntime(enableCoreDump_, useRuntimeMultiProcess_, options);
+  // Only creates the logger if IRuntime will be created by GenericLauncher
+  LoggerLauncher logger;
+
+  if (useRuntimeMultiProcess_) {
+    runtimeOwned_ = rt::IRuntime::create(runtimeSocketName_);
+  } else {
+    runtimeOwned_ = rt::IRuntime::create(deviceLayer_.get(), options);
+  }
+
+  // get a raw-pointer
+  runtime_ = runtimeOwned_.get();
 
   devices_ = runtime_->getDevices();
 
@@ -121,38 +130,30 @@ void GenericLauncher::initialize() {
   }
 
   // Program callbacks for error management.
-  auto streamErrorHandler = [this, rt = getRuntime(enableCoreDump_)]([[maybe_unused]] rt::EventId id,
-                                                                     const rt::StreamError& error) {
+  auto streamErrorHandler = [this, rt = getRuntime()]([[maybe_unused]] rt::EventId id, const rt::StreamError& error) {
     std::cout << "streamErrorHandler on deviceId[" << std::to_string((int)error.device_) << "] "
               << "() rt reports an error on a stream command(EventId: " << static_cast<int>(id) << "):\n"
               << error.getString();
-    if ((error.errorCode_ == rt::DeviceErrorCode::DmaHostAborted) or
-        (error.errorCode_ == rt::DeviceErrorCode::KernelLaunchHostAborted)) {
-      std::cout << std::to_string(error.errorCode_) << " Errors during aborts are expected, ignoring\n";
+    if (error.errorCode_ == rt::DeviceErrorCode::DmaHostAborted) {
+      std::cout << std::to_string(error.errorCode_) << " Errors on DmaHost are expected, ignoring\n";
       return;
     }
 
-    kernelError_++;
-
-    if (enableCoreDump_) {
-      abortManager_.dumpCore(rt, id, error);
+    if (static_cast<int>(id) == 27) {
+      std::cout << "Abort has been detected" << std::endl;
+      kernelAbort_++;
+    } else {
+      std::cout << "An Error has been detected" << std::endl;
+      kernelError_++;
     }
   };
 
   // Program callback when we want kernel aborts (due to a timeout) to dump corefiles
-  auto abortedKernelHandler = [this, rt = getRuntime(enableCoreDump_)](rt::EventId id, std::byte const* context,
-                                                                       size_t size,
-                                                                       std::function<void()> freeResources) {
+  auto abortedKernelHandler = [this, rt = getRuntime()](rt::EventId id, std::byte const* context, size_t size,
+                                                        std::function<void()> freeResources) {
     std::cout << "abortedKernelHandler"
               << " () rt reports that a kernel has been aborted (EventId: " << static_cast<int>(id) << ")\n";
     kernelAbort_++;
-
-    if (enableCoreDump_) {
-      auto error = abortManager_.handleAbortedKernelAndDumpCore(rt, id, context, size, freeResources);
-      if (error.has_value()) {
-        reportUserException(error.value());
-      }
-    }
   };
 
   runtime_->setOnStreamErrorsCallback(streamErrorHandler);
@@ -252,7 +253,7 @@ void GenericLauncher::tearDown() {
     runtime_->destroyStream(s);
   }
 
-  resetRuntime(enableCoreDump_);
+  resetRuntime();
   defaultStreams_.clear();
   traceStreams_.clear();
   devices_.clear();
@@ -359,8 +360,15 @@ void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, s
     fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize, shireMask);
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
+  std::string coreFileName;
 
-  runtime_->kernelLaunch(defaultStreams_[deviceIdx], kernelId, params, size, shireMask, barrier, flushL3, optUserTrace);
+  if (enableCoreDump_) {
+    coreFileName = "core." + std::to_string(getpid()) + ".etsoc." + std::to_string((int)kernelId) + "." +
+                   std::to_string((int)deviceIdx);
+  }
+
+  runtime_->kernelLaunch(defaultStreams_[deviceIdx], kernelId, params, size, shireMask, barrier, flushL3, optUserTrace,
+                         coreFileName);
 }
 
 void GenericLauncher::reportUserException(const rt::StreamError& error) const {
@@ -374,36 +382,7 @@ void GenericLauncher::reportUserException(const rt::StreamError& error) const {
   out.close();
 }
 
-void GenericLauncher::createRuntime(bool enableCoreDump, bool useRuntimeMultiProcess, rt::Options options) {
-
-  // Only creates the logger if IRuntime will be created by GenericLauncher
-  LoggerLauncher logger;
-
-  if (enableCoreDump) {
-    if (useRuntimeMultiProcess) {
-      runtimeBase_ = rt::IRuntime::create(runtimeSocketName_);
-    } else {
-      // If core dump is enabled, runtime wrapper with core dump capabilities is used
-      runtimeBase_ = rt::IRuntime::create(deviceLayer_.get(), options);
-    }
-    runtimeOwned_ =
-      std::make_unique<RuntimeImpWithCoreDump>(runtimeBase_.get(), &abortManager_, useRuntimeMultiProcess);
-  } else {
-    if (useRuntimeMultiProcess) {
-      runtimeOwned_ = rt::IRuntime::create(runtimeSocketName_);
-    } else {
-      runtimeOwned_ = rt::IRuntime::create(deviceLayer_.get(), options);
-    }
-  }
-
-  // get a raw-pointer
-  runtime_ = runtimeOwned_.get();
-}
-
-void GenericLauncher::resetRuntime(bool enableCoreDump) {
-  if (enableCoreDump) {
-    runtimeBase_.reset();
-  }
+void GenericLauncher::resetRuntime() {
   if (runtimeOwned_) {
     runtimeOwned_.reset();
   }
@@ -413,12 +392,9 @@ void GenericLauncher::resetRuntime(bool enableCoreDump) {
 // to abortedKernelHandler callback.
 // Runtime is used inside the callback to copy error context
 // and dump core from device to host.
-rt::IRuntime* GenericLauncher::getRuntime(bool enableCoreDump) {
-  if (enableCoreDump) {
-    return runtimeBase_.get();
-  } else {
-    return runtime_;
-  }
+rt::IRuntime* GenericLauncher::getRuntime() {
+
+  return runtime_;
 }
 
 void GenericLauncher::parse_args(int argc, char** argv, bool strict) {

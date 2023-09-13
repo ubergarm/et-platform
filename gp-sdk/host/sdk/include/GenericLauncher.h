@@ -9,7 +9,6 @@
 //------------------------------------------------------------------------------
 #ifndef GENERIC_LAUNCHER_H
 #define GENERIC_LAUNCHER_H
-#include <AbortManager.h>
 #include <device-layer/IDeviceLayer.h>
 #include <runtime/IRuntime.h>
 
@@ -211,13 +210,11 @@ private:
   std::vector<std::byte> readFile(const std::string& path);
   void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, uint64_t shireMask, uint32_t deviceIdx);
   void reportUserException(const rt::StreamError& error) const;
-  void createRuntime(bool enableCoreDump, bool useRuntimeMultiProcess, rt::Options options);
-  void resetRuntime(bool enableCoreDump);
+  void resetRuntime();
   void createUserTraces(void);
   void writeSysemuTraceDumpCookie(void);
   void removeSysemuTraceDumpCookie(void);
-  rt::IRuntime* getRuntime(bool enableCoreDump);
-  AbortManager abortManager_;
+  rt::IRuntime* getRuntime();
 
   void parse_args(int argc, char* argv[], bool strict);
 
