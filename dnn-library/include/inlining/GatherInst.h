@@ -129,6 +129,8 @@ INLINE_ATTR void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
         break; // Once the coordinates have been updated, a new copy can be
                // performed.
       } else if (j != 0) {
+        // previous iteration (of the while loop) was in last element of dest dimension j, reset that dimension for the
+        // destination, the source data and the indices.
         offsetOut -= (dstIndex[j] - 1) * dstPitch[j];
         coordOut[j] = 0;
         if (j >= batchedDims + indicesDimsNum) {
@@ -139,10 +141,12 @@ INLINE_ATTR void fwdLibGatherInst(LibTensor* outT, LibTensor* in1T, LibTensor* i
                            indicesPitch[j - batchedDims];
           offsetIn += (tIndices[offsetIndices] - index) * srcPitch[batchedDims];
           index = tIndices[offsetIndices];
-        } else
-          offsetIn += srcPitch[j];
-      } else
+        } else {
+          offsetIn -= (srcIndex[j] - 1) * srcPitch[j];
+        }
+      } else {
         done = true; // The end of the destination tensor has been reached.
+      }
     }
   }
   if (!DO_EVICTS)
