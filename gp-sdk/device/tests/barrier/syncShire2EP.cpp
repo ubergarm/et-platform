@@ -35,11 +35,6 @@ int entryPoint_0(KernelArguments* args);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, entryPoint_0);
 
 __attribute__((noinline)) int entryPoint_0([[maybe_unused]] KernelArguments*  args) {
-  #ifdef __clang__
-  // FIXME fails in clang, see [SW-18231]
-  # warning test disabled in clang.. see [SW-18231]
-  return 0;
-  #endif 
 
   // This is a test for synchonization on each shire.
   // The n-th thread performs n*512 additions in the n-th position of the vector
