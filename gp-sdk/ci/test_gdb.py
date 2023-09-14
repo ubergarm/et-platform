@@ -75,42 +75,40 @@ def gdb_script(entry_pc: int):
         Command(
             "next",
             [
-                "*for*vlen*",
-                "=> 0x*800*entryPoint_0*slli*",
+                "*asm*volatile*fbcx*",
+                "=> 0x*800*entryPoint_0*",
             ],
         ),
         Command(
             "next",
             [
-                "*asm*volatile*flw.ps*",
-                "=> 0x*800*entryPoint_0*flw.ps*fa4*",
-                "0x*800*entryPoint_0*flw.ps*fa5*",
+                "*42*for*vlen*",
+                "=> 0x*800*entryPoint_0*KernelArguments*",
             ],
         ),
         Command(
             "next",
             [
                 "*asm*volatile*",
-                "=> 0x*800*entryPoint_0*fmadd.ps*fa5,fa4,fa3,fa5*",
+                "=> 0x*800*entryPoint_0*KernelArguments*",
             ],
         ),
         Command(
             "next",
             [
-                "*asm*volatile*fsw.ps*",
-                "=> 0x*800*entryPoint_0*fsw.ps*fa5*",
+                "*800*entryPoint_0*KernelArguments*",
             ],
         ),
         Command(
             "p $fa3",
             [
-                "*float =*, int32 =*, int8 =*",
+                "61*asm*volatile*",
             ],
         ),
         Command(
             "p $fa4",
             [
-                "*float =*, int32 =*, int8 =*",
+                "*800*entryPoint*KernelArguments*fmadd*",
             ],
         ),
         Command(
