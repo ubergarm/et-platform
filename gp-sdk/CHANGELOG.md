@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+
+## 1.3.0 (2023/09/15)
+### Added
 - [SW-18144] Add SCOPED_TIMED_REGION
 - [SW-17597] Dump Trace-buffer on sysemu Fatals.
 - [SW-17595] Auto-attach gdbserver on user code.
@@ -16,12 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 DEV_COMPILER=clang11 cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
 ```
-
+- [SW-17450] Added saxpy with intrinsics (preplim syntax) test
 
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
+- [SW-17765] Fixed autogenereated matrix-multiplication tests
+- [SW-18359] Fixed Support for large Sysemu traces in sysemuExplorer script
 - [SW-18330] properly align porsistentData section
 - [SW-18331] globally disabled linker-relaxation in search for debug-builds with reproducible layout across base-address linkage.
 
