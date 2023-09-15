@@ -37,7 +37,7 @@ def gdb_script(entry_pc: int):
         Command(
             "break entryPoint_0 thread 1",
             [
-                f"Breakpoint 1 at {entry_pc:#x}:*",
+                f"Breakpoint 1 at 0x800*:*",
             ],
         ),
         Command(
