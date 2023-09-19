@@ -255,7 +255,7 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
 
   size_t initialAddr, maxRead;
   size_t typeSize = getsize<src1Type>();
-  getCachelinePartition(1, numElemsDst, initialAddr, maxRead,
+  getCachelinePartition(1 /* output size; data is boolean, uses int8 internally */, numElemsDst, initialAddr, maxRead,
                         minionId, activeMinions, dstT);
   if (maxRead == 0)
     return;
@@ -280,7 +280,7 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
     gatherValues[i] = static_cast<int32_t>(i * typeSize);
   }
   size_t maxRow = (srcDimNum > 1) ? (posMax / dstPitch[lastDim - 1]) : 0;
-  size_t elementsInRow, registersInRow, res;
+  size_t elementsInRow, registersInRow, resVect, resWord;
   uint8_t mask;
   bool firstRow = true;
   bool midRow = false;
@@ -301,8 +301,9 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
     }
     if (firstRow || lastRow || !midRow) { // cases where variable update is needed.
       registersInRow = elementsInRow / 8;
-      res = elementsInRow - registersInRow * 8;
-      mask = static_cast<uint8_t>((1UL << res) - 1);
+      resVect = elementsInRow - registersInRow * 8;
+      resWord = resVect >= 4 ? resVect - 4 : resVect;
+      mask = static_cast<uint8_t>((1UL << resWord) - 1);
       if (!firstRow) midRow = true;
     }
     firstRow = false;
@@ -311,7 +312,8 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
     dstAddr += offsetOut;
 
     unsigned int cnt = 0;
-    while(cnt < registersInRow) {
+    while (cnt < registersInRow) {
+      // TODO : when moving to clang, remove following line and pass 0xff as extra last parameter
       __asm__ __volatile__("mov.m.x m0, zero, 0xff \n");
       op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
       cnt++;
@@ -319,10 +321,22 @@ INLINE_ATTR void fwdLibElementBoolInstVectorized(LibTensor* outT, LibTensor* in1
       srcAddr2 += 8 * typeSize;
       dstAddr += 8;
     }
-    if (res > 0) {
-      __asm__ __volatile__("mov.m.x m0, %[mask], 0 \n" : : [ mask ] "r"(mask) :);
+
+    if (resVect >= 4) {
+      // TODO : when moving to clang, remove following line and pass 0x0f as extra last parameter
+      __asm__ __volatile__("mov.m.x m0, zero, 0x0f \n");
       op.doOpVect(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
+      srcAddr1 += 4 * typeSize;
+      srcAddr2 += 4 * typeSize;
+      dstAddr += 4;
     }
+
+    if (resWord > 0) {
+      // TODO : when moving to clang, remove following line and pass mask as extra last parameter
+      __asm__ __volatile__("mov.m.x m0, %[mask], 0x0 \n" : : [ mask ] "r"(mask) :);
+      op.doOpVectScatter(gatherValues, srcAddr1, srcAddr2, dstAddr, scale, offset);
+    }
+
     if (lastRow)
       return;
 
