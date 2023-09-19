@@ -12,11 +12,12 @@ import logging
 from pathlib import Path
 import time
 import pytest
+import os
 
 Command = namedtuple("Command", ["input", "expected_output"])
 
 
-def gdb_script(entry_pc: int):
+def gdb_script_gcc(entry_pc: int):
     """Generate the GDB script for testing"""
     return [
         Command(
@@ -37,7 +38,7 @@ def gdb_script(entry_pc: int):
         Command(
             "break entryPoint_0 thread 1",
             [
-                f"Breakpoint 1 at 0x800*:*",
+                f"Breakpoint 1 at {entry_pc:#x}:*",
             ],
         ),
         Command(
@@ -117,6 +118,128 @@ def gdb_script(entry_pc: int):
                 "*float =*, int32 =*, int8 =*",
             ],
         ),
+        Command("delete", []),
+        Command("continue", []),
+    ]
+
+def gdb_script_clang(entry_pc: int):
+    """Generate the GDB script for testing"""
+    return [
+        Command(
+            "print entryPoint_0",
+            [
+                f"*{entry_pc:#x}*entryPoint_0*KernelArguments*",
+            ],
+        ),
+        Command(
+            "target remote :1337",
+            [
+                "Remote debugging using :1337",
+                "0x* in*",
+                "at*",
+                "*",
+            ],
+        ),
+        Command(
+            "break entryPoint_0 thread 1",
+            [
+                f"Breakpoint 1 at 0x800*:*",
+            ],
+        ),
+        Command(
+            "continue",
+            [
+                "Continuing.",
+                "",
+                'Thread 1 "S0:M0:T0" hit Breakpoint 1, entryPoint_0 *',
+                "*",
+            ],
+        ),
+        Command(
+            "print *vectors",
+            [
+                "*{numElements = 256, x = 0x800*, y = 0x800*, a = 3}",
+            ],
+        ),
+        Command(
+            "break saxpy_vector thread 1",
+            [
+                "Breakpoint 2 at 0x800*: *saxpy.cpp*",
+            ],
+        ),
+        Command(
+            "continue",
+            [
+                "Continuing.",
+                "",
+                'Thread 1 "S0:M0:T0" hit Breakpoint 2, saxpy_vector *',
+                "*",
+            ],
+        ),
+        Command("set disassemble-next-line on", []),
+        Command("set width unlimited", []),
+
+        Command(
+            "next",
+            [
+                "*42*for*vlen*",
+                "=> 0x*800*entryPoint_0*KernelArguments*",
+            ],
+        ),
+        
+        Command(
+            "next",
+            [
+                "*asm*volatile*fbcx*",
+                "=> 0x*800*entryPoint_0*",
+            ],
+        ),
+        Command(
+            "next",
+            [
+                "42*for*vlen*",
+                "=> 0x*800*entryPoint_0*KernelArguments*bgeu*",
+                "*slli*",
+                "*add*",
+                "*add*",
+                "*li*",
+                "*mov*",
+            ],
+        ),
+        Command(
+            "next",
+            [
+                "49*asm*volatile*flw.ps*",
+                "=> 0x*800*entryPoint_0*KernelArguments*flw.ps*",
+                "*0x*800*entryPoint_0*KernelArguments*flw.ps*",
+            ],
+        ),
+        Command(
+            "next",
+            [
+                "61*asm*volatile*",
+                "=> 0x*800*entryPoint_0*fmadd.ps*",
+            ],
+        ),
+        Command(
+            "p $ft1",
+            [
+                "*float*3, 3, 3,*, int32 =*, int8 =*",
+            ],
+        ),
+        Command(
+            "p $ft2",
+            [
+                "*float*0, 1, 2, 3,*7*, int32 = *, int8 =*",
+            ],
+        ),
+        Command(
+            "p $ft3",
+            [
+                "*float =*100, 101, 102*107*, int32 =*, int8 =*",
+            ],
+        ),
+        
         Command("delete", []),
         Command("continue", []),
     ]
@@ -231,7 +354,7 @@ def launch_kernel(shell, launcher: Path, kernel: Path, entry_point: str, device:
 
 
 @pytest.mark.parametrize("kernel_info, script", [
-    pytest.param(["saxpy_vector", "saxpy_launcher", "entryPoint_0"], gdb_script),
+    pytest.param(["saxpy_vector", "saxpy_launcher", "entryPoint_0"], gdb_script_gcc if os.environ["DEV_COMPILER"]=="gcc8.2" else  gdb_script_clang),
     pytest.param(["c_tls", "basic_launcher", "entryPoint"], gdb_tls_script),
 ])
 def test_gdb_sysemu(kernel_info, script, request, build_dir, shell, gdb):
