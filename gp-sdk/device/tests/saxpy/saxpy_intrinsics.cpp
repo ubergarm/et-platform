@@ -33,22 +33,35 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
   vector_t alphaVector;
   constexpr unsigned int mask = (1 << vlen) - 1;
   uint64_t alphax;
-  __asm__ __volatile__("fmv.x.w %[alphax], %[alpha]\n"
-                      : [ alphax ] "=r"(alphax)
-                      : [ alpha ] "f"(alpha)
-                      :);
-  alphaVector = __builtin_riscv_fbcx_ps(alphax, mask);
-
+  
+  #if 0
+    // SW-18615: Enable new builtins syntax on SAXPY
+    alphax = __builtin_riscv_fmv_x_w(alpha);
+    alphaVector = __builtin_riscv_fbcx_ps(alphax, mask);
+  #else
+    __asm__ __volatile__("fmv.x.w %[alphax], %[alpha]\n"
+                        : [ alphax ] "=r"(alphax)
+                        : [ alpha ] "f"(alpha)
+                        :);
+    alphaVector = __builtin_riscv_fbcx_ps(alphaVector, alphax, mask);
+  #endif
   for (; i < end - (vlen - 1); i += vlen) {
     vector_t xValue;
     vector_t yValue;
     int *xv = reinterpret_cast<int*>(&x[i]);
     int *yv = reinterpret_cast<int*>(&y[i]);
     int *wv = reinterpret_cast<int*>(&w[i]);
-    xValue = __builtin_riscv_flw_ps(0, xv, mask);
-    yValue = __builtin_riscv_flw_ps(0, yv, mask);
     constexpr int roundingMode = 0;
-    yValue = __builtin_riscv_fmadd_ps(alphaVector, xValue, yValue, roundingMode, mask);
+    #if 0
+      // SW-18615: Enable new builtins syntax on SAXPY
+      xValue = __builtin_riscv_flw_ps(0, xv, mask);
+      yValue = __builtin_riscv_flw_ps(0, yv, mask);
+      yValue = __builtin_riscv_fmadd_ps(alphaVector, xValue, yValue, roundingMode, mask);
+    #else
+      xValue = __builtin_riscv_flw_ps(xValue, 0, xv, mask);
+      yValue = __builtin_riscv_flw_ps(yValue, 0, yv, mask);
+      yValue = __builtin_riscv_fmadd_ps(yValue, alphaVector, xValue, yValue, roundingMode, mask);
+    #endif
     __builtin_riscv_fsw_ps(yValue, 0, wv, mask);
   }
 #endif
