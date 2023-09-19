@@ -37,7 +37,7 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
                       : [ alphax ] "=r"(alphax)
                       : [ alpha ] "f"(alpha)
                       :);
-  alphaVector = __builtin_riscv_fbcx_ps(alphaVector, alphax, mask);
+  alphaVector = __builtin_riscv_fbcx_ps(alphax, mask);
 
   for (; i < end - (vlen - 1); i += vlen) {
     vector_t xValue;
@@ -45,10 +45,10 @@ void saxpy_vector(const size_t begin, const size_t end, const float alpha,
     int *xv = reinterpret_cast<int*>(&x[i]);
     int *yv = reinterpret_cast<int*>(&y[i]);
     int *wv = reinterpret_cast<int*>(&w[i]);
-    xValue = __builtin_riscv_flw_ps(xValue, 0, xv, mask);
-    yValue = __builtin_riscv_flw_ps(yValue, 0, yv, mask);
+    xValue = __builtin_riscv_flw_ps(0, xv, mask);
+    yValue = __builtin_riscv_flw_ps(0, yv, mask);
     constexpr int roundingMode = 0;
-    yValue = __builtin_riscv_fmadd_ps(yValue, alphaVector, xValue, yValue, roundingMode, mask);
+    yValue = __builtin_riscv_fmadd_ps(alphaVector, xValue, yValue, roundingMode, mask);
     __builtin_riscv_fsw_ps(yValue, 0, wv, mask);
   }
 #endif
