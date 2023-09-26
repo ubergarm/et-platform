@@ -107,8 +107,16 @@ target_link_libraries(p2p_launcher
     PRIVATE
         etsoc_gpsdk
 )
+
+
+add_executable(exhaustive_cast_launcher src/exhaustive_cast/exhaustive_cast.cpp)
+target_include_directories(exhaustive_cast_launcher PRIVATE ${DEVICE_KERNELS_DIR}/exhaustive_cast)
+target_link_libraries(exhaustive_cast_launcher
+    PRIVATE
+        etsoc_gpsdk
+)
       
-install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher p2p_launcher
+install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher p2p_launcher exhaustive_cast_launcher
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}

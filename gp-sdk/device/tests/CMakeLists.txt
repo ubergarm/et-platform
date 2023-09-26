@@ -108,3 +108,6 @@ add_etsoc_test_kernel(sysemu_fatal.elf sysemu_fatal/sysemu_fatal.cc)
 add_etsoc_test_kernel(tracing_factorial.elf tracing/tracing_factorial.cc)
 
 add_etsoc_test_kernel(tracing_busywait.elf tracing/tracing_busywait.cc)
+
+add_etsoc_test_kernel(exhaustive_cast.elf exhaustive_cast/exhaustive_cast.cpp)
+target_include_directories(exhaustive_cast.elf INTERFACE .)
