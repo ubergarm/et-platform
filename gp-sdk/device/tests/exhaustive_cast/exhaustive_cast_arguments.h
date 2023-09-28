@@ -4,7 +4,7 @@
 
 #ifndef EXHAUSTIVE_CAST_ARGUMENTS_H
 #define EXHAUSTIVE_CAST_ARGUMENTS_H
-// #define EXHAUSTIVE_CAST_VERIFICATION
+#define EXHAUSTIVE_CAST_VERIFICATION
 
 
 /*-------------------------------------------------------------------------
@@ -19,19 +19,19 @@
  */
 
 union inputContainer  {
-  float a[1000];
-  int64_t b[1000];
-  uint64_t c[1000];
-  int32_t d[1000];
-  uint32_t e[1000];
+  float a[numElements];
+  int64_t b[numElements];
+  uint64_t c[numElements];
+  int32_t d[numElements];
+  uint32_t e[numElements];
 };
 
 union outputContainer {
-  float f[1000];
-  int64_t g[1000];
-  uint64_t h[1000];
-  int32_t i[1000];
-  uint32_t j[1000];
+  float f[numElements];
+  int64_t g[numElements];
+  uint64_t h[numElements];
+  int32_t i[numElements];
+  uint32_t j[numElements];
 };
 
 struct KernelArguments {

@@ -14,6 +14,7 @@ import csv
 import fnmatch
 import logging
 import glob
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -56,7 +57,11 @@ KERNEL_LAUNCHERS = {
     "variableStrings": "basic_launcher",
     "tracing_busywait": "basic_launcher",
     "tracing_factorial": "basic_launcher",
-    "autogen_matmul": "matmul_launcher"
+    "autogen_matmul": "matmul_launcher",
+}
+
+KERNEL_LAUNCHERS_CLANG = {
+    "exhaustive_cast": "exhaustive_cast_launcher",
 }
 
 
@@ -102,6 +107,7 @@ SIMULATOR_PARAMS = [CmdLineArg("--simulator_params", True), CmdLineArg(
 SIMULATOR_OPT_ARG = [CmdLineArg("-l -lm 0", True), CmdLineArg(
     "-l -lm 0 -mem_check", True), CmdLineArg("-l -lm 0 -mem-check", False)]
 ENABLE_CORE = [CmdLineArg("--enableCoreDump", True)]
+CAST_TYPE = ["1", "2", "3", "4", "5", "6", "7", "8"]
 
 str_example_not_built = "the examples have not been built"
 
@@ -393,3 +399,26 @@ def test_cache_repartitioning(shell, device_type, build_dir, devices_list):
             ]
         )
         shell.run(launch_cmd)
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang only Kernel Runs as DEV_COMPILER = gcc8.2")
+@pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
+@pytest.mark.parametrize("kernel", KERNEL_LAUNCHERS_CLANG.keys())
+@pytest.mark.parametrize("cast_type", CAST_TYPE)
+def test_run_param_arguments_clang(shell, device_type, kernel, build_dir, cast_type):
+    """Run a single clang compiled kernel changing an argument"""
+    if not build_dir.exists():
+        pytest.skip(f'{str_examplesNotBuilt}')
+    logging.info("Running %s on %s", kernel, device_type)
+    kernel_path = build_dir.device / "tests" / "exhaustive_cast.elf"
+
+    launch_cmd = " ".join(
+        [
+            str(build_dir.host / "sdk/exhaustive_cast_launcher"),
+            f"--kernel_path={kernel_path}",
+            f"--device_type={device_type}",
+            f"--cast_type={cast_type}"
+        ]
+    )
+
+    shell.run(launch_cmd)
+    if kernel not in SHOULD_FAIL or kernel == "fail_assert":
+      check_run_artifacts(shell, device_type)

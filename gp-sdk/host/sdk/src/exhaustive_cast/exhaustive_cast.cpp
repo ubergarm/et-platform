@@ -23,7 +23,7 @@ struct Options {
   int kernel_launch_timeout = 10;
   int num_launches = 1;
   std::string device_type = "sysemu";
-  int cast_type;
+  int cast_type = 1;
 };
 
 Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
@@ -196,24 +196,27 @@ public:
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
   bool cmpUint64_t(uint64_t* a, uint64_t* b) {
     for (uint64_t i = 0; i < numElements; i++) {
-      if (a[i] != b[i])
+      if (a[i] != b[i]) {
         return false;
+      }
     }
     return true;
   }
 
   bool cmpUint32_t(uint32_t* a, uint32_t* b) {
     for (uint64_t i = 0; i < numElements; i++) {
-      if (a[i] != b[i])
+      if (a[i] != b[i]) {
         return false;
+      }
     }
     return true;
   }
 
   bool cmpFloat(float* a, float* b) {
     for (uint64_t i = 0; i < numElements; i++) {
-      if (a[i] != b[i])
+      if (a[i] != b[i]) {
         return false;
+      }
     }
     return true;
   }
@@ -324,7 +327,7 @@ public:
 };
 
 int main(int argc, char** argv) {
-
+  int ret = 0;
   std::vector<char*> argvPendingToParse{argv[0]};
 
   Options opt = parse_args(argc, argv, argvPendingToParse);
@@ -358,15 +361,17 @@ int main(int argc, char** argv) {
   }
 
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
-  if (launcher.verify(opt.cast_type))
+  if (launcher.verify(opt.cast_type)) {
     std::cout << "Passed\n";
-  else
-    std::cout << "Failed\n";
+  } else {
+    std::cerr << "error: Exhaustive Cast host/device results do not match" << std::endl;
+    ret = 1;
+  }
 #endif
 
   launcher.freeDeviceAllocs();
   launcher.unLoadKernel(kernelId);
   launcher.tearDown();
 
-  return 0;
+  return ret;
 }

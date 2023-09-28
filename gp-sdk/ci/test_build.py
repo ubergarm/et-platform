@@ -10,6 +10,7 @@ Tests:
 
 import logging
 from dataclasses import dataclass
+import os
 from typing import Optional
 from pathlib import Path
 import pytest
@@ -22,6 +23,10 @@ LAUNCHERS = [
     "hello_world_launcher",
     "fft_launcher",
     "txfma_launcher",
+]
+
+LAUNCHERS_CLANG = [
+    "exhaustive_cast_launcher",
 ]
 
 KERNELS = [
@@ -40,6 +45,10 @@ KERNELS = [
     "txfma",
     "hang",
     "exception",
+]
+
+KERNELS_CLANG = [
+    "exhaustive_cast",
 ]
 
 
@@ -148,6 +157,19 @@ def test_host_artifacts(launcher, build_dir, shell):
         ],
     )
 
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang only tests as DEV_COMPILER = gcc8.2")
+@pytest.mark.parametrize("launcher", LAUNCHERS_CLANG)
+def test_host_artifacts_clang(launcher, build_dir, shell):
+    """Check the linkage of the clang only launchers"""
+    logging.info("Checking host/sdk/%s", launcher)
+    check_linked_libraries(
+        shell,
+        build_dir.host / "sdk" / launcher,
+        [
+            "libetrt.so",
+            "libdeviceLayer.so",
+        ],
+    )
 
 @pytest.mark.parametrize("kernel", KERNELS)
 def test_device_kernel_artifacts(kernel, build_dir, shell):
@@ -159,6 +181,16 @@ def test_device_kernel_artifacts(kernel, build_dir, shell):
     check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf", symbols)
     check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf_dbg", symbols)
 
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang only tests as DEV_COMPILER = gcc8.2")
+@pytest.mark.parametrize("kernel", KERNELS_CLANG)
+def test_device_kernel_artifacts_clang(kernel, build_dir, shell):
+    """Check the symbols defined in the clang only device kernels"""
+    logging.info("Checking device/tests/%s.elf", kernel)
+    symbols = [
+        Symbol(name="_start", type="TtWw"),
+    ]
+    check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf", symbols)
+    check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf_dbg", symbols)
 
 def test_device_sdk_artifacts(build_dir, shell):
     """Check the device crt0"""
