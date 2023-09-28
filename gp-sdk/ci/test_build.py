@@ -15,7 +15,7 @@ from typing import Optional
 from pathlib import Path
 import pytest
 
-LAUNCHERS = [
+LAUNCHERS_GCC = [
     "basic_launcher",
     "barrier_launcher",
     "saxpy_launcher",
@@ -26,10 +26,17 @@ LAUNCHERS = [
 ]
 
 LAUNCHERS_CLANG = [
+    "basic_launcher",
+    "barrier_launcher",
+    "saxpy_launcher",
+    "multiKernel_launcher",
+    "hello_world_launcher",
+    "fft_launcher",
+    "txfma_launcher",
     "exhaustive_cast_launcher",
 ]
 
-KERNELS = [
+KERNELS_GCC = [
     "print",
     "print2",
     "bss",
@@ -48,6 +55,21 @@ KERNELS = [
 ]
 
 KERNELS_CLANG = [
+    "print",
+    "print2",
+    "bss",
+    "sysemu_fatal",
+    "data",
+    "fftKernel",
+    "saxpy_scalar",
+    "saxpy_vector",
+    "saxpy_profiling",
+    "syncDeviceBasic",
+    "syncAll",
+    "syncMinion",
+    "txfma",
+    "hang",
+    "exception",
     "exhaustive_cast",
 ]
 
@@ -143,10 +165,10 @@ def test_build_device(gp_sdk, shell, build_dir):
     shell.make("build")
     build_dir.save_device(shell.tmp_path / "build")
 
-
-@pytest.mark.parametrize("launcher", LAUNCHERS)
-def test_host_artifacts(launcher, build_dir, shell):
-    """Check the linkage of the launchers"""
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="clang11", reason="Skipping GCC tests as DEV_COMPILER = clang11")
+@pytest.mark.parametrize("launcher", LAUNCHERS_GCC)
+def test_host_artifacts_gcc(launcher, build_dir, shell):
+    """Check the linkage of the GCC launchers"""
     logging.info("Checking host/sdk/%s", launcher)
     check_linked_libraries(
         shell,
@@ -157,10 +179,10 @@ def test_host_artifacts(launcher, build_dir, shell):
         ],
     )
 
-@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang only tests as DEV_COMPILER = gcc8.2")
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping GCC tests as DEV_COMPILER = gcc8.2")
 @pytest.mark.parametrize("launcher", LAUNCHERS_CLANG)
 def test_host_artifacts_clang(launcher, build_dir, shell):
-    """Check the linkage of the clang only launchers"""
+    """Check the linkage of the clang launchers"""
     logging.info("Checking host/sdk/%s", launcher)
     check_linked_libraries(
         shell,
@@ -171,9 +193,10 @@ def test_host_artifacts_clang(launcher, build_dir, shell):
         ],
     )
 
-@pytest.mark.parametrize("kernel", KERNELS)
-def test_device_kernel_artifacts(kernel, build_dir, shell):
-    """Check the symbols defined in the device kernels"""
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="clang11", reason="Skipping GCC tests as DEV_COMPILER = clang11")
+@pytest.mark.parametrize("kernel", KERNELS_GCC)
+def test_device_kernel_artifacts_gcc(kernel, build_dir, shell):
+    """Check the symbols defined in the GCC device kernels"""
     logging.info("Checking device/tests/%s.elf", kernel)
     symbols = [
         Symbol(name="_start", type="TtWw"),
@@ -181,10 +204,10 @@ def test_device_kernel_artifacts(kernel, build_dir, shell):
     check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf", symbols)
     check_symbols(shell, build_dir.device / "tests" / f"{kernel}.elf_dbg", symbols)
 
-@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang only tests as DEV_COMPILER = gcc8.2")
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang tests as DEV_COMPILER = gcc8.2")
 @pytest.mark.parametrize("kernel", KERNELS_CLANG)
 def test_device_kernel_artifacts_clang(kernel, build_dir, shell):
-    """Check the symbols defined in the clang only device kernels"""
+    """Check the symbols defined in the clang device kernels"""
     logging.info("Checking device/tests/%s.elf", kernel)
     symbols = [
         Symbol(name="_start", type="TtWw"),

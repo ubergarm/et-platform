@@ -223,56 +223,56 @@ public:
 
   void int64ToFloat() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.f[i] = (float)hostIn_.b[i];
+      hostOut_.a[i] = (float)hostIn_.b[i];
     }
     return;
   }
 
   void uint64ToFloat() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.f[i] = (float)hostIn_.c[i];
+      hostOut_.a[i] = (float)hostIn_.c[i];
     }
     return;
   }
 
   void int32ToFloat() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.f[i] = (float)hostIn_.d[i];
+      hostOut_.a[i] = (float)hostIn_.d[i];
     }
     return;
   }
 
   void uint32ToFloat() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.f[i] = (float)hostIn_.e[i];
+      hostOut_.a[i] = (float)hostIn_.e[i];
     }
     return;
   }
 
   void floatToInt64() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.g[i] = (int64_t)hostIn_.a[i];
+      hostOut_.b[i] = (int64_t)hostIn_.a[i];
     }
     return;
   }
 
   void floatToUint64() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.h[i] = (uint64_t)hostIn_.a[i];
+      hostOut_.c[i] = (uint64_t)hostIn_.a[i];
     }
     return;
   }
 
   void floatToInt32() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.i[i] = (int32_t)hostIn_.a[i];
+      hostOut_.d[i] = (int32_t)hostIn_.a[i];
     }
     return;
   }
 
   void floatToUint32() {
     for (uint64_t i = 0; i < numElements; i++) {
-      hostOut_.j[i] = (uint32_t)hostIn_.a[i];
+      hostOut_.e[i] = (uint32_t)hostIn_.a[i];
     }
     return;
   }
@@ -316,12 +316,12 @@ public:
       break;
     }
   }
-  inputContainer hostIn_;
-  outputContainer hostOut_;
+  dataContainer hostIn_;
+  dataContainer hostOut_;
 #endif
-  // KernelAr devData_;
-  inputContainer devIn_;
-  outputContainer devOut_;
+
+  dataContainer devIn_;
+  dataContainer devOut_;
   std::byte* deviceIn_;
   std::byte* deviceOut_;
 };
@@ -346,8 +346,8 @@ int main(int argc, char** argv) {
     KernelArguments kernelArgs;
     kernelArgs.cast_type = opt.cast_type;
 
-    kernelArgs.in = (inputContainer*)launcher.deviceIn_;
-    kernelArgs.out = (outputContainer*)launcher.deviceOut_;
+    kernelArgs.in = (dataContainer*)launcher.deviceIn_;
+    kernelArgs.out = (dataContainer*)launcher.deviceOut_;
 
     launcher.kernelLaunch(kernelId, &kernelArgs);
     launcher.programDev2HostCopies();

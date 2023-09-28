@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ * Copyright (C) 2023, Esperanto Technologies Inc.
+ * The copyright to the computer program(s) herein is the
+ * property of Esperanto Technologies, Inc. All Rights Reserved.
+ * The program(s) may be used and/or copied only with
+ * the written permission of Esperanto Technologies and
+ * in accordance with the terms and conditions stipulated in the
+ * agreement/contract under which the program(s) have been supplied.
+ *-------------------------------------------------------------------------
+ */
+
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/hart.h>
 
@@ -7,58 +18,58 @@
 int entryPoint_0(KernelArguments* args);
 DECLARE_KERNEL_ENTRY_POINTS(entryPoint_0, nullptr);
 
-void int64ToFloat(outputContainer* out, inputContainer* in) {
+void int64ToFloat(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->f[i] = (float)in->b[i];
+    out->a[i] = (float)in->b[i];
   }
   return;
 }
 
-void uint64ToFloat(outputContainer* out, inputContainer* in) {
+void uint64ToFloat(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->f[i] = (float)in->c[i];
+    out->a[i] = (float)in->c[i];
   }
   return;
 }
 
-void int32ToFloat(outputContainer* out, inputContainer* in) {
+void int32ToFloat(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->f[i] = (float)in->d[i];
+    out->a[i] = (float)in->d[i];
   }
   return;
 }
 
-void uint32ToFloat(outputContainer* out, inputContainer* in) {
+void uint32ToFloat(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->f[i] = (float)in->e[i];
+    out->a[i] = (float)in->e[i];
   }
   return;
 }
 
-void floatToInt64(outputContainer* out, inputContainer* in) {
+void floatToInt64(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->g[i] = (int64_t)in->a[i];
+    out->b[i] = (int64_t)in->a[i];
   }
   return;
 }
 
-void floatToUint64(outputContainer* out, inputContainer* in) {
+void floatToUint64(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->h[i] = (uint64_t)in->a[i];
+    out->c[i] = (uint64_t)in->a[i];
   }
   return;
 }
 
-void floatToInt32(outputContainer* out, inputContainer* in) {
+void floatToInt32(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->i[i] = (int32_t)in->a[i];
+    out->d[i] = (int32_t)in->a[i];
   }
   return;
 }
 
-void floatToUint32(outputContainer* out, inputContainer* in) {
+void floatToUint32(dataContainer* out, dataContainer* in) {
   for (uint64_t i = 0; i < numElements; i++) {
-    out->j[i] = (uint32_t)in->a[i];
+    out->e[i] = (uint32_t)in->a[i];
   }
   return;
 }

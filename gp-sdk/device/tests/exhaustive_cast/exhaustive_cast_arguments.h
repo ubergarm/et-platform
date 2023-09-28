@@ -18,7 +18,7 @@
  *-------------------------------------------------------------------------
  */
 
-union inputContainer  {
+union dataContainer  {
   float a[numElements];
   int64_t b[numElements];
   uint64_t c[numElements];
@@ -26,18 +26,10 @@ union inputContainer  {
   uint32_t e[numElements];
 };
 
-union outputContainer {
-  float f[numElements];
-  int64_t g[numElements];
-  uint64_t h[numElements];
-  int32_t i[numElements];
-  uint32_t j[numElements];
-};
-
 struct KernelArguments {
   uint64_t cast_type;
-  union inputContainer* in;
-  union outputContainer* out;
+  union dataContainer* in;
+  union dataContainer* out;
 } __attribute__ ((packed));
 
 #endif
