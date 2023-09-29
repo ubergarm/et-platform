@@ -1,11 +1,6 @@
-#ifndef numElements
-#define numElements 1000
-#endif
-
 #ifndef EXHAUSTIVE_CAST_ARGUMENTS_H
 #define EXHAUSTIVE_CAST_ARGUMENTS_H
 #define EXHAUSTIVE_CAST_VERIFICATION
-
 
 /*-------------------------------------------------------------------------
  * Copyright (C) 2022, Esperanto Technologies Inc.
@@ -18,7 +13,8 @@
  *-------------------------------------------------------------------------
  */
 
-union dataContainer  {
+constexpr size_t numElements = 1000;
+union dataContainer {
   float a[numElements];
   int64_t b[numElements];
   uint64_t c[numElements];
@@ -30,7 +26,6 @@ struct KernelArguments {
   uint64_t cast_type;
   union dataContainer* in;
   union dataContainer* out;
-} __attribute__ ((packed));
+} __attribute__((packed));
 
 #endif
-

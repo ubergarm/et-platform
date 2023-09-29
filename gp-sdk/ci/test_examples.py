@@ -50,7 +50,6 @@ KERNEL_LAUNCHERS_GCC = {
     "syncAll": "basic_launcher",
     "syncDeviceBasic": "barrier_launcher",
     "syncShire2EP": "barrier_launcher",
-    "syncAll": "basic_launcher",
     "syncMinion": "barrier_launcher",
     "sysemu_fatal": "basic_launcher",
     "txfma": "txfma_launcher",
@@ -89,7 +88,6 @@ KERNEL_LAUNCHERS_CLANG = {
     "syncAll": "basic_launcher",
     "syncDeviceBasic": "barrier_launcher",
     "syncShire2EP": "barrier_launcher",
-    "syncAll": "basic_launcher",
     "syncMinion": "barrier_launcher",
     "sysemu_fatal": "basic_launcher",
     "txfma": "txfma_launcher",
@@ -99,9 +97,6 @@ KERNEL_LAUNCHERS_CLANG = {
     "autogen_matmul": "matmul_launcher",
     "exhaustive_cast": "exhaustive_cast_launcher",
 }
-
-
-# KERNELS = list(KERNEL_LAUNCHERS.keys())
 
 SKIP_SYSEMU = ["check_pmc", "busy10sec"]
 SKIP_SILICON = ["sysemu_fatal"]
@@ -146,6 +141,7 @@ ENABLE_CORE = [CmdLineArg("--enableCoreDump", True)]
 CAST_TYPE = ["1", "2", "3", "4", "5", "6", "7", "8"]
 
 str_example_not_built = "the examples have not been built"
+str_running_kernel_on_dev = "Running %s on %s"
 
 
 def check_fail_assert(trace):
@@ -284,14 +280,10 @@ def check_fatal(shell, path: Path):
 def test_run_example_gcc(shell, device_type, kernel, build_dir, gdb, request):
     """Run one of the provided examples"""
     if not build_dir.exists():
-        pytest.skip("the examples have not been built")
-    if device_type == "sysemu" and kernel in SKIP_SYSEMU:
+        pytest.skip(str_example_not_built)
+    if device_type == "sysemu" and kernel in SKIP_SYSEMU or device_type == "silicon" and kernel in SKIP_SILICON or kernel in SKIP_ANY:
         pytest.skip(f"do not run {kernel} on {device_type}")
-    if device_type == "silicon" and kernel in SKIP_SILICON:
-        pytest.skip(f'do not run {kernel} on {device_type}')
-    if kernel in SKIP_ANY:
-        pytest.skip(f"Skipping {kernel} on {device_type}")
-    logging.info("Running %s on %s", kernel, device_type)
+    logging.info(str_running_kernel_on_dev, kernel, device_type)
     kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
     launch_cmd = " ".join(
         [
@@ -333,14 +325,10 @@ def test_run_example_gcc(shell, device_type, kernel, build_dir, gdb, request):
 def test_run_example_clang(shell, device_type, kernel, build_dir, gdb, request):
     """Run one of the provided examples"""
     if not build_dir.exists():
-        pytest.skip("the examples have not been built")
-    if device_type == "sysemu" and kernel in SKIP_SYSEMU:
+        pytest.skip(str_example_not_built)
+    if device_type == "sysemu" and kernel in SKIP_SYSEMU or device_type == "silicon" and kernel in SKIP_SILICON or kernel in SKIP_ANY:
         pytest.skip(f"do not run {kernel} on {device_type}")
-    if device_type == "silicon" and kernel in SKIP_SILICON:
-        pytest.skip(f'do not run {kernel} on {device_type}')
-    if kernel in SKIP_ANY:
-        pytest.skip(f"Skipping {kernel} on {device_type}")
-    logging.info("Running %s on %s", kernel, device_type)
+    logging.info(str_running_kernel_on_dev, kernel, device_type)
     kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
     launch_cmd = " ".join(
         [
@@ -394,7 +382,7 @@ def test_run_optional_arguments(shell, kernel, kernel_pth_param, device_type,
         pytest.skip(f'{str_examplesNotBuilt}')
     if device_type_optarg == "sysemu" and kernel in SKIP_SYSEMU:
         pytest.skip(f"do not run {kernel} on {device_type_optarg}")
-    logging.info("Running %s on %s", kernel, device_type_optarg)
+    logging.info(str_running_kernel_on_dev, kernel, device_type_optarg)
     kernel_path = build_dir.device / "tests" / "print.elf"
 
     launch_cmd = " ".join(
@@ -427,7 +415,7 @@ def test_run_multi_kernel(shell, device_type, build_dir):
     if not build_dir.exists():
         pytest.skip(f'{str_examplesNotBuilt}')
     kernels = ["bss", "saxpy_scalar"]
-    logging.info("Running %s on %s", kernels, device_type)
+    logging.info(str_running_kernel_on_dev, kernels, device_type)
     kernel_paths = [build_dir.device / "tests" /
                     f"{kernel}.elf" for kernel in kernels]
     launch_cmd = " ".join(
@@ -492,7 +480,7 @@ def test_run_param_arguments_clang(shell, device_type, kernel, build_dir, cast_t
     """Run a single clang compiled kernel changing an argument value"""
     if not build_dir.exists():
         pytest.skip(f'{str_examplesNotBuilt}')
-    logging.info("Running %s on %s", kernel, device_type)
+    logging.info(str_running_kernel_on_dev, kernel, device_type)
     kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
 
     launch_cmd = " ".join(

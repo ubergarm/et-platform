@@ -11,6 +11,7 @@
 #include <bits/stdc++.h>
 #include <cstdlib>
 #include <getopt.h>
+#include <random>
 #include <string>
 
 #include "GenericLauncher.h"
@@ -95,21 +96,22 @@ public:
   using GenericLauncher::GenericLauncher;
 
   void prepareInput(int cast_type) {
-    srand(0);
+    std::minstd_rand simple_rand;
+    simple_rand.seed(0);
     switch (cast_type) {
     case 1: // Float to int64_t
     case 2: // Float to uint64_t
     case 3: // Float to int32_t
     case 4: // Float to uint32_t
-      devIn_.a[0] = 0.52;
-      devIn_.a[1] = 123456789.987654; // May lose precision
-      devIn_.a[2] = 123.4567;         // Rounded Float
-      devIn_.a[3] = 0.0;              // Zero Float
+      devIn_.a[0] = 0.52f;
+      devIn_.a[1] = 123456789.987654f; // May lose precision
+      devIn_.a[2] = 123.4567f;         // Rounded Float
+      devIn_.a[3] = 0.0f;              // Zero Float
       // devIn_.a[4] = 0.0/0.0;                           //Not a Number Float
       // devIn_.a[5] = 1.0/0;                             //Positive Infinity Float
       // devIn_.a[6] = -1.0/0;                            //Negative Infinity Float
       for (int i = 4; i < numElements; i++) {
-        devIn_.a[i] = ((float)rand()) / ((float)rand());
+        devIn_.a[i] = (float)numElements / ((float)simple_rand());
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
       for (int i = 0; i < numElements; i++) {
@@ -118,11 +120,11 @@ public:
 #endif
       break;
     case 5: // int64_t to float
-      devIn_.b[0] = -125;
-      devIn_.b[1] = 9223372036854775807;
-      devIn_.b[2] = -9223372036854775808;
+      devIn_.b[0] = -125ll;
+      devIn_.b[1] = 0x7FFFFFFFFFFFFFFFll;
+      devIn_.b[2] = 0x8000000000000000ll;
       for (int i = 3; i < numElements; i++) {
-        devIn_.b[i] = (int64_t)rand();
+        devIn_.b[i] = (int64_t)simple_rand();
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
       for (int i = 0; i < numElements; i++) {
@@ -132,10 +134,10 @@ public:
       break;
     case 6: // uint64_t to float
       devIn_.c[0] = 125;
-      devIn_.c[1] = 18446744073709551615;
+      devIn_.c[1] = 0xFFFFFFFFFFFFFFFFllu;
       devIn_.c[2] = 0;
       for (int i = 3; i < numElements; i++) {
-        devIn_.c[i] = (uint64_t)rand();
+        devIn_.c[i] = (uint64_t)simple_rand();
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
       for (int i = 0; i < numElements; i++) {
@@ -148,7 +150,7 @@ public:
       devIn_.d[1] = 2147483647;
       devIn_.d[2] = -2147483648;
       for (int i = 3; i < numElements; i++) {
-        devIn_.d[i] = (int32_t)rand();
+        devIn_.d[i] = simple_rand();
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
       for (int i = 0; i < numElements; i++) {
@@ -161,7 +163,7 @@ public:
       devIn_.e[1] = 4294967295;
       devIn_.e[2] = 0;
       for (int i = 3; i < numElements; i++) {
-        devIn_.e[i] = (uint32_t)rand();
+        devIn_.e[i] = (uint32_t)simple_rand();
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
       for (int i = 0; i < numElements; i++) {
@@ -180,12 +182,12 @@ public:
   }
 
   void programHost2DevCopies() {
-    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte*)&(devIn_), deviceIn_,
+    runtime_->memcpyHostToDevice(defaultStreams_[devIdx_], (std::byte*)&devIn_, deviceIn_,
                                  numElements * sizeof(uint64_t));
   }
 
   void programDev2HostCopies() {
-    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_], deviceOut_, (std::byte*)&(devOut_),
+    runtime_->memcpyDeviceToHost(defaultStreams_[devIdx_], deviceOut_, (std::byte*)&devOut_,
                                  numElements * sizeof(uint64_t));
   }
 
@@ -194,7 +196,7 @@ public:
     runtime_->freeDevice(devices_[devIdx_], deviceOut_);
   }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
-  bool cmpUint64_t(uint64_t* a, uint64_t* b) {
+  bool cmpUint64_t(const uint64_t* a, const uint64_t* b) const {
     for (uint64_t i = 0; i < numElements; i++) {
       if (a[i] != b[i]) {
         return false;
@@ -203,7 +205,7 @@ public:
     return true;
   }
 
-  bool cmpUint32_t(uint32_t* a, uint32_t* b) {
+  bool cmpUint32_t(const uint32_t* a, const uint32_t* b) const {
     for (uint64_t i = 0; i < numElements; i++) {
       if (a[i] != b[i]) {
         return false;
@@ -212,7 +214,7 @@ public:
     return true;
   }
 
-  bool cmpFloat(float* a, float* b) {
+  bool cmpFloat(const float* a, const float* b) const {
     for (uint64_t i = 0; i < numElements; i++) {
       if (a[i] != b[i]) {
         return false;
@@ -278,43 +280,45 @@ public:
   }
 
   bool verify(int cast_type) {
+    float ret;
     switch (cast_type) {
     case 1: // Float to int64_t
       floatToInt64();
-      return cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
+      ret = cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
       break;
     case 2: // Float to uint64_t
       floatToUint64();
-      return cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
+      ret = cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
       break;
     case 3: // Float to int32_t
       floatToInt32();
-      return cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
+      ret = cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
       break;
     case 4: // Float to uint32_t
       floatToUint32();
-      return cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
+      ret = cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
       break;
     case 5: // int64_t to float
       int64ToFloat();
-      return cmpFloat((float*)&devOut_, (float*)&hostOut_);
+      ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;
     case 6: // uint64_t to float
       uint64ToFloat();
-      return cmpFloat((float*)&devOut_, (float*)&hostOut_);
+      ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;
     case 7: // int32_t to float
       int32ToFloat();
-      return cmpFloat((float*)&devOut_, (float*)&hostOut_);
+      ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;
     case 8: // uint32_t to float
       uint32ToFloat();
-      return cmpFloat((float*)&devOut_, (float*)&hostOut_);
+      ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;
     default:
-      return false;
+      ret = false;
       break;
     }
+    return ret;
   }
   dataContainer hostIn_;
   dataContainer hostOut_;
@@ -339,7 +343,6 @@ int main(int argc, char** argv) {
   launcher.prepareInput(opt.cast_type);
   launcher.performDeviceAllocs();
 
-  auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
   for (size_t i = 0; i < opt.num_launches; i++) {
     launcher.programHost2DevCopies();
 
