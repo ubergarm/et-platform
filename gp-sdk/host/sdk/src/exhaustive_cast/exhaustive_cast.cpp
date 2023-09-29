@@ -103,10 +103,10 @@ public:
     case 2: // Float to uint64_t
     case 3: // Float to int32_t
     case 4: // Float to uint32_t
-      devIn_.a[0] = 0.52f;
-      devIn_.a[1] = 123456789.987654f; // May lose precision
-      devIn_.a[2] = 123.4567f;         // Rounded Float
-      devIn_.a[3] = 0.0f;              // Zero Float
+      devIn_.a[0] = 0.52F;
+      devIn_.a[1] = 123456789.987654F; // May lose precision
+      devIn_.a[2] = 123.4567F;         // Rounded Float
+      devIn_.a[3] = 0.0F;              // Zero Float
       // devIn_.a[4] = 0.0/0.0;                           //Not a Number Float
       // devIn_.a[5] = 1.0/0;                             //Positive Infinity Float
       // devIn_.a[6] = -1.0/0;                            //Negative Infinity Float
@@ -121,8 +121,8 @@ public:
       break;
     case 5: // int64_t to float
       devIn_.b[0] = -125ll;
-      devIn_.b[1] = 0x7FFFFFFFFFFFFFFFll;
-      devIn_.b[2] = 0x8000000000000000ll;
+      devIn_.b[1] = 0x7FFFFFFFFFFFFFFFLL;
+      devIn_.b[2] = 0x8000000000000000LL;
       for (int i = 3; i < numElements; i++) {
         devIn_.b[i] = (int64_t)simple_rand();
       }
@@ -134,10 +134,10 @@ public:
       break;
     case 6: // uint64_t to float
       devIn_.c[0] = 125;
-      devIn_.c[1] = 0xFFFFFFFFFFFFFFFFllu;
+      devIn_.c[1] = 0xFFFFFFFFFFFFFFFFLLU;
       devIn_.c[2] = 0;
       for (int i = 3; i < numElements; i++) {
-        devIn_.c[i] = (uint64_t)simple_rand();
+        devIn_.c[i] = simple_rand();
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
       for (int i = 0; i < numElements; i++) {
@@ -150,7 +150,7 @@ public:
       devIn_.d[1] = 2147483647;
       devIn_.d[2] = -2147483648;
       for (int i = 3; i < numElements; i++) {
-        devIn_.d[i] = simple_rand();
+        devIn_.d[i] = (int32_t)simple_rand();
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
       for (int i = 0; i < numElements; i++) {
@@ -280,7 +280,7 @@ public:
   }
 
   bool verify(int cast_type) {
-    float ret;
+    bool ret;
     switch (cast_type) {
     case 1: // Float to int64_t
       floatToInt64();
