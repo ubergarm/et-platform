@@ -77,28 +77,28 @@ void floatToUint32(dataContainer* out, dataContainer* in) {
 int entryPoint_0(KernelArguments* vectors) {
   if (get_relative_thread_id() == 0) {
     switch (vectors->cast_type) {
-    case 1: // Float to int64_t
+    case floatToInt64_t: // Float to int64_t
       floatToInt64(vectors->out, vectors->in);
       break;
-    case 2: // Float to uint64_t
+    case floatToUint64_t: // Float to uint64_t
       floatToUint64(vectors->out, vectors->in);
       break;
-    case 3: // Float to int32_t
+    case floatToInt32_t: // Float to int32_t
       floatToInt32(vectors->out, vectors->in);
       break;
-    case 4: // Float to uint32_t
+    case floatToUint32_t: // Float to uint32_t
       floatToUint32(vectors->out, vectors->in);
       break;
-    case 5: // int64_t to float
+    case int64_tToFloat: // int64_t to float
       int64ToFloat(vectors->out, vectors->in);
       break;
-    case 6: // uint64_t to float
+    case uint64_tToFloat: // uint64_t to float
       uint64ToFloat(vectors->out, vectors->in);
       break;
-    case 7: // int32_t to float
+    case int32_tToFloat: // int32_t to float
       int32ToFloat(vectors->out, vectors->in);
       break;
-    case 8: // uint32_t to float
+    case uint32_tToFloat: // uint32_t to float
       uint32ToFloat(vectors->out, vectors->in);
       break;
     default:

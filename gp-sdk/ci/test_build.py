@@ -179,7 +179,7 @@ def test_host_artifacts_gcc(launcher, build_dir, shell):
         ],
     )
 
-@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping GCC tests as DEV_COMPILER = gcc8.2")
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang tests as DEV_COMPILER = gcc8.2")
 @pytest.mark.parametrize("launcher", LAUNCHERS_CLANG)
 def test_host_artifacts_clang(launcher, build_dir, shell):
     """Check the linkage of the clang launchers"""

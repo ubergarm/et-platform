@@ -13,6 +13,17 @@
  *-------------------------------------------------------------------------
  */
 
+enum CastType {
+  floatToInt64_t = 1,
+  floatToUint64_t = 2,
+  floatToInt32_t = 3,
+  floatToUint32_t = 4,
+  int64_tToFloat = 5,
+  uint64_tToFloat = 6,
+  int32_tToFloat = 7,
+  uint32_tToFloat = 8
+};
+
 constexpr size_t numElements = 1000;
 union dataContainer {
   float a[numElements];
@@ -23,7 +34,7 @@ union dataContainer {
 };
 
 struct KernelArguments {
-  uint64_t cast_type;
+  CastType cast_type;
   union dataContainer* in;
   union dataContainer* out;
 } __attribute__((packed));

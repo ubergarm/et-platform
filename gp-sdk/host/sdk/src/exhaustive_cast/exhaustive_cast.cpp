@@ -24,7 +24,7 @@ struct Options {
   int kernel_launch_timeout = 10;
   int num_launches = 1;
   std::string device_type = "sysemu";
-  int cast_type = 1;
+  CastType cast_type = int64_tToFloat;
 };
 
 Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
@@ -38,8 +38,8 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
     "The following switches are optional:\n"
     "  -t, --kernel_launch_timeout   timeout (in seconds) to wait for kenelLaunch\n"
     "  -n, --num_launches            Number of times the kernel will be launched.\n"
-    "  -d, --device_type             Device Type to be used (sysemu, fake,silicon.\n"
-    "  -c, --cast_type            Cast type tp be done (1, 2, 3, 4, 5, 6, 7, 8).\n";
+    "  -d, --device_type             Device Type to be used (sysemu, fake, silicon).\n"
+    "  -c, --cast_type               Cast type to be done (1 , 2, 3, 4, 5, 6, 7, 8).\n";
 
   static constexpr const char* short_opts = "k:t:n:d:h";
 
@@ -72,7 +72,7 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
       opts.device_type = optarg;
       break;
     case 'c':
-      opts.cast_type = atoi(optarg);
+      opts.cast_type = static_cast<CastType>(atoi(optarg));
       break;
     case 'h':
       std::cout << help_msg << GenericLauncher::help_msg << std::endl;
@@ -95,14 +95,14 @@ public:
   exhaustive_cast() = delete;
   using GenericLauncher::GenericLauncher;
 
-  void prepareInput(int cast_type) {
+  void prepareInput(CastType cast_type) {
     std::minstd_rand simple_rand;
     simple_rand.seed(0);
     switch (cast_type) {
-    case 1: // Float to int64_t
-    case 2: // Float to uint64_t
-    case 3: // Float to int32_t
-    case 4: // Float to uint32_t
+    case floatToInt64_t:  // Float to int64_t
+    case floatToUint64_t: // Float to uint64_t
+    case floatToInt32_t:  // Float to int32_t
+    case floatToUint32_t: // Float to uint32_t
       devIn_.a[0] = 0.52F;
       devIn_.a[1] = 123456789.987654F; // May lose precision
       devIn_.a[2] = 123.4567F;         // Rounded Float
@@ -119,7 +119,7 @@ public:
       }
 #endif
       break;
-    case 5: // int64_t to float
+    case int64_tToFloat: // int64_t to float
       devIn_.b[0] = -125ll;
       devIn_.b[1] = 0x7FFFFFFFFFFFFFFFLL;
       devIn_.b[2] = 0x8000000000000000LL;
@@ -132,7 +132,7 @@ public:
       }
 #endif
       break;
-    case 6: // uint64_t to float
+    case uint64_tToFloat: // uint64_t to float
       devIn_.c[0] = 125;
       devIn_.c[1] = 0xFFFFFFFFFFFFFFFFLLU;
       devIn_.c[2] = 0;
@@ -145,7 +145,7 @@ public:
       }
 #endif
       break;
-    case 7: // int32_t to float
+    case int32_tToFloat: // int32_t to float
       devIn_.d[0] = 125;
       devIn_.d[1] = 2147483647;
       devIn_.d[2] = -2147483648;
@@ -158,7 +158,7 @@ public:
       }
 #endif
       break;
-    case 8: // uint32_t to float
+    case uint32_tToFloat: // uint32_t to float
       devIn_.e[0] = 125;
       devIn_.e[1] = 4294967295;
       devIn_.e[2] = 0;
@@ -279,38 +279,38 @@ public:
     return;
   }
 
-  bool verify(int cast_type) {
+  bool verify(CastType cast_type) {
     bool ret;
     switch (cast_type) {
-    case 1: // Float to int64_t
+    case floatToInt64_t: // Float to int64_t
       floatToInt64();
       ret = cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
       break;
-    case 2: // Float to uint64_t
+    case floatToUint64_t: // Float to uint64_t
       floatToUint64();
       ret = cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
       break;
-    case 3: // Float to int32_t
+    case floatToInt32_t: // Float to int32_t
       floatToInt32();
       ret = cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
       break;
-    case 4: // Float to uint32_t
+    case floatToUint32_t: // Float to uint32_t
       floatToUint32();
       ret = cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
       break;
-    case 5: // int64_t to float
+    case int64_tToFloat: // int64_t to float
       int64ToFloat();
       ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;
-    case 6: // uint64_t to float
+    case uint64_tToFloat: // uint64_t to float
       uint64ToFloat();
       ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;
-    case 7: // int32_t to float
+    case int32_tToFloat: // int32_t to float
       int32ToFloat();
       ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;
-    case 8: // uint32_t to float
+    case uint32_tToFloat: // uint32_t to float
       uint32ToFloat();
       ret = cmpFloat((float*)&devOut_, (float*)&hostOut_);
       break;

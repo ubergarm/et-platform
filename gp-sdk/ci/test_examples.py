@@ -319,7 +319,7 @@ def test_run_example_gcc(shell, device_type, kernel, build_dir, gdb, request):
       check_run_artifacts(shell, device_type)
 
 
-@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping GCC test runs as DEV_COMPILER = gcc8.2")
+@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang test runs as DEV_COMPILER = gcc8.2")
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
 @pytest.mark.parametrize("kernel", KERNEL_LAUNCHERS_CLANG.keys())
 def test_run_example_clang(shell, device_type, kernel, build_dir, gdb, request):
