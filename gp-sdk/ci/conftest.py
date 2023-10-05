@@ -344,3 +344,11 @@ def gp_sdk(request):
 def build_dir(request):
     """Build directory (cmdline or cached)"""
     return BuildCache(request.config)
+
+
+@pytest.fixture
+def devices_list():
+    devs = [int(dev[2:-5]) \
+        for dev in os.listdir("/dev") if dev.startswith("et") and dev.endswith("_mgmt")]
+    devs.sort()
+    return devs

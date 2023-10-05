@@ -352,3 +352,41 @@ def test_run_multi_kernel(shell, device_type, build_dir):
         logging.info(f'not found KernelId used on execution')
 
     check_run_artifacts(shell, device_type, True, int(m.group(1),16), int(m.group(2),16))
+
+
+@pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
+def test_cache_repartitioning(shell, device_type, build_dir, devices_list):
+    if not build_dir.exists():
+        pytest.skip(f'{str_examplesNotBuilt}')
+    if device_type == "sysemu":
+        pytest.skip(f"Do not run cache re-partitioning on {device_type}")
+    # Re-partiioning the cache memrory
+    for dev in devices_list:
+        logging.info(f'Running cache-repartitioning for device {dev}')
+        launch_cmd = " ".join(
+            [
+                f"dev_mngt_service -m DM_CMD_SET_SHIRE_CACHE_CONFIG -z 0,64,64 -n {dev}",
+            ]
+        )
+        shell.run(launch_cmd)
+        # Re-set the device to take effect of new configurations
+        launch_cmd = " ".join(
+            [
+                f"dev_mngt_service -m DM_CMD_RESET_ETSOC -n {dev}",
+            ]
+        )
+        shell.run(launch_cmd)
+        # Now Set the device to origional state (Default Configuration)
+        launch_cmd = " ".join(
+            [
+                f"dev_mngt_service -m DM_CMD_SET_SHIRE_CACHE_CONFIG -z 80,16,32 -n {dev}",
+            ]
+        )
+        shell.run(launch_cmd)
+        # Re-set the device to take effect of new configurations
+        launch_cmd = " ".join(
+            [
+                f"dev_mngt_service -m DM_CMD_RESET_ETSOC -n {dev}",
+            ]
+        )
+        shell.run(launch_cmd)
