@@ -55,6 +55,8 @@ constexpr size_t kImageDefaultFFTSize = 256;
 
 namespace dnn_lib {
 
+constexpr double kPI = 3.14159265358979323846;
+
 class Stack {
 private:
   using EType = uint32_t;
@@ -178,7 +180,7 @@ INLINE_ATTR void eulerFormula(float angle, float& real, float& img) {
 }
 
 INLINE_ATTR void w(size_t j, float recN, float& real, float& img) {
-  return eulerFormula(-2.f * static_cast<float>(M_PI) * static_cast<float>(j) * recN, real, img);
+  return eulerFormula(-2.f * static_cast<float>(kPI) * static_cast<float>(j) * recN, real, img);
 }
 
 INLINE_ATTR void twiddleVectorBig(size_t n, float real[], float img[]) {
@@ -192,7 +194,7 @@ INLINE_ATTR void twiddleVectorBig(size_t n, float real[], float img[]) {
   real[n >> 1] = -1;
   img[n >> 1] = 0;
 
-  const float k = 2.f * static_cast<float>(M_PI) * rec(n);
+  const float k = 2.f * static_cast<float>(kPI) * rec(n);
   for (uint32_t j = 1; j < (n >> 3); ++j) {
     const float angle = k * static_cast<float>(j);
     const float cosine = cosf(angle);
@@ -214,7 +216,7 @@ INLINE_ATTR void twiddleVectorBig(size_t n, float real[], float img[]) {
     real[n - (n >> 2) + j] = sine;
     img[n - (n >> 2) + j] = cosine;
   }
-  const float sine = sinf(static_cast<float>(M_PI) * 0.25f);
+  const float sine = sinf(static_cast<float>(kPI) * 0.25f);
   real[n >> 3] = sine;
   img[n >> 3] = -sine;
   real[(n >> 3) + (n >> 2)] = -sine;

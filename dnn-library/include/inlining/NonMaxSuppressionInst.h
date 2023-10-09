@@ -102,8 +102,12 @@ public:
   bool full(void) { return count_ == MAX; }
   const T front() { return data_.front();}
   const T back() {return data_.back();}
-  const auto begin() { return data_.begin();}
-  const auto end() { return data_.end();}
+  auto begin() {
+    return data_.begin();
+  }
+  auto end() {
+    return data_.end();
+  }
 
   std::array<T, MAX> &data() { return data_;}
   size_t countElem() { return count_;}

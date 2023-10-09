@@ -281,7 +281,7 @@ INLINE_ATTR void freqDomainNoiseFilter(LibTensor* outT, LibTensor* inT, uint64_t
     return;
   }
 
-  et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
+  // et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
 
   (void)flags;
   (void)minionOffset;

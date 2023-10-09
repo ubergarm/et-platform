@@ -149,10 +149,6 @@ public:
 
   /// Cast operators.
 
-  inline __attribute__((always_inline)) operator float() const {
-    return fp32_to_fp16_value();
-  }
-
   inline __attribute__((always_inline)) float16 fp32_to_fp16_value() const {
     float16 ret;
     dnn_lib::convertFp32ToFp16(data_.fp, ret.data_.fp);
