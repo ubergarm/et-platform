@@ -21,7 +21,7 @@ import subprocess
 import pytest
 from collections import namedtuple
 
-KERNEL_LAUNCHERS_GCC = {
+KERNEL_LAUNCHERS = {
     "bss": "basic_launcher",
     "busy10sec": "basic_launcher",
     "c_constructors": "basic_launcher",
@@ -50,6 +50,7 @@ KERNEL_LAUNCHERS_GCC = {
     "syncAll": "basic_launcher",
     "syncDeviceBasic": "barrier_launcher",
     "syncShire2EP": "barrier_launcher",
+    "syncAll": "basic_launcher",
     "syncMinion": "barrier_launcher",
     "sysemu_fatal": "basic_launcher",
     "txfma": "txfma_launcher",
@@ -60,43 +61,11 @@ KERNEL_LAUNCHERS_GCC = {
 }
 
 KERNEL_LAUNCHERS_CLANG = {
-    "bss": "basic_launcher",
-    "busy10sec": "basic_launcher",
-    "c_constructors": "basic_launcher",
-    "c_tls": "basic_launcher",
-    "cacheops_flush": "basic_launcher",
-    "check_pmc": "basic_launcher",
-    "cpp_constructors": "basic_launcher",
-    "cpp_tls": "basic_launcher",
-    "data": "basic_launcher",
-    "exception": "basic_launcher",
-    "external_tls": "basic_launcher",
-    "fail_abort": "basic_launcher",
-    "fail_assert": "basic_launcher",
-    "fftKernel": "fft_launcher",
-    "fnodiv": "basic_launcher",
-    "gp": "basic_launcher",
-    "hang": "basic_launcher",
-    "OneTrapOnSync": "basic_launcher",
-    "print": "basic_launcher",
-    "print2": "basic_launcher",
-    "profiling_simple": "basic_launcher",
-    "profiling_stress": "basic_launcher",
-    "saxpy_profiling": "saxpy_launcher",
-    "saxpy_scalar": "saxpy_launcher",
-    "saxpy_vector": "saxpy_launcher",
-    "syncAll": "basic_launcher",
-    "syncDeviceBasic": "barrier_launcher",
-    "syncShire2EP": "barrier_launcher",
-    "syncMinion": "barrier_launcher",
-    "sysemu_fatal": "basic_launcher",
-    "txfma": "txfma_launcher",
-    "variableStrings": "basic_launcher",
-    "tracing_busywait": "basic_launcher",
-    "tracing_factorial": "basic_launcher",
-    "autogen_matmul": "matmul_launcher",
     "exhaustive_cast": "exhaustive_cast_launcher",
 }
+
+
+KERNELS = list(KERNEL_LAUNCHERS.keys())
 
 SKIP_SYSEMU = ["check_pmc", "busy10sec"]
 SKIP_SILICON = ["sysemu_fatal"]
@@ -141,7 +110,6 @@ ENABLE_CORE = [CmdLineArg("--enableCoreDump", True)]
 CAST_TYPE = ["1", "2", "3", "4", "5", "6", "7", "8"]
 
 str_example_not_built = "the examples have not been built"
-str_running_kernel_on_dev = "Running %s on %s"
 
 
 def check_fail_assert(trace):
@@ -274,65 +242,24 @@ def check_fatal(shell, path: Path):
     if not m:
         return False
     
-@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="clang11", reason="Skipping GCC test runs as DEV_COMPILER = clang11")    
+    
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
-@pytest.mark.parametrize("kernel", KERNEL_LAUNCHERS_GCC.keys())
-def test_run_example_gcc(shell, device_type, kernel, build_dir, gdb, request):
+@pytest.mark.parametrize("kernel", KERNEL_LAUNCHERS.keys())
+def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
     """Run one of the provided examples"""
     if not build_dir.exists():
-        pytest.skip(str_example_not_built)
-    if device_type == "sysemu" and kernel in SKIP_SYSEMU or device_type == "silicon" and kernel in SKIP_SILICON or kernel in SKIP_ANY:
+        pytest.skip("the examples have not been built")
+    if device_type == "sysemu" and kernel in SKIP_SYSEMU:
         pytest.skip(f"do not run {kernel} on {device_type}")
-    logging.info(str_running_kernel_on_dev, kernel, device_type)
+    if device_type == "silicon" and kernel in SKIP_SILICON:
+        pytest.skip(f'do not run {kernel} on {device_type}')
+    if kernel in SKIP_ANY:
+        pytest.skip(f"Skipping {kernel} on {device_type}")
+    logging.info("Running %s on %s", kernel, device_type)
     kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
     launch_cmd = " ".join(
         [
-            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS_GCC[kernel]),
-            f"--kernel_path={kernel_path}",
-            f"--device_type={device_type}",
-        ]
-        + EXTRA_ARGS[kernel]
-    )
-    if kernel in SHOULD_FAIL:
-        with pytest.raises(subprocess.CalledProcessError):
-            shell.run(launch_cmd)
-
-        if ((kernel=="hang") or (kernel=="exception")) :
-            check_core_dump(
-                gdb,
-                kernel_path.parent / (kernel_path.name + "_dbg"),
-                ERROR_COMMENT[kernel],
-                skip_gdb = request.config.getoption("--skip-gdb"),
-            )
-
-        if (kernel == "sysemu_fatal"):
-            check_fatal(shell, Path(f'traceKernels_OnFatal_dev_0.bin'))
-             
-    elif kernel in MASK_SWEEP_KERNELS:
-        for mask in MASK_SWEEP:
-            mask_cmd = launch_cmd + " --shire_mask=" + mask
-            shell.run(mask_cmd)
-    else:
-        shell.run(launch_cmd)
-
-    if kernel not in SHOULD_FAIL or kernel == "fail_assert":
-      check_run_artifacts(shell, device_type)
-
-
-@pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang test runs as DEV_COMPILER = gcc8.2")
-@pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
-@pytest.mark.parametrize("kernel", KERNEL_LAUNCHERS_CLANG.keys())
-def test_run_example_clang(shell, device_type, kernel, build_dir, gdb, request):
-    """Run one of the provided examples"""
-    if not build_dir.exists():
-        pytest.skip(str_example_not_built)
-    if device_type == "sysemu" and kernel in SKIP_SYSEMU or device_type == "silicon" and kernel in SKIP_SILICON or kernel in SKIP_ANY:
-        pytest.skip(f"do not run {kernel} on {device_type}")
-    logging.info(str_running_kernel_on_dev, kernel, device_type)
-    kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
-    launch_cmd = " ".join(
-        [
-            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS_CLANG[kernel]),
+            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS[kernel]),
             f"--kernel_path={kernel_path}",
             f"--device_type={device_type}",
         ]
@@ -382,12 +309,12 @@ def test_run_optional_arguments(shell, kernel, kernel_pth_param, device_type,
         pytest.skip(f'{str_examplesNotBuilt}')
     if device_type_optarg == "sysemu" and kernel in SKIP_SYSEMU:
         pytest.skip(f"do not run {kernel} on {device_type_optarg}")
-    logging.info(str_running_kernel_on_dev, kernel, device_type_optarg)
+    logging.info("Running %s on %s", kernel, device_type_optarg)
     kernel_path = build_dir.device / "tests" / "print.elf"
 
     launch_cmd = " ".join(
         [
-            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS_CLANG[kernel]),
+            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS[kernel]),
             f'{kernel_pth_param.param} "{kernel_path}"',
             f'{device_type.param} "{device_type_optarg}"',
             f'{simulator_param.param} "{simulator_optargs.param}"' if (
@@ -415,7 +342,7 @@ def test_run_multi_kernel(shell, device_type, build_dir):
     if not build_dir.exists():
         pytest.skip(f'{str_examplesNotBuilt}')
     kernels = ["bss", "saxpy_scalar"]
-    logging.info(str_running_kernel_on_dev, kernels, device_type)
+    logging.info("Running %s on %s", kernels, device_type)
     kernel_paths = [build_dir.device / "tests" /
                     f"{kernel}.elf" for kernel in kernels]
     launch_cmd = " ".join(
@@ -474,18 +401,18 @@ def test_cache_repartitioning(shell, device_type, build_dir, devices_list):
         shell.run(launch_cmd)
 @pytest.mark.skipif(os.environ["DEV_COMPILER"]=="gcc8.2", reason="Skipping Clang only Kernel Runs as DEV_COMPILER = gcc8.2")
 @pytest.mark.parametrize("device_type", ["sysemu", "silicon"])
-@pytest.mark.parametrize("kernel", ["exhaustive_cast"])
+@pytest.mark.parametrize("kernel", KERNEL_LAUNCHERS_CLANG.keys())
 @pytest.mark.parametrize("cast_type", CAST_TYPE)
 def test_run_param_arguments_clang(shell, device_type, kernel, build_dir, cast_type):
-    """Run a single clang compiled kernel changing an argument value"""
+    """Run a single clang compiled kernel changing an argument"""
     if not build_dir.exists():
         pytest.skip(f'{str_examplesNotBuilt}')
-    logging.info(str_running_kernel_on_dev, kernel, device_type)
-    kernel_path = build_dir.device / "tests" / f"{kernel}.elf"
+    logging.info("Running %s on %s", kernel, device_type)
+    kernel_path = build_dir.device / "tests" / "exhaustive_cast.elf"
 
     launch_cmd = " ".join(
         [
-            str(build_dir.host / "sdk" / KERNEL_LAUNCHERS_CLANG[kernel]),
+            str(build_dir.host / "sdk/exhaustive_cast_launcher"),
             f"--kernel_path={kernel_path}",
             f"--device_type={device_type}",
             f"--cast_type={cast_type}"
