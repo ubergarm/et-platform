@@ -1,8 +1,8 @@
 // clang-format off
 
 // File automatically generated with:
-//  ./libManager.py --swplatform-root ../../.. --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/home/clesmes/sw-platform/host-software/dnnLibrary/scripts
+//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
+//  cwd=/local/home/fgispert/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -501,6 +501,34 @@ template void fwdLibElementAddInst<Int32ITy>(LibTensor* out0, LibTensor* in0, Li
 template void fwdLibElementAddInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
   // 
+  // Section: ElementAnd
+  //
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  
+  void fwdLibElementAndInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementAndInst(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+
+  
+  void fwdLibElementAndInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementAndInstThreaded(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // 
   // Section: ElementCmpEQ
   //
 
@@ -882,6 +910,34 @@ template void fwdLibElementNegInst<Float16Ty>(LibTensor* out0, LibTensor* in0, c
   ////////////////////////////////////////////////////////////////////////////////
 
   // 
+  // Section: ElementOr
+  //
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  
+  void fwdLibElementOrInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementOrInst(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+
+  
+  void fwdLibElementOrInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementOrInstThreaded(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+
+  // 
   // Section: ElementPow
   //
 
@@ -967,6 +1023,34 @@ template void fwdLibElementSubInst<Float16Ty>(LibTensor* out0, LibTensor* in0, L
 template void fwdLibElementSubInst<Int8QTy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibElementSubInst<Int32ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibElementSubInst<Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+  // 
+  // Section: ElementXor
+  //
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  
+  void fwdLibElementXorInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementXorInst(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+
+  
+  void fwdLibElementXorInstThreaded(LibTensor* out0, LibTensor* in0, LibTensor* in1, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibElementXorInstThreaded(out0, in0, in1, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
 
   // 
   // Section: EmbeddingBag

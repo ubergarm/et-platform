@@ -384,7 +384,21 @@ EltWiseInst(ElementCmpEQ, CmpEQ) EltWiseInst(ElementCmpNEQ, CmpNEQ) EltWiseInst(
 
 #undef EltWiseInst
 
-  
+#define LogicalInst(name, opType)                                                                                      \
+  INLINE_ATTR void fwdLib##name##Inst(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,               \
+                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {           \
+    inlining::fwdLibElementBoolInst<BoolTy, BoolTy, opType>(outT, in1T, in2T, flags, minionOffset, assignedMinions);   \
+  }                                                                                                                    \
+  INLINE_ATTR void fwdLib##name##InstThreaded(LibTensor* outT, LibTensor* in1T, LibTensor* in2T, uint64_t flags,       \
+                                              const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {   \
+    inlining::fwdLibElementBoolInstThreaded<BoolTy, BoolTy, opType>(outT, in1T, in2T, flags, minionOffset,             \
+                                                                    assignedMinions);                                  \
+  }
+
+    LogicalInst(ElementAnd, ElementAnd) LogicalInst(ElementOr, ElementOr) LogicalInst(ElementXor, ElementXor)
+
+#undef LogicalInst
+
 } // namespace inlining
 
 } // namespace dnn_lib

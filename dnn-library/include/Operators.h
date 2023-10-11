@@ -31,7 +31,10 @@ class ElementCos {};
 class ElementSin {};
 class ElementNeg {};
 class ElementIsNaN {};
-class ElementNot {};
+class ElementAnd {}; // logical
+class ElementNot {}; // logical
+class ElementOr {};  // logical
+class ElementXor {}; // logical
 class Tanh {};
 class Sigmoid {};
 class And {}; // bit-wise
