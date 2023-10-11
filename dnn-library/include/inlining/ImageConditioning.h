@@ -138,8 +138,6 @@ __attribute__((noinline)) static void resnetImageCondition(LibTensor* outT, LibT
   size_t numCols = lines * elemsPerCacheLine;
   size_t lastCol = col0 + numCols;
 
-  et_printf("%s(%d) [%d]\n", __func__, __LINE__, minionId);
-
   auto inH = inT->getHandle<float>();
   auto outH = outT->getHandle<float>();
 

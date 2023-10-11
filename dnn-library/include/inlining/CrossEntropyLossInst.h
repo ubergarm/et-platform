@@ -91,7 +91,7 @@ inline __attribute__((always_inline)) void fwdLibCrossEntropyLossInst(
 
   if (minionId == 0) {
     static_assert((elK == FloatTy || elK == Float16Ty || elK == BFloat16Ty), "Unsupported elK type.");
-    tOutput[0] = (sum * M_1_LOG2E);
+    tOutput[0] = (sum * kRecLog2E);
   }
 }
 

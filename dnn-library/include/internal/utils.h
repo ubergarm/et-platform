@@ -14,6 +14,7 @@
 
 #include "Float16.h"
 #include "LibCommon.h"
+#include <cmath>
 #include <cstdint>
 #include <etsoc/common/utils.h>
 #include <etsoc/isa/cacheops-umode.h>
@@ -24,7 +25,8 @@
 
 namespace dnn_lib {
 
-#define M_1_LOG2E float(1.0f / static_cast<float>(M_LOG2E))
+constexpr float kLog2E = static_cast<float>(1.44269504088896340736);
+constexpr float kRecLog2E = static_cast<float>(1.0 / 1.44269504088896340736);
 
 #define SET_MINUS_INFTY(_reg) "fbci.ps " #_reg ", 0xff800 \n" // _reg is vect
 
@@ -633,15 +635,17 @@ getOffsets(dim_t dimNum, dim_array_t& coord, offset_t& offset1, offset_t& offset
   return true;
 }
 
+constexpr double kE = 2.71828182845904523536;
+
 template <bool setMask = true> inline __attribute__((always_inline)) float getExp(float val) {
   float ret;
   if (val == 0) {
     return 1;
   } else if (val > 0) {
-    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(M_E), val, ret);
+    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(kE), val, ret);
     return ret;
   } else { // val<0
-    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(M_E), -val, ret);
+    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(kE), -val, ret);
     dnn_lib::fpReciprocalSingleElement<setMask>(ret, ret);
     return ret;
   }
@@ -652,10 +656,10 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getSi
   if (val == 0) {
     op1 = op2 = 1;
   } else if (val > 0) {
-    dnn_lib::fpPowSingleElement<setMask>(M_E, val, op1);
+    dnn_lib::fpPowSingleElement<setMask>(kE, val, op1);
     dnn_lib::fpReciprocalSingleElement<setMask>(op1, op2);
   } else { // val<0
-    dnn_lib::fpPowSingleElement<setMask>(M_E, -val, op2);
+    dnn_lib::fpPowSingleElement<setMask>(kE, -val, op2);
     dnn_lib::fpReciprocalSingleElement<setMask>(op2, op1);
   }
   return 0.5f * (op1 - op2);
@@ -666,10 +670,10 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getCo
   if (val == 0) {
     op1 = op2 = 1;
   } else if (val > 0) {
-    dnn_lib::fpPowSingleElement<setMask>(M_E, val, op1);
+    dnn_lib::fpPowSingleElement<setMask>(kE, val, op1);
     dnn_lib::fpReciprocalSingleElement<setMask>(op1, op2);
   } else { // val<0
-    dnn_lib::fpPowSingleElement<setMask>(M_E, val, op2);
+    dnn_lib::fpPowSingleElement<setMask>(kE, val, op2);
     dnn_lib::fpReciprocalSingleElement<setMask>(op2, op1);
   }
   return 0.5f * (op1 + op2);
@@ -682,7 +686,7 @@ template <bool setMask = true> inline __attribute__((always_inline)) float getTa
     return -1;
   } else {
     float e2x, denom;
-    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(M_E), 2 * val, e2x);
+    dnn_lib::fpPowSingleElement<setMask>(static_cast<float>(kE), 2 * val, e2x);
     dnn_lib::fpReciprocalSingleElement<setMask>(e2x + 1, denom);
     return (denom * (e2x - 1));
   }

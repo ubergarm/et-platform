@@ -93,19 +93,20 @@ INLINE_ATTR void fwdLibBatchedReduceAddInst(LibTensor* outT, LibTensor* inT, dim
   while (!done && (offsetOut < posMax)) {
     // build an addresser out of a stack var to accumulate sums.
     srcType sumVar;
-    Addresser<elK> sum(&sumVar, outT->getScale(), outT->getOffset());
+    constexpr bool sumGlobalStore = false;
+    Addresser<elK, sumGlobalStore> sum(&sumVar, outT->getScale(), outT->getOffset());
     sum[0] = tBatch[offsetIn];
     offsetIn += batchPitch[axis];
 
     for (size_t i = 1; i < batchIndex[axis]; i++) {
       // using std::as_const to use the read [] overload
-      sum[0] = std::as_const<Addresser<elK>>(sum)[0] + tBatch[offsetIn];
+      sum[0] = std::as_const<Addresser<elK, sumGlobalStore>>(sum)[0] + tBatch[offsetIn];
 
       offsetIn += batchPitch[axis];
     }
     offsetIn -= batchIndex[axis] * batchPitch[axis];
     // use the global-store addresser just here to store the reduced val
-    tOutput[offsetOut] = std::as_const<Addresser<elK>>(sum)[0];
+    tOutput[offsetOut] = std::as_const<Addresser<elK, sumGlobalStore>>(sum)[0];
 
     done = getOffsets(pbatchDimNum - 1, /* inout */ offsets, /*inout */ offsetIn, /*inout */ offsetOut, dstIndex,
                       redBatchPitch, dstPitch);

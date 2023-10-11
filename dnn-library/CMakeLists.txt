@@ -208,10 +208,11 @@ target_link_libraries(dnnlibraryDummyExecutable
   PRIVATE
     dnn_lib
 )
-  
+
 target_compile_options(dnnlibraryDummyExecutable
       PRIVATE
         -Wall
+        -std=c++17
         $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
         # Even w/o treating all warnings as arrors, there are some warnings we don't
         # allow at this compilation stage. This list wil grow as categories are cleaned up.

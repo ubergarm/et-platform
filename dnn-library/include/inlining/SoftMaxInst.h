@@ -152,7 +152,7 @@ INLINE_ATTR void fwdLibSoftMaxInstVectorized(LibTensor* outT, LibTensor* inT, ui
   size_t extraLanes = srcIndex[1] - 8 * numRegs;
   bool floatType = (typeSize == 4); // 1 if fp32 and 0 if fp16.
   int32_t registerSize = 8*typeSize;
-  auto log2e = static_cast<float>(M_LOG2E);
+  constexpr float log2e = static_cast<float>(1.44269504088896340736);
 
 #define GATHER_FLOAT(_addr)                                                                                            \
   "beq %[floatType], zero, 16f \n"                                                                                     \

@@ -82,10 +82,9 @@ INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
       for (size_t k = 0; k < lineSize; k++) {
         float d = dequantizeWithFloatOffset(dataH.raw(offsetIn), scale, offset);
 
-        if (dstElK == FloatTy) {
+        if constexpr (dstElK == FloatTy) {
           outH.raw(offsetOut) += d * weight;
-        }
-        else { 
+        } else {
           uint16_t dst = 0;
           float accum = 0.0;
           convertFp16ToFp32(static_cast<uint16_t>(outH.raw(offsetOut)), accum);  

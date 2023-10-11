@@ -95,7 +95,7 @@ template <size_t ndims = max_tensor_dimensions, size_t first = 0> struct dims_lo
   static INLINE_ATTR void run(const std::array<dim_t, N>& dims, const std::array<dim_t, ST1>& strides1,
                               const std::array<dim_t, ST2>& strides2, const std::array<dim_t, N>& start,
                               const dim_t end, func_t fnc, dim_t base1 = 0, dim_t base2 = 0, bool firstStep = true,
-                              bool lastStep = false) {
+                              [[maybe_unused]] bool lastStep = false) {
 
     dim_t ini = firstStep ? start[first] : 0;
 
@@ -135,10 +135,11 @@ template <size_t last_dim> struct dims_loop<last_dim, last_dim> {
 #else
   // loop with strides from 2 tensors with initial and end coordinates
   template <typename func_t, size_t N, size_t ST1, size_t ST2>
-  static INLINE_ATTR void run(const std::array<dim_t, N>& dims, const std::array<dim_t, ST1>& strides1,
-                              const std::array<dim_t, ST2>& strides2, const std::array<dim_t, N>& start,
-                              const dim_t end, func_t fnc, dim_t base1 = 0, dim_t base2 = 0, bool first_step = true,
-                              bool last_step = false) {
+  static INLINE_ATTR void
+  run([[maybe_unused]] const std::array<dim_t, N>& dims, [[maybe_unused]] const std::array<dim_t, ST1>& strides1,
+      [[maybe_unused]] const std::array<dim_t, ST2>& strides2, [[maybe_unused]] const std::array<dim_t, N>& start,
+      [[maybe_unused]] const dim_t end, func_t fnc, dim_t base1 = 0, dim_t base2 = 0,
+      [[maybe_unused]] bool first_step = true, [[maybe_unused]] bool last_step = false) {
     fnc(base1, base2);
   }
 #endif

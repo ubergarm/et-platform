@@ -117,9 +117,9 @@ INLINE_ATTR void fwdLibBatchOneHotInst(LibTensor* outT, LibTensor* in1T, LibTens
         firstOffset = 0;
         while (i < offset + curLength) {
           if (curValue == tValues[i]) {
-            tOutput[offsetOut] = (float)1;
+            tOutput[offsetOut] = 1.f;
           } else {
-            tOutput[offsetOut] = (float)0;
+            tOutput[offsetOut] = 0.f;
           }
           offsetOut++;
           if (offsetOut >= posMax) {
