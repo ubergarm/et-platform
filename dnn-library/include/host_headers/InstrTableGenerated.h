@@ -4,8 +4,8 @@
 // clang-format off
 
 // File automatically generated with:
-//  ./libManager.py --swplatform-root ../../.. --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/home/clesmes/sw-platform/host-software/dnnLibrary/scripts
+//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
+//  cwd=/local/home/fgispert/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -362,6 +362,28 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {0x0}  // global store mask
   },
 
+  // ET_elementand
+  {
+    "ElementAnd", // name
+    1, // # outs
+    2,  // # ins
+    {}, // members
+    0, // template param mask
+    {"Threaded"}, // impl versions
+    implSel::defaultSel<2>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched, operandState::untouched},
+        {operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
+  },
+
   // ET_elementcmpeq
   {
     "ElementCmpEQ", // name
@@ -659,6 +681,28 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {0x0}  // global store mask
   },
 
+  // ET_elementor
+  {
+    "ElementOr", // name
+    1, // # outs
+    2,  // # ins
+    {}, // members
+    0, // template param mask
+    {"Threaded"}, // impl versions
+    implSel::defaultSel<2>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched, operandState::untouched},
+        {operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
+  },
+
   // ET_elementpow
   {
     "ElementPow", // name
@@ -733,6 +777,28 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
+  },
+
+  // ET_elementxor
+  {
+    "ElementXor", // name
+    1, // # outs
+    2,  // # ins
+    {}, // members
+    0, // template param mask
+    {"Threaded"}, // impl versions
+    implSel::defaultSel<2>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean},
+        {operandState::dirty, operandState::clean, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched, operandState::untouched},
+        {operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   },
 
   // ET_embeddingbag

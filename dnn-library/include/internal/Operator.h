@@ -2059,6 +2059,14 @@ public:
     dst.at(p) = getCos<setMaskForScalar>(src.at(p));
   }
 
+  //// ElementAnd operation ////
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementAnd>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(bool* dst, const src1Type& src1, const src2Type& src2, uint64_t& d, uint64_t& s1,
+                        uint64_t& s2) {
+    dst[d] = src1[s1] and src2[s2];
+  }
+
   //// ElementNot operation ////
 
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementNot>::value, std::size_t>::type = 0>
@@ -2069,6 +2077,22 @@ public:
   template <typename U = opType, typename std::enable_if<std::is_same<U, ElementNot>::value, std::size_t>::type = 0>
   INLINE_ATTR void doOp(Handle<bool>& dst, const Handle<bool>& src, dim_array_t& p) {
     dst.at(p) = not src.at(p);
+  }
+
+  //// ElementOr operation ////
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementOr>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(bool* dst, const src1Type& src1, const src2Type& src2, uint64_t& d, uint64_t& s1,
+                        uint64_t& s2) {
+    dst[d] = src1[s1] or src2[s2];
+  }
+
+  //// ElementXor operation ////
+
+  template <typename U = opType, typename std::enable_if<std::is_same<U, ElementXor>::value, std::size_t>::type = 0>
+  INLINE_ATTR void doOp(bool* dst, const src1Type& src1, const src2Type& src2, uint64_t& d, uint64_t& s1,
+                        uint64_t& s2) {
+    dst[d] = (src1[s1] != src2[s2]);
   }
 
   //// ElementNeg operation ////
