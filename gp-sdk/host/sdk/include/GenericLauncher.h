@@ -196,12 +196,20 @@ public:
     return numDev_;
   }
 
+
+  /**
+   * Helper function to check wether some abnormal situation happened.
+   * Note, it may introduce a small delay in case coredump retrieval is expected to happen asynchronously.
+   */ 
+  bool checkKernelExecutionErrors();
+
   std::atomic<uint64_t> kernelError_ = 0; // Number of kernels that reported an error
   std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
+  std::atomic<uint64_t> kernelTimeout_ = 0; // Number of kernels that ended in timeout
 
-  // static inline constexpr const char* help_msg =
+  
   constexpr static const char* help_msg =
-    "  '', --enableCoreDump          Write perfetto trace to a file instead\n"
+    "  '', --enableCoreDump          enable core dump generation on device failures\n"
     "  '', --useRuntimeMultiProcess  Server/Client mode will be use by app running it as a client.\n"
     "  '', --runtimeSocket           Socket filename to be use.\n"
     "  '', --simulator_params        Hyperparameters to pass to simulator, overrides default values\n";
@@ -215,13 +223,12 @@ private:
   void writeSysemuTraceDumpCookie(void);
   void removeSysemuTraceDumpCookie(void);
   rt::IRuntime* getRuntime();
-
+  bool enableCoreDump_ = false;
   void parse_args(int argc, char* argv[], bool strict);
 
   // parameters expected
   fs::path gp_sdk_device_installdir_;
   std::string simulator_params_;
-  bool enableCoreDump_ = false;
   bool useRuntimeMultiProcess_ = false;
   std::string sysemuTraceDumpCookiePath_ =
     std::filesystem::path(std::filesystem::temp_directory_path().string() + "/" + "sysemuTraceDumpCookie." +

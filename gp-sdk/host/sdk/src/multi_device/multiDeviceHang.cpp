@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
 
   // kernelError_ and kernelAbort_ have to be catched asking to the specific device currently not allowed at runtime
   // side
-  if (launcher.kernelError_ || launcher.kernelAbort_) {
+  if(launcher.checkKernelExecutionErrors()) {
     std::cout << "Error on kernel id=" << int(launcher.kernels_[0]) << "or in kernel id=" << int(launcher.kernels_[1])
               << std::endl;
     return -1;

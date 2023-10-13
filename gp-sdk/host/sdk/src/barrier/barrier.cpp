@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
 
-    if (launcher.kernelError_ || launcher.kernelAbort_) {
+    if(launcher.checkKernelExecutionErrors()) {
       return -1;
     }
   }

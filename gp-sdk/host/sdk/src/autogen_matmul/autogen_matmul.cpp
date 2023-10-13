@@ -26,7 +26,7 @@ static constexpr size_t ph_offset = 0x202000 / sizeof(float);
 struct Options {
 
   fs::path kernel_path = "";
-  int kernel_launch_timeout = 10;
+  int kernel_launch_timeout = 30;
   int num_launches = 1;
   std::string device_type = "sysemu";
 };
@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
 
-    if (launcher.kernelError_ || launcher.kernelAbort_) {
+    if (launcher.checkKernelExecutionErrors()) {
       return -1;
     }
   }

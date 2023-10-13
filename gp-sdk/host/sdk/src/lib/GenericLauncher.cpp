@@ -139,13 +139,8 @@ void GenericLauncher::initialize() {
       return;
     }
 
-    if (static_cast<int>(id) == 27) {
-      std::cout << "Abort has been detected" << std::endl;
-      kernelAbort_++;
-    } else {
-      std::cout << "An Error has been detected" << std::endl;
-      kernelError_++;
-    }
+    std::cout << "An Error has been detected" << std::endl;
+    kernelError_++;
   };
 
   // Program callback when we want kernel aborts (due to a timeout) to dump corefiles
@@ -337,11 +332,12 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_
   if (success) {
     return;
   }
+  kernelTimeout_++;
   // Kernel did not complete on the expected time. let's abort the stream in which
   // the kernel is running.
   std::cout << "[TIMEOUT] " << __func__ << "() Wait for Stream command exceeded " << std::dec << int(timeout.count())
             << " seconds.  Aborting stream\n";
-
+  
   auto event = runtime_->abortStream(defaultStreams_[deviceIdx]);
   auto abortTimeout = std::chrono::seconds(10);
   success = runtime_->waitForEvent(event, abortTimeout);
@@ -447,4 +443,19 @@ void GenericLauncher::parse_args(int argc, char** argv, bool strict) {
 
   /* It needs to do again because on invoke sysemu if is the case, It calls getopts again */
   optind = 0;
+}
+
+bool GenericLauncher::checkKernelExecutionErrors() {
+  // everithing ok!
+  if(!kernelError_ && !kernelAbort_ && !kernelTimeout_) {
+    return false;
+  }
+ 
+  // if the kernel ended in timeout and we have configured a core-dump retrieval, 
+  // The core extraction process is asynchronous. we just allow for some safety margin
+  // for the process to complete before calling destructors.
+  if(kernelTimeout_ && enableCoreDump_) {
+    sleep(3);
+  }
+  return true;
 }

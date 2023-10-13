@@ -113,13 +113,11 @@ int main(int argc, char** argv) {
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
-    
-    if (launcher.kernelError_ || launcher.kernelAbort_) {
+   
+    if(launcher.checkKernelExecutionErrors()) {
       return -1;
     }
-
   }
-
   launcher.unLoadKernel(kernelId); 
   launcher.tearDown();
   return 0;

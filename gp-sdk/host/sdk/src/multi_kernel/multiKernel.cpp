@@ -161,7 +161,7 @@ int main(int argc, char** argv) {
   launcher.waitKernelCompletion(timeout);
   launcher.dumpTracesToFile(0, launcher.kernels_[0]);
 
-  if (launcher.kernelError_ || launcher.kernelAbort_) {
+  if(launcher.checkKernelExecutionErrors()) {
     std::cout<< "Error on kernel id="<< int(launcher.kernels_[0]) << std::endl;	
     return -1;
   }

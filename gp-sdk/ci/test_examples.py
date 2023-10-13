@@ -270,15 +270,12 @@ def test_run_example(shell, device_type, kernel, build_dir, gdb, request):
             shell.run(launch_cmd)
 
         if ((kernel=="hang") or (kernel=="exception")) :
-            logging.info("Here we should check that the core is well formed but currently not possible when CMAKE_BUILD_TYPE=RelWithDebInfo.")
-            """
             check_core_dump(
                 gdb,
                 kernel_path.parent / (kernel_path.name + "_dbg"),
                 ERROR_COMMENT[kernel],
                 skip_gdb = request.config.getoption("--skip-gdb"),
             )
-            """
             
         if (kernel == "sysemu_fatal"):
             check_fatal(shell, Path(f'traceKernels_OnFatal_dev_0.bin'))
