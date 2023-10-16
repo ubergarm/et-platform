@@ -45,6 +45,13 @@ target_link_libraries(saxpy_launcher
         etsoc_gpsdk
 )
 
+add_executable(sdot_launcher src/sdot/sdot.cpp)
+target_include_directories(sdot_launcher PRIVATE ${DEVICE_KERNELS_DIR}/sdot)
+target_link_libraries(sdot_launcher
+    PRIVATE
+        etsoc_gpsdk
+)
+
 add_executable(barrier_launcher src/barrier/barrier.cpp)
 target_include_directories(barrier_launcher PRIVATE ${DEVICE_KERNELS_DIR}/barrier) 
 target_link_libraries(barrier_launcher

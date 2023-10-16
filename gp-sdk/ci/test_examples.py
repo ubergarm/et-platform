@@ -47,6 +47,8 @@ KERNEL_LAUNCHERS = {
     "saxpy_profiling": "saxpy_launcher",
     "saxpy_scalar": "saxpy_launcher",
     "saxpy_vector": "saxpy_launcher",
+    "sdot_scalar": "sdot_launcher",
+    "sdot_vector": "sdot_launcher",
     "syncAll": "basic_launcher",
     "syncDeviceBasic": "barrier_launcher",
     "syncShire2EP": "barrier_launcher",

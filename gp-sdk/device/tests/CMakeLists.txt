@@ -52,6 +52,13 @@ target_include_directories(saxpy_intrinsics.elf INTERFACE .)
 add_etsoc_test_kernel(saxpy_profiling.elf saxpy/saxpy_profiling.cpp)
 target_include_directories(saxpy_profiling.elf INTERFACE .)
 
+add_etsoc_test_kernel(sdot_scalar.elf sdot/sdot.cpp)
+target_include_directories(sdot_scalar.elf INTERFACE .)
+
+add_etsoc_test_kernel(sdot_vector.elf sdot/sdot.cpp)
+target_include_directories(sdot_vector.elf INTERFACE .)
+target_compile_definitions(sdot_vector.elf PRIVATE "-DSDOT_VECTOR")
+
 add_etsoc_test_kernel(fftKernel.elf fftKernel/src/fft_entry.cc)
 target_link_libraries(fftKernel.elf dnnLibrary::dnn_lib)
 target_include_directories(fftKernel.elf PUBLIC fftKernel/include)
