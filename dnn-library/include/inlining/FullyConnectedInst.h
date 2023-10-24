@@ -151,19 +151,19 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
       "li          x31, 2\n"
-      "ld          x0, 0(%[tAAddr])\n"               // First line of A
-      "ld          x0, 0(%[tWAddr])\n"               // First line of B
+      "lb          x0, 0(%[tAAddr])\n"               // First line of A
+      "lb          x0, 0(%[tWAddr])\n"               // First line of B
       "blt         %[aCols], x31, 3f\n"              // Skip second row prefetch if only 1 row
       "add         x29, %[tWAddr], %[weightPitch]\n" // Pitch for two rows
-      "ld          x0, 0(x29)\n"                     // Second line of B
+      "lb          x0, 0(x29)\n"                     // Second line of B
       "3:\n"
       "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
       "ble         %[aCols], x31, 2f\n" // Skip prefetches on last iteration
-      "ld          x0, 8(%[tAAddr])\n"  // Prefetches A two iterations ahead
+      "lb          x0, 8(%[tAAddr])\n"  // Prefetches A two iterations ahead
       "add         x30, %[tWAddr], x29\n"
-      "ld          x0, 0(x30)\n" // Prefetches W two iterations ahead
+      "lb          x0, 0(x30)\n" // Prefetches W two iterations ahead
       "2:\n"
       "fbc.ps      f0, 0(%[tAAddr])\n" // Loads data
       "flw.ps      f1, 0(%[tWAddr])\n"
@@ -198,19 +198,19 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
       "flw.ps      f2, 0(%[sum])\n"     // Loads initial value
       "flw.ps      f3, 0(%[offsets])\n" // Loads offsets for gathers
       "li          x31, 2\n"
-      "ld          x0, 0(%[tAAddr])\n"               // First line of A
-      "ld          x0, 0(%[tWAddr])\n"               // First line of B
+      "lb          x0, 0(%[tAAddr])\n"               // First line of A
+      "lb          x0, 0(%[tWAddr])\n"               // First line of B
       "blt         %[aCols], x31, 3f\n"              // Skip second row prefetch if only 1 row
       "add         x29, %[tWAddr], %[weightPitch]\n" // Pitch for two rows
-      "ld          x0, 0(x29)\n"                     // Second line of B
+      "lb          x0, 0(x29)\n"                     // Second line of B
       "3:\n"
       "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
       "ble         %[aCols], x31, 2f\n" // Skip prefetches on last iteration
-      "ld          x0, 4(%[tAAddr])\n"  // Prefetches A two iterations ahead
+      "lb          x0, 4(%[tAAddr])\n"  // Prefetches A two iterations ahead
       "add         x30, %[tWAddr], x29\n"
-      "ld          x0, 0(x30)\n" // Prefetches W two iterations ahead
+      "lb          x0, 0(x30)\n" // Prefetches W two iterations ahead
       "2:\n"
       "fbc.ps      f0, 0(%[tAAddr])\n" // Loads data
       "fgh.ps      f1, f3(%[tWAddr])\n"
@@ -258,19 +258,19 @@ INLINE_ATTR void matmulStep(float* sum, const Addresser<srcElK>& tAInput, void* 
       "fbc.ps      f7, 0x0(%[scaleA])\n"
       "fbc.ps      f8, 0x0(%[scaleW])\n"
       "li          x31, 2\n"
-      "ld          x0, 0(%[tAAddr])\n"               // First line of A
-      "ld          x0, 0(%[tWAddr])\n"               // First line of B
+      "lb          x0, 0(%[tAAddr])\n"               // First line of A
+      "lb          x0, 0(%[tWAddr])\n"               // First line of B
       "blt         %[aCols], x31, 3f\n"              // Skip second row prefetch if only 1 row
       "add         x29, %[tWAddr], %[weightPitch]\n" // Pitch for two rows
-      "ld          x0, 0(x29)\n"                     // Second line of B
+      "lb          x0, 0(x29)\n"                     // Second line of B
       "3:\n"
       "add         x29, %[weightPitch], %[weightPitch]\n" // Pitch for two rows
       // Main loop
       "1:\n"
       "ble         %[aCols], x31, 2f\n" // Skip prefetches on last iteration
-      "ld          x0, 2(%[tAAddr])\n"  // Prefetches A two iterations ahead
+      "lb          x0, 2(%[tAAddr])\n"  // Prefetches A two iterations ahead
       "add         x30, %[tWAddr], x29\n"
-      "ld          x0, 0(x30)\n" // Prefetches W two iterations ahead
+      "lb          x0, 0(x30)\n" // Prefetches W two iterations ahead
       "2:\n"
       "fgb.ps      f0, f3(%[tAAddr])\n" // Loads data
       "fgb.ps      f1, f4(%[tWAddr])\n"
