@@ -675,7 +675,7 @@ fwdLibEmbeddingBagInstVectorized(LibTensor* outT, LibTensor* data, LibTensor* we
             tAInput +
             (((int64_t)indicesPtr[currIndex + 1]) * data->strides()[0] + minionCurrRowGroup * dstGroupElems) * elemSize;
           // Prefetch next index of current segment
-          __asm__ __volatile__("ld          x0, (%[data_ptr_next])\n" : : [ data_ptr_next ] "r"(data_ptr_next) :);
+          __asm__ __volatile__("lb          x0, (%[data_ptr_next])\n" : : [ data_ptr_next ] "r"(data_ptr_next) :);
         }
 
         if (float16Dst) {
