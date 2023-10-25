@@ -78,13 +78,13 @@ INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* ou
 
   dstType* tOutput = outT->getRawDataPointer<dstType>();
   srcType* tInput = inT->getRawDataPointer<srcType>();
-  int64_t *tOutput2 = out2T->getRawDataPointer<int64_t>();
+  int64_t* tOutput2 = (out2T != nullptr) ? out2T->getRawDataPointer<int64_t>() : nullptr;
 
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = inT->dims().data();
   
   const dim_t *dstPitch = outT->strides().data();
-  const dim_t *dst2Pitch = out2T->strides().data();
+  const dim_t* dst2Pitch = (out2T != nullptr) ? out2T->strides().data() : nullptr;
   const dim_t *actPitch = inT->strides().data(); 
 
   auto srcPitchNoPadding = inT->stridesNoPadding();
