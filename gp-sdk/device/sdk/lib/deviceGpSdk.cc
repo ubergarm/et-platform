@@ -274,7 +274,7 @@ int get_relative_thread_id() {
 
 /// @brief Obtains the relative thread id assigned to the hart based on the provided shireMask
 /// @param shireMask bit-mask of the active shires, must be consecutive
-/// @return Returns an integer ranging from 32 to 1024 if threadsPerCore == 1, from 64 to 2048 if threadsPerCore == 2
+/// @return Returns an integer ranging from 0 to 1023 if threadsPerCore == 1, from 0 to 2047 if threadsPerCore == 2
 inline int get_relative_thread_id(uint64_t shireMask) {
   constexpr int NUM_HARTS_PER_MINION = 2;
   auto hartId = static_cast<int>(get_hart_id());

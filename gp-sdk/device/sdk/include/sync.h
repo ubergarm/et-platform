@@ -100,10 +100,8 @@ static inline int get_physical_minion_id(int relative_thread_id) {
 /**
  * \brief Computes integer log2(value).
  *
- * This function computes the base 2 logarithm of value and returns the result.
- *
  * \param value The number to apply the logarithm
- * \return The base 2 logarithm of value, floored to the closest integer.
+ * \return Return unsigned int floored to the closest integer.
  */
 static constexpr size_t log2(size_t value) {
   size_t result = 0;
@@ -113,7 +111,7 @@ static constexpr size_t log2(size_t value) {
   return result;
 }
 
-static int getMinionThreadsToSync() {
+static inline int getMinionThreadsToSync() {
   if (device_config::config.sameEntryPoint) {
     return 2;
   }
@@ -139,10 +137,6 @@ enum class Scope {
  * Blocks thread execution until both threads in the minion reach the barrier.
  */
 template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> barrier() {
-  // Note: barrier<shire> assumes full availability of FLB's for its synchronizations
-  // Therefore we cannot make use of FLB's to implement barrier<minion> as they might be in use by the first.
-  // We implement a 'ring-synchronization' method
-
   // Note: barrier<shire> assumes full availability of FLB's for its synchronizations
   // Therefore we cannot make use of FLB's to implement barrier<minion> as they might be in use by the first.
   // Additionally, an FCC-based solution is not possible because barrier<shire> and barrier<device> use both FCC0 and FCC1
@@ -182,6 +176,38 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
   asm volatile("fence\n" ::: "memory");
 }
 
+
+/**
+ * \brief Synchronizes threads per shire.
+ * 
+ * Blocks thread execution until all harts in the shire executing the same entry point reach the barrier.
+ */
+template <Scope S>
+inline typename std::enable_if_t<(S == Scope::shire), void>
+barrier() {
+  constexpr uint32_t fcc = 0;
+  if (device_config::config.sameEntryPoint) {
+    const uint64_t flb = 0UL;
+    const auto flbCount = 63U; // All 64 threads - 1
+
+    if (flbarrier(flb, flbCount)) {
+      fcc_send(SHIRE_OWN, 0, fcc, 0xFFFFFFFF);
+      fcc_send(SHIRE_OWN, 1, fcc, 0xFFFFFFFF);
+    }
+  } else {
+    const auto hartId = get_hart_id();
+    const uint32_t localThread = hartId & 0x1;
+    const uint64_t flb = localThread;
+    const auto flbCount = 31U; // 32 threads - 1
+
+    if (flbarrier(flb, flbCount)) {
+      fcc_send(SHIRE_OWN, localThread, fcc, 0xFFFFFFFF);
+    }
+  }
+  fcc_consume(fcc);
+}
+
+
 /**
  * \brief Synchronizes threads per shire.
  *
@@ -190,9 +216,6 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
  * Barrier is only applied to threads executing the same entry point code.
  *
  * Every bit in \p hartMask maps to a hart in the shire.
- * 
- * Multiple barriers synchronizing different groups of threads per shire are supported. A thread
- * CANNOT be in more than one group at once.
  *
  * \param hartMask The n-th bit of the mask enables the sync of the n-th thread in the shire.
  * hartMask.count() must be a power of 2.
@@ -200,14 +223,13 @@ template <Scope S> inline typename std::enable_if_t<(S == Scope::minion), void> 
  */
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::shire), void>
-barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
+barrier(std::bitset<64> hartMask) {
   auto threadsToSync = getMinionThreadsToSync();
   if ((hartMask.count() * threadsToSync) < 2)
     return; // no threads to sync
 
   // Use credit counter 0
   constexpr uint32_t fcc = 0;
-
   // Get the local thread id (values: 0 or 1)
   const auto hartId = get_hart_id();
   const uint32_t localThread = hartId & 0x1;
@@ -216,27 +238,17 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
   // Get the global shire Id
   const auto shireId = (hartId >> 6) & 0x1F;
   // Compute number of threads to sync in the FLB
-  const auto numEntryPoints = get_num_entrypoints();
   const auto flbCount = static_cast<uint32_t>(threadsToSync * hartMask.count()) - 1U;
 
-  // Each minion computes its corresponding FLB (values=[0,31])
-  size_t flb = localMinion >> log2(hartMask.count());
-  
-  // If we have 2 entry-points: EP1 flbs are [0,15] and EP2 flbs are [16,31]
-  if (localThread == 1 && numEntryPoints == 2) {
-    flb += 16;
-  }
-  
   // Wait (spinlock) until you can join the FLB barrier
   // range of threads that can acquire/join the FLB lock
   uint32_t begin = __builtin_ctzll(hartMask.to_ullong()) * threadsToSync;
   uint32_t end = begin + flbCount;
   // Id of this thread in the range
-  uint32_t tId = localMinion * threadsToSync;
+  uint32_t tId = (localMinion * threadsToSync) + localThread;
 
-  __shireLock.acquire(shireId, flb, tId, begin, end);
-
-  // Last minion to reach the barrier wakes up the others
+  // Last minion to reach the fast local barrier wakes up the others
+  uint64_t flb = __shireLock.acquireAny(shireId, tId, begin, end, threadsToSync);
   if (flbarrier(flb, flbCount)) {
     if (device_config::config.sameEntryPoint) {
       fcc_send(SHIRE_OWN, 0, fcc, hartMask.to_ullong());
@@ -246,7 +258,7 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
       fcc_send(SHIRE_OWN, localThread, fcc, hartMask.to_ullong());
     }
     // only last thread releases the lock
-    __shireLock.release(shireId, flb, tId);
+    __shireLock.release(shireId, flb, tId, begin, end, threadsToSync);
   }
   fcc_consume(fcc);
 }
@@ -262,7 +274,6 @@ barrier(std::bitset<64> hartMask = std::bitset<64>(0xFFFFFFFF)) {
  *
  * \param startingMinion First relative thread id in the synchronization range. Must be a multiple of 32 or 0.
  * \param count Number of threads in the synchronization range. Must be a multiple of 32.
- *
  */
 template <Scope S>
 inline typename std::enable_if_t<(S == Scope::device), void> barrier(size_t startingThread, size_t count) {
@@ -342,6 +353,8 @@ inline void barrier(const size_t startingThread, const size_t count) {
   
   if (numMinions > SOC_MINIONS_PER_SHIRE) {
     barrier<Scope::device>(startingThread, count);
+  } else if (numMinions == SOC_MINIONS_PER_SHIRE) {
+    barrier<Scope::shire>(); // fast-path
   } else {
     const auto startingMinionId = get_minion_from_thread(static_cast<int>(startingThread));
     // size_t localId = startingMinionId % SOC_MINIONS_PER_SHIRE;
