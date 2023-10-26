@@ -61,10 +61,11 @@ template <ElemKind elK, typename... Types> INLINE_ATTR bool greaterOrEqualThan(T
 }
 
 template <ElemKind dstElK, ElemKind srcElK, size_t N, size_t PN>
-INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* out2T, LibTensor* inT,
+INLINE_ATTR void maxPoolImplThreaded(LibTensor* outT, LibTensor* out2T, LibTensor* inT,
                                      const std::array<uint32_t, N>& kernels, const std::array<uint32_t, N>& strides,
                                      const std::array<uint32_t, PN>& pads, uint64_t flags,
                                      const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  bool argMax = out2T != nullptr;
 
   using dstType = typename elemKind2elemTy<dstElK>::type;
   using srcType = typename elemKind2elemTy<srcElK>::type;
@@ -78,13 +79,13 @@ INLINE_ATTR void maxPoolImplThreaded(bool argMax, LibTensor* outT, LibTensor* ou
 
   dstType* tOutput = outT->getRawDataPointer<dstType>();
   srcType* tInput = inT->getRawDataPointer<srcType>();
-  int64_t* tOutput2 = (out2T != nullptr) ? out2T->getRawDataPointer<int64_t>() : nullptr;
+  int64_t* tOutput2 = argMax ? out2T->getRawDataPointer<int64_t>() : nullptr;
 
   const dim_t *dstIndex = outT->dims().data();
   const dim_t *actIndex = inT->dims().data();
   
   const dim_t *dstPitch = outT->strides().data();
-  const dim_t* dst2Pitch = (out2T != nullptr) ? out2T->strides().data() : nullptr;
+  const dim_t* dst2Pitch = argMax ? out2T->strides().data() : nullptr;
   const dim_t *actPitch = inT->strides().data(); 
 
   auto srcPitchNoPadding = inT->stridesNoPadding();
@@ -203,7 +204,7 @@ INLINE_ATTR void fwdLibMaxPoolInst(LibTensor* out0, LibTensor* in0, const std::a
                                    const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
                                    [[maybe_unused]] uint32_t layout, uint64_t flags, const uint32_t minionOffset = 0,
                                    const uint32_t assignedMinions = 0) {
-  maxPoolImplThreaded<out0Type, in0Type>(false, out0, nullptr, in0, kernels, strides, pads, flags, minionOffset,
+  maxPoolImplThreaded<out0Type, in0Type>(out0, nullptr, in0, kernels, strides, pads, flags, minionOffset,
                                          assignedMinions);
 }
 
@@ -217,8 +218,8 @@ fwdLibMaxPoolWithArgMaxInst(LibTensor* out0, LibTensor* out1, LibTensor* in0, co
                             const std::array<uint32_t, N>& strides, const std::array<uint32_t, PN>& pads,
                             [[maybe_unused]] uint32_t layout, uint64_t flags, const uint32_t minionOffset = 0,
                             const uint32_t assignedMinions = 0) {
-  maxPoolImplThreaded<out0Type, in0Type>(true, out0, out1, in0, kernels, strides, pads, flags, minionOffset,
-                                         assignedMinions);
+  et_assert(out1 != nullptr);
+  maxPoolImplThreaded<out0Type, in0Type>(out0, out1, in0, kernels, strides, pads, flags, minionOffset, assignedMinions);
 }
 
 } // namespace inlining
