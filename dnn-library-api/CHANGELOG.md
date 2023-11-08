@@ -19,7 +19,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Adapt CI to v15
 - Adapt CI to gitlab.com
-- Depend on dnnLibrary >=0.7.0 <0.8.0
+- Depend on dnnLibrary >=0.8.0 <0.9.0
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [0.7.0]
+### Added
+### Changed
+- [SW-16112] Enable vectorized version of CmpNEQ
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [0.6.0]
+### Added
+### Changed
+- [SW-17896] Update conanfile.py
+- [SW-16468] Add boolean Upper parameter in dnnLibraryApi for Trilu
 ### Deprecated
 ### Removed
 ### Fixed
