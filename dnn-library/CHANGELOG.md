@@ -10,6 +10,29 @@
 ### Fixed
 ### Security
 
+## [0.8.0]
+### Added
+- [SW-18864] Implement logical and/or/xor operators
+- Upgrading resizenearest implementation from scalar to theading
+- Adapted MaxSplat for clang
+- Added ward to use the correct barrier on GPSDK codes
+### Changed
+- [SW-17446] reduced stack footprint for FFT
+- [SW-19037] Use LB (load byte) instead of LD (load double) for prefetches.
+- Adapt CI to gitlab.com
+- Adapt CI to v15
+- Revert package_id changes. Need to keep host packages separated form RISC-V ones to avoid consuming RISC-V dependencies
+  in X86 builds.
+### Deprecated
+### Removed
+### Fixed
+- [SW-16749] Fixed out of bounds access on AvgPoolInst.h
+- [SW-17086] Build fix for ConvertTo with Int32ITy destination
+- Removed the unused inlining/GenericHeaders.h
+- Multiple fixes to adopt clang in DNN Library
+- [SW-17492] Fix Gather when batchDims >= 2
+### Security
+
 ## [0.7.0]
 ### Added
 - Upgrading resizenearest implementation from scalar to theading
