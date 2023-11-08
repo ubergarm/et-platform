@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.17)
-project(dnnLibraryApi VERSION 0.7.0 DESCRIPTION "dnnLibrary Host API" LANGUAGES CXX)
+project(dnnLibraryApi VERSION 0.8.0 DESCRIPTION "dnnLibrary Host API" LANGUAGES CXX)
 
 option(ENABLE_WARNINGS_AS_ERRORS "Treat warnings as errors" ON)
 
