@@ -44,55 +44,55 @@ INLINE_ATTR void fwdLibElementImmLogic(LibTensor* outT, LibTensor* inT, srcType 
                                        [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
                                        [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
-  if (get_minion_id() != minionOffset) return;
-  
-  /* maintain compatibility through the new Iface Libtensor */    
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
 
-  // const srcType *aSrcT1 = reinterpret_cast<srcType*>(srcT1);
+  void* dst = outT->getRawDataPointer();
   const srcType *aSrcT1 = inT->getRawDataPointer<srcType>();
-  // srcType *aDstT = reinterpret_cast<srcType*>(dstT);
   srcType *aDstT = outT->getRawDataPointer<srcType>();
 
-  // unsigned int *srcIndex = (unsigned int *)srcDims;
-  const dim_t *srcIndex = inT->dims().data();
-  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const dim_t* actIndex = inT->dims().data();
   const dim_t *dstPitch = outT->strides().data();
-  // unsigned int *srcPitch = (unsigned int *)srcPitches;
-  const dim_t *srcPitch = inT->strides().data();
+  const dim_t* actPitch = inT->strides().data();
 
   dim_t srcDimNum = inT->ndims();
 
-  size_t eBatchDims[MAX_TENSOR_DIMENSIONS] = {1, 1, 1, 1, 1, 1};
-  size_t eDstPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
-  size_t eSrcPitch[MAX_TENSOR_DIMENSIONS] = {0, 0, 0, 0, 0, 0};
+  auto numElemsDst = dstPitch[0] * actIndex[0];
 
-  for (size_t i = 0; i < srcDimNum; i++) {
-    eBatchDims[i] = srcIndex[i];
-    eDstPitch[i] = dstPitch[i];
-    eSrcPitch[i] = srcPitch[i];
+  size_t initialAddr, maxRead;
+  size_t typeSize = getsize<srcType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
+  if (maxRead == 0)
+    return;
+
+  dim_array_t coord = {0};
+  dim_t k;
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
+
+  size_t offsetIn = 0;
+  size_t offsetOut = 0;
+  for (size_t j = 0; j < k; j++) {
+    offsetIn += actPitch[j] * coord[j];
+    offsetOut += dstPitch[j] * coord[j];
   }
-
-  uint64_t addrSrc1, addrDst;
   Operator<srcType, srcType, srcType, opType> op;
-
-  // We can use this loop for all shapes.
-  for (size_t x = 0; x < eBatchDims[0]; x++) {
-    for (size_t y = 0; y < eBatchDims[1]; y++) {
-      for (size_t z = 0; z < eBatchDims[2]; z++) {
-        for (size_t w = 0; w < eBatchDims[3]; w++) {
-          for (size_t q = 0; q < eBatchDims[4]; q++) {
-            for (size_t r = 0; r < eBatchDims[5]; r++) {
-              addrSrc1 = x * eSrcPitch[0] + y * eSrcPitch[1] + z * eSrcPitch[2] +
-                          w * eSrcPitch[3] + q * eSrcPitch[4] + r * eSrcPitch[5];
-              addrDst = x * eDstPitch[0] + y * eDstPitch[1] + z * eDstPitch[2] +
-                          w * eDstPitch[3] + q * eDstPitch[4] + r * eDstPitch[5];
-              op.doOp(aDstT, aSrcT1, imm_value, addrDst, addrSrc1);
-            }
-          }
-        }
-      }
-    }
+  size_t posMax = maxRead + initialAddr;
+  bool done = false;
+  __asm__ __volatile__("mov.m.x m0, zero, 0x1 \n");
+  while (!done && (offsetOut < posMax)) {
+    op.doOp(aDstT, aSrcT1, imm_value, offsetOut, offsetIn);
+    done = getOffsets(srcDimNum, coord, offsetIn, offsetOut, actIndex, actPitch, dstPitch);
   }
+
+  /* maintain compatibility through the new Iface Libtensor */
+  if (!DO_EVICTS)
+    return;
+  size_t clperminion = (maxRead * typeSize + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+  if (clperminion > 0)
+    evict_va_multi(DO_EVICTS, (uintptr_t)dst + typeSize * initialAddr, clperminion);
 }
 
   // and instance for Int8Converter
