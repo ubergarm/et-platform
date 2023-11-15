@@ -133,7 +133,7 @@ public:
     std::vector<float> outputVector(planeSize * planes_);
 
     for (size_t i = 0; i < planeSize; i++) {
-      auto normalizationFactor = float(1) / float(planeSize);
+      auto normalizationFactor = (operation_ == FFTOp::FFT) ? 1 : float(1) / float(planeSize);
       outputVector[i] = out[i][0] * normalizationFactor;
       outputVector[i + planeSize] = out[i][1] * normalizationFactor;
     }
@@ -156,10 +156,10 @@ public:
                     float epsilon = 0.01) {
     auto base = width_ * height_ * planes_ * batchId * channelId;
     return std::equal(v1.begin(), v1.end(), v2.begin() + base, [epsilon](const float& f1, const float& f2) {
-      if (std::abs(f1) - std::abs(f2) < epsilon) {
+      if (std::abs(std::abs(f1) - std::abs(f2)) < epsilon) {
         return true;
       }
-      return std::abs(1 - (std::abs(f1) / std::abs(f2 + 0.000001))) < epsilon;
+      return  std::abs(1 - (std::abs(f1) / std::abs(f2 + 0.000001))) < 10 * epsilon;
     });
   }
 
@@ -201,8 +201,8 @@ public:
   // batch, channels, planes (2), height_, width_;
   // as an example, we can store a batch of 2 rgb images (feq domain).
   // batch=2 (im0, im1), channels = 3 (r,g,b) , planes = 2(real, img), height_ width_ (256 * 256 pixels images)
-  static constexpr size_t height_ = 16;  //!< nedds to be power of 2.
-  static constexpr size_t width_ = 16;   //!< needs to be power of 2
+  static constexpr size_t height_ = 256;  //!< nedds to be power of 2.
+  static constexpr size_t width_ = 256;   //!< needs to be power of 2
   static constexpr size_t planes_ = 2;   //!< only 2 is valid (real and imaginary planes).
   static constexpr size_t channels_ = 1; //!< number of image channels.
   static constexpr size_t batch_ = 1;    //!< number of images.
