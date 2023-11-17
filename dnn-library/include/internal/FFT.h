@@ -55,6 +55,7 @@ constexpr size_t kImageDefaultFFTSize = 256;
 namespace dnn_lib {
 
 constexpr double kPI = 3.14159265358979323846;
+constexpr uint64_t allLanes = (1 << 8) - 1;
 
 class Stack {
 private:
@@ -352,7 +353,12 @@ INLINE_ATTR void vectorReduce(const float* baseTwiddleReal, const float* baseTwi
     "fmul.pi    %[twiddleIndex], %[twiddleIndex], %[tmp0]\n" // tmp0'twiddleIndex' <- vmul(twiddleStep, i);
     "fslli.pi   %[twiddleIndex], %[twiddleIndex], 2\n"
     : [ twiddleIndex ] "=&f"(twiddleIndexArray), [ tmp0 ] "=&f"(tmp0)
-    : [ twiddleStep ] "r"(twiddleStep), [ vI ] "m"(vI));
+    : [ twiddleStep ] "r"(twiddleStep), [ vI ] "m"(vI)
+#ifdef __clang__
+                                          ,
+      [ vmask ] "M"(allLanes)
+#endif
+  );
 
   size_t j = 0;
   for (j = 0; j < halfSize - (simd_width - 1); j += simd_width) {
@@ -406,6 +412,10 @@ INLINE_ATTR void vectorReduce(const float* baseTwiddleReal, const float* baseTwi
         [ baseTwiddleImg ] "r"(baseTwiddleImg), [ tmpRealOdd ] "r"(rOdd), [ tmpImgOdd ] "r"(iOdd),
         [ tmpRealEven ] "r"(rEven), [ tmpImgEven ] "r"(iEven), [ resultReal ] "r"(rResult), [ resultImg ] "r"(iResult),
         [ resultReal2 ] "r"(rResult2), [ resultImg2 ] "r"(iResult2)
+#ifdef __clang__
+                                         ,
+        [ vmask ] "M"(allLanes)
+#endif
       : "memory");
 
     // Increment pointers
@@ -502,6 +512,10 @@ INLINE_ATTR void vectorFft16Round(const float* twiddleReal, const float* twiddle
       [ twiddleImg ] "r"(twiddleImg), [ XReal ] "r"(XReal), [ XImg ] "r"(XImg), [ resultReal ] "r"(resultReal),
       [ resultImg ] "r"(resultImg), [ selectMultSecond ] "m"(*(const int32_t(*)[8])selectMultSecond),
       [ selectAddOrSubFirst ] "m"(*(const int32_t(*)[8])selectAddOrSubFirst)
+#ifdef __clang__
+        ,
+      [ vmask ] "M"(allLanes)
+#endif
     : "memory");
 }
 
@@ -562,6 +576,10 @@ INLINE_ATTR void fastVectorFft16Round(const float* twiddle_real, const float* tw
     : [ round ] "r"(round), [ mask ] "r"(mask), [ twiddle_real ] "r"(twiddle_real), [ twiddle_img ] "r"(twiddle_img),
       [ X_real ] "r"(X_real), [ X_img ] "r"(X_img), [ result_real ] "r"(result_real), [ result_img ] "r"(result_img),
       [ mulIndices ] "f"(mulIndices), [ addsubIndices ] "f"(addsubIndices), [ vI ] "m"(vI)
+#ifdef __clang__
+                                                                              ,
+      [ vmask ] "M"(allLanes)
+#endif
     : "memory");
 }
 
@@ -591,6 +609,10 @@ INLINE_ATTR void fastVectorFft16Slice(float* real, float* img, size_t start, siz
                        : [ mi ] "=&f"(mi), [ si ] "=&f"(si), [ tmp0 ] "=&f"(tmp0), [ tmp1 ] "=&f"(tmp1)
                        : [ start ] "r"(start), [ step ] "r"(step), [ mulIndices ] "m"(*(const int32_t(*)[8])mulIndices),
                          [ addsubIndices ] "m"(*(const int32_t(*)[8])addsubIndices)
+#ifdef __clang__
+                           ,
+                         [ vmask ] "M"(allLanes)
+#endif
                        : "memory");
 
   fastVectorFft16Round(twiddleReal, twiddleImg, real, img, 0, tmpReal, tmpImg, vI, mi, si);
@@ -602,6 +624,10 @@ INLINE_ATTR void fastVectorFft16Slice(float* real, float* img, size_t start, siz
                        : [ mi ] "=f"(mi), [ si ] "=f"(si)
                        : [ mulIndices2 ] "m"(*(const int32_t(*)[8])mulIndices2),
                          [ addsubIndices2 ] "m"(*(const int32_t(*)[8])addsubIndices2)
+#ifdef __clang__
+                           ,
+                         [ vmask ] "M"(allLanes)
+#endif
                        : "memory");
 
   fastVectorFft16Round(twiddleReal, twiddleImg, tmpReal, tmpImg, 1, resReal, resImg, vI, mi, si);
@@ -640,6 +666,10 @@ INLINE_ATTR void vectorFft16Slice(float* real, float* img, int32_t start, int32_
       [ tmp1 ] "=&f"(tmp1), [ tmp2 ] "=&f"(tmp2), [ tmp3 ] "=&f"(tmp3)
     : [ start ] "r"(start), [ step ] "r"(step), [ mulSecond ] "m"(*(const int32_t(*)[8])selectMultSecond),
       [ addSubFirst ] "m"(*(const int32_t(*)[8])selectAddOrSubFirst)
+#ifdef __clang__
+        ,
+      [ vmask ] "M"(allLanes)
+#endif
     : "memory");
 
   vectorFft16Round(twiddleReal, twiddleImg, real, img, 0, tmpReal, tmpImg, selectMultSecond, selectAddOrSubFirst);
