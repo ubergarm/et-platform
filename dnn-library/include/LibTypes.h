@@ -45,9 +45,6 @@ using dim_t = size_t;
 using sdim_t = int64_t;
 #endif
 
-// Vector datatypes
-using f32x8 = float;
-
 /// An enum representing the type used by the elements of a tensor. The types of
 /// Handles for these tensors should match the element kind.
 enum ElemKind : unsigned char {
@@ -278,5 +275,10 @@ using v8u32_t = v<8, u32_t>::type;
 using v8f32_t = v<8, f32_t>::type;
 
 } // namespace dnn_lib_v2
+
+namespace dnn_lib {
+// Vector datatypes
+using f32x8 = dnn_lib_v2::v8f32_t;
+} // namespace dnn_lib
 
 #endif // LIB_TYPES_H

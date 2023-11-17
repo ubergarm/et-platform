@@ -442,11 +442,11 @@ INLINE_ATTR void vectorFft16Round(const float* twiddleReal, const float* twiddle
 
   int32_t vI[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 
-  float twIndices;
-  float twReal, twImg, xRealMul, xImgMul, xRealAdd, xImgAdd;
-  float termReal, termImg;
-  float tmp0, tmp1;
-  float mulIndices, addSubIndices;
+  f32x8 twIndices;
+  f32x8 twReal, twImg, xRealMul, xImgMul, xRealAdd, xImgAdd;
+  f32x8 termReal, termImg;
+  f32x8 tmp0, tmp1;
+  f32x8 mulIndices, addSubIndices;
 
   __asm__ __volatile__(
     // compute twiddle gather indices
@@ -571,7 +571,7 @@ INLINE_ATTR void fastVectorFft16Slice(float* real, float* img, size_t start, siz
                                       const int32_t* addsubIndices, const int32_t* mulIndices2,
                                       const int32_t* addsubIndices2) {
   assert(size == 16);
-  float tmp0, tmp1, mi, si;
+  f32x8 tmp0, tmp1, mi, si;
   MAYBE_STATIC_THREAD_LOCAL float tmpReal[16];
   MAYBE_STATIC_THREAD_LOCAL float tmpImg[16];
 
@@ -622,8 +622,8 @@ INLINE_ATTR void vectorFft16Slice(float* real, float* img, int32_t start, int32_
   int32_t selectMultSecond[8] = {8, 12, 10, 14, 9, 13, 11, 15};
   int32_t selectAddOrSubFirst[8] = {0, 4, 2, 6, 1, 5, 3, 7};
 
-  float mulIndices, addSubIndices;
-  float tmp0, tmp1, tmp2, tmp3;
+  f32x8 mulIndices, addSubIndices;
+  f32x8 tmp0, tmp1, tmp2, tmp3;
 
   __asm__ __volatile__(
     "fbcx.ps    %[tmp0], %[start]\n"                           // tmp0 <- broadcast(start);
