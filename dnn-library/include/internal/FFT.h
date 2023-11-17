@@ -55,7 +55,8 @@ constexpr size_t kImageDefaultFFTSize = 256;
 namespace dnn_lib {
 
 constexpr double kPI = 3.14159265358979323846;
-constexpr uint64_t allLanes = (1 << 8) - 1;
+constexpr int32_t simd_width = 8;
+constexpr uint64_t allLanes = (1 << simd_width) - 1;
 
 class Stack {
 private:
@@ -330,7 +331,6 @@ INLINE_ATTR void vectorReduce(const float* baseTwiddleReal, const float* baseTwi
                               size_t halfSize, float* tmpRealEven, float* tmpImgEven, float* tmpRealOdd,
                               float* tmpImgOdd, float* resultReal, float* resultImg, const std::array<int32_t, 8>& vI) {
 
-  constexpr int32_t simd_width = 8;
   const int32_t twiddleStride = static_cast<int32_t>(twiddleStep * sizeof(float) * simd_width);
 
   float* rEven = tmpRealEven;
