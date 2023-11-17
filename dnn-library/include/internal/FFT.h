@@ -922,6 +922,10 @@ INLINE_ATTR void fftReversibleWithPrecomputeThreaded(size_t workBranchBits, [[ma
                                                      const float fft16TwiddleImg[16], float* real, float* img,
                                                      size_t start, size_t step, size_t size, float* resultReal,
                                                      float* resultImg) {
+#ifndef __clang__
+  __asm__ __volatile__("mov.m.x m0, zero, %[allLanes]" : : [ allLanes ] "i"(allLanes));
+#endif
+
   auto saved = stack.current();
 
   // Set start, step, size and twiddleStep for minionId
