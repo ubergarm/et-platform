@@ -66,6 +66,8 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
   #baremetal & startup related options.
   target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions -fno-rtti -fno-unwind-tables  -fno-use-cxa-atexit -fno-threadsafe-statics -ffreestanding)
 
+  target_compile_features(${TARGET_NAME} PUBLIC cxx_std_17)
+
   set_target_properties(${TARGET_NAME}
     PROPERTIES
     LINK_DEPENDS ${LINKER_SCRIPT_ABS_PATH}
