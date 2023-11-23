@@ -9,10 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 ### Added
 - [SW-18213] Use Runtime for generating coredump.
+- [SW-18615] Added SAXPY example with intrinsics (clang11), with new builtins syntax
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
+- [SW-19038] Fix Barrier code bug when synchronizing overlapping groups of threads.
+
 
 ## 1.3.0 (2023/09/15)
 ### Added
