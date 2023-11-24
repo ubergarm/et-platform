@@ -12,6 +12,8 @@ import logging
 from pathlib import Path
 import time
 import pytest
+import fnmatch
+import glob
 import os
 
 Command = namedtuple("Command", ["input", "expected_output"])
@@ -330,7 +332,52 @@ def launch_gdb_server(shell):
     )
 
 
-def launch_kernel(shell, launcher: Path, kernel: Path, entry_point: str, device: str):
+def find_coredump_file(path: Path):
+    # List all files in the specified path
+    files = os.listdir(path)
+    
+    # Filter files that start with "core" and contain "etsoc"
+    filtered_files = [filename for filename in files if filename.startswith("core") and "etsoc" in filename]
+
+    # Get absolute paths for filtered files
+    absolute_paths = [str(path.joinpath(filename)) for filename in filtered_files]
+    
+    return absolute_paths
+    #return filtered_files
+
+
+def validate_core_dump(file_path):
+    try:
+        found = True
+
+        with open(file_path, 'r') as file:
+            contents = file.readlines()
+
+            # Check if the lines with incremental numbers exist in the file
+            for num in range(1, 1024):
+                line_to_check = f"*{num}*LWP*{num * 2} *"  # Generate the line pattern to match
+                line_found = False
+                for line in contents:
+                    # Skip lines that don't match the expected format
+                    if not fnmatch.fnmatch(line.strip(), line_to_check):
+                        continue
+                    
+                    if fnmatch.fnmatch(line.strip(), line_to_check):
+                        line_found = True
+                        break
+
+                if not line_found:
+                    found = False
+                    break
+
+        return found
+
+    except Exception as e:
+        logging.info(f"An error occurred: {e}")
+        return False
+
+
+def launch_kernel(shell, launcher: Path, kernel: Path, entry_point: str, device: str, core_dump: bool = False):
     """Launch a test kernel"""
     entry_pc = shell.find_symbol(Path(f"{kernel}_dbg"), entry_point)
     logging.debug(f"PC of {entry_point}: %#{entry_pc}")
@@ -342,9 +389,12 @@ def launch_kernel(shell, launcher: Path, kernel: Path, entry_point: str, device:
         "--kernel_launch_timeout=10000",
     ]
 
+    if core_dump == True:
+        command_parts.append("--enableCoreDump > test_coredump.log")
+
     if device == "sysemu":
         command_parts.append(f"--simulator_params='-gdb_at_pc={entry_pc:#x}'")
-    elif device == "silicon":
+    elif device == "silicon" and not core_dump:
         command_parts.insert(0, "sleep 3 &&")
         command_parts.append("&")
 
@@ -425,3 +475,38 @@ def test_gdb_silicon(kernel_info, script, request, build_dir, shell, gdb):
 
     err = launcher.wait()
     assert err == 0, "launcher returned non-zero exit-code"
+
+
+@pytest.mark.parametrize("kernel_info", [
+    pytest.param(["exception", "basic_launcher", "entryPoint_0"]),
+])
+def test_gdb_coredump_silicon(kernel_info, request, build_dir, shell, gdb):
+    """Execute a saxpy kernel and debug with GDB"""
+    if not build_dir.exists():
+        pytest.skip("the examples have not been built")
+    if request.config.getoption("--skip-gdb"):
+        pytest.skip("gdb tests are is disabled")
+
+    logging.info("Starting kernel launcher")
+    entry_pc, launcher = launch_kernel(
+        shell,
+        launcher=build_dir.host / f"sdk/{kernel_info[1]}",
+        kernel=build_dir.device / f"tests/{kernel_info[0]}.elf",
+        entry_point=kernel_info[2],
+        device="silicon",
+        core_dump = True,
+    )
+
+    time.sleep(2)  # Wait some time for the launcher to start
+    launcher.wait()
+
+    if request.config.getoption("--gdb-custom"):
+        logging.info("Waiting for gdb connection")
+    else:
+        coredump_file = find_coredump_file(Path(str(build_dir.host / "../../../")))
+        gdb_cmd = " ".join([f"""riscv64-unknown-elf-gdb -batch -ex "set logging enabled on" -ex "info threads" -ex "set logging enabled off" -ex "quit" {str(build_dir.device / f"tests/{kernel_info[0]}.elf_dbg") + " " + coredump_file[0] + f" > {kernel_info[0]}.txt"}""",])
+        shell.run(gdb_cmd)
+        gdb_log_files = glob.glob(str(build_dir.host / f"../../test_gdb_coredump*/{kernel_info[0]}.txt"))
+        for file in gdb_log_files:
+            result = validate_core_dump(file)
+            assert result == True, "Core dump file not matched"
