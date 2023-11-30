@@ -352,8 +352,9 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_
 
 void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, uint64_t shireMask,
                                      uint32_t deviceIdx) {
-  std::optional<rt::UserTrace> optUserTrace =
-    fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize, shireMask);
+  auto optUserTrace = enableKernelTraces ? 
+    fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize, shireMask) : std::nullopt;
+
   constexpr bool barrier = true;
   constexpr bool flushL3 = false;
   std::string coreFileName;
@@ -365,17 +366,6 @@ void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, s
 
   runtime_->kernelLaunch(defaultStreams_[deviceIdx], kernelId, params, size, shireMask, barrier, flushL3, optUserTrace,
                          coreFileName);
-}
-
-void GenericLauncher::reportUserException(const rt::StreamError& error) const {
-  std::cout << "Exception found, need to dump the execution context\n";
-  // Dump execution context into a file
-  auto path = std::experimental::filesystem::current_path();
-  auto filename = "device_" + std::to_string((int)error.device_) + "_execution_context.txt";
-  std::ofstream out(path / filename);
-  out << error.getString();
-  out << "\n---\n";
-  out.close();
 }
 
 void GenericLauncher::resetRuntime() {

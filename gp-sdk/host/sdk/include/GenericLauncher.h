@@ -217,7 +217,6 @@ public:
 private:
   std::vector<std::byte> readFile(const std::string& path);
   void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, uint64_t shireMask, uint32_t deviceIdx);
-  void reportUserException(const rt::StreamError& error) const;
   void resetRuntime();
   void createUserTraces(void);
   void writeSysemuTraceDumpCookie(void);
