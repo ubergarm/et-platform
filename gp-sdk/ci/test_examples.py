@@ -82,6 +82,7 @@ EXTRA_ARGS["data"] = ["--num_launches=5"]
 EXTRA_ARGS["check_pmc"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["busy10sec"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
+EXTRA_ARGS["fftKernel"] = ["--kernel_launch_timeout=60"]
 
 # only needed for device_type = sysemu
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=400"]
