@@ -9,11 +9,16 @@
 // agreement/contract under which the program(s) have been supplied.
 //------------------------------------------------------------------------------
 
+#include <iostream>
+#include <numeric>
 #include <cstdlib>
 #include <getopt.h>
 #include <string>
+#include <cmath>
 
+#include "custom_stack_kernel_arguments.h"
 #include "GenericLauncher.h"
+
 
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
@@ -23,6 +28,7 @@ struct Options {
   int num_launches = 1;
   std::string device_type = "sysemu";
   uint32_t shire_mask = 0xFFFFFFFF;
+  uint64_t stackSize = 0;
 };
 
 Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
@@ -37,9 +43,10 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
     "  -t, --kernel_launch_timeout   timeout (in seconds) to wait for kenelLaunch\n"
     "  -n, --num_launches            Number of times the kernel will be launched.\n"
     "  -d, --device_type             Device Type to be used (sysemu, fake,silicon.\n"
-    "  -m, --shire_mask              Shires the kernel will be assigned when executed.\n";
+    "  -m, --shire_mask              Shires the kernel will be assigned when executed.\n"
+    "  -s, --stackSize               Define the stack size to use for each hart. It has be 4096B aligned.\n";
 
-  static constexpr const char* short_opts = "k:t:n:d:m:h";
+  static constexpr const char* short_opts = "k:t:n:d:m:s:h";
 
   static const std::vector<struct option> long_opts_vect{{"kernel_path", required_argument, nullptr, 'k'},
                                                          {"kernel_launch_timeout", required_argument, nullptr, 't'},
@@ -47,6 +54,7 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
                                                          {"device_type", required_argument, nullptr, 'd'},
                                                          {"shire_mask", required_argument, nullptr, 'm'},
                                                          {"help", no_argument, nullptr, 'h'},
+                                                         {"stackSize", required_argument, nullptr, 's'},
                                                          {nullptr, 0, nullptr, 0}};
 
   Options opts;
@@ -74,7 +82,10 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
       break;
     case 'h':
       std::cout << help_msg << GenericLauncher::help_msg << std::endl;
-      exit(0);
+      exit(0);      
+    case 's':
+      opts.stackSize = atol(optarg);
+      break;
     case '?':
       nextlevel.emplace_back(argv[optind - 1]);
       break;
@@ -87,10 +98,23 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
   return opts;
 }
 
+static constexpr uint32_t numThreads = 64;
+
 // Specific kernel launcher class.
-class Launcher : public GenericLauncher {
-  Launcher() = delete;
+class StackLauncher : public GenericLauncher {
+public:  
+  StackLauncher() = delete;
   using GenericLauncher::GenericLauncher;
+
+  void performStackAlloc(uint64_t totalStackSize) {
+    ptrStack_ = runtime_->mallocDevice(devices_[devIdx_], totalStackSize, 4096);
+  }
+
+  void freeStackAlloc() {
+    runtime_->freeDevice(devices_[devIdx_], ptrStack_);
+  }
+ 
+  std::byte* ptrStack_;
 };
 
 int main(int argc, char** argv) {
@@ -102,15 +126,19 @@ int main(int argc, char** argv) {
   Config config{modeFromString(opt.device_type), 1};
   config.dump();
 
-  Launcher launcher(config, static_cast<int>(argvPendingToParse.size()), argvPendingToParse.data());
-
+  StackLauncher launcher(config, static_cast<int>(argvPendingToParse.size()), argvPendingToParse.data());
   launcher.initialize();
-
   auto kernelId = launcher.loadKernel(opt.kernel_path);
 
+  uint64_t totalStackSize = log2(opt.shire_mask) * numThreads * opt.stackSize;
+  launcher.performStackAlloc(totalStackSize);
+  KernelArguments kernelArgs;
+
+  kernelArgs.stackSize = opt.stackSize;  
+
+  auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
   for (size_t i = 0; i < opt.num_launches; i++) {
-    launcher.kernelLaunch(kernelId, 0, opt.shire_mask);    
-    auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
+    launcher.kernelLaunch(kernelId, &kernelArgs, launcher.ptrStack_, opt.stackSize, 0, opt.shire_mask);    
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
    
@@ -118,7 +146,10 @@ int main(int argc, char** argv) {
       return -1;
     }
   }
+
+  launcher.freeStackAlloc();
   launcher.unLoadKernel(kernelId); 
   launcher.tearDown();
+  
   return 0;
 }

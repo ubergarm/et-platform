@@ -14,6 +14,7 @@
 #include <iostream>
 #include <iterator>
 #include <runtime/DeviceLayerFake.h>
+#include <runtime/Types.h>
 #include <sw-sysemu/SysEmuOptions.h>
 
 #include <getopt.h>
@@ -279,23 +280,6 @@ constexpr uint64_t getTraceThreadMask() {
   return 0xFFFFFFFFFFFFFFFFULL;
 }
 
-std::optional<rt::UserTrace> fillKernelTraceParams(std::byte* deviceTraceBuffer, size_t deviceTraceBufferSize,
-                                                   uint64_t shireMask = 0xFFFFFFFFULL) {
-  if (not enableKernelTraces) {
-    return std::nullopt;
-  }
-
-  rt::UserTrace traceParams;
-  traceParams.buffer_ = uint64_t(deviceTraceBuffer);
-  traceParams.buffer_size_ = deviceTraceBufferSize;
-  traceParams.shireMask_ = shireMask;
-  traceParams.threadMask_ = getTraceThreadMask();
-  traceParams.eventMask_ = TRACE_EVENT_ENABLE_ALL;
-  traceParams.filterMask_ = TRACE_FILTER_ENABLE_ALL;
-  traceParams.threshold_ = 0;
-  return traceParams;
-}
-
 void GenericLauncher::dumpTracesToFile(uint64_t fileIdx, rt::KernelId kernelId, uint32_t deviceIdx) {
   if (not enableKernelTraces) {
     return;
@@ -350,22 +334,28 @@ void GenericLauncher::waitKernelCompletion(std::chrono::seconds timeout, uint32_
   return;
 }
 
-void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, uint64_t shireMask,
-                                     uint32_t deviceIdx) {
-  auto optUserTrace = enableKernelTraces ? 
-    fillKernelTraceParams(traceDeviceBuffer_[deviceIdx], kTraceBufferSize, shireMask) : std::nullopt;
-
-  constexpr bool barrier = true;
-  constexpr bool flushL3 = false;
+void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, size_t size, std::byte* ptr,
+                                     size_t stackSize, uint64_t shireMask, uint32_t deviceIdx) {
+  rt::KernelLaunchOptions kOpts;
   std::string coreFileName;
 
   if (enableCoreDump_) {
     coreFileName = "core." + std::to_string(getpid()) + ".etsoc." + std::to_string((int)kernelId) + "." +
                    std::to_string((int)deviceIdx);
   }
-
-  runtime_->kernelLaunch(defaultStreams_[deviceIdx], kernelId, params, size, shireMask, barrier, flushL3, optUserTrace,
-                         coreFileName);
+  kOpts.setShireMask(shireMask);
+  kOpts.setBarrier(true);
+  kOpts.setFlushL3(false);  
+  kOpts.setCoreDumpFilePath(coreFileName);
+  if (enableKernelTraces) {
+    kOpts.setUserTracing(reinterpret_cast<uint64_t>(traceDeviceBuffer_[deviceIdx]), kTraceBufferSize, 0, shireMask, getTraceThreadMask(), 
+      TRACE_EVENT_ENABLE_ALL, TRACE_FILTER_ENABLE_ALL);
+  }
+  if ((ptr != nullptr) && (stackSize != 0)) {
+    kOpts.setStackConfig(ptr, stackSize);
+  }
+  
+  runtime_->kernelLaunch(defaultStreams_[deviceIdx], kernelId, params, size, kOpts);
 }
 
 void GenericLauncher::resetRuntime() {

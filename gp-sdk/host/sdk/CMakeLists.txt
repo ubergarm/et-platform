@@ -122,8 +122,15 @@ target_link_libraries(exhaustive_cast_launcher
     PRIVATE
         etsoc_gpsdk
 )
-      
-install(TARGETS basic_launcher fft_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher p2p_launcher exhaustive_cast_launcher
+
+add_executable(stack_launcher src/custom_stack/stackLauncher.cpp)
+target_include_directories(stack_launcher PRIVATE ${DEVICE_KERNELS_DIR}/custom_stack)
+target_link_libraries(stack_launcher
+    PRIVATE
+        etsoc_gpsdk
+)
+
+install(TARGETS basic_launcher etsoc_gpsdk saxpy_launcher hello_world_launcher multiKernel_launcher multiDevice_launcher multiDeviceHang_launcher trapping_launcher p2p_launcher exhaustive_cast_launcher stack_launcher
     RUNTIME       DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY       DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE       DESTINATION ${CMAKE_INSTALL_LIBDIR}

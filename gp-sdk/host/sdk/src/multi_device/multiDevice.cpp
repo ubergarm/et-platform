@@ -176,7 +176,7 @@ int main(int argc, char** argv) {
   // Assuming first kernel requires no data context (e.g hello-world and the like).
   launcher.kernelLaunch(launcher.kernels_[0], (uint32_t)0);
 
-  launcher.kernelLaunch(launcher.kernels_[1], &kernelArgs, (uint32_t)1);
+  launcher.kernelLaunch(launcher.kernels_[1], &kernelArgs, nullptr, 0, (uint32_t)1);
   launcher.programDev2HostCopiesSaxpy(1);
 
   launcher.waitKernelCompletion(timeout, 0);

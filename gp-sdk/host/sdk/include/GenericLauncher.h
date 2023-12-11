@@ -142,24 +142,26 @@ public:
    * launch.
    * \param kernelId id of the kernel to launch.
    * \param params launch parameters.
-   * \param shireMask mask with the shires that will execute the kernel.
+   * \param stackPtr point to stack base address.
+   * \param stackSize size of stack per hart.
    * \param deviceIdx device target to work with
+   * \param shireMask mask with the shires that will execute the kernel.
    */
   template <typename TParams>
-  void kernelLaunch(rt::KernelId kernelId, TParams* params, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
-    doKernelLaunch(kernelId, (std::byte*)params, sizeof(TParams), shireMask, deviceIdx);
+  void kernelLaunch(rt::KernelId kernelId, TParams* params, std::byte* stackPtr = nullptr, size_t stackSize = 0, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
+    doKernelLaunch(kernelId, (std::byte*)params, sizeof(TParams), stackPtr, stackSize, shireMask, deviceIdx);
   }
 
   /**
    * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
    * waitKernelCompletion() is called.
    * \brief Launches the kernel on the device without providing parameters.
-   * \param kernelId id of the kernel to launch.
-   * \param shireMask mask with the shires that will execute the kernel.
+   * \param kernelId id of the kernel to launch.    
    * \param deviceIdx device target to work with
+   * \param shireMask mask with the shires that will execute the kernel.* 
    */
   void kernelLaunch(rt::KernelId kernelId, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
-    doKernelLaunch(kernelId, nullptr, 0, shireMask, deviceIdx);
+    doKernelLaunch(kernelId, nullptr, 0, nullptr, 0, shireMask, deviceIdx);
   }
 
   /**
@@ -216,7 +218,7 @@ public:
 
 private:
   std::vector<std::byte> readFile(const std::string& path);
-  void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, uint64_t shireMask, uint32_t deviceIdx);
+  void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, std::byte* stackPtr, size_t stackSize, uint64_t shireMask, uint32_t deviceIdx);
   void resetRuntime();
   void createUserTraces(void);
   void writeSysemuTraceDumpCookie(void);

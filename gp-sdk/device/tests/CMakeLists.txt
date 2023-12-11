@@ -116,6 +116,10 @@ add_etsoc_test_kernel(tracing_factorial.elf tracing/tracing_factorial.cc)
 
 add_etsoc_test_kernel(tracing_busywait.elf tracing/tracing_busywait.cc)
 
+add_etsoc_test_kernel(custom_stack.elf custom_stack/custom_stack.cc)
+
+add_etsoc_test_kernel(hang4bt.elf hang/hang4bt.cc)
+
 if($ENV{DEV_COMPILER} MATCHES "clang11")
   add_etsoc_test_kernel(exhaustive_cast.elf exhaustive_cast/exhaustive_cast.cpp)
 endif()
