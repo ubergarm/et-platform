@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
   launcher.initialize();
   auto kernelId = launcher.loadKernel(opt.kernel_path);
 
-  uint64_t totalStackSize = log2(opt.shire_mask) * numThreads * opt.stackSize;
+  uint64_t totalStackSize = __builtin_popcount(opt.shire_mask) * numThreads * opt.stackSize;
   launcher.performStackAlloc(totalStackSize);
   KernelArguments kernelArgs;
 
@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
 
   auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
   for (size_t i = 0; i < opt.num_launches; i++) {
-    launcher.kernelLaunch(kernelId, &kernelArgs, launcher.ptrStack_, opt.stackSize, 0, opt.shire_mask);    
+    launcher.kernelLaunch(kernelId, &kernelArgs, launcher.ptrStack_, totalStackSize, 0, opt.shire_mask);    
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
    
