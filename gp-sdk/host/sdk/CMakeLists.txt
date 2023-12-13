@@ -123,7 +123,7 @@ target_link_libraries(exhaustive_cast_launcher
         etsoc_gpsdk
 )
 
-add_executable(stack_launcher src/custom_stack/stackLauncher.cpp)
+add_executable(stack_launcher src/custom_stack/user_defined_stack_launcher.cpp)
 target_include_directories(stack_launcher PRIVATE ${DEVICE_KERNELS_DIR}/custom_stack)
 target_link_libraries(stack_launcher
     PRIVATE

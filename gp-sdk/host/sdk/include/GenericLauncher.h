@@ -15,6 +15,7 @@
 #include <hostUtils/logging/Logger.h>
 
 #include <string>
+#include <tuple>
 #include <unistd.h>
 #include <vector>
 
@@ -134,7 +135,6 @@ public:
    */
   void dumpTracesToFile(uint64_t fileIdx = 0, rt::KernelId kernelId = (rt::KernelId)(-1), uint32_t deviceIdx = 0);
 
-
   /**
    * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
    * waitKernelCompletion() is called.
@@ -142,13 +142,14 @@ public:
    * launch.
    * \param kernelId id of the kernel to launch.
    * \param params launch parameters.
-   * \param stackPtr point to stack base address.
-   * \param stackSize size of stack per hart.
+   * \param stackPtr point to stack base address has to be aligned to 4096.
+   * \param stackSize total size of stack used by all hearts. The base stack size has to be aligned to 4096.
    * \param deviceIdx device target to work with
    * \param shireMask mask with the shires that will execute the kernel.
    */
   template <typename TParams>
-  void kernelLaunch(rt::KernelId kernelId, TParams* params, std::byte* stackPtr = nullptr, size_t stackSize = 0, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
+  void kernelLaunch(rt::KernelId kernelId, TParams* params, std::byte* stackPtr = nullptr, size_t stackSize = 0,
+                    uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
     doKernelLaunch(kernelId, (std::byte*)params, sizeof(TParams), stackPtr, stackSize, shireMask, deviceIdx);
   }
 
@@ -156,9 +157,9 @@ public:
    * Starts the execution of the loaded kernel on the device. Host and device code execute asynchronously until
    * waitKernelCompletion() is called.
    * \brief Launches the kernel on the device without providing parameters.
-   * \param kernelId id of the kernel to launch.    
+   * \param kernelId id of the kernel to launch.
    * \param deviceIdx device target to work with
-   * \param shireMask mask with the shires that will execute the kernel.* 
+   * \param shireMask mask with the shires that will execute the kernel.*
    */
   void kernelLaunch(rt::KernelId kernelId, uint32_t deviceIdx = 0, uint64_t shireMask = 0xffffffff) {
     doKernelLaunch(kernelId, nullptr, 0, nullptr, 0, shireMask, deviceIdx);
@@ -198,12 +199,27 @@ public:
     return numDev_;
   }
 
-
   /**
    * Helper function to check wether some abnormal situation happened.
    * Note, it may introduce a small delay in case coredump retrieval is expected to happen asynchronously.
    */ 
   bool checkKernelExecutionErrors();
+
+  /**
+   * Reserve all necessary stack space at device.
+   * \brief reserve stack space and caculates the total stack size reserved.
+   * \param threadStacksize stack size per hart.
+   * \param shireMask mask with the shires that will execute the kernel.
+   * \return A tuple with stackPtr pointer to base address reserved and totalSize with total stack size reserved.
+   */
+  std::tuple<std::byte*, size_t> allocDeviceStack(size_t threadStackSize, uint64_t shireMask);
+
+  /**
+   * Free memory reserved for stack.
+   * \brief free stack space reserved.
+   * \param ptrStack pointer to stack base address
+   */
+  void freeDeviceStack(std::byte* ptrStack);
 
   std::atomic<uint64_t> kernelError_ = 0; // Number of kernels that reported an error
   std::atomic<uint64_t> kernelAbort_ = 0; // Number of kernels aborted
@@ -218,7 +234,8 @@ public:
 
 private:
   std::vector<std::byte> readFile(const std::string& path);
-  void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, std::byte* stackPtr, size_t stackSize, uint64_t shireMask, uint32_t deviceIdx);
+  void doKernelLaunch(rt::KernelId, std::byte* params, size_t size, std::byte* stackPtr, size_t stackSize,
+                      uint64_t shireMask, uint32_t deviceIdx);
   void resetRuntime();
   void createUserTraces(void);
   void writeSysemuTraceDumpCookie(void);

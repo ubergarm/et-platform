@@ -19,6 +19,7 @@
 
 #include <getopt.h>
 #include <stdio.h>
+#include <tuple>
 
 #include "GenericLauncher.h"
 
@@ -345,16 +346,16 @@ void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, s
   }
   kOpts.setShireMask(shireMask);
   kOpts.setBarrier(true);
-  kOpts.setFlushL3(false);  
+  kOpts.setFlushL3(false);
   kOpts.setCoreDumpFilePath(coreFileName);
   if (enableKernelTraces) {
-    kOpts.setUserTracing(reinterpret_cast<uint64_t>(traceDeviceBuffer_[deviceIdx]), kTraceBufferSize, 0, shireMask, getTraceThreadMask(), 
-      TRACE_EVENT_ENABLE_ALL, TRACE_FILTER_ENABLE_ALL);
+    kOpts.setUserTracing(reinterpret_cast<uint64_t>(traceDeviceBuffer_[deviceIdx]), kTraceBufferSize, 0, shireMask,
+                         getTraceThreadMask(), TRACE_EVENT_ENABLE_ALL, TRACE_FILTER_ENABLE_ALL);
   }
   if ((ptr != nullptr) && (stackSize != 0)) {
     kOpts.setStackConfig(ptr, stackSize);
   }
-  
+
   runtime_->kernelLaunch(defaultStreams_[deviceIdx], kernelId, params, size, kOpts);
 }
 
@@ -438,4 +439,15 @@ bool GenericLauncher::checkKernelExecutionErrors() {
     sleep(3);
   }
   return true;
+}
+
+std::tuple<std::byte*, size_t> GenericLauncher::allocDeviceStack(size_t threadStackSize, uint64_t shireMask) {
+  constexpr size_t kNumThreadsPerShire = 64;
+  size_t totalStackSize = __builtin_popcount(shireMask) * kNumThreadsPerShire * threadStackSize;
+  std::byte* ptrStack = runtime_->mallocDevice(devices_[devIdx_], totalStackSize, 4096);
+  return make_tuple(ptrStack, totalStackSize);
+}
+
+void GenericLauncher::freeDeviceStack(std::byte* ptrStack) {
+  runtime_->freeDevice(devices_[devIdx_], ptrStack);
 }

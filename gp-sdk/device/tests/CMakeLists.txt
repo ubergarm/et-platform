@@ -39,6 +39,8 @@ add_etsoc_test_kernel(hang.elf hang/hang.cc)
 
 add_etsoc_test_kernel(exception.elf exception/exception.cc)
 
+add_etsoc_test_kernel(exception4bt.elf exception/exception4bt.cc)
+
 add_etsoc_test_kernel(saxpy_scalar.elf saxpy/saxpy.cpp)
 target_include_directories(saxpy_scalar.elf INTERFACE .)
 
@@ -116,7 +118,7 @@ add_etsoc_test_kernel(tracing_factorial.elf tracing/tracing_factorial.cc)
 
 add_etsoc_test_kernel(tracing_busywait.elf tracing/tracing_busywait.cc)
 
-add_etsoc_test_kernel(custom_stack.elf custom_stack/custom_stack.cc)
+add_etsoc_test_kernel(user_defined_stack.elf custom_stack/user_defined_stack.cc)
 
 add_etsoc_test_kernel(hang4bt.elf hang/hang4bt.cc)
 

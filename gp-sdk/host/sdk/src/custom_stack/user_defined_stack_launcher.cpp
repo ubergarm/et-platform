@@ -9,16 +9,15 @@
 // agreement/contract under which the program(s) have been supplied.
 //------------------------------------------------------------------------------
 
-#include <iostream>
-#include <numeric>
+#include <cmath>
 #include <cstdlib>
 #include <getopt.h>
+#include <iostream>
+#include <numeric>
 #include <string>
-#include <cmath>
 
-#include "custom_stack_kernel_arguments.h"
 #include "GenericLauncher.h"
-
+#include "user_defined_stack_kernel_arguments.h"
 
 /* Place here all parameters accepted for this specific launcher. */
 struct Options {
@@ -48,14 +47,11 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
 
   static constexpr const char* short_opts = "k:t:n:d:m:s:h";
 
-  static const std::vector<struct option> long_opts_vect{{"kernel_path", required_argument, nullptr, 'k'},
-                                                         {"kernel_launch_timeout", required_argument, nullptr, 't'},
-                                                         {"num_launches", required_argument, nullptr, 'n'},
-                                                         {"device_type", required_argument, nullptr, 'd'},
-                                                         {"shire_mask", required_argument, nullptr, 'm'},
-                                                         {"help", no_argument, nullptr, 'h'},
-                                                         {"stackSize", required_argument, nullptr, 's'},
-                                                         {nullptr, 0, nullptr, 0}};
+  static const std::vector<struct option> long_opts_vect{
+    {"kernel_path", required_argument, nullptr, 'k'},  {"kernel_launch_timeout", required_argument, nullptr, 't'},
+    {"num_launches", required_argument, nullptr, 'n'}, {"device_type", required_argument, nullptr, 'd'},
+    {"shire_mask", required_argument, nullptr, 'm'},   {"help", no_argument, nullptr, 'h'},
+    {"stackSize", required_argument, nullptr, 's'},    {nullptr, 0, nullptr, 0}};
 
   Options opts;
 
@@ -82,7 +78,7 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
       break;
     case 'h':
       std::cout << help_msg << GenericLauncher::help_msg << std::endl;
-      exit(0);      
+      exit(0);
     case 's':
       opts.stackSize = atol(optarg);
       break;
@@ -98,23 +94,11 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
   return opts;
 }
 
-static constexpr uint32_t numThreads = 64;
-
 // Specific kernel launcher class.
 class StackLauncher : public GenericLauncher {
-public:  
+public:
   StackLauncher() = delete;
   using GenericLauncher::GenericLauncher;
-
-  void performStackAlloc(uint64_t totalStackSize) {
-    ptrStack_ = runtime_->mallocDevice(devices_[devIdx_], totalStackSize, 4096);
-  }
-
-  void freeStackAlloc() {
-    runtime_->freeDevice(devices_[devIdx_], ptrStack_);
-  }
- 
-  std::byte* ptrStack_;
 };
 
 int main(int argc, char** argv) {
@@ -129,27 +113,25 @@ int main(int argc, char** argv) {
   StackLauncher launcher(config, static_cast<int>(argvPendingToParse.size()), argvPendingToParse.data());
   launcher.initialize();
   auto kernelId = launcher.loadKernel(opt.kernel_path);
+  auto [ptrStack, totalStackSize] = launcher.allocDeviceStack(opt.stackSize, opt.shire_mask);
 
-  uint64_t totalStackSize = __builtin_popcount(opt.shire_mask) * numThreads * opt.stackSize;
-  launcher.performStackAlloc(totalStackSize);
   KernelArguments kernelArgs;
-
-  kernelArgs.stackSize = opt.stackSize;  
+  kernelArgs.stackSize = opt.stackSize;
 
   auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
   for (size_t i = 0; i < opt.num_launches; i++) {
-    launcher.kernelLaunch(kernelId, &kernelArgs, launcher.ptrStack_, totalStackSize, 0, opt.shire_mask);    
+    launcher.kernelLaunch(kernelId, &kernelArgs, ptrStack, totalStackSize, 0, opt.shire_mask);
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);
-   
-    if(launcher.checkKernelExecutionErrors()) {
+
+    if (launcher.checkKernelExecutionErrors()) {
       return -1;
     }
   }
 
-  launcher.freeStackAlloc();
-  launcher.unLoadKernel(kernelId); 
+  launcher.freeDeviceStack(ptrStack);
+  launcher.unLoadKernel(kernelId);
   launcher.tearDown();
-  
+
   return 0;
 }

@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
   auto kernelId = launcher.loadKernel(opt.kernel_path);
 
   for (size_t i = 0; i < opt.num_launches; i++) {
-    launcher.kernelLaunch(kernelId, 0, opt.shire_mask);    
+    launcher.kernelLaunch(kernelId, 0, opt.shire_mask);
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);
     launcher.dumpTracesToFile(i);

@@ -162,7 +162,8 @@ int main(int argc, char** argv) {
     kernelArgs.B = (void *)launcher.deviceB_;
     kernelArgs.PH = (void*)launcher.devicePH_;
 
-    launcher.kernelLaunch(kernelId, &kernelArgs, 0, 0x1FFFFFFFF); // shires
+    launcher.kernelLaunch(kernelId, &kernelArgs, /*stack address*/ nullptr, /*stack size*/ 0, /*device Id*/ 0,
+                          /*shire mask*/ 0x1FFFFFFFF);
     launcher.programDev2HostCopies();
     auto timeout = std::chrono::seconds(opt.kernel_launch_timeout);
     launcher.waitKernelCompletion(timeout);

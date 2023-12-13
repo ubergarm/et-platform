@@ -30,6 +30,7 @@ KERNEL_LAUNCHERS = {
     "check_pmc": "basic_launcher",
     "cpp_constructors": "basic_launcher",
     "cpp_tls": "basic_launcher",
+    "user_defined_stack":"stack_launcher",
     "data": "basic_launcher",
     "exception": "basic_launcher",
     "external_tls": "basic_launcher",
@@ -83,7 +84,7 @@ EXTRA_ARGS["check_pmc"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["busy10sec"] = ["--kernel_launch_timeout=12"]
 EXTRA_ARGS["OneTrapOnSync"] = ["--enableCoreDump"]
 EXTRA_ARGS["fftKernel"] = ["--kernel_launch_timeout=60"]
-
+EXTRA_ARGS["user_defined_stack"] = ["--stackSize=8192"]
 # only needed for device_type = sysemu
 EXTRA_ARGS["profiling_stress"] = ["--kernel_launch_timeout=400"]
 EXTRA_ARGS["profiling_simple"] = ["--kernel_launch_timeout=40"]
