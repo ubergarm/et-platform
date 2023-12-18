@@ -8,14 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 ### Added
-- [SW-18213] Use Runtime for generating coredump.
-- [SW-18615] Added SAXPY example with intrinsics (clang11), with new builtins syntax
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
-- [SW-19038] Fix Barrier code bug when synchronizing overlapping groups of threads.
 
+## 1.4.0 (2023/12/18)
+### Added
+- [SW-19548] User-Defined stacks support. (See companion documentation for details).
+- [SW-18213] Use Runtime for generating coredump.
+- [SW-18615] Added SAXPY example with intrinsics (clang11), with new builtins syntax
+### Changed
+- [SW-19209] dt2json -t now shows the actual user strings for string traces
+### Removed
+### Fixed
+- [SW-19038] Fixed Barrier code bug when synchronizing overlapping groups of threads.
+- [SW-19310] Fixed FFT verification
+- [SW-18994] Fixed dt2json Decoding of hidden traces after an aborted sysemu session.
+- [SW-18606] Fixed Device TLS (Thread local storage)  variable debug issues when compiling with clang.
+- [SW-19635] Added -fno-jump-tables compiler option to avoid indirect jumps on large switches.
 
 ## 1.3.0 (2023/09/15)
 ### Added
