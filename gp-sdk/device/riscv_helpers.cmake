@@ -61,8 +61,8 @@ macro(add_etsoc_riscv_executable TARGET_NAME TARGET_SOURCES_LIST)
   
   set(ELF_EXE_LINKER_FLAGS "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH} -Wl,--defsym=BASE_ADDRESS=0")
   set(ELF_EXE_LINKER_FLAGS_DBG "${ELF_EXE_LINKER_FLAGS_BASE} -T ${LINKER_SCRIPT_ABS_PATH} -Wl,--defsym=BASE_ADDRESS=${DEBUG_ADDRESS}")
-
-  target_compile_options(${TARGET_NAME} PRIVATE -falign-functions=64 -O3 -g3 $<$<C_COMPILER_ID:GNU>:-Wstack-usage=4096>)
+  
+  target_compile_options(${TARGET_NAME} PRIVATE -falign-functions=64 -fno-jump-tables  -O3 -g3 $<$<C_COMPILER_ID:GNU>:-Wstack-usage=4096>)
   #baremetal & startup related options.
   target_compile_options(${TARGET_NAME} PRIVATE -fno-exceptions -fno-rtti -fno-unwind-tables  -fno-use-cxa-atexit -fno-threadsafe-statics -ffreestanding)
 
