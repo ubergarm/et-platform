@@ -21,7 +21,7 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:1.4.14
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-18.04-et-sw-develop-stack:1.4.0-4d7d1897ab8fe93764288b67a38ac51a0400cd3a
 # Only run job in these cases:
 # - if it's a tag pipeline
 # - if there is a commit pushed or merged to the default branch (pre-release)
