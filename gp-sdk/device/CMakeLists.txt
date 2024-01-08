@@ -8,7 +8,7 @@
 # agreement/contract under which the program(s) have been supplied.
 #------------------------------------------------------------------------------
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.20)
 
 project(gp-sdk-device VERSION 1.4.0 LANGUAGES C CXX ASM)
 
