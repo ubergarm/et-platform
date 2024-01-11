@@ -12,6 +12,7 @@
 
 ## [0.8.0]
 ### Added
+- [SW-19556] Add tensor profiling instruction
 - [SW-18864] Implement logical and/or/xor operators
 - Upgrading resizenearest implementation from scalar to theading
 - Adapted MaxSplat for clang
