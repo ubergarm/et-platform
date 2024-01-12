@@ -121,6 +121,33 @@ inline __attribute__((always_inline)) void getCoordinates(dim_array_t& coord, si
 }
 
 /**
+ * @brief Advances offset and coordinates by one element.
+ *
+ * This function takes into account the padding that the tensor might have.
+ *
+ * @param[inout] coord Vector that will be updated to the next valid element in the tensor.
+ * @param[inout] offset referring to the position in the tensor accounting padding.
+ * @param[in] dims The "number of dimensions" of the tensor.
+ * @param[in] pitch The vector of pitches of the given tensor.
+ */
+
+inline __attribute__((always_inline)) void advanceOffsetAndCoordinates(dim_array_t& coord, const dim_array_t& dims,
+                                                                       size_t& offset, dim_t dimNum,
+                                                                       const dim_array_t& pitch) {
+  for (int j = dimNum - 1; j >= 0; j--) {
+    if (coord[j] != (dims[j] - 1)) {
+      offset += pitch[j];
+      coord[j]++;
+      break;
+    } else if (j != 0) {
+      // previous iteration was in last element of dimension j, reset that dimension
+      offset -= (dims[j] - 1) * pitch[j];
+      coord[j] = 0;
+    }
+  }
+}
+
+/**
  * @brief Converts an offset in a tensor into its corresponding non-padding-coords.
  *
  * This function takes into account the padding that the tensor might have, and if

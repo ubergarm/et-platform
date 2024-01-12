@@ -4,8 +4,8 @@
 // clang-format off
 
 // File automatically generated with:
-//  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/fgispert/sw-platform/host-software/dnnLibrary/scripts
+//  ./libManager.py --swplatform-root /home/nivard/sw-platform/ --excel libManager.xlsx --cacheState cacheState.xlsx
+//  cwd=/local/home/nivard/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -943,6 +943,18 @@ void fwdLibNonMaxSuppressionInst(LibTensor* out0, LibTensor* out1, LibTensor* in
 // extern template declarations
 extern template void fwdLibNonMaxSuppressionInst<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, LibTensor* in1, const uint64_t CenterPointBox, const uint64_t MaxOutputBoxesPerClass, const float IouThreshold, const float ScoreThreshold, const bool IsTFVersion4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 extern template void fwdLibNonMaxSuppressionInst<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, LibTensor* in1, const uint64_t CenterPointBox, const uint64_t MaxOutputBoxesPerClass, const float IouThreshold, const float ScoreThreshold, const bool IsTFVersion4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+/****************************************************************************
+*  Profile implementations
+****************************************************************************/
+// declarations
+template <ElemKind in0Type>
+void fwdLibProfileInst(LibTensor* out0, LibTensor* in0, const uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0);
+
+// extern template declarations
+extern template void fwdLibProfileInst<FloatTy>(LibTensor* out0, LibTensor* in0, const uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibProfileInst<Float16Ty>(LibTensor* out0, LibTensor* in0, const uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+extern template void fwdLibProfileInst<Int8QTy>(LibTensor* out0, LibTensor* in0, const uint32_t SyncOffset, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
 /****************************************************************************
 *  Quantize implementations
