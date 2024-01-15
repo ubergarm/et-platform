@@ -44,11 +44,18 @@ int entryPoint_0([[ maybe_unused ]] KernelArguments* vectors) {
 }
 
 void busyWait(short unsigned int n) { 
-  auto start = et_get_timestamp();
-  auto elapsed = et_get_delta_timestamp(start);
+  int64_t start = et_get_timestamp();
+  int64_t elapsed = et_get_delta_timestamp(start);
+  while (elapsed < 0) {
+    elapsed = et_get_delta_timestamp(start);
+  }
+
   SCOPED_USER_PROFILE_EVENT(n);
 
   while ((elapsed * static_cast<long double>(CLK_600MHZ_CYCLES_TO_MILISEC)) < n) {
     elapsed = et_get_delta_timestamp(start);
+    while (elapsed < 0) {
+      elapsed = et_get_delta_timestamp(start);
+    }
   }
 }
