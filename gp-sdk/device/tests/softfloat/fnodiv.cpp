@@ -158,54 +158,51 @@ int entryPoint_0([[maybe_unused]] KernelArguments* args) {
 
         expected = 484.0f;
         float res = powf(22,2);
-        et_printf("powf(22,2): %f vs %f", double(res), double(expected));
+        et_printf("powf(22,2): %f vs %f\n", double(res), double(expected));
         et_assert(isEqualWithPrecision(static_cast<double>(res), expected, precision));
 
         expected = 3.091043f;
         res = logf(22);
-        et_printf("logf(22): %f vs %f", double(res), double(expected));
+        et_printf("logf(22): %f vs %f\n", double(res), double(expected));
         et_assert(isEqualWithPrecision(static_cast<double>(res), expected, precision));
 
         res = logf(-1);
-        et_printf("logf(-1): %f vs %s", double(res), "nan");
-#ifndef __clang__ // see [SW-18223]
+        et_printf("logf(-1): %f vs %s\n", double(res), "nan");
         et_assert(std::isnan(res));
-#endif
+
         res = log1pf(0.3f);
         expected = 0.26236f;
-        et_printf("log: %f vs %f", double(res), double(expected));
+        et_printf("log: %f vs %f\n", double(res), double(expected));
         et_assert(isEqualWithPrecision(static_cast<double>(res), expected, precision));
 
         res = log1pf(-2.0f);
-        et_printf("log1pf(-2.0): %f vs %s", double(res), "nan");
+        et_printf("log1pf(-2.0): %f vs %s\n", double(res), "nan");
         et_assert(std::isnan(res));
 
         res = log1pf(-1.0f);
-        et_printf("log1p(-1.0): %f vs %s", double(res), "-inf");
+        et_printf("log1p(-1.0): %f vs %s\n", double(res), "-inf");
         et_assert(std::isinf(res));
 
         expected = 3.091043f;
         auto resf = log(22);
-        et_printf("log(22): %f vs %f", double(resf), double(expected));
+        et_printf("log(22): %f vs %f\n", double(resf), double(expected));
         et_assert(isEqualWithPrecision(static_cast<double>(resf), expected, precision));
 
         resf = log(-1);
-        et_printf("log(-1): %f vs %s", double(resf), "nan");
-#ifndef __clang__ // see [SW-18223]
-       et_assert(std::isnan(resf));
-#endif
+        et_printf("log(-1): %f vs %s\n", double(resf), "nan");
+        et_assert(std::isnan(resf));
 
         resf = log1p(0.3);
         expected = 0.26236f;
-        et_printf("log1p(0.3): %f vs %f", double(resf), double(expected));
+        et_printf("log1p(0.3): %f vs %f\n", double(resf), double(expected));
         et_assert(isEqualWithPrecision(static_cast<double>(resf), expected, precision));
 
         resf = log1p(-2.0);
-        et_printf("log10(-2.0): %f vs %s", double(resf), "nan");
+        et_printf("log10(-2.0): %f vs %s\n", double(resf), "nan");
         et_assert(std::isnan(resf));
 
         resf = log1p(-1.0);
-        et_printf("log1p(-1.0): %f vs %s", double(resf), "-inf");
+        et_printf("log1p(-1.0): %f vs %s\n", double(resf), "-inf");
         et_assert(std::isinf(resf));
     }
 

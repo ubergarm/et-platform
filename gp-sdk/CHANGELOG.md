@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 ### Removed
 ### Fixed
+- [SW-18223] Fixed log and logf of negative numbers
 
 ## 1.4.0 (2023/12/18)
 ### Added

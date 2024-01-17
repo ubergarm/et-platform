@@ -70,6 +70,7 @@ double __wrap_log(double x)
 	    /* log(x<0) */
 	    // errno = EDOM; disabled error management due to difficulties with function pointers in et-soc-1
         SET_FLOAT_WORD(x,0x7fc00000); // nan
+        return x;
         }
 #endif
 }
