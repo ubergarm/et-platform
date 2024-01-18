@@ -1,6 +1,8 @@
 #ifndef EXHAUSTIVE_CAST_ARGUMENTS_H
 #define EXHAUSTIVE_CAST_ARGUMENTS_H
+#ifndef EXHAUSTIVE_CAST_VERIFICATION
 #define EXHAUSTIVE_CAST_VERIFICATION
+#endif
 
 /*-------------------------------------------------------------------------
  * Copyright (C) 2022, Esperanto Technologies Inc.

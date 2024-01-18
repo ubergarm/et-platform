@@ -89,7 +89,7 @@ Options parse_args(int argc, char* const* argv, std::vector<char*>& nextlevel) {
   return opts;
 }
 
-// Specific kernel lancuher class.
+// Specific kernel launcher class.
 class exhaustive_cast : public GenericLauncher {
 public:
   exhaustive_cast() = delete;
@@ -99,18 +99,18 @@ public:
     std::minstd_rand simple_rand;
     simple_rand.seed(0);
     switch (cast_type) {
-    case floatToInt64_t:  // Float to int64_t
-    case floatToUint64_t: // Float to uint64_t
-    case floatToInt32_t:  // Float to int32_t
-    case floatToUint32_t: // Float to uint32_t
+    case floatToInt64_t:               // Float to int64_t
+    case floatToUint64_t:              // Float to uint64_t
+    case floatToInt32_t:               // Float to int32_t
+    case floatToUint32_t:              // Float to uint32_t
       devIn_.a[0] = 0.52F;
       devIn_.a[1] = 123456789.987654F; // May lose precision
       devIn_.a[2] = 123.4567F;         // Rounded Float
       devIn_.a[3] = 0.0F;              // Zero Float
-      // devIn_.a[4] = 0.0/0.0;                           //Not a Number Float
-      // devIn_.a[5] = 1.0/0;                             //Positive Infinity Float
-      // devIn_.a[6] = -1.0/0;                            //Negative Infinity Float
-      for (int i = 4; i < numElements; i++) {
+      devIn_.a[4] = 0.0/0.0;           // Not a Number Float
+      devIn_.a[5] = 1.0/0;             // Positive Infinity Float
+      devIn_.a[6] = -1.0/0;            // Negative Infinity Float
+      for (int i = 7; i < numElements; i++) {
         devIn_.a[i] = (float)numElements / ((float)simple_rand());
       }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
@@ -196,27 +196,73 @@ public:
     runtime_->freeDevice(devices_[devIdx_], deviceOut_);
   }
 #ifdef EXHAUSTIVE_CAST_VERIFICATION
-  bool cmpUint64_t(const uint64_t* a, const uint64_t* b) const {
+  bool cmpInt64_t(const int64_t* dev, const int64_t* host, const float* in) const {
     for (uint64_t i = 0; i < numElements; i++) {
-      if (a[i] != b[i]) {
+      /* Handle NaN and inf as host (x86) generates 0x8000000000000000 when NaN or inf is casted to int64_t */
+      if ((std::isnan(in[i]) || std::isinf(in[i]) && in[i] > 0) && dev[i] == 0x7FFFFFFF) {
+        continue;
+      }
+      /* Handle -inf as host (x86) generates 0x8000000000000000 when -inf is casted to int64_t */
+      if ((std::isinf(in[i]) && in[i] < 0) && dev[i] == 0xffffffff80000000) {
+        continue;
+      }
+      if (dev[i] != host[i]) {
         return false;
       }
     }
     return true;
   }
 
-  bool cmpUint32_t(const uint32_t* a, const uint32_t* b) const {
+  bool cmpUint64_t(const uint64_t* dev, const uint64_t* host, const float* in) const {
     for (uint64_t i = 0; i < numElements; i++) {
-      if (a[i] != b[i]) {
+      /* Handle NaN as host (x86) generates 0x8000000000000000 when NaN is casted to uint64_t */
+      if ((std::isnan(in[i])) && dev[i] == 0xffffffffffffffff) {
+        continue;
+      }
+      /* Handle inf as host (x86) generates 0x0 when inf is casted to uint64_t */
+      if ((std::isinf(in[i]) && in[i] > 0) && dev[i] == 0xffffffffffffffff) {
+        continue;
+      }
+      /* Handle -inf as host (x86) generates 0x8000000000000000 when -inf is casted to uint64_t */
+      if ((std::isinf(in[i]) && in[i] < 0) && dev[i] == 0x0) {
+        continue;
+      }
+      if (dev[i] != host[i]) {
         return false;
       }
     }
     return true;
   }
 
-  bool cmpFloat(const float* a, const float* b) const {
+  bool cmpInt32_t(const int32_t* dev, const int32_t* host, const float* in) const {
     for (uint64_t i = 0; i < numElements; i++) {
-      if (a[i] != b[i]) {
+      /* Handle NaN and inf as host (x86) generates 0x80000000 when NaN or inf is casted to int32_t */
+      if ((std::isnan(in[i]) || std::isinf(in[i]) && in[i] > 0) && dev[i] == 0x7FFFFFFF) {
+        continue;
+      }
+      if (dev[i] != host[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool cmpUint32_t(const uint32_t* dev, const uint32_t* host, const float* in) const {
+    for (uint64_t i = 0; i < numElements; i++) {
+      /* Handle NaN and inf as host (x86) generates 0x0 when NaN or inf is casted to uint32_t */
+      if ((std::isnan(in[i]) || std::isinf(in[i]) && in[i] > 0) && dev[i] == 0xFFFFFFFF && host[i] == 0x0) {
+        continue;
+      }
+      if (dev[i] != host[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool cmpFloat(const float* dev, const float* host) const {
+    for (uint64_t i = 0; i < numElements; i++) {
+      if (dev[i] != host[i]) {
         return false;
       }
     }
@@ -284,19 +330,19 @@ public:
     switch (cast_type) {
     case floatToInt64_t: // Float to int64_t
       floatToInt64();
-      ret = cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
+      ret = cmpInt64_t((int64_t*)&devOut_, (int64_t*)&hostOut_, (float*)&devIn_);
       break;
     case floatToUint64_t: // Float to uint64_t
       floatToUint64();
-      ret = cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_);
+      ret = cmpUint64_t((uint64_t*)&devOut_, (uint64_t*)&hostOut_, (float*)&devIn_);
       break;
     case floatToInt32_t: // Float to int32_t
       floatToInt32();
-      ret = cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
+      ret = cmpInt32_t((int32_t*)&devOut_, (int32_t*)&hostOut_, (float*)&devIn_);
       break;
     case floatToUint32_t: // Float to uint32_t
       floatToUint32();
-      ret = cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_);
+      ret = cmpUint32_t((uint32_t*)&devOut_, (uint32_t*)&hostOut_, (float*)&devIn_);
       break;
     case int64_tToFloat: // int64_t to float
       int64ToFloat();
