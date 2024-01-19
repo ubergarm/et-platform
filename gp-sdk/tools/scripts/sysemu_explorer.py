@@ -61,9 +61,8 @@ def getAddr2line(addr_dict: dict, elf: Path, opt: str):
         addr_dict[k] = [r, code]
 
 def parseSysemuLog(filepath: Path, hartid: int):
-# def parseSysemuLog(filepath, hartid):
-    pattern = r'DEBUG EMU: \[H' + str(hartid) + '.*I\(U\): (?P<addr>0x[0-9a-f]*) (?P<instrhex>\(0x[0-9a-f]*\)) (?P<instr>.* .*)' 
     
+    pattern = r'DEBUG EMU: \[H' + str(hartid) + '\\b' + '.*I\(U\): (?P<addr>0x[0-9a-f]*) (?P<instrhex>\(0x[0-9a-f]*\)) (?P<instr>.* .*)' 
     with open(filepath, 'r') as f:
       log = f.read()
 
