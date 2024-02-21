@@ -339,15 +339,17 @@ void GenericLauncher::doKernelLaunch(rt::KernelId kernelId, std::byte* params, s
                                      size_t stackSize, uint64_t shireMask, uint32_t deviceIdx) {
   rt::KernelLaunchOptions kOpts;
   std::string coreFileName;
+  std::filesystem::path cwd;
 
   if (enableCoreDump_) {
     coreFileName = "core." + std::to_string(getpid()) + ".etsoc." + std::to_string((int)kernelId) + "." +
                    std::to_string((int)deviceIdx);
+    cwd = std::filesystem::current_path() / coreFileName;
   }
   kOpts.setShireMask(shireMask);
   kOpts.setBarrier(true);
   kOpts.setFlushL3(false);
-  kOpts.setCoreDumpFilePath(coreFileName);
+  kOpts.setCoreDumpFilePath(cwd.string());
   if (enableKernelTraces) {
     kOpts.setUserTracing(reinterpret_cast<uint64_t>(traceDeviceBuffer_[deviceIdx]), kTraceBufferSize, 0, shireMask,
                          getTraceThreadMask(), TRACE_EVENT_ENABLE_ALL, TRACE_FILTER_ENABLE_ALL);

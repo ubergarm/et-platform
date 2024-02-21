@@ -354,8 +354,13 @@ def validate_core_dump(file_path):
             contents = file.readlines()
 
             # Check if the lines with incremental numbers exist in the file
+            line_to_check = ""
             for num in range(1, 1024):
-                line_to_check = f"*{num}*LWP*{num * 2} *"  # Generate the line pattern to match
+                # Generate the line pattern to match
+                if num != 1:
+                    line_to_check = f"*{num}*LWP*{(num-1) * 2} *"
+                else:
+                    line_to_check = f"*{num}*process*{num} *"
                 line_found = False
                 for line in contents:
                     # Skip lines that don't match the expected format
@@ -503,10 +508,10 @@ def test_gdb_coredump_silicon(kernel_info, request, build_dir, shell, gdb):
     if request.config.getoption("--gdb-custom"):
         logging.info("Waiting for gdb connection")
     else:
-        coredump_file = find_coredump_file(Path(str(build_dir.host / "../../../")))
+        coredump_file = find_coredump_file(Path(os.getcwd()))
         gdb_cmd = " ".join([f"""riscv64-unknown-elf-gdb -batch -ex "set logging enabled on" -ex "info threads" -ex "set logging enabled off" -ex "quit" {str(build_dir.device / f"tests/{kernel_info[0]}.elf_dbg") + " " + coredump_file[0] + f" > {kernel_info[0]}.txt"}""",])
         shell.run(gdb_cmd)
-        gdb_log_files = glob.glob(str(build_dir.host / f"../../test_gdb_coredump*/{kernel_info[0]}.txt"))
+        gdb_log_files = glob.glob(str(f"{os.getcwd()}/{kernel_info[0]}.txt"))
         for file in gdb_log_files:
             result = validate_core_dump(file)
             assert result == True, "Core dump file not matched"
