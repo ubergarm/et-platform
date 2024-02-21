@@ -46,6 +46,8 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CopyInstTensorized.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CrossEntropyLossInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/CumSumInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Dequantize4BitsColumnBlocksInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/Dequantize8BitsColumnBlocksInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/DequantizeInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/DenoiseMasks.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxSplatInst.h
