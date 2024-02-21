@@ -27,6 +27,8 @@
 #include "CopyInst.h"
 #include "CrossEntropyLossInst.h"
 #include "CumSumInst.h"
+#include "Dequantize4BitsColumnBlocksInst.h"
+#include "Dequantize8BitsColumnBlocksInst.h"
 #include "DequantizeInst.h"
 #include "ElementBinaryInst.h"
 #include "ElementBoolInst.h"
