@@ -79,15 +79,28 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInst(LibTensor* outT, LibTenso
   }
   numElemsPerBlock = nextPowerOf2;
 
+  // Interleave:
+  dim_array_t inStrides = inT->strides();
+  dim_array_t outStrides = outT->strides();
+  dim_t interleaveFactor = outStrides[1];
+  et_assert(inStrides[1] == interleaveFactor);
+  et_assert(numElemsPerBlock % interleaveFactor == 0);
+  numRows = (numRows + interleaveFactor - 1) / interleaveFactor;
+  numCols *= interleaveFactor;
+  inStrides[1] /= interleaveFactor;
+  outStrides[1] /= interleaveFactor;
+
   for (dim_t dstRow = 0; dstRow < numRows; ++dstRow) {
     for (dim_t dstCol = 0; dstCol < numCols; ++dstCol) {
       // Compute coordinates in tensors.
       std::array<dim_t, 2> matrixCoord = {dstRow, dstCol};
-      dim_t blockIdx = (numBlocksPerCol * dstCol) + (dstRow / numElemsPerBlock);
+      dim_t blockIdx =
+        (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
       std::array<dim_t, 1> vectorCoord = {blockIdx};
       // Compute dequantization: all intermediate computations in fpType.
-      outH.at(matrixCoord) = (static_cast<fpType>(inH.at(matrixCoord)) - static_cast<fpType>(offsetH.at(vectorCoord))) *
-                             scaleH.at(vectorCoord);
+      outH.at(matrixCoord, outStrides, 1) =
+        (static_cast<fpType>(inH.at(matrixCoord, inStrides, 1)) - static_cast<fpType>(offsetH.at(vectorCoord))) *
+        scaleH.at(vectorCoord);
     }
   }
 
@@ -151,10 +164,24 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInstThreaded(LibTensor* outT, 
   }
   numElemsPerBlock = nextPowerOf2;
 
+  // Interleave:
+  dim_array_t inStrides = inT->strides();
+  dim_array_t outStrides = outT->strides();
+  dim_array_t outDims = outT->dims();
+  dim_t interleaveFactor = outStrides[1];
+  et_assert(inStrides[1] == interleaveFactor);
+  et_assert(numElemsPerBlock % interleaveFactor == 0);
+  numRows = (numRows + interleaveFactor - 1) / interleaveFactor;
+  numCols *= interleaveFactor;
+  outDims[0] = numRows;
+  outDims[1] = numCols;
+  inStrides[1] /= interleaveFactor;
+  outStrides[1] /= interleaveFactor;
+
   // Raw parameters for the output tensor:
   void* dstT = outT->getRawDataPointer();
-  const dim_t* dstPitch = outT->strides().data();
-  const dim_t* dstDims = outT->dims().data();
+  const dim_t* dstPitch = outStrides.data();
+  const dim_t* dstDims = outDims.data();
   size_t numDims = 2;
   size_t numElemsDst = dstPitch[0] * numRows; // Total number of elements in the tensor
 
@@ -188,11 +215,12 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInstThreaded(LibTensor* outT, 
     dim_t dstRow = coord[0];
     dim_t dstCol = coord[1];
     std::array<dim_t, 2> matrixCoord = {dstRow, dstCol};
-    dim_t blockIdx = (numBlocksPerCol * dstCol) + (dstRow / numElemsPerBlock);
+    dim_t blockIdx = (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
     std::array<dim_t, 1> vectorCoord = {blockIdx};
     // Compute dequantization: all intermediate computations in fpType.
-    outH.at(matrixCoord) = (static_cast<fpType>(inH.at(matrixCoord)) - static_cast<fpType>(offsetH.at(vectorCoord))) *
-                           scaleH.at(vectorCoord);
+    outH.at(matrixCoord, outStrides, 1) =
+      (static_cast<fpType>(inH.at(matrixCoord, inStrides, 1)) - static_cast<fpType>(offsetH.at(vectorCoord))) *
+      scaleH.at(vectorCoord);
     // Prepare next iteration (if any).
     done = getOffsets(numDims, coord, offsetOut, dstDims, dstPitch) or (offsetOut >= posMax);
   }
