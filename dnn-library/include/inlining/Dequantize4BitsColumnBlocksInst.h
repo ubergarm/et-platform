@@ -102,26 +102,38 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInst(LibTensor* outT, LibTenso
       std::array<dim_t, 1> offsetByteCoord = {blockIdx / 2};
       // Extract operands from the tensors.
       uint8_t quantizedPack = inH.at(inByteCoord, inStrides, 1);
-      fpType quantizedElement;
+      float quantizedElement;
       if (dstCol % 2 == 0) {
         // Lower half of the byte.
-        quantizedElement = static_cast<fpType>(quantizedPack & 0x0F);
+        quantizedElement = static_cast<float>(quantizedPack & 0x0F);
       } else {
         // Higher half of the byte.
-        quantizedElement = static_cast<fpType>(quantizedPack >> 4);
+        quantizedElement = static_cast<float>(quantizedPack >> 4);
       }
       uint8_t offsetPack = offsetH.at(offsetByteCoord);
-      fpType offset;
+      float offset;
       if (blockIdx % 2 == 0) {
         // Lower half of the byte.
-        offset = static_cast<fpType>(offsetPack & 0x0F);
+        offset = static_cast<float>(offsetPack & 0x0F);
       } else {
         // Higher half of the byte.
-        offset = static_cast<fpType>(offsetPack >> 4);
+        offset = static_cast<float>(offsetPack >> 4);
       }
-      fpType scale = scaleH.at(scaleCoord);
-      // Compute dequantization: all intermediate computations in fpType.
-      outH.at(outCoord, outStrides, 1) = (quantizedElement - offset) * scale;
+      float scale;
+      if constexpr (dstElK == Float16Ty) {
+        convertFp16ToFp32(scaleH.at(scaleCoord), scale);
+      } else {
+        static_assert(dstElK == FloatTy);
+        scale = scaleH.at(scaleCoord);
+      }
+      // Compute dequantization: all intermediate computations in float.
+      float dequantizedElement = (quantizedElement - offset) * scale;
+      if constexpr (dstElK == Float16Ty) {
+        convertFp32ToFp16(dequantizedElement, outH.at(outCoord, outStrides, 1));
+      } else {
+        static_assert(dstElK == FloatTy);
+        outH.at(outCoord, outStrides, 1) = dequantizedElement;
+      }
     }
   }
 
@@ -243,26 +255,38 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInstThreaded(LibTensor* outT, 
     std::array<dim_t, 1> offsetByteCoord = {blockIdx / 2};
     // Extract operands from the tensors.
     uint8_t quantizedPack = inH.at(inByteCoord, inStrides, 1);
-    fpType quantizedElement;
+    float quantizedElement;
     if (dstCol % 2 == 0) {
       // Lower half of the byte.
-      quantizedElement = static_cast<fpType>(quantizedPack & 0x0F);
+      quantizedElement = static_cast<float>(quantizedPack & 0x0F);
     } else {
       // Higher half of the byte.
-      quantizedElement = static_cast<fpType>(quantizedPack >> 4);
+      quantizedElement = static_cast<float>(quantizedPack >> 4);
     }
     uint8_t offsetPack = offsetH.at(offsetByteCoord);
-    fpType offset;
+    float offset;
     if (blockIdx % 2 == 0) {
       // Lower half of the byte.
-      offset = static_cast<fpType>(offsetPack & 0x0F);
+      offset = static_cast<float>(offsetPack & 0x0F);
     } else {
       // Higher half of the byte.
-      offset = static_cast<fpType>(offsetPack >> 4);
+      offset = static_cast<float>(offsetPack >> 4);
     }
-    fpType scale = scaleH.at(scaleCoord);
-    // Compute dequantization: all intermediate computations in fpType.
-    outH.at(outCoord, outStrides, 1) = (quantizedElement - offset) * scale;
+    float scale;
+    if constexpr (dstElK == Float16Ty) {
+      convertFp16ToFp32(scaleH.at(scaleCoord), scale);
+    } else {
+      static_assert(dstElK == FloatTy);
+      scale = scaleH.at(scaleCoord);
+    }
+    // Compute dequantization: all intermediate computations in float.
+    float dequantizedElement = (quantizedElement - offset) * scale;
+    if constexpr (dstElK == Float16Ty) {
+      convertFp32ToFp16(dequantizedElement, outH.at(outCoord, outStrides, 1));
+    } else {
+      static_assert(dstElK == FloatTy);
+      outH.at(outCoord, outStrides, 1) = dequantizedElement;
+    }
     // Prepare next iteration (if any).
     done = getOffsets(numDims, coord, offsetOut, dstDims, dstPitch) or (offsetOut >= posMax);
   }
