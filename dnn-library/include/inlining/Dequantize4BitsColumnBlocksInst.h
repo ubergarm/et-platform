@@ -80,36 +80,60 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInst(LibTensor* outT, LibTenso
   }
   numElemsPerBlock = nextPowerOf2;
 
+  // Interleave:
+  dim_array_t inStrides = inT->strides();
+  dim_array_t outStrides = outT->strides();
+  dim_t interleaveFactor = outStrides[1];
+  et_assert(inStrides[1] == interleaveFactor);
+  et_assert(numElemsPerBlock % interleaveFactor == 0);
+  numRows = (numRows + interleaveFactor - 1) / interleaveFactor;
+  numCols *= interleaveFactor;
+  inStrides[1] /= interleaveFactor;
+  outStrides[1] /= interleaveFactor;
+
   for (dim_t dstRow = 0; dstRow < numRows; ++dstRow) {
     for (dim_t dstCol = 0; dstCol < numCols; ++dstCol) {
       // Compute coordinates in tensors.
       std::array<dim_t, 2> outCoord = {dstRow, dstCol};
       std::array<dim_t, 2> inByteCoord = {dstRow, dstCol / 2};
-      dim_t blockIdx = (numBlocksPerCol * dstCol) + (dstRow / numElemsPerBlock);
+      dim_t blockIdx =
+        (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
       std::array<dim_t, 1> scaleCoord = {blockIdx};
       std::array<dim_t, 1> offsetByteCoord = {blockIdx / 2};
       // Extract operands from the tensors.
-      uint8_t quantizedPack = inH.at(inByteCoord);
-      fpType quantizedElement;
+      uint8_t quantizedPack = inH.at(inByteCoord, inStrides, 1);
+      float quantizedElement;
       if (dstCol % 2 == 0) {
         // Lower half of the byte.
-        quantizedElement = static_cast<fpType>(quantizedPack & 0x0F);
+        quantizedElement = static_cast<float>(quantizedPack & 0x0F);
       } else {
         // Higher half of the byte.
-        quantizedElement = static_cast<fpType>(quantizedPack >> 4);
+        quantizedElement = static_cast<float>(quantizedPack >> 4);
       }
       uint8_t offsetPack = offsetH.at(offsetByteCoord);
-      fpType offset;
+      float offset;
       if (blockIdx % 2 == 0) {
         // Lower half of the byte.
-        offset = static_cast<fpType>(offsetPack & 0x0F);
+        offset = static_cast<float>(offsetPack & 0x0F);
       } else {
         // Higher half of the byte.
-        offset = static_cast<fpType>(offsetPack >> 4);
+        offset = static_cast<float>(offsetPack >> 4);
       }
-      fpType scale = scaleH.at(scaleCoord);
-      // Compute dequantization: all intermediate computations in fpType.
-      outH.at(outCoord) = (quantizedElement - offset) * scale;
+      float scale;
+      if constexpr (dstElK == Float16Ty) {
+        convertFp16ToFp32(scaleH.at(scaleCoord), scale);
+      } else {
+        static_assert(dstElK == FloatTy);
+        scale = scaleH.at(scaleCoord);
+      }
+      // Compute dequantization: all intermediate computations in float.
+      float dequantizedElement = (quantizedElement - offset) * scale;
+      if constexpr (dstElK == Float16Ty) {
+        convertFp32ToFp16(dequantizedElement, outH.at(outCoord, outStrides, 1));
+      } else {
+        static_assert(dstElK == FloatTy);
+        outH.at(outCoord, outStrides, 1) = dequantizedElement;
+      }
     }
   }
 
@@ -174,10 +198,24 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInstThreaded(LibTensor* outT, 
   }
   numElemsPerBlock = nextPowerOf2;
 
+  // Interleave:
+  dim_array_t inStrides = inT->strides();
+  dim_array_t outStrides = outT->strides();
+  dim_array_t outDims = outT->dims();
+  dim_t interleaveFactor = outStrides[1];
+  et_assert(inStrides[1] == interleaveFactor);
+  et_assert(numElemsPerBlock % interleaveFactor == 0);
+  numRows = (numRows + interleaveFactor - 1) / interleaveFactor;
+  numCols *= interleaveFactor;
+  outDims[0] = numRows;
+  outDims[1] = numCols;
+  inStrides[1] /= interleaveFactor;
+  outStrides[1] /= interleaveFactor;
+
   // Raw parameters for the output tensor:
   void* dstT = outT->getRawDataPointer();
-  const dim_t* dstPitch = outT->strides().data();
-  const dim_t* dstDims = outT->dims().data();
+  const dim_t* dstPitch = outStrides.data();
+  const dim_t* dstDims = outDims.data();
   size_t numDims = 2;
   size_t numElemsDst = dstPitch[0] * numRows; // Total number of elements in the tensor
 
@@ -212,31 +250,43 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInstThreaded(LibTensor* outT, 
     dim_t dstCol = coord[1];
     std::array<dim_t, 2> outCoord = {dstRow, dstCol};
     std::array<dim_t, 2> inByteCoord = {dstRow, dstCol / 2};
-    dim_t blockIdx = (numBlocksPerCol * dstCol) + (dstRow / numElemsPerBlock);
+    dim_t blockIdx = (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
     std::array<dim_t, 1> scaleCoord = {blockIdx};
     std::array<dim_t, 1> offsetByteCoord = {blockIdx / 2};
     // Extract operands from the tensors.
-    uint8_t quantizedPack = inH.at(inByteCoord);
-    fpType quantizedElement;
+    uint8_t quantizedPack = inH.at(inByteCoord, inStrides, 1);
+    float quantizedElement;
     if (dstCol % 2 == 0) {
       // Lower half of the byte.
-      quantizedElement = static_cast<fpType>(quantizedPack & 0x0F);
+      quantizedElement = static_cast<float>(quantizedPack & 0x0F);
     } else {
       // Higher half of the byte.
-      quantizedElement = static_cast<fpType>(quantizedPack >> 4);
+      quantizedElement = static_cast<float>(quantizedPack >> 4);
     }
     uint8_t offsetPack = offsetH.at(offsetByteCoord);
-    fpType offset;
+    float offset;
     if (blockIdx % 2 == 0) {
       // Lower half of the byte.
-      offset = static_cast<fpType>(offsetPack & 0x0F);
+      offset = static_cast<float>(offsetPack & 0x0F);
     } else {
       // Higher half of the byte.
-      offset = static_cast<fpType>(offsetPack >> 4);
+      offset = static_cast<float>(offsetPack >> 4);
     }
-    fpType scale = scaleH.at(scaleCoord);
-    // Compute dequantization: all intermediate computations in fpType.
-    outH.at(outCoord) = (quantizedElement - offset) * scale;
+    float scale;
+    if constexpr (dstElK == Float16Ty) {
+      convertFp16ToFp32(scaleH.at(scaleCoord), scale);
+    } else {
+      static_assert(dstElK == FloatTy);
+      scale = scaleH.at(scaleCoord);
+    }
+    // Compute dequantization: all intermediate computations in float.
+    float dequantizedElement = (quantizedElement - offset) * scale;
+    if constexpr (dstElK == Float16Ty) {
+      convertFp32ToFp16(dequantizedElement, outH.at(outCoord, outStrides, 1));
+    } else {
+      static_assert(dstElK == FloatTy);
+      outH.at(outCoord, outStrides, 1) = dequantizedElement;
+    }
     // Prepare next iteration (if any).
     done = getOffsets(numDims, coord, offsetOut, dstDims, dstPitch) or (offsetOut >= posMax);
   }
