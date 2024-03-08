@@ -276,7 +276,10 @@ static inline uint64_t getTimestampNs() {
 template <typename T> auto rebaseFunction(T fnc) -> decltype(fnc) {
    /* Linker script label pointing to the runtime text init */
   extern const uint32_t _text_init_start;
-  return (decltype(fnc))((uint64_t)fnc + (uint64_t) &_text_init_start);
+  if ((uint64_t)fnc < 0x8005b35000)   //  TODO: SW-20383 Adopt the new host-runtime
+    return (decltype(fnc))((uint64_t)fnc  + (uint64_t) &_text_init_start);
+  else
+    return (decltype(fnc))(uint64_t)fnc;
 }
 
 
