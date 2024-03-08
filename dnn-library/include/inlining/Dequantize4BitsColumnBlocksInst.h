@@ -41,8 +41,8 @@ namespace inlining {
  * @tparam dstElK The floating-point type of the elements in the output tensor.
  * @param[out] outT LibTensor pointer to the output matrix.
  * @param[in] inT LibTensor pointer to the input matrix.
- * @param[in] scaleT LibTensor pointer to the vector of scales.
- * @param[in] offsetT LibTensor pointer to the vector of offsets.
+ * @param[in] scaleT LibTensor pointer to the matrix of scales.
+ * @param[in] offsetT LibTensor pointer to the matrix of offsets.
  * @param[in] flags Controls the active shires and the type of evict that
  * should be done at the end of the function.
  */
@@ -71,7 +71,7 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInst(LibTensor* outT, LibTenso
   et_assert(outT->ndims() == 2);
   dim_t numRows = outT->dims()[0];
   dim_t numCols = outT->dims()[1];
-  dim_t numBlocksPerCol = scaleT->dims()[0] / numCols;
+  dim_t numBlocksPerCol = scaleT->dims()[0];
   // numElemsPerBlock = [ first power of 2 that is >= numRows/numBlocksPerCol ].
   dim_t numElemsPerBlock = (numRows + numBlocksPerCol - 1) / numBlocksPerCol;
   dim_t nextPowerOf2 = 1;
@@ -96,10 +96,10 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInst(LibTensor* outT, LibTenso
       // Compute coordinates in tensors.
       std::array<dim_t, 2> outCoord = {dstRow, dstCol};
       std::array<dim_t, 2> inByteCoord = {dstRow, dstCol / 2};
-      dim_t blockIdx =
-        (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
-      std::array<dim_t, 1> scaleCoord = {blockIdx};
-      std::array<dim_t, 1> offsetByteCoord = {blockIdx / 2};
+      dim_t blockRow = (dstRow * interleaveFactor) / numElemsPerBlock;
+      dim_t blockCol = dstCol / interleaveFactor;
+      std::array<dim_t, 2> scaleCoord = {blockRow, blockCol};
+      std::array<dim_t, 2> offsetByteCoord = {blockRow, blockCol / 2};
       // Extract operands from the tensors.
       uint8_t quantizedPack = inH.at(inByteCoord, inStrides, 1);
       float quantizedElement;
@@ -112,7 +112,7 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInst(LibTensor* outT, LibTenso
       }
       uint8_t offsetPack = offsetH.at(offsetByteCoord);
       float offset;
-      if (blockIdx % 2 == 0) {
+      if (blockCol % 2 == 0) {
         // Lower half of the byte.
         offset = static_cast<float>(offsetPack & 0x0F);
       } else {
@@ -155,8 +155,8 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInst(LibTensor* outT, LibTenso
  * @tparam dstElK The floating-point type of the elements in the output tensor.
  * @param[out] outT LibTensor pointer to the output matrix.
  * @param[in] inT LibTensor pointer to the input matrix.
- * @param[in] scaleT LibTensor pointer to the vector of scales.
- * @param[in] offsetT LibTensor pointer to the vector of offsets.
+ * @param[in] scaleT LibTensor pointer to the matrix of scales.
+ * @param[in] offsetT LibTensor pointer to the matrix of offsets.
  * @param[in] flags Controls the active shires and the type of evict that
  * should be done at the end of the function.
  */
@@ -189,7 +189,7 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInstThreaded(LibTensor* outT, 
   et_assert(outT->ndims() == 2);
   dim_t numRows = outT->dims()[0];
   dim_t numCols = outT->dims()[1];
-  dim_t numBlocksPerCol = scaleT->dims()[0] / numCols;
+  dim_t numBlocksPerCol = scaleT->dims()[0];
   // numElemsPerBlock = [ first power of 2 that is >= numRows/numBlocksPerCol ].
   dim_t numElemsPerBlock = (numRows + numBlocksPerCol - 1) / numBlocksPerCol;
   dim_t nextPowerOf2 = 1;
@@ -250,9 +250,10 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInstThreaded(LibTensor* outT, 
     dim_t dstCol = coord[1];
     std::array<dim_t, 2> outCoord = {dstRow, dstCol};
     std::array<dim_t, 2> inByteCoord = {dstRow, dstCol / 2};
-    dim_t blockIdx = (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
-    std::array<dim_t, 1> scaleCoord = {blockIdx};
-    std::array<dim_t, 1> offsetByteCoord = {blockIdx / 2};
+    dim_t blockRow = (dstRow * interleaveFactor) / numElemsPerBlock;
+    dim_t blockCol = dstCol / interleaveFactor;
+    std::array<dim_t, 2> scaleCoord = {blockRow, blockCol};
+    std::array<dim_t, 2> offsetByteCoord = {blockRow, blockCol / 2};
     // Extract operands from the tensors.
     uint8_t quantizedPack = inH.at(inByteCoord, inStrides, 1);
     float quantizedElement;
@@ -265,7 +266,7 @@ INLINE_ATTR void fwdLibDequantize4BitsColumnBlocksInstThreaded(LibTensor* outT, 
     }
     uint8_t offsetPack = offsetH.at(offsetByteCoord);
     float offset;
-    if (blockIdx % 2 == 0) {
+    if (blockCol % 2 == 0) {
       // Lower half of the byte.
       offset = static_cast<float>(offsetPack & 0x0F);
     } else {
