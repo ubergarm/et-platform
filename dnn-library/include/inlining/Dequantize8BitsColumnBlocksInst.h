@@ -40,8 +40,8 @@ namespace inlining {
  * @tparam dstElK The floating-point type of the elements in the output tensor.
  * @param[out] outT LibTensor pointer to the output matrix.
  * @param[in] inT LibTensor pointer to the input matrix.
- * @param[in] scaleT LibTensor pointer to the vector of scales.
- * @param[in] offsetT LibTensor pointer to the vector of offsets.
+ * @param[in] scaleT LibTensor pointer to the matrix of scales.
+ * @param[in] offsetT LibTensor pointer to the matrix of offsets.
  * @param[in] flags Controls the active shires and the type of evict that
  * should be done at the end of the function.
  */
@@ -70,7 +70,7 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInst(LibTensor* outT, LibTenso
   et_assert(outT->ndims() == 2);
   dim_t numRows = outT->dims()[0];
   dim_t numCols = outT->dims()[1];
-  dim_t numBlocksPerCol = scaleT->dims()[0] / numCols;
+  dim_t numBlocksPerCol = scaleT->dims()[0];
   // numElemsPerBlock = [ first power of 2 that is >= numRows/numBlocksPerCol ].
   dim_t numElemsPerBlock = (numRows + numBlocksPerCol - 1) / numBlocksPerCol;
   dim_t nextPowerOf2 = 1;
@@ -94,18 +94,16 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInst(LibTensor* outT, LibTenso
     for (dim_t dstCol = 0; dstCol < numCols; ++dstCol) {
       // Compute coordinates in tensors.
       std::array<dim_t, 2> matrixCoord = {dstRow, dstCol};
-      dim_t blockIdx =
-        (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
-      std::array<dim_t, 1> vectorCoord = {blockIdx};
+      std::array<dim_t, 2> blockCoord = {(dstRow * interleaveFactor) / numElemsPerBlock, dstCol / interleaveFactor};
       // Compute dequantization: all intermediate computations in float.
       auto quantizedElement = static_cast<float>(inH.at(matrixCoord, inStrides, 1));
-      auto offset = static_cast<float>(offsetH.at(vectorCoord));
+      auto offset = static_cast<float>(offsetH.at(blockCoord));
       float scale;
       if constexpr (dstElK == Float16Ty) {
-        convertFp16ToFp32(scaleH.at(vectorCoord), scale);
+        convertFp16ToFp32(scaleH.at(blockCoord), scale);
       } else {
         static_assert(dstElK == FloatTy);
-        scale = scaleH.at(vectorCoord);
+        scale = scaleH.at(blockCoord);
       }
       float dequantizedElement = (quantizedElement - offset) * scale;
       if constexpr (dstElK == Float16Ty) {
@@ -134,8 +132,8 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInst(LibTensor* outT, LibTenso
  * @tparam dstElK The floating-point type of the elements in the output tensor.
  * @param[out] outT LibTensor pointer to the output matrix.
  * @param[in] inT LibTensor pointer to the input matrix.
- * @param[in] scaleT LibTensor pointer to the vector of scales.
- * @param[in] offsetT LibTensor pointer to the vector of offsets.
+ * @param[in] scaleT LibTensor pointer to the matrix of scales.
+ * @param[in] offsetT LibTensor pointer to the matrix of offsets.
  * @param[in] flags Controls the active shires and the type of evict that
  * should be done at the end of the function.
  */
@@ -168,7 +166,7 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInstThreaded(LibTensor* outT, 
   et_assert(outT->ndims() == 2);
   dim_t numRows = outT->dims()[0];
   dim_t numCols = outT->dims()[1];
-  dim_t numBlocksPerCol = scaleT->dims()[0] / numCols;
+  dim_t numBlocksPerCol = scaleT->dims()[0];
   // numElemsPerBlock = [ first power of 2 that is >= numRows/numBlocksPerCol ].
   dim_t numElemsPerBlock = (numRows + numBlocksPerCol - 1) / numBlocksPerCol;
   dim_t nextPowerOf2 = 1;
@@ -228,17 +226,16 @@ INLINE_ATTR void fwdLibDequantize8BitsColumnBlocksInstThreaded(LibTensor* outT, 
     dim_t dstRow = coord[0];
     dim_t dstCol = coord[1];
     std::array<dim_t, 2> matrixCoord = {dstRow, dstCol};
-    dim_t blockIdx = (numBlocksPerCol * (dstCol / interleaveFactor)) + ((dstRow * interleaveFactor) / numElemsPerBlock);
-    std::array<dim_t, 1> vectorCoord = {blockIdx};
+    std::array<dim_t, 2> blockCoord = {(dstRow * interleaveFactor) / numElemsPerBlock, dstCol / interleaveFactor};
     // Compute dequantization: all intermediate computations in float.
     auto quantizedElement = static_cast<float>(inH.at(matrixCoord, inStrides, 1));
-    auto offset = static_cast<float>(offsetH.at(vectorCoord));
+    auto offset = static_cast<float>(offsetH.at(blockCoord));
     float scale;
     if constexpr (dstElK == Float16Ty) {
-      convertFp16ToFp32(scaleH.at(vectorCoord), scale);
+      convertFp16ToFp32(scaleH.at(blockCoord), scale);
     } else {
       static_assert(dstElK == FloatTy);
-      scale = scaleH.at(vectorCoord);
+      scale = scaleH.at(blockCoord);
     }
     float dequantizedElement = (quantizedElement - offset) * scale;
     if constexpr (dstElK == Float16Ty) {
