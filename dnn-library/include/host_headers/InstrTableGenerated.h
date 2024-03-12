@@ -350,19 +350,16 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     3,  // # ins
     {}, // members
     1, // template param mask
-    {"Threaded"}, // impl versions
-    implSel::defaultSel<2>, // custom impl selector
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
-    {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched},
-        {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0}, // evict available mask
-    {0x0, 0x0}  // global store mask
+    {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   },
 
   // ET_dequantize8bitscolumnblocks
@@ -372,19 +369,16 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     3,  // # ins
     {}, // members
     1, // template param mask
-    {"Threaded"}, // impl versions
-    implSel::defaultSel<2>, // custom impl selector
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean},
-        {operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean, operandState::clean, operandState::clean}}},
     // CB states per impl
-    {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched},
-        {operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0}, // evict available mask
-    {0x0, 0x0}  // global store mask
+    {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
   },
 
   // ET_elementadd
