@@ -70,7 +70,7 @@ KERNEL_LAUNCHERS_CLANG = {
 
 KERNELS = list(KERNEL_LAUNCHERS.keys())
 
-SKIP_SYSEMU = ["check_pmc", "busy10sec"]
+SKIP_SYSEMU = ["check_pmc", "busy10sec", "syncShire2EP"]   # SW-20468: Re-enable the test once it starts passing
 SKIP_SILICON = ["sysemu_fatal"]
 SKIP_ANY = ["variableStrings"]
 

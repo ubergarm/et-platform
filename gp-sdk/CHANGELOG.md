@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 ### Removed
 ### Fixed
-- [SW-20382] Support new and old version of host runtime
+- [SW-20382] Support new relocation supported and non-ralocation version of host runtime
 - [SW-18223] Fixed log and logf of negative numbers
 - [SW-18719] Handled NaN, -inf and +inf castings in the exhaustive casting test
 
