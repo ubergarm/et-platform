@@ -17,7 +17,6 @@ SECTIONS
   . = BASE_ADDRESS;
   .text.init : 
   {
-    _text_init_start = .;
      *(.text.init)
   }
   _before_align = .;

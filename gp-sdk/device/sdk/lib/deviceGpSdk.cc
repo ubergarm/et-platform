@@ -159,13 +159,11 @@ static void initializeTLS(kernel_environment_t * env) {
 static void callInitArrayFunctions() {
 
   for (const function_t* entry = &__preinit_array_start; entry < &__preinit_array_end; ++entry) {
-    auto func = rebaseFunction(*entry);
-    (*func)();
+    (*entry)();
   }
 
   for (const function_t* entry = &__init_array_start; entry < &__init_array_end; ++entry) {
-    auto func = rebaseFunction(*entry);
-    (*func)();
+    (*entry)();
   }
 }
 
@@ -196,17 +194,14 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
   if (!needSync) {
     if (device_config::config.threadsPerCore == 1) {
       initializeTLS(env);
-      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
-      return rebasedFnc(args);
+      return device_config::config.entryPoint_0(args);
     } else {
       if (threadId == 0) {
         initializeTLS(env);
-        auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
-        return rebasedFnc(args);
+        return device_config::config.entryPoint_0(args);
       } else {
         initializeTLS(env);
-        auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_1);
-        return rebasedFnc(args);
+        return device_config::config.entryPoint_1(args);
       }
     }
   }
@@ -234,20 +229,17 @@ extern "C" int deviceGpSdkEntry(void* args, kernel_environment_t* env) {
     if (threadId == 0) {
       fcc_consume(FCC_0);
       initializeTLS(env);
-      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
-      return rebasedFnc(args);
+      return device_config::config.entryPoint_0(args);
     }
   } else {
     if (threadId == 0) {
       fcc_consume(FCC_0);
       initializeTLS(env);
-      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_0);
-      return rebasedFnc(args);
+      return device_config::config.entryPoint_0(args);
     } else {
       fcc_consume(FCC_0);
       initializeTLS(env);
-      auto rebasedFnc = rebaseFunction(device_config::config.entryPoint_1);
-      return rebasedFnc(args);
+      return device_config::config.entryPoint_1(args);
     }
   }
   return 0;

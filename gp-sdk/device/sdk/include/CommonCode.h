@@ -268,23 +268,4 @@ static inline uint64_t getTimestampNs() {
 }
 
 
-/**
- * @brief Computes the real memory address of a function (i.e relocates) after loading the kernel in the device.
- * @param fnc function pointer which address has been determined in compile time.
- * @return Returns the new rebased pointer to the function
- */
-template <typename T> auto rebaseFunction(T fnc) -> decltype(fnc) {
-   /* Func address below this would need to be rebased and won't be relocated */
-  static constexpr uint64_t MINIMUM_NON_RELOCATED_ADDRESS = 0x4000000000;
-   /* Linker script label pointing to the runtime text init */
-  extern const uint32_t _text_init_start;
-  if ((uint64_t)fnc < MINIMUM_NON_RELOCATED_ADDRESS)   //  SW-20383 Adopt the new host-runtime
-    return (decltype(fnc))((uint64_t)fnc  + (uint64_t) &_text_init_start);
-  else
-    return (decltype(fnc))(uint64_t)fnc;
-}
-
-
-
-
 #endif
