@@ -10,6 +10,21 @@
 ### Fixed
 ### Security
 
+## [0.9.0]
+### Added
+- [SW-19083] Adding threaded implementation for ElementImmLogic including int8converter
+- [SW-19566] Add Profile instruction
+- [SW-20187] Implement DequantizeNBitsColumnBlocks operator (N=8 or 4).
+### Changed
+- [SW-18935] Adapt FFT for clang
+- [SW-19415] Update Gather implementation to support negative indices
+- [SW-20313] Implement interleaved DequantizeNBitsColumnBlocks
+- [SW-20376] Change layout of scales/offsets in DequantizeNBitsColumnBlocks
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 ## [0.8.0]
 ### Added
 - [SW-19556] Add tensor profiling instruction
