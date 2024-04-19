@@ -21,7 +21,7 @@ default:
 
 variables:
   ET_SW_DEVELOP_DOCKER_IMAGE:
-    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-22.04-et-sw-develop-stack:1.5.11
+    value: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-22.04-et-sw-develop-stack:1.5.17
 # Only run job in these cases:
 # - if it's a tag pipeline
 # - if there is a commit pushed or merged to the default branch (pre-release)
@@ -238,10 +238,8 @@ tests:conan:sw-sysemu:
 
     CMD_BUILD: |      
       mkdir -p $$DEVICE_BUILD_PATH
-      source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
       cmake -B$$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} device
       cmake --build $$DEVICE_BUILD_PATH
-      source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/deactivate_conanbuild.sh
       
       mkdir -p $$HOST_BUILD_PATH
       cmake -B$$HOST_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DUSE_SANITIZER=AddrAndLeaks -G Ninja host
