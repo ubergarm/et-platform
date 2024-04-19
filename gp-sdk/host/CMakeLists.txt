@@ -9,7 +9,7 @@
 #------------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.5)
 
-project(gp-sdk-host VERSION 1.4.0 LANGUAGES C CXX)
+project(gp-sdk-host VERSION 1.5.0 LANGUAGES C CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 

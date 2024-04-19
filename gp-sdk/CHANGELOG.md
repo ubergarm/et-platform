@@ -6,16 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [[_TOC_]]
 
+
+
 ## Unreleased
 ### Added
 ### Changed
 ### Deprecated
 ### Removed
 ### Fixed
+
+## 1.5.0 (2024/04/19)
+### Added
+- [SW-20383] Relocation Support. device executables are 100% PIE. (Proper host runtime support is requried. It is added in 0.14.0)
+- [SW-19824] Adapted to Ubuntu 22 distro (docker)  and GCC 11.4.0 host compiler
+### Changed
+- [SW-20362] Update sysemu_explorer to support multiple ELF files
+### Deprecated
+### Removed
+### Fixed
 - [SW-18223] Fixed log and logf of negative numbers
 - [SW-18719] Handled NaN, -inf and +inf castings in the exhaustive casting test
-- [SW-20382] Support new relocation supported and non-ralocation version of host runtime
-- [SW-20383] Adopted the host runtime with relocations supported
 
 ## 1.4.0 (2023/12/18)
 ### Added
