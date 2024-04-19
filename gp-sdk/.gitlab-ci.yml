@@ -238,6 +238,7 @@ tests:conan:sw-sysemu:
 
     CMD_BUILD: |      
       mkdir -p $$DEVICE_BUILD_PATH
+      source ${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conanbuild.sh
       cmake -B$$DEVICE_BUILD_PATH -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} device
       cmake --build $$DEVICE_BUILD_PATH
       
