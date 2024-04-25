@@ -138,15 +138,38 @@ build:conan:
 ###############################################################################
 ###############################################################################
 
+capture-graph:
+  extends:
+    - .template_job
+    - .pod_medium
+    - .template-conan-linux-ubuntu22.04-gcc11
+  stage: .pre
+  rules:
+    - *release_or_development_job_rule
+  variables:
+    CMD_SCRIPT: |
+      conan remote disable conan-tmp
+      conan lock create conanfile.py -pr:b=default -pr:h=linux-ubuntu22.04-x86_64-gcc11-release-shared --build missing --lockfile-out=deps_base.lock --base
+  artifacts:
+    when: always
+    expire_in: 2d
+    paths:
+      - deps_base.lock
+
+###############################################################################
+###############################################################################
+###############################################################################
+
 quality:sonarqube-check:
   stage: build
   extends:
     - .template_job
     - .pod_medium
     - .template-conan-linux-ubuntu22.04-gcc11
-  needs: []
+  needs:
+    - capture-graph
   rules:
-    - *release_or_development_job_rule
+    - *development_job_rule
   tags:
     - k8s
   variables:
