@@ -169,7 +169,7 @@ quality:sonarqube-check:
   needs:
     - capture-graph
   rules:
-    - *development_job_rule
+    - *release_or_development_job_rule
   tags:
     - k8s
   variables:
