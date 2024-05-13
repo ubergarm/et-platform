@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Deprecated
 ### Removed
+- [CS-242] Temporarily disabled exhaustive-cast 4
 ### Fixed
 
 ## 1.5.0 (2024/04/19)

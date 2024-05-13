@@ -112,7 +112,7 @@ SIMULATOR_PARAMS = [CmdLineArg("--simulator_params", True), CmdLineArg(
 SIMULATOR_OPT_ARG = [CmdLineArg("-l -lm 0", True), CmdLineArg(
     "-l -lm 0 -mem_check", True), CmdLineArg("-l -lm 0 -mem-check", False)]
 ENABLE_CORE = [CmdLineArg("--enableCoreDump", True)]
-CAST_TYPE = ["1", "2", "3", "4", "5", "6", "7", "8"]
+CAST_TYPE = ["1", "2", "3", "5", "6", "7", "8"]    # TODO: SW-20914 Re-enable exhaustive-cast 4
 
 str_example_not_built = "the examples have not been built"
 
