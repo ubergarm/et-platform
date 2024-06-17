@@ -10,6 +10,15 @@
 ### Fixed
 ### Security
 
+## [0.10.0]
+### Added
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- [SW-21166] Fix implementation for ScatterData
+### Security
+
 ## [0.9.0]
 ### Added
 - [SW-19083] Adding threaded implementation for ElementImmLogic including int8converter
