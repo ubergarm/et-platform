@@ -55,7 +55,7 @@ clang-format:
   extends:
     - .template_job
     - .pod_medium
-  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/centos-7.9.2009-et-sw-platform:0.3.0
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-22.04-et-sw-platform:0.0.12
   stage: .pre
   rules:
     - *development_job_rule
