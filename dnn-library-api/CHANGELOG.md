@@ -14,12 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
-## [0.6.0]
+## [0.8.0]
 ### Added
 ### Changed
 - Adapt CI to v15
 - Adapt CI to gitlab.com
-- Depend on dnnLibrary >=0.8.0 <0.9.0
+- Depend on dnnLibrary 0.10.0
 ### Deprecated
 ### Removed
 ### Fixed
