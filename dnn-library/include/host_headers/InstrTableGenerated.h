@@ -5,7 +5,7 @@
 
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/fgispert/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/home/amiranda/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1230,6 +1230,25 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     {{{operandState::dirty, operandState::dirty, operandState::clean, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched, operandState::untouched, operandState::untouched}}},
+    {0x0}, // evict available mask
+    {0x0}  // global store mask
+  },
+
+  // ET_onehot
+  {
+    "OneHot", // name
+    1, // # outs
+    2,  // # ins
+    {instrMembers::mbAxis, instrMembers::mbDepth}, // members
+    3, // template param mask
+    {}, // impl versions
+    implSel::defaultSel<1>, // custom impl selector
+    // L1 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean}}},
+    // L2 states per impl
+    {{{operandState::dirty, operandState::clean, operandState::clean}}},
+    // CB states per impl
+    {{{operandState::untouched, operandState::untouched, operandState::untouched}}},
     {0x0}, // evict available mask
     {0x0}  // global store mask
   },
