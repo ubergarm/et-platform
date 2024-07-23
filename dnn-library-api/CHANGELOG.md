@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
+## [0.9.0]
+### Added
+- Add OneHot operator members
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 ## [0.8.0]
 ### Added
 ### Changed
