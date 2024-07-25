@@ -10,6 +10,15 @@
 ### Fixed
 ### Security
 
+## [0.11.0]
+### Added
+- [SW-21425] Implement OneHot operator
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 ## [0.10.0]
 ### Added
 ### Changed
