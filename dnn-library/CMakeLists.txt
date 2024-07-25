@@ -78,6 +78,7 @@ file(GLOB LIB_DNN_PUBLIC_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/MaxPoolInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ModuloInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/NonMaxSuppressionInst.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/OneHotInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/ProfileInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/QuantizeInst.h
     ${CMAKE_CURRENT_SOURCE_DIR}/include/inlining/RescaleQuantizedInst.h

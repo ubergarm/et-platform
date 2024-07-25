@@ -42,6 +42,7 @@ class LibManagerSheet:
                       "Alpha": "float",
                       "Beta": "float",
                       "K": "float",
+                      "Depth": "uint64_t",
                       "TopK": "uint32_t",
                       "Divisor": "uint64_t",
                       "SignFollowDivisor": "bool",

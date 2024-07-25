@@ -54,6 +54,7 @@
 #include "MaxSplatInst.h"
 #include "ModuloInst.h"
 #include "NonMaxSuppressionInst.h"
+#include "OneHotInst.h"
 #include "ProfileInst.h"
 #include "QuantizeInst.h"
 #include "RescaleQuantizedInst.h"

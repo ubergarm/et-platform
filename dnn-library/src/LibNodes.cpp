@@ -2,7 +2,7 @@
 
 // File automatically generated with:
 //  ./libManager.py --swplatform-root ../../../ --excel libManager.xlsx --cacheState cacheState.xlsx
-//  cwd=/local/home/fgispert/sw-platform/host-software/dnnLibrary/scripts
+//  cwd=/home/amiranda/sw-platform/host-software/dnnLibrary/scripts
 
 // Manual changes will be detected by CI
 
@@ -1629,6 +1629,31 @@ template void fwdLibModuloInst<Int32ITy>(LibTensor* out0, LibTensor* in0, const 
   ////////////////////////////////////////////////////////////////////////////////
 template void fwdLibNonMaxSuppressionInst<Int32ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, LibTensor* in1, const uint64_t CenterPointBox, const uint64_t MaxOutputBoxesPerClass, const float IouThreshold, const float ScoreThreshold, const bool IsTFVersion4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 template void fwdLibNonMaxSuppressionInst<Int64ITy>(LibTensor* out0, LibTensor* out1, LibTensor* in0, LibTensor* in1, const uint64_t CenterPointBox, const uint64_t MaxOutputBoxesPerClass, const float IouThreshold, const float ScoreThreshold, const bool IsTFVersion4, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+
+  // 
+  // Section: OneHot
+  //
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Forward call to corresponding dnn_lib::inlining implementations
+  ////////////////////////////////////////////////////////////////////////////////
+ 
+  template <ElemKind out0Type, ElemKind in0Type>
+  void fwdLibOneHotInst(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions)
+  {
+    dnn_lib::inlining::fwdLibOneHotInst<out0Type, in0Type>(out0, in0, in1, Axis, Depth, flags, minionOffset, assignedMinions);
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  // Template specializations (declared with 'extern template' in LibNodes.h)
+  ////////////////////////////////////////////////////////////////////////////////
+template void fwdLibOneHotInst<FloatTy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibOneHotInst<Float16Ty,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibOneHotInst<Int8QTy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibOneHotInst<Int32ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibOneHotInst<Int64ITy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibOneHotInst<UInt8QTy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
+template void fwdLibOneHotInst<BoolTy,Int64ITy>(LibTensor* out0, LibTensor* in0, LibTensor* in1, const dim_t Axis, const uint64_t Depth, const uint64_t flags, const uint32_t minionOffset, const uint32_t assignedMinions);
 
   // 
   // Section: Profile
