@@ -14,9 +14,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
+## [0.9.1]
+### Added
+### Deprecated
+### Changed
+- Depend on dnnLibrary 0.11.0 to support OneHot.
+### Removed
+### Fixed
+### Security
+
 ## [0.9.0]
 ### Added
 - Add OneHot operator members
+### Changed
 ### Deprecated
 ### Removed
 ### Fixed
