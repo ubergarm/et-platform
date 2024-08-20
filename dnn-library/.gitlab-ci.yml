@@ -1,6 +1,6 @@
 include:
   - project: esperantotech/software/gitlab-ci-common
-    ref: 1be8a1ec31da665910e1b2b193fcfa1d05866299
+    ref: 89a8d67023301129fd18dc95af46abfc6871d59c
     file:
       - /rules/generic-workflow-conan.yaml
       - /jobs/generic-k8s-job.yaml
@@ -61,7 +61,7 @@ clang-format:
   extends:
     - .template_job
     - .pod_nano
-  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/centos-7.9.2009-et-sw-platform:0.2.15
+  image: docker-sw-team.sc-artifactory1.esperanto.ai/convoke/ubuntu-22.04-et-sw-platform:0.0.12
   stage: smoke
   rules:
     - *development_job_rule
@@ -94,7 +94,7 @@ generate_build:conan:
   extends:
     - .pod_nano
     - .template_job
-    - .template-conan-linux-ubuntu18.04-gcc7
+    - .template-conan-linux-ubuntu22.04-gcc11
   stage: generate_build
   needs:
     - job: clang-format
@@ -169,7 +169,7 @@ on_success:promote:
   extends:
     - .pod_nano
     - .template_job
-    - .template-conan-linux-ubuntu18.04-gcc7
+    - .template-conan-linux-ubuntu22.04-gcc11
   stage: deploy
   needs:
     - build:conan
