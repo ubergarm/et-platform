@@ -33,6 +33,11 @@ public:
   // custom implementation selectors
   ////////////////////////////////////////////////////////////////////////////////
 
+  // Best implementation selector for operator ResizeNearest. Return values are:
+  //   0: base implementation
+  //   1: implementation for integer upscales
+  static size_t ResizeNearest(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
+
   // Best implementation selector for operator Copy. Return values are:
   //   0: base implementation (Vectorized)
   //   1: Tensorized
