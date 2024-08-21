@@ -12,9 +12,9 @@
 #ifndef _TOPK_INST_H_
 #define _TOPK_INST_H_
 
-#include "Addresser.h"
+#include "Addresser.h" // From include/internal path
 #include "Float16.h"
-#include "utils.h"
+#include "utils.h" // From include/internal path
 #include <assert.h>
 #include <climits>
 #include <cmath>
@@ -97,9 +97,11 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
   void* dstT = outT->getRawDataPointer();
 
   const Addresser<elK> inputT(srcT, inT->getScale(), inT->getOffset());
+  [[maybe_unused]] auto inTH = inT->getHandle<srcType>();
+  [[maybe_unused]] auto dstTH = outT->getHandle<srcType>();
   Addresser<elK> valuesT(dstT, outT->getScale(), outT->getOffset());
-  
-  long long *indT = out2T->getRawDataPointer<long long>();
+
+  auto indTH = out2T->getHandle<long long>();
 
   const dim_t *inputIndex = inT->dims().data();
   const dim_t *inputPitch = inT->strides().data();
@@ -155,7 +157,12 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
       }
       // Fill the scratch with values and indidces
       for (dim_t i = 0; i < n; i++) {
-        tmpValues[i] = static_cast<float>(inputT[offsetInput + i * inputPitch[srcDimNum - 1]]);
+        if constexpr (elK == Float16Ty) {
+          uint16_t aux = inTH.raw(offsetInput + i * inputPitch[srcDimNum - 1]);
+          convertFp16ToFp32(aux, tmpValues[i]);
+        } else {
+          tmpValues[i] = static_cast<float>(inputT[offsetInput + i * inputPitch[srcDimNum - 1]]);
+        }
         tmpInd[i] = i;
       }
       // Apply partial quicksort
@@ -167,8 +174,14 @@ INLINE_ATTR void fwdLibTopKInstThreaded_all(LibTensor* outT, LibTensor* out2T, L
     }
 
     ssize_t resCoord = coord[srcDimNum - 1];
-    valuesT[valuesOffset] = static_cast<srcType>(tmpValues[resCoord]);
-    indT[indexOffset] = tmpInd[resCoord];
+    if constexpr (elK == Float16Ty) {
+      uint16_t dst = 0;
+      convertFp32ToFp16(tmpValues[resCoord], dst);
+      dstTH.at(coord) = dst;
+    } else {
+      valuesT[valuesOffset] = static_cast<srcType>(tmpValues[resCoord]);
+    }
+    indTH.at(coord) = tmpInd[resCoord];
 
     /* overloading while sw-2400 and sw-2429 are WIP */   
     done = getOffsets(srcDimNum, coord, valuesOffset, indexOffset, valuesIndex,
@@ -265,10 +278,11 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k4(LibTensor* outT, LibTensor* out2T, Li
                        "fgw.ps f0, f31(%[tmpValues])\n"
                        "flw.ps  f31, %[gather_indices]\n"
                        "fgw.ps f1, f31(%[tmpInd])\n"
+
                        :
-                       : [ gather_values ]  "m"( *(const int32_t(*)[8]) gather_values),
-                         [ gather_indices ] "m"( *(const int32_t(*)[8]) gather_indices),
-                         [ tmpValues ] "r"(tmpValues), [ tmpInd ] "r"(tmpInd)
+                       : [ gather_values ] "m"(*(const int32_t(*)[8])gather_values),
+                         [ gather_indices ] "m"(*(const int32_t(*)[8])gather_indices), [ tmpValues ] "r"(tmpValues),
+                         [ tmpInd ] "r"(tmpInd)
                        : "f31", "f0", "memory");
 
   unsigned int pow = 1;
@@ -564,11 +578,12 @@ INLINE_ATTR void fwdLibTopKInstThreaded_k8(LibTensor* outT, LibTensor* out2T, Li
                          "faddi.pi f31, f31, 0x20\n"
                          "fscw.ps f3, f31(%[indT])\n"
                          "mov.m.x m0, zero, 0x0F\n"
-                         "fsw.ps f0, 0(%[tmpT])\n"
-                         "fsw.ps f1, 16(%[tmpT])\n"
-                         : [ tmpTMem ] "=m"(*(float(*)[8])tmpT)
+                         "fsw.ps f0, 0x0+%[tmpT]\n"
+                         "fsw.ps f1, 0x10+%[tmpT]\n"
+
+                         : [ tmpT ] "=m"(*(float(*)[8])tmpT)
                          : [ indT ] "r"(indT), [ gather_indices ] "m"(*(const int32_t(*)[8])gather_indices),
-                           [ tmpT ] "r"(tmpT), [ gather_values ] "r"(gather_values)
+                           [ gather_values ] "r"(gather_values)
                          : "f0", "f1", "f2", "f3", "f31");
     for (unsigned i = 0; i < k; i++)
       valuesT[batch_offset * valuesPitch[batchDim] + i] = static_cast<srcType>(tmpT[i]);
