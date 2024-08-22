@@ -37,7 +37,7 @@ size_t implSel::ResizeNearest(std::vector<LibTensor*>& outTensors, std::vector<L
       return 0;
     }
   }
-  auto typeSize = sizeof(inTensors[0]->getElementType());
+  auto typeSize = inTensors[0]->getElementSize();
   auto strideIn = inTensors[0]->strides().data();
   auto stridesOut = outTensors[0]->strides().data();
   // All rows in last dimension must start in an address divisible by 16 for src and 32 for dest
