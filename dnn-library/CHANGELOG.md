@@ -10,6 +10,16 @@
 ### Fixed
 ### Security
 
+## [0.11.1]
+### Added
+- [SW-21786] Support Slice for uint8 in Etsoc
+### Changed
+### Deprecated
+### Removed
+### Fixed
+- [SW-21737] Fix top K instruction for fp16 in general case
+### Security
+
 ## [0.11.0]
 ### Added
 - [SW-21425] Implement OneHot operator
