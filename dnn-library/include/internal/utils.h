@@ -183,10 +183,6 @@ inline __attribute__((always_inline)) void getNonPaddingCoordinates(unsigned int
   for (unsigned int j = k; j < srcDimNum; j++) {
     coord[j] = 0;
   }
-  offset = 0;
-  for (unsigned int d = 1; d < srcDimNum; d++) {
-    offset += coord[d] * pitch[d];
-  }
 }
 
 /* New function signature, to replace the function above at the end of SW-11349 and SW-11753 */
