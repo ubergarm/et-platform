@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
+## [0.9.2]
+### Added
+### Deprecated
+### Changed
+- [SW-21605] Optimize Resize nearest
+### Removed
+### Fixed
+### Security
+
 ## [0.9.1]
 ### Added
 ### Deprecated
