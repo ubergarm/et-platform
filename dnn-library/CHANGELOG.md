@@ -12,6 +12,15 @@
 
 ## [0.11.1]
 ### Added
+- [SW-21605] Optimize Resize nearest 
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
+## [0.11.1]
+### Added
 - [SW-21786] Support Slice for uint8 in Etsoc
 ### Changed
 ### Deprecated
