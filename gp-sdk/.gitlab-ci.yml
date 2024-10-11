@@ -1,11 +1,12 @@
 include:
   - project: 'esperantotech/software/gitlab-ci-common'
-    ref: a782d2470d791ff3340dc0468cc6cf7c8956e3fd
+    ref: 9e27d5abc3e4538cf5ee705d0263ea3d415e6ef1
     file:
       - rules/generic-workflow-conan.yaml
       - pods/large-pod.yaml
       - jobs/generic-k8s-job.yaml
       - rules/exec_maybe_interactively.yaml
+      - jobs/conan-sonarqube-job.yaml
   - project: 'esperantotech/software/gitlab-ci-common'
     ref: master
     file:
@@ -49,11 +50,10 @@ variables:
 build:sonarqube-check:
   extends:
     - .pod_large
+    - .template_sonarqube_conan_job
   stage: codequality
   image: '${ET_SW_DEVELOP_DOCKER_IMAGE}'
   needs: []
-  tags:
-    - k8s
   rules:
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH)
       allow_failure: true # TODO: change to 'false' once analysis are verified correct & stable
@@ -61,33 +61,10 @@ build:sonarqube-check:
       allow_failure: true
     - if: $CI_COMMIT_TAG
       allow_failure: true
-  variables:
-    GIT_STRATEGY: clone
-    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
-    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
-    SONAR_BUILD_WRAPPER_URL: "https://sc-sonarq01.esperanto.ai/static/cpp"
-    SONAR_SCANNER_URL: "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli"
-    SONAR_SCANNER_ARCHIVE_NAME: "sonar-scanner-cli-4.8.0.2856-linux.zip"
-    SONAR_SCANNER_UNZIPED_NAME: "sonar-scanner-4.8.0.2856-linux"
-    SONAR_BUILD_WRAPPER: "build-wrapper-linux-x86"
-  cache:
-    key: "${CI_JOB_NAME}"
-    paths:
-      - .sonar/cache
-  before_script:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq -y --no-install-recommends zip unzip
-    - wget ${SONAR_BUILD_WRAPPER_URL}/${SONAR_BUILD_WRAPPER}.zip
-    - unzip ${SONAR_BUILD_WRAPPER}.zip
-    - wget ${SONAR_SCANNER_URL}/${SONAR_SCANNER_ARCHIVE_NAME}
-    - unzip ${SONAR_SCANNER_ARCHIVE_NAME}
-    - export PATH=$PATH:$PWD/${SONAR_BUILD_WRAPPER}:$PWD/${SONAR_SCANNER_UNZIPED_NAME}/bin
-    - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$PWD/${SONAR_BUILD_WRAPPER}:$PWD/${SONAR_SCANNER_UNZIPED_NAME}/lib
   script:
-    - cmake -S device -B .ci/sonarqube/build_device -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/gcc8.2/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=0x8005b35000 -G "Unix Makefiles"
-    - cmake -S host -B .ci/sonarqube/build_host -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -G "Unix Makefiles"
-    - build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make -C .ci/sonarqube/ clean all
-    - sonar-scanner
+    - cmake -S . -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja 
+    - cp ${CI_PROJECT_DIR}/build/Release/compile_commands.json .
+    - sonar-scanner -Dsonar.cfamily.threads=${KUBERNETES_CPU_REQUEST}
 
 ###############################################################################
 ###############################################################################
