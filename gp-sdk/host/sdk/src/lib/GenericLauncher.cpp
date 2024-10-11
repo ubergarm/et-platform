@@ -69,7 +69,8 @@ std::vector<std::byte> GenericLauncher::readFile(const std::string& path) {
 void GenericLauncher::initialize() {
 
   auto options = rt::getDefaultOptions();
-
+  std::unique_ptr<dev::IDeviceLayer> deviceLayer;
+  
   if (std::filesystem::exists(runtimeSocketName_) && std::filesystem::is_socket(runtimeSocketName_) &&
       (config_.mode_ == Mode::PCIE)) {
     useRuntimeMultiProcess_ = true;
@@ -84,7 +85,7 @@ void GenericLauncher::initialize() {
   case Mode::PCIE:
     std::cout << "Running tests with PCIE deviceLayer\n";
     if (!useRuntimeMultiProcess_) {
-      deviceLayer_ = dev::IDeviceLayer::createPcieDeviceLayer();
+      deviceLayer = dev::IDeviceLayer::createPcieDeviceLayer();
     }
     break;
   case Mode::SYSEMU: {
@@ -95,13 +96,13 @@ void GenericLauncher::initialize() {
       vopts.emplace_back(opts);
       vopts.back().logFile += std::to_string(i);
     }
-    deviceLayer_ = dev::IDeviceLayer::createSysEmuDeviceLayer(vopts);
+    deviceLayer = dev::IDeviceLayer::createSysEmuDeviceLayer(vopts);
 
     break;
   }
   case Mode::FAKE:
     std::cout << "Running tests with FAKE deviceLayer\n";
-    deviceLayer_ = std::make_unique<dev::DeviceLayerFake>();
+    deviceLayer = std::make_unique<dev::DeviceLayerFake>();
     options.checkDeviceApiVersion_ = false;
 
     break;
@@ -117,7 +118,7 @@ void GenericLauncher::initialize() {
   if (useRuntimeMultiProcess_) {
     runtimeOwned_ = rt::IRuntime::create(runtimeSocketName_);
   } else {
-    runtimeOwned_ = rt::IRuntime::create(deviceLayer_.get(), options);
+    runtimeOwned_ = rt::IRuntime::create(std::move(deviceLayer), options);
   }
 
   // get a raw-pointer
@@ -254,7 +255,6 @@ void GenericLauncher::tearDown() {
   defaultStreams_.clear();
   traceStreams_.clear();
   devices_.clear();
-  deviceLayer_.reset();
 }
 
 rt::KernelId GenericLauncher::loadKernel(const std::string& kernelName, uint32_t deviceIdx) {

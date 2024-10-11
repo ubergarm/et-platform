@@ -254,7 +254,6 @@ private:
 
 protected:
   const Config& config_;
-  std::unique_ptr<dev::IDeviceLayer> deviceLayer_;
   rt::IRuntime* runtime_;
   rt::RuntimePtr runtimeOwned_ = nullptr;
   rt::RuntimePtr runtimeBase_;
