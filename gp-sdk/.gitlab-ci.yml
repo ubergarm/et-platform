@@ -71,7 +71,9 @@ build:sonarqube-check:
   script:
     - cmake -S device -B .ci/sonarqube/build_device -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/gcc8.2/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} -G Ninja
     - cmake -S host -B .ci/sonarqube/build_host -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja
-    - jq -s '.[0] * .[1]' ${CI_PROJECT_DIR}/.ci/sonarqube/build_device/compile_commands.json ${CI_PROJECT_DIR}/.ci/sonarqube/build_host/compile_commands.json > compile_commands.json
+
+    - jq -s '[].[0][] * .[1][]]' ${CI_PROJECT_DIR}/.ci/sonarqube/build_device/compile_commands.json ${CI_PROJECT_DIR}/.ci/sonarqube/build_host/compile_commands.json > compile_commands.json
+    - cat ${CI_PROJECT_DIR}/.ci/sonarqube/build_device/compile_commands.json ${CI_PROJECT_DIR}/.ci/sonarqube/build_host/compile_commands.json compile_commands.json
     - sonar-scanner -Dsonar.cfamily.threads=${KUBERNETES_CPU_REQUEST}
 
 ###############################################################################
