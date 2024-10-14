@@ -51,6 +51,7 @@ build:sonarqube-check:
   extends:
     - .pod_large
     - .template_sonarqube_conan_job
+    - .template-conan-linux-ubuntu22.04-gcc11 
   variables:
     ET_SDK_HOME: /usr/local/esperanto
     KERNEL_ADDRESS: 0x8005b35000
