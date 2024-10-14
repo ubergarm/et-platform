@@ -65,7 +65,7 @@ build:sonarqube-check:
       allow_failure: true
     - if: $CI_COMMIT_TAG
       allow_failure: true
-  CMD_CONFIG_BUILD: |
+  CMD_CONFIG_BUILD:
       sudo apt update -y
       sudo apt install -y jq
   script:
