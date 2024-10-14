@@ -51,6 +51,9 @@ build:sonarqube-check:
   extends:
     - .pod_large
     - .template_sonarqube_conan_job
+  variables:
+    ET_SDK_HOME: /usr/local/esperanto
+    KERNEL_ADDRESS: 0x8005b35000
   stage: codequality
   image: '${ET_SW_DEVELOP_DOCKER_IMAGE}'
   needs: []
@@ -63,8 +66,9 @@ build:sonarqube-check:
     - if: $CI_COMMIT_TAG
       allow_failure: true
   script:
-    - cmake -S . -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja
-    - cp ${CI_PROJECT_DIR}/build/Release/compile_commands.json .
+    - cmake -S device -B .ci/sonarqube/build_device -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/device/gcc8.2/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DADDRESS:STRING=$${KERNEL_ADDRESS} -G Ninja
+    - cmake -S host -B .ci/sonarqube/build_host -DCMAKE_TOOLCHAIN_FILE=${ET_SDK_HOME}/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja
+    - jq -s '.[0] * .[1]' ${CI_PROJECT_DIR}/.ci/sonarqube/build_device/compile_commands.json ${CI_PROJECT_DIR}/.ci/sonarqube/build_host/compile_commands.json > compile_commands.json
     - sonar-scanner -Dsonar.cfamily.threads=${KUBERNETES_CPU_REQUEST}
 
 ###############################################################################
