@@ -55,6 +55,7 @@ build:sonarqube-check:
   image: '${ET_SW_DEVELOP_DOCKER_IMAGE}'
   needs: []
   rules:
+    - *release_or_development_job_rule
     - if: ($CI_PIPELINE_SOURCE == "merge_request_event") && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == $CI_DEFAULT_BRANCH)
       allow_failure: true # TODO: change to 'false' once analysis are verified correct & stable
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -62,7 +63,10 @@ build:sonarqube-check:
     - if: $CI_COMMIT_TAG
       allow_failure: true
   script:
+    - conan lock create conanfile.py -pr:b=default -pr:h=linux-ubuntu22.04-x86_64-gcc11-release-shared --build=missing --lockfile=deps_base.lock --lockfile-out=Release.lock
+    - conan install . --lockfile=Release.lock --build=missing -g VirtualRunEnv
     - cmake -S . -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja 
+    - source build/Release/generators/conanrun.sh
     - cp ${CI_PROJECT_DIR}/build/Release/compile_commands.json .
     - sonar-scanner -Dsonar.cfamily.threads=${KUBERNETES_CPU_REQUEST}
 
