@@ -63,8 +63,7 @@ build:sonarqube-check:
     - if: $CI_COMMIT_TAG
       allow_failure: true
   script:
-    - cmake -S . -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=build/Release/generators/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja 
-    - cp ${CI_PROJECT_DIR}/build/Release/compile_commands.json .
+    - cmake -S . -B build/Release -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -G Ninja     - cp ${CI_PROJECT_DIR}/build/Release/compile_commands.json .
     - sonar-scanner -Dsonar.cfamily.threads=${KUBERNETES_CPU_REQUEST}
 
 ###############################################################################
