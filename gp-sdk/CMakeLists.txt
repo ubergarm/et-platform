@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(gp-sdk VERSION 1.5.0 LANGUAGES C CXX ASM)
+project(gp-sdk VERSION 1.6.0 LANGUAGES C CXX ASM)
 
 if(NOT DEFINED ENV{ET_SDK_HOME})
   message(

@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 ### Deprecated
 ### Removed
+### Fixed
+
+## 1.6.0 (2024/10/15) 
+### Added
+### Changed
+- [SW-21961] Adapt to runtime breaking changes (support for runtime 0.16.0). Note: Earlier versions of host-runtime are no longer supported.         
+### Deprecated
+### Removed
 - [CS-242] Temporarily disabled exhaustive-cast 4
 ### Fixed
 

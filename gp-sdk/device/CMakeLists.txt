@@ -10,7 +10,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-project(gp-sdk-device VERSION 1.5.0 LANGUAGES C CXX ASM)
+project(gp-sdk-device VERSION 1.6.0 LANGUAGES C CXX ASM)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
