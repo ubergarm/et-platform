@@ -54,8 +54,14 @@ inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT, LibTensor
                                     const std::array<uint32_t, KN>& dilation, [[maybe_unused]] const uint64_t flags,
                                     const uint32_t minionOffset = 0,
                                     [[maybe_unused]] const uint32_t assignedMinions = 0) {
+  using elkType = typename elemKind2elemTy<dstElK>::type;
 
-  if (get_minion_id() != minionOffset) return;
+  et_assert(get_minion_id() >= minionOffset);
+
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
 
   assert(dstElK == FloatTy);
   assert(outT->getElementType() == dataT->getElementType());
@@ -67,61 +73,68 @@ inline void fwdLibConvTransposeInst(LibTensor* outT, LibTensor* dataT, LibTensor
   assert((outT->dims()[3] % group)==0);
   assert(group == 1); //group must be 1
 
+  const dim_t* actIndex = outT->dims().data();
+  const dim_t* dstPitch = outT->strides().data();
+  void* dst = outT->getRawDataPointer();
+  auto numElemsDst = dstPitch[0] * actIndex[0];
+  size_t initialAddr, maxRead;
+  size_t typeSize = getsize<elkType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
+  if (maxRead == 0)
+    return;
+
   size_t inCperG = (dataT->dims()[3] / group);
   size_t outCperG = (outT->dims()[3] / group);
-
-  using elkType = typename elemKind2elemTy<dstElK>::type;
 
   auto outH = outT->getHandle<elkType>();
   auto dataH = dataT->getHandle<elkType>();
   auto filterH = filterT->getHandle<elkType>();
   auto biasH = biasT->getHandle<elkType>();
 
-  // For each input in the bach
-  for (size_t n = 0; n < dataT->dims()[0]; n++) {
-    
-    //Init bias, @TODO take out to a separate function when quant is in.
-    for (size_t ax = 0; ax < outT->dims()[1]; ax++) {
-      for (size_t ay = 0; ay < outT->dims()[2]; ay++) {
-  for (size_t d = 0; d < outT->dims()[3]; d++) {
-    outH.at(std::array<size_t, 4>{n, ax, ay, d}) = static_cast<elkType>(biasH.at(std::array<size_t, 1>{d}));
+  auto inpDims = dataT->dims();
+
+  // We move the initialAddr to the next non-padding position
+  dim_array_t coord = {0}; // Vector of coordinates
+  dim_t k = 0;             // Amount of non-zero coordinates
+  dim_t srcDimNum = dataT->ndims();
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
+
+  uint64_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
+    offsetOut += dstPitch[j] * coord[j];
   }
-      }
-    }
+  size_t posMax = maxRead + initialAddr;
+  bool done = false;
 
-    //For each group of input channels
-    for (size_t g = 0; g < group; g++) {
-      //For each input channel in the group:
-      for (size_t d = (g * inCperG); d < ((g + 1) * inCperG); d++) {
-  //For each transposed convolution 'jump' in the input tnesor:
-  ssize_t x = -static_cast<ssize_t>(pads[0]); //near
-  for (size_t bx = 0; bx < dataT->dims()[1]; bx++, x += strides[0]) {
-    ssize_t y = -static_cast<ssize_t>(pads[1]);
-    for (size_t by = 0; by < dataT->dims()[2]; by++, y += strides[1]) {
-      //For each element in the each transposed convolution filter:
-      elkType input = dataH.at(std::array<size_t, 4>{n, bx, by, d});
-
+  while (!done && (offsetOut < posMax)) {
+    auto outCoord = std::array<size_t, 4>{coord[0], coord[1], coord[2], coord[3]};
+    outH.at(outCoord) = biasH.at(std::array<size_t, 1>{coord[3]});
+    size_t n = coord[0];
+    size_t ax = coord[1];
+    size_t ay = coord[2];
+    size_t c = coord[3] % outCperG;
+    size_t g = coord[3] / outCperG;
+    for (size_t d = (g * inCperG); d < ((g + 1) * inCperG); d++) {
       for (size_t kx = 0; kx < kernels[0]; kx++) {
         for (size_t ky = 0; ky < kernels[1]; ky++) {
-    ssize_t ax = x + kx * dilation[0];
-    ssize_t ay = y + ky * dilation[1];
-
-    //Ignore index access below zero (this is due to padding).
-    if (ax < 0 || ay < 0 || ax >= ssize_t(outT->dims()[1]) ||
-        ay >= ssize_t(outT->dims()[2])) {
-      continue;
-    }
-    
-    for (size_t c = 0; c < outCperG; c++) {
-      outH.at(std::array<size_t, 4>{n, static_cast<size_t>(ax), static_cast<size_t>(ay), (g * outCperG + c)}) +=
-        filterH.at(std::array<size_t,4>{c, kx, ky, d}) * input;
-    }
+          ssize_t x = ax - kx * dilation[0];
+          ssize_t y = ay - ky * dilation[1];
+          if ((((x + pads[0]) % strides[0]) != 0) or (((y + pads[1]) % strides[1]) != 0)) {
+            continue;
+          }
+          size_t bx = (x + pads[0]) / strides[0];
+          size_t by = (y + pads[1]) / strides[1];
+          if (((int(x) + int(pads[0])) < 0) or (bx >= inpDims[1]) or ((int(y) + int(pads[1])) < 0) or
+              (by >= inpDims[2])) {
+            continue;
+          }
+          auto inpCoord = std::array<size_t, 4>{n, bx, by, d};
+          auto filCoord = std::array<size_t, 4>{c, kx, ky, d};
+          outH.at(outCoord) += dataH.at(inpCoord) * filterH.at(filCoord);
         }
       }
     }
-  }
-      }
-    }
+    done = getOffsets(srcDimNum, coord, offsetOut, actIndex, dstPitch);
   }
 }
 
