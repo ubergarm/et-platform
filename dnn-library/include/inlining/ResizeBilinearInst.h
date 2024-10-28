@@ -52,8 +52,14 @@ INLINE_ATTR typename std::enable_if_t<(isQuantizedElemKind(elKind) || (elKind ==
 fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT, const std::array<float, N>& rszBlScale,
                          [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
                          [[maybe_unused]] const uint32_t assignedMinions = 0) {
+  using elkType = typename elemKind2elemTy<elKind>::type;
 
-  if (get_minion_id() != minionOffset) return;
+  et_assert(get_minion_id() >= minionOffset);
+
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
 
   assert(dataT->getElementType() == outT->getElementType());
 
@@ -61,67 +67,92 @@ fwdLibResizeBilinearInst(LibTensor* outT, LibTensor* dataT, const std::array<flo
   assert(rszBlScale[0] == 1.0f);
   assert(rszBlScale[3] == 1.0f);
 
-  using elkType = typename elemKind2elemTy<elKind>::type;
-
   auto dataH = dataT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
- 
+
+  const dim_t* actIndex = outT->dims().data();
+  const dim_t* dstPitch = outT->strides().data();
+  void* dst = outT->getRawDataPointer();
+  auto numElemsDst = dstPitch[0] * actIndex[0];
+  size_t initialAddr, maxRead;
+  size_t typeSize = getsize<elkType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
+  if (maxRead == 0)
+    return;
+
+  // We move the initialAddr to the next non-padding position
+  dim_array_t coord = {0}; // Vector of coordinates
+  dim_t k = 0;             // Amount of non-zero coordinates
+  dim_t srcDimNum = dataT->ndims();
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
+
+  uint64_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
+    offsetOut += dstPitch[j] * coord[j];
+  }
+  size_t posMax = maxRead + initialAddr;
+  bool done = false;
+
   float invRszBlScale_1 = 0.0;
   float invRszBlScale_2 = 0.0;
   fpReciprocalSingleElement(rszBlScale[1], invRszBlScale_1 );
   fpReciprocalSingleElement(rszBlScale[2], invRszBlScale_2);
 
-  // Number of samples
-  for (dim_t ob = 0; ob < outT->dims()[0]; ++ob) {
-    // Height
-    for (dim_t oh = 0; oh < outT->dims()[1]; ++oh) {
-      // Width
-      for (dim_t ow = 0; ow < outT->dims()[2]; ++ow) {
-        float ihf = static_cast<float>(static_cast<uint32_t>(oh)) * invRszBlScale_1;
-        float iwf = static_cast<float>(static_cast<uint32_t>(ow)) * invRszBlScale_2;
+  dim_t last_col = -1;
+  float ihf, iwf;
+  uint32_t ih, iw;
+  size_t ih0, ih1, iw0, iw1;
 
-        uint32_t ih = static_cast<uint32_t>(ihf);
-        uint32_t iw = static_cast<uint32_t>(iwf);
+  while (!done && (offsetOut < posMax)) {
+    dim_t ob = coord[0]; // sample number (batch)
+    dim_t oh = coord[1]; // row (height)
+    dim_t ow = coord[2]; // col (width)
+    dim_t oc = coord[3]; // channel (channels)
 
-        auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
-        auto ih1 = std::min(static_cast<size_t>(ih + 1), dataT->dims()[1] - 1);
-        auto iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
-        auto iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] - 1);
+    // This only has to be updated when the column changes
+    if (ow != last_col) {
+      last_col = ow;
+      ihf = static_cast<float>(static_cast<uint32_t>(oh)) * invRszBlScale_1;
+      iwf = static_cast<float>(static_cast<uint32_t>(ow)) * invRszBlScale_2;
 
-        // Number of Channels
-        for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
+      ih = static_cast<uint32_t>(ihf);
+      iw = static_cast<uint32_t>(iwf);
 
-          float dst00, dst01, dst10, dst11;
-          if (elKind == Float16Ty) {
-            convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih0, iw0, oc})), dst00);
-            convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih0, iw1, oc})), dst01);
-            convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih1, iw0, oc})), dst10);
-            convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc})), dst11);
-          } else {
-            dst00 = dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih0, iw0, oc}), dataH.getScale(),
-                                        dataH.getOffset());
-            dst01 = dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih0, iw1, oc}), dataH.getScale(),
-                                        dataH.getOffset());
-            dst10 = dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih1, iw0, oc}), dataH.getScale(),
-                                        dataH.getOffset());
-            dst11 = dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc}), dataH.getScale(),
-                                        dataH.getOffset());
-          }
-          float hd = dst00 + (dst10 - dst00) * (ihf - static_cast<float>(ih));
-          float hw = dst01 + (dst11 - dst01) * (ihf - static_cast<float>(ih));
-          float result = hd + (hw - hd) * (iwf - static_cast<float>(iw));
-
-          if (elKind == Float16Ty) {
-            uint16_t out16 = 0;
-            convertFp32ToFp16(result, out16);
-            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = out16;
-          } else {
-            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) =
-              quantize<elkType>(result, outT->getScale(), outT->getOffset());
-          }
-        }
-      }
+      ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
+      ih1 = std::min(static_cast<size_t>(ih + 1), dataT->dims()[1] - 1);
+      iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
+      iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] - 1);
     }
+
+    float dst00, dst01, dst10, dst11;
+    if (elKind == Float16Ty) {
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih0, iw0, oc})), dst00);
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih0, iw1, oc})), dst01);
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih1, iw0, oc})), dst10);
+      convertFp16ToFp32(static_cast<uint16_t>(dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc})), dst11);
+    } else {
+      dst00 =
+        dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih0, iw0, oc}), dataH.getScale(), dataH.getOffset());
+      dst01 =
+        dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih0, iw1, oc}), dataH.getScale(), dataH.getOffset());
+      dst10 =
+        dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih1, iw0, oc}), dataH.getScale(), dataH.getOffset());
+      dst11 =
+        dequantize<elkType>(dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc}), dataH.getScale(), dataH.getOffset());
+    }
+    float hd = dst00 + (dst10 - dst00) * (ihf - static_cast<float>(ih));
+    float hw = dst01 + (dst11 - dst01) * (ihf - static_cast<float>(ih));
+    float result = hd + (hw - hd) * (iwf - static_cast<float>(iw));
+
+    if (elKind == Float16Ty) {
+      uint16_t out16 = 0;
+      convertFp32ToFp16(result, out16);
+      outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = out16;
+    } else {
+      outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = quantize<elkType>(result, outT->getScale(), outT->getOffset());
+    }
+
+    done = getOffsets(srcDimNum, coord, offsetOut, actIndex, dstPitch);
   }
 }
 
@@ -132,7 +163,14 @@ INLINE_ATTR
                            [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
                            [[maybe_unused]] const uint32_t assignedMinions = 0) {
 
-  if (get_minion_id() != minionOffset) return;
+  using elkType = typename elemKind2elemTy<elKind>::type;
+
+  et_assert(get_minion_id() >= minionOffset);
+
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
 
   assert(dataT->getElementType() == outT->getElementType());
 
@@ -140,53 +178,80 @@ INLINE_ATTR
   assert(rszBlScale[0] == 1.0f);
   assert(rszBlScale[3] == 1.0f);
 
-  using elkType = typename elemKind2elemTy<elKind>::type;
-
   auto dataH = dataT->getHandle<elkType>();
   auto outH = outT->getHandle<elkType>();
- 
+
+  const dim_t* actIndex = outT->dims().data();
+  const dim_t* dstPitch = outT->strides().data();
+  void* dst = outT->getRawDataPointer();
+  auto numElemsDst = dstPitch[0] * actIndex[0];
+  size_t initialAddr, maxRead;
+  size_t typeSize = getsize<elkType>();
+  getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions, dst);
+  if (maxRead == 0)
+    return;
+
+  // We move the initialAddr to the next non-padding position
+  dim_array_t coord = {0}; // Vector of coordinates
+  dim_t k = 0;             // Amount of non-zero coordinates
+  dim_t srcDimNum = dataT->ndims();
+  getNonPaddingCoordinates(coord, initialAddr, srcDimNum, dstPitch, actIndex, k);
+
+  uint64_t offsetOut = 0;
+  for (dim_t j = 0; j < k; j++) {
+    offsetOut += dstPitch[j] * coord[j];
+  }
+  size_t posMax = maxRead + initialAddr;
+  bool done = false;
+
   float invRszBlScale_1 = 0.0;
   float invRszBlScale_2 = 0.0;
   fpReciprocalSingleElement(rszBlScale[1], invRszBlScale_1 );
   fpReciprocalSingleElement(rszBlScale[2], invRszBlScale_2);
-  // Number of samples
-  for (size_t ob = 0; ob < outT->dims()[0]; ++ob) {
-    // Height
-    for (size_t oh = 0; oh < outT->dims()[1]; ++oh) {
-      // Width
-      for (size_t ow = 0; ow < outT->dims()[2]; ++ow) {
-        float ihf = static_cast<float>(static_cast<uint32_t>(oh)) * invRszBlScale_1;
-        float iwf = static_cast<float>(static_cast<uint32_t>(ow)) * invRszBlScale_2;
 
-        /* @TODO Due to SW-1974 Change to uint64_t once ticket will be solved.*/
-        uint32_t ih = static_cast<uint32_t>(ihf);
-        uint32_t iw = static_cast<uint32_t>(iwf);
+  dim_t last_col = -1;
+  float ihf, iwf;
+  uint32_t ih, iw;
+  size_t ih0, ih1, iw0, iw1;
 
-        auto ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
-        auto ih1 = std::min(static_cast<size_t>(ih + 1), dataT->dims()[1] - 1);
-        auto iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
-        auto iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] - 1);
+  while (!done && (offsetOut < posMax)) {
+    size_t ob = coord[0]; // sample number (batch)
+    size_t oh = coord[1]; // row (height)
+    size_t ow = coord[2]; // col (width)
+    size_t oc = coord[3]; // channel (channels)
 
-        // Number of Channels
-        for (size_t oc = 0; oc < outT->dims()[3]; ++oc) {
-          auto v00 = dataH.at(std::array<size_t, 4>{ob, ih0, iw0, oc});
-          auto v01 = dataH.at(std::array<size_t, 4>{ob, ih0, iw1, oc});
-          auto v10 = dataH.at(std::array<size_t, 4>{ob, ih1, iw0, oc});
-          auto v11 = dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc});
+    // This only has to be updated when the column changes
+    if (ow != last_col) {
+      last_col = ow;
+      ihf = static_cast<float>(static_cast<uint32_t>(oh)) * invRszBlScale_1;
+      iwf = static_cast<float>(static_cast<uint32_t>(ow)) * invRszBlScale_2;
 
-          auto hd = static_cast<float>(v00) + static_cast<float>(v10 - v00) * (ihf - static_cast<float>(ih));
-          auto hw = static_cast<float>(v01) + static_cast<float>(v11 - v01) * (ihf - static_cast<float>(ih));
-          float result = hd + (hw - hd) * (iwf - static_cast<float>(iw));
-          if (elKind == BFloat16Ty || elKind == Float16Ty) {
-            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<float>(result);
-          } else if (elKind == Int64ITy) {
-            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<uint32_t>(result);
-          } else {
-            outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<elkType>(result);
-          }
-        }
-      }
+      ih = static_cast<uint32_t>(ihf);
+      iw = static_cast<uint32_t>(iwf);
+
+      ih0 = std::min(static_cast<size_t>(ih), dataT->dims()[1] - 1);
+      ih1 = std::min(static_cast<size_t>(ih + 1), dataT->dims()[1] - 1);
+      iw0 = std::min(static_cast<size_t>(iw), dataT->dims()[2] - 1);
+      iw1 = std::min(static_cast<size_t>(iw + 1), dataT->dims()[2] - 1);
     }
+
+    auto v00 = dataH.at(std::array<size_t, 4>{ob, ih0, iw0, oc});
+    auto v01 = dataH.at(std::array<size_t, 4>{ob, ih0, iw1, oc});
+    auto v10 = dataH.at(std::array<size_t, 4>{ob, ih1, iw0, oc});
+    auto v11 = dataH.at(std::array<size_t, 4>{ob, ih1, iw1, oc});
+
+    auto hd = static_cast<float>(v00) + static_cast<float>(v10 - v00) * (ihf - static_cast<float>(ih));
+    auto hw = static_cast<float>(v01) + static_cast<float>(v11 - v01) * (ihf - static_cast<float>(ih));
+    float result = hd + (hw - hd) * (iwf - static_cast<float>(iw));
+    if (elKind == BFloat16Ty || elKind == Float16Ty) {
+      outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<float>(result);
+    } else if (elKind == Int64ITy) {
+      outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<uint32_t>(result);
+    } else {
+      outH.at(std::array<size_t, 4>{ob, oh, ow, oc}) = static_cast<elkType>(result);
+    }
+
+    done = getOffsets(srcDimNum, coord, offsetOut, actIndex, dstPitch);
   }
 }
 
