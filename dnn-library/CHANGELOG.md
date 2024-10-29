@@ -10,6 +10,16 @@
 ### Fixed
 ### Security
 
+## [0.11.2]
+### Added
+- [SW-21976] Run TransUnet end2end, get performance numbers
+### Changed
+- [SW-21979] Improve performance of ConvTranspose
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 ## [0.11.1]
 ### Added
 - [SW-21605] Optimize Resize nearest 
