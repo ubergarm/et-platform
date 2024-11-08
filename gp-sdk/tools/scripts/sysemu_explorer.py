@@ -152,7 +152,10 @@ def main(args):
         asm = item['asm']
 
         line = f":{item['line'] or '':<5}"
-        src = item['file'] + line
+        if item["file"] is not None:
+          src = item["file"] + line
+        else:
+          src = line
 
         if len(src) > src_width:
             w = src_width - 3
