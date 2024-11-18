@@ -135,7 +135,7 @@ struct ScopedTimedRegion {
   ~ScopedTimedRegion() {
     auto totalTime = et_get_delta_timestamp(startTimestamp_);
     if (allThreads_ || get_hart_id() == 0)
-      et_printf("[%s:%u] region %s took %lu cycles (%.3f us)", func_, line_, name_, totalTime,
+      et_printf("[%u - %s:%u] region %s took %lu cycles (%.3f us)\n", get_hart_id(), func_, line_, name_, totalTime,
                 double(cyclesToNs(totalTime)) / 1000.0);
   };
 
@@ -160,5 +160,7 @@ private:
  * \param name The name of the region
  */
 #define SCOPED_TIMED_REGION(name) ScopedTimedRegion UNIQUE(scopedTimedRegion)(name, __func__, __LINE__)
+
+#define SCOPED_TIMED_REGION_ALL(name) ScopedTimedRegion UNIQUE(scopedTimedRegion)(name, __func__, __LINE__, true)
 
 #endif // GPSDK_PROFILING_H

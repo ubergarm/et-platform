@@ -23,8 +23,8 @@
 #include <inttypes.h>
 #include <system/abi.h>
 
-// Caution:  No device descriptor in dnnLib, so using hardcoded freq for now.
-constexpr uint32_t kMinionBaseFreq = 600000000;
+// Caution:  No device descriptor in dnnLib, so using hardcoded freq (Mhz) for now.
+constexpr uint32_t kMinionBaseFreq = 600;
 
 static inline uint8_t readByte(uint8_t* addr);
 static inline void writeByte(uint8_t* addr, uint8_t val);
