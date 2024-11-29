@@ -33,6 +33,11 @@ public:
   // custom implementation selectors
   ////////////////////////////////////////////////////////////////////////////////
 
+  // Best implementation selector for operator ResizeBilinear. Return values are:
+  //   0: base implementation
+  //   1: implementation for (1,1,2,2) upscales
+  static size_t ResizeBilinear(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors);
+
   // Best implementation selector for operator ResizeNearest. Return values are:
   //   0: base implementation
   //   1: implementation for integer upscales

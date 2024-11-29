@@ -16,6 +16,26 @@ namespace dnn_lib {
 
 #define CACHE_LINE_BYTES 64
 
+size_t implSel::ResizeBilinear(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
+  // Check for (1,1,2,2) upscaling and tensor type
+  if ((inTensors[0]->ndims() != 4) or (outTensors[0]->getElementType() != Float16Ty)) {
+    return 0; // default impl
+  }
+  // Check that in and out tensors are cache aligned
+  if ((((uintptr_t)(inTensors[0]->getAddress()) & (uintptr_t)(~(CACHE_LINE_BYTES - 1))) != 0) or
+      (((uintptr_t)(outTensors[0]->getAddress()) & (uintptr_t)(~(CACHE_LINE_BYTES - 1))) != 0)) {
+    return 0;
+  }
+  // Check for (1*b,2*h,2*w,1*c) upscaling
+  auto dimsIn = inTensors[0]->dims();
+  auto dimsOut = outTensors[0]->dims();
+  if (dimsOut[0] == dimsIn[0] and dimsOut[1] == 2 * dimsIn[1] and dimsOut[2] == 2 * dimsIn[2] and
+      dimsOut[3] == dimsIn[3]) {
+    return 1;
+  }
+  return 0;
+}
+
 size_t implSel::ResizeNearest(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
   // check conditions for applying fast resize
   // Initial address has to be aligned to 16 bits for source and 32 for dest
