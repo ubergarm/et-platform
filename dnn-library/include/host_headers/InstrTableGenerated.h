@@ -1317,16 +1317,19 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     1,  // # ins
     {instrMembers::mbRszScale}, // members
     1, // template param mask
-    {}, // impl versions
-    implSel::defaultSel<1>, // custom impl selector
+    {"UpscaleDouble"}, // impl versions
+    implSel::ResizeBilinear, // custom impl selector
     // L1 states per impl
-    {{{operandState::dirty, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean},
+        {operandState::dirty, operandState::clean}}},
     // L2 states per impl
-    {{{operandState::dirty, operandState::clean}}},
+    {{{operandState::dirty, operandState::clean},
+        {operandState::dirty, operandState::clean}}},
     // CB states per impl
-    {{{operandState::untouched, operandState::untouched}}},
-    {0x0}, // evict available mask
-    {0x0}  // global store mask
+    {{{operandState::untouched, operandState::untouched},
+        {operandState::untouched, operandState::untouched}}},
+    {0x0, 0x0}, // evict available mask
+    {0x0, 0x0}  // global store mask
   },
 
   // ET_resizenearest
