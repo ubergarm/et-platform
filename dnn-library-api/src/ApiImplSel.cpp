@@ -26,6 +26,13 @@ size_t implSel::ResizeBilinear(std::vector<LibTensor*>& outTensors, std::vector<
       (((uintptr_t)(outTensors[0]->getAddress()) & (uintptr_t)(~(CACHE_LINE_BYTES - 1))) != 0)) {
     return 0;
   }
+  auto ndims = inTensors[0]->ndims();
+  auto typeSize = inTensors[0]->getElementSize();
+  // Check that channel is divisible by 32 bytes (vectorial instruction capacity)
+  if ((((inTensors[0]->strides()[ndims - 2] * typeSize) % 32) != 0) or
+      (((outTensors[0]->strides()[ndims - 2] * typeSize) % 32) != 0)) {
+    return 0;
+  }
   // Check for (1*b,2*h,2*w,1*c) upscaling
   auto dimsIn = inTensors[0]->dims();
   auto dimsOut = outTensors[0]->dims();
@@ -37,34 +44,51 @@ size_t implSel::ResizeBilinear(std::vector<LibTensor*>& outTensors, std::vector<
 }
 
 size_t implSel::ResizeNearest(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
-  // check conditions for applying fast resize
-  // Initial address has to be aligned to 16 bits for source and 32 for dest
-  if ((((uintptr_t)inTensors[0]->getAddress() & 0xf) != 0) or ((uintptr_t)outTensors[0]->getAddress() & 0x1f) != 0) {
-    return 0;
-  }
   auto ndims = inTensors[0]->ndims();
   auto dimsIn = inTensors[0]->dims();
   auto dimsOut = outTensors[0]->dims();
-  auto ratio = static_cast<float>(dimsOut[ndims - 1]) / static_cast<float>(dimsIn[ndims - 1]);
-  // Last dimension must be upscaled by 2
-  if (std::abs(ratio - 2) > 1e-15) {
+  auto typeSize = inTensors[0]->getElementSize();
+  auto ratioLast = static_cast<float>(dimsOut[ndims - 1]) / static_cast<float>(dimsIn[ndims - 1]);
+  // Check conditions for applying fast resize
+  if ((((uintptr_t)(inTensors[0]->getAddress()) & (uintptr_t)(~(CACHE_LINE_BYTES - 1))) != 0) or
+      (((uintptr_t)(outTensors[0]->getAddress()) & (uintptr_t)(~(CACHE_LINE_BYTES - 1))) != 0)) {
     return 0;
   }
-  // Every other dimension must be upscaled by an integer
+
+  // Check that channel is divisible by 32 bytes (vectorial instruction capacity)
+  if ((((inTensors[0]->strides()[ndims - 2] * typeSize) % 32) != 0) or
+      (((outTensors[0]->strides()[ndims - 2] * typeSize) % 32) != 0)) {
+    return 0;
+  }
+
+  // All dimensions must be upscaled by an integer
   for (size_t dim = 0; dim < ndims - 1; dim++) {
     float dimRatio = static_cast<float>(dimsOut[dim]) / static_cast<float>(dimsIn[dim]);
     if (std::abs(int(dimRatio) - dimRatio) > 1e-15) {
       return 0;
     }
   }
-  auto typeSize = inTensors[0]->getElementSize();
   auto strideIn = inTensors[0]->strides().data();
   auto stridesOut = outTensors[0]->strides().data();
-  // All rows in last dimension must start in an address divisible by 16 for src and 32 for dest
-  if (((strideIn[ndims - 2] * typeSize & 0xf) != 0) or ((stridesOut[ndims - 2] * typeSize & 0x1f) != 0)) {
-    return 0;
+
+  // Check conditions for applying fast resize for (x,x,x,2)
+  // Last dimension must be upscaled by 2
+  if (std::abs(ratioLast - 2) < 1e-15) {
+    // All rows in last dimension must start in an address divisible by 16 for src and 32 for dest
+    if (((strideIn[ndims - 2] * typeSize & 0xf) != 0) or ((stridesOut[ndims - 2] * typeSize & 0x1f) != 0)) {
+      return 0;
+    } else {
+      return 1;
+    }
   }
-  return 1;
+
+  // check conditions for applying fast resize for (x,x,x,1)
+  // Last dimension must be upscaled by 1 and dtype should be fp16
+  else if (std::abs(ratioLast - 1) < 1e-15 and (outTensors[0]->getElementType() == Float16Ty)) {
+    return 2;
+  }
+
+  return 0;
 }
 
 size_t implSel::Copy(std::vector<LibTensor*>& outTensors, std::vector<LibTensor*>& inTensors) {
