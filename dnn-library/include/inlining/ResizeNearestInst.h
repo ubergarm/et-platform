@@ -46,7 +46,6 @@ template <ElemKind elKind, size_t N>
 INLINE_ATTR typename std::enable_if_t<(elKind != BoolTy), void>
 fwdLibResizeNearestInst(LibTensor* outT, LibTensor* inT, const std::array<float, N>& rszScale, uint64_t flags,
                         const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
-
   using elkType = typename elemKind2elemTy<elKind>::type;
 
   et_assert(get_minion_id() >= minionOffset);
@@ -283,6 +282,114 @@ fwdLibResizeNearestInstUpscaleDouble(LibTensor* outT, LibTensor* inT, const std:
       }
     }
   }
+}
+
+template <ElemKind elKind, size_t N>
+INLINE_ATTR typename std::enable_if_t<(elKind == Float16Ty), void>
+fwdLibResizeNearestInstNoUpscaleC(LibTensor* outT, LibTensor* inT, const std::array<float, N>& rszScale, uint64_t flags,
+                                  const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+  using elkType = typename elemKind2elemTy<elKind>::type;
+
+  et_assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions)
+    return;
+
+  et_assert(inT->getElementType() == outT->getElementType());
+
+  constexpr size_t typeSize = getsize<elkType>();
+
+  elkType* dst = (elkType*)(outT->getRawDataPointer());
+  elkType* src = (elkType*)(inT->getRawDataPointer());
+
+  const dim_t nDims = inT->ndims();
+  const dim_t* srcDims = inT->dims().data();
+  const dim_t* dstDims = outT->dims().data();
+  const dim_t* srcStride = inT->strides().data();
+  const dim_t* dstStride = outT->strides().data();
+
+  auto numElemsDst = dstStride[0] * dstDims[0];
+
+  size_t dstOffsetElms, maxRead;
+  getCachelinePartition(typeSize, numElemsDst, dstOffsetElms, maxRead, minionId, activeMinions, dst);
+  if (maxRead == 0)
+    return;
+  size_t dstOffsetElmsMax = dstOffsetElms + maxRead;
+
+  dim_array_t intRszScale = {0};
+  for (size_t i = 0; i < N; i++) {
+    intRszScale[i] = static_cast<uint32_t>(rszScale[i]);
+  }
+
+  // Move dstOffsetElms to the next non-padding position in dst
+  dim_array_t coordDst = {0}; // Vector of coordinates
+  dim_t k = 0;                // Amount of non-zero coordinates
+  getNonPaddingCoordinates(coordDst, dstOffsetElms, nDims, dstStride, dstDims, k);
+
+  dstOffsetElms = 0;
+  size_t srcOffsetElms = 0;
+  dim_array_t coordSrc = {0};
+  for (size_t i = 0; i < k; i++) {
+    coordSrc[i] = coordDst[i] / intRszScale[i];
+    dstOffsetElms += coordDst[i] * dstStride[i];
+    srcOffsetElms += coordSrc[i] * srcStride[i];
+  }
+
+  bool done = false;
+  constexpr size_t rs1 = 0x76543210; // 0b0111 0110 0101 0100 0011 0010 0001 0000
+  constexpr size_t m0Masks[] = {0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff};
+  while (not done and (dstOffsetElms < dstOffsetElmsMax)) {
+    // Calc how many values can be read and advance that number in coordinates
+    int nValues = std::min(srcDims[nDims - 1] - coordSrc[nDims - 1], 8UL);
+    elkType* realSrcAddr = src + srcOffsetElms;
+    elkType* realDstAddr = dst + dstOffsetElms;
+
+    __asm__ __volatile__("mov.m.x   m0, %[m0Value], 0x00\n"     // load the mask to m0
+                         "fg32h.ps  f0, %[rs1](%[srcAddr00])\n" // load the data to f0
+                         "fsc32h.ps f0, %[rs1](%[dstAddr])\n"   // store data from f0 to dst
+                         :
+                         : [ rs1 ] "r"(rs1), [ srcAddr00 ] "r"(realSrcAddr), [ dstAddr ] "r"(realDstAddr),
+                           [ m0Value ] "r"(m0Masks[nValues])
+                         : "f0");
+
+    coordSrc[nDims - 1] += nValues;
+    srcOffsetElms += nValues;
+    coordDst[nDims - 1] += nValues;
+    dstOffsetElms += nValues;
+    // Check for end of row
+    if (coordSrc[nDims - 1] >= srcDims[nDims - 1]) {
+      et_assert(coordSrc[nDims - 1] == srcDims[nDims - 1]);
+      // Jump padding and detect end of tensor
+      for (size_t dim = nDims - 1; dim >= 0; dim--) {
+        if (unlikely(coordDst[dim] == dstDims[dim])) {
+          coordDst[dim] = 0;
+          done = (dim == 0);
+        } else {
+          coordDst[dim]++;
+          break;
+        }
+      }
+      // Update offset elms and src coords
+      if (likely(not done)) {
+        srcOffsetElms = 0;
+        dstOffsetElms = 0;
+        for (size_t i = 0; i < k; i++) {
+          coordSrc[i] = coordDst[i] / intRszScale[i];
+          srcOffsetElms += coordSrc[i] * srcStride[i];
+          dstOffsetElms += coordDst[i] * dstStride[i];
+        }
+      }
+    }
+  }
+}
+
+template <ElemKind elKind, size_t N>
+INLINE_ATTR typename std::enable_if_t<(elKind != Float16Ty), void>
+fwdLibResizeNearestInstNoUpscaleC([[maybe_unused]] LibTensor* outT, [[maybe_unused]] LibTensor* inT,
+                                  [[maybe_unused]] const std::array<float, N>& rszScale,
+                                  [[maybe_unused]] uint64_t flags, [[maybe_unused]] const uint32_t minionOffset = 0,
+                                  [[maybe_unused]] const uint32_t assignedMinions = 0) {
 }
 
 }  // inlining

@@ -1339,19 +1339,22 @@ static const std::vector<InstrConfigInt> instrConfigTable = {
     1,  // # ins
     {instrMembers::mbRszScale}, // members
     1, // template param mask
-    {"UpscaleDouble"}, // impl versions
+    {"UpscaleDouble", "NoUpscaleC"}, // impl versions
     implSel::ResizeNearest, // custom impl selector
     // L1 states per impl
     {{{operandState::dirty, operandState::clean},
+        {operandState::dirty, operandState::clean},
         {operandState::dirty, operandState::clean}}},
     // L2 states per impl
     {{{operandState::dirty, operandState::clean},
+        {operandState::dirty, operandState::clean},
         {operandState::dirty, operandState::clean}}},
     // CB states per impl
     {{{operandState::untouched, operandState::untouched},
+        {operandState::untouched, operandState::untouched},
         {operandState::untouched, operandState::untouched}}},
-    {0x0, 0x0}, // evict available mask
-    {0x0, 0x0}  // global store mask
+    {0x0, 0x0, 0x0}, // evict available mask
+    {0x0, 0x0, 0x0}  // global store mask
   },
 
   // ET_rowwisequantizedfullyconnected
