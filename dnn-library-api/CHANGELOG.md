@@ -14,6 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 ### Security
 
+## [0.10.0] 
+### Added
+- [SW-21973] Added specialized version of ResizeBilinear for 2x2
+- [SW-22172] Added impl selector for resize nearest and fixed bug in bilinear
+### Changed
+### Deprecated
+### Removed
+### Fixed
+### Security
+
 ## [0.9.2]
 ### Added
 ### Deprecated
