@@ -10,6 +10,29 @@
 ### Fixed
 ### Security
 
+## [0.12.1]
+### Added
+- [SW-22124] add GPSDK based profiling to dnnlib
+### Changed
+- [SW-21973] Optimized version of ResizeBilinear 2x2
+- [SW-22172] Optimize resize nearest when channel upscaling is 1
+### Deprecated
+### Removed
+### Fixed
+- [SW-22124] fixes in dnnlib profiling
+### Security
+
+## [0.12.0]
+## Unreleased
+### Added
+### Changed
+- [SW-21979] Improve performance of ConvTranspose
+### Deprecated
+### Removed
+### Fixed
+- [SW-21976] Run TransUnet end2end, get performance numbers
+### Security
+
 ## [0.11.2]
 ### Added
 - [SW-21976] Run TransUnet end2end, get performance numbers
