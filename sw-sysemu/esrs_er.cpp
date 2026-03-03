@@ -358,7 +358,11 @@ uint64_t System::esr_read(const Agent& agent, uint64_t addr)
         case ESR_FAST_LOCAL_BARRIER31:
             return shire_other_esrs[shire].fast_local_barrier[(esr - ESR_FAST_LOCAL_BARRIER0)>>3];
         case ESR_MTIME:
+#ifdef SYS_EMU
             return memory.rvtimer_read_mtime();
+#else
+            throw sysreg_error(esr);
+#endif
         case ESR_MTIMECMP:
             return memory.rvtimer_read_mtimecmp();
         case ESR_TIME_CONFIG:
@@ -633,8 +637,12 @@ void System::esr_write(const Agent& agent, uint64_t addr, uint64_t value)
                       shire_other_esrs[shire].fast_local_barrier[(esr - ESR_FAST_LOCAL_BARRIER0)>>3]);
             return;
         case ESR_MTIME:
+#ifdef SYS_EMU
             memory.rvtimer_write_mtime(agent, value);
             return;
+#else
+            throw sysreg_error(esr);
+#endif
         case ESR_MTIMECMP:
             memory.rvtimer_write_mtimecmp(agent, value);
             return;
