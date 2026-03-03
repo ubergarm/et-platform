@@ -68,6 +68,7 @@ private:
     static constexpr uint64_t POWER_DOMAIN_REQ  = 0x38;
     static constexpr uint64_t POWER_DOMAIN_ACK  = 0x40;
     static constexpr uint64_t POWER_GOOD        = 0x48;
+    static constexpr uint64_t POWER_STATUS      = 0x50;
     static constexpr uint64_t SPIN_LOCK         = 0x58;
     static constexpr uint64_t CHIP_MODE         = 0x60;
     static constexpr uint64_t MAILBOX0          = 0x68;

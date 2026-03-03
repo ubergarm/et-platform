@@ -83,6 +83,10 @@ uint32_t SysregsEr<Base>::read_register(const Agent& agent, uint64_t offset)
         case POWER_DOMAIN_ACK:
             return power_domain_ack;
 
+        case POWER_STATUS:
+            // Simplified: no power sequencing modeled, MRAM is always ready.
+            return 0;
+
         case SPIN_LOCK: {
             // Read-set atomic operation: return current value, then set lock bit
             uint32_t current_value = spin_lock;
@@ -133,6 +137,10 @@ void SysregsEr<Base>::write_register(const Agent& agent, uint64_t offset, uint32
             if (value & WATCHDOG_KICK) {
                 watchdog.kick();
             }
+            break;
+
+        case POWER_STATUS:
+            // Simplified: writes accepted but ignored (no power sequencing).
             break;
 
         case SPIN_LOCK:
