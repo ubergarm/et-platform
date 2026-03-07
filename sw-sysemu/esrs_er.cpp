@@ -171,7 +171,7 @@ void neigh_esrs_t::cold_reset()
     dummy0 = 0;
     dummy2 = false;
     neigh_chicken = 0;
-    icache_err_log_ctl = 0;
+    icache_err_log_ctl = 0x06;
     icache_err_log_info = 0;
     icache_sbe_dbe_counts = 0;
 }
@@ -496,7 +496,7 @@ void System::esr_write(const Agent& agent, uint64_t addr, uint64_t value)
                       shireid(shire), NEIGHID(pos), neigh_esrs[pos].dummy2 ? 1 : 0);
             break;
         case ESR_IPI_REDIRECT_PC:
-            neigh_esrs[pos].ipi_redirect_pc = value & 0xffffffffffffull;
+            neigh_esrs[pos].ipi_redirect_pc = value & 0xfffffffffffeull;
             LOG_AGENT(DEBUG, agent, "S%u:N%u:ipi_redirect_pc = 0x%" PRIx64,
                       shireid(shire), NEIGHID(pos), neigh_esrs[pos].ipi_redirect_pc);
             break;
