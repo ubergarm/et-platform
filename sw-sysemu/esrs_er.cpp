@@ -516,15 +516,18 @@ void System::esr_write(const Agent& agent, uint64_t addr, uint64_t value)
                       shireid(shire), NEIGHID(pos), neigh_esrs[pos].icache_err_log_ctl);
             break;
         case ESR_ICACHE_ERR_LOG_INFO:
-            neigh_esrs[pos].icache_err_log_info = value & ~0x8ull;
+            // Clear by setting bit 0 (`valid`) and matching `err_code` field.
+            if ((value & 0x1) && ((value & 0xF0) == (neigh_esrs[pos].icache_err_log_info & 0xF0))) {
+                neigh_esrs[pos].icache_err_log_info &= ~0x7ull;
+            } else {
+                // You can't write this register from CPU, but we allow it
+                // for DV purposes, as we don't emulate the icache behaviour.
+                neigh_esrs[pos].icache_err_log_info = value & ~0x8ull;
+            }
             LOG_AGENT(DEBUG, agent, "S%u:N%u:icache_err_log_info = 0x%" PRIx64,
                       shireid(shire), NEIGHID(pos), neigh_esrs[pos].icache_err_log_info);
             break;
         case ESR_ICACHE_ERR_LOG_ADDRESS:
-            // TODO: implement
-            // neigh_esrs[pos].icache_err_log_address = value & 0x3FFFFFFFFull;
-            // LOG_AGENT(DEBUG, agent, "S%u:N%u:icache_err_log_address = 0x%" PRIx64,
-            //           shireid(shire), NEIGHID(pos), neigh_esrs[pos].icache_err_log_address);
             break;
         case ESR_ICACHE_SBE_DBE_COUNTS:
             neigh_esrs[pos].icache_sbe_dbe_counts = uint16_t(value & 0x7FF);
