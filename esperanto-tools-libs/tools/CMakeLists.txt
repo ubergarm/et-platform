@@ -30,6 +30,11 @@ target_include_directories(runKernel PRIVATE ../src)
 target_compile_features(runKernel PRIVATE cxx_std_17)
 target_link_libraries(runKernel PRIVATE hostUtils::logging runtime::etrt_static cereal::cereal deviceLayer::deviceLayer)
 
+add_executable(et-profile-convert src/et_profile_convert.cpp)
+target_compile_features(et-profile-convert PRIVATE cxx_std_17)
+target_link_libraries(et-profile-convert PRIVATE nlohmann_json::nlohmann_json $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0.0>>:stdc++fs>)
+install(TARGETS et-profile-convert RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 find_package(gflags REQUIRED)
 configure_file(src/Constants.h.in ${CMAKE_BINARY_DIR}/src/Constants.h)
 add_executable(bench src/bench.cpp ${CMAKE_BINARY_DIR}/src/Constants.h)
