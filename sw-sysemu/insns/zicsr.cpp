@@ -286,7 +286,9 @@ static uint64_t csrget(Hart& cpu, uint16_t csr)
     case CSR_TDATA2:
         val = cpu.tdata2;
         break;
-        // unimplemented: TDATA3
+    case CSR_TDATA3:
+        val = 0;
+        break;
     case CSR_DCSR:
         if (!cpu.debug_mode) {
             throw trap_illegal_instruction(cpu.inst.bits);
@@ -845,7 +847,8 @@ static uint64_t csrset(Hart& cpu, uint16_t csr, uint64_t val)
             val = cpu.tdata2;
         }
         break;
-        // unimplemented: TDATA3
+    case CSR_TDATA3:
+        break;
     case CSR_DCSR:
         if (!cpu.debug_mode) {
             throw trap_illegal_instruction(cpu.inst.bits);
