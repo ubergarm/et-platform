@@ -25,10 +25,9 @@
 
 // vendor, arch, imp, ISA values
 #if EMU_ERBIUM
-// TODO: Erbium values for mvendorid, marchid, mimpid are yet to be defined
-#define CSR_VENDOR_ID 0
-#define CSR_ARCH_ID   0
-#define CSR_IMP_ID    0
+#define CSR_VENDOR_ID 0x5E5
+#define CSR_ARCH_ID   0x4554000000000001ull
+#define CSR_IMP_ID    0x10000
 #else
 #define CSR_VENDOR_ID ((11<<7) |        /* bank 11 */ \
                        (0xe5 & 0x7f))   /* 0xE5 (0x65 without parity) */
@@ -287,7 +286,9 @@ static uint64_t csrget(Hart& cpu, uint16_t csr)
     case CSR_TDATA2:
         val = cpu.tdata2;
         break;
-        // unimplemented: TDATA3
+    case CSR_TDATA3:
+        val = 0;
+        break;
     case CSR_DCSR:
         if (!cpu.debug_mode) {
             throw trap_illegal_instruction(cpu.inst.bits);
@@ -846,7 +847,8 @@ static uint64_t csrset(Hart& cpu, uint16_t csr, uint64_t val)
             val = cpu.tdata2;
         }
         break;
-        // unimplemented: TDATA3
+    case CSR_TDATA3:
+        break;
     case CSR_DCSR:
         if (!cpu.debug_mode) {
             throw trap_illegal_instruction(cpu.inst.bits);
