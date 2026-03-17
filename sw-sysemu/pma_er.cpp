@@ -19,7 +19,7 @@ namespace bemu {
 //   0x0200_0000 - 0x0200_0FFF: System registers (4K)
 //   0x0200_1000 - 0x0200_1FFF: MRAM registers (4K)
 //   0x0200_2000 - 0x0200_2FFF: Periph registers (4K)
-//   0x0200_3000 - 0x0200_3FFF: Hyperbus registers (4K)
+//   0x0200_F000 - 0x0200_FFFF: xSPI registers (4K)
 //   0x0200_4000 - 0x0200_4FFF: UART registers (4K)
 //   0x0200_8000 - 0x0200_9FFF: Bootrom (8K)
 //   0x0200_C000 - 0x0200_CFFF: Scratch SRAM (4K)
@@ -36,8 +36,8 @@ static inline bool paddr_is_mramreg(uint64_t addr)
 static inline bool paddr_is_periph(uint64_t addr)
 { return (addr >= 0x02002000ull) && (addr < 0x02003000ull); }
 
-static inline bool paddr_is_hyperbus(uint64_t addr)
-{ return (addr >= 0x02003000ull) && (addr < 0x02004000ull); }
+static inline bool paddr_is_xspi(uint64_t addr)
+{ return (addr >= 0x0200F000ull) && (addr < 0x02010000ull); }
 
 static inline bool paddr_is_uart(uint64_t addr)
 { return (addr >= 0x02004000ull) && (addr < 0x02005000ull); }
@@ -265,8 +265,8 @@ uint64_t pma_check_data_access(const Hart& cpu, uint64_t vaddr,
         return addr;
     }
 
-    if (paddr_is_hyperbus(addr)) {
-        // Hyperbus registers: 32-bit aligned, 32-bit access, M-mode only,
+    if (paddr_is_xspi(addr)) {
+        // xSPI registers: 32-bit aligned, 32-bit access, M-mode only,
         // no AMO/TensorOp/CacheOp
         Privilege mode = effective_execution_mode(cpu, macc);
         if (amo
