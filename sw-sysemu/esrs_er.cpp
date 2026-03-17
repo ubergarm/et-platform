@@ -63,7 +63,6 @@ namespace bemu {
 #define ESR_MPROT                   0x0080D00020ull
 #define ESR_DUMMY2                  0x0080D00028ull
 #define ESR_DUMMY3                  0x0080D00030ull
-#define ESR_VMSPAGESIZE             0x0080D00038ull
 #define ESR_IPI_REDIRECT_PC         0x0080100040ull
 #define ESR_PMU_CTRL                0x0080D00068ull
 #define ESR_NEIGH_CHICKEN           0x0080D00070ull
@@ -132,7 +131,6 @@ namespace bemu {
 #define ESR_ICACHE_SPREFETCH            0x0080740300ull
 #define ESR_ICACHE_MPREFETCH            0x0080F40308ull
 #define ESR_CLK_GATE_CTRL               0x0080F40310ull
-#define ESR_DEBUG_CLK_GATE_CTRL         0x0080B5FFA0ull
 #define ESR_DMCTRL                      0x0080B5FF88ull
 #define ESR_SM_CONFIG                   0x0080B5FF90ull
 #define ESR_SM_TRIGGER                  0x0080B5FF98ull
@@ -203,7 +201,6 @@ void shire_other_esrs_t::cold_reset(unsigned shireid)
     thread1_disable = 0xFF;
     mtime_local_target = 0xFFFF;
     clk_gate_ctrl = 0;
-    debug_clk_gate_ctrl = 0;
     // sm_config = 0;
 }
 
@@ -269,8 +266,6 @@ uint64_t System::esr_read(const Agent& agent, uint64_t addr)
             return neigh_esrs[pos].dummy2;
         case ESR_DUMMY3:
             return 0;
-        case ESR_VMSPAGESIZE:
-            return 0; // Not supported, return 0 anyways.
         case ESR_IPI_REDIRECT_PC:
             return neigh_esrs[pos].ipi_redirect_pc;
         case ESR_PMU_CTRL:
@@ -381,8 +376,6 @@ uint64_t System::esr_read(const Agent& agent, uint64_t addr)
             return read_icache_prefetch(Privilege::M, shire);
         case ESR_CLK_GATE_CTRL:
             return shire_other_esrs[shire].clk_gate_ctrl;
-        case ESR_DEBUG_CLK_GATE_CTRL:
-            return shire_other_esrs[shire].debug_clk_gate_ctrl;
         case ESR_DMCTRL:
             return agent.chip->read_dmctrl();
         case ESR_SM_CONFIG:
@@ -679,14 +672,9 @@ void System::esr_write(const Agent& agent, uint64_t addr, uint64_t value)
             write_icache_prefetch(Privilege::M, shire, value & 0xffffffffffffull);
             return;
         case ESR_CLK_GATE_CTRL:
-            shire_other_esrs[shire].clk_gate_ctrl = uint8_t(value & 0xDF);
+            shire_other_esrs[shire].clk_gate_ctrl = uint8_t(value & 0x5F);
             LOG_AGENT(DEBUG, agent, "S%u:clk_gate_ctrl = 0x%" PRIx16,
                       shireid(shire), shire_other_esrs[shire].clk_gate_ctrl);
-            return;
-        case ESR_DEBUG_CLK_GATE_CTRL:
-            shire_other_esrs[shire].debug_clk_gate_ctrl = uint8_t(value & 0x1);
-            LOG_AGENT(DEBUG, agent, "S%u:debug_clk_gate_ctrl = 0x%" PRIx8,
-                      shireid(shire), shire_other_esrs[shire].debug_clk_gate_ctrl);
             return;
         case ESR_DMCTRL:
             agent.chip->write_dmctrl(uint32_t(value & 0xF400000F));

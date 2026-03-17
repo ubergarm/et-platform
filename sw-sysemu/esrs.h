@@ -156,7 +156,6 @@ struct shire_other_esrs_t {
     uint16_t shire_dll_auto_config;
     uint16_t shire_power_ctrl;
     uint16_t clk_gate_ctrl;
-    uint8_t  debug_clk_gate_ctrl;
     uint8_t  minion_feature;
     uint8_t  shire_ctrl_clockmux;
     uint8_t  shire_channel_eco_ctl;
