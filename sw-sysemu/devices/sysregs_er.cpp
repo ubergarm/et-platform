@@ -143,6 +143,14 @@ void SysregsEr<Base>::write_register(const Agent& agent, uint64_t offset, uint32
             // Simplified: writes accepted but ignored (no power sequencing).
             break;
 
+        case MAILBOX0:
+            mailbox0 = value;
+            break;
+
+        case MAILBOX1:
+            mailbox1 = value;
+            break;
+
         case SPIN_LOCK:
             // Only write bit 0 (lock bit), ignore all other bits
             spin_lock = (spin_lock & ~SPIN_LOCK_LOCK) | (value & SPIN_LOCK_LOCK);
