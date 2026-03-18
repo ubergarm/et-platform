@@ -24,6 +24,7 @@ namespace bemu {
 //   0x0200_8000 - 0x0200_9FFF: Bootrom (8K)
 //   0x0200_C000 - 0x0200_CFFF: Scratch SRAM (4K)
 //   0x4000_0000 - 0x7FFF_FFFF: MRAM (1G, but only 16MB installed)
+//   0x7FFF_D000 - 0x7FFF_FFFF: OTP (12K, read-only)
 //   0x8000_0000 - 0xBFFF_FFFF: ESR/CPU registers (1G)
 //   0xC000_0000 - 0xC3FF_FFFF: PLIC (64M)
 
@@ -48,6 +49,9 @@ static inline bool paddr_is_bootrom(uint64_t addr)
 static inline bool paddr_is_sram(uint64_t addr)
 { return (addr >= 0x0200C000ull) && (addr < 0x0200D000ull); }
 
+static inline bool paddr_is_otp(uint64_t addr)
+{ return (addr >= 0x7FFFD000ull) && (addr < 0x80000000ull); }
+
 static inline bool paddr_is_mram(uint64_t addr)
 { return (addr >= 0x40000000ull) && (addr < 0x80000000ull); }
 
@@ -56,6 +60,7 @@ static inline bool paddr_is_esr(uint64_t addr)
 
 static inline bool paddr_is_plic(uint64_t addr)
 { return (addr >= 0xC0000000ull) && (addr < 0xC4000000ull); }
+
 
 
 static bool data_access_is_write(mem_access_type macc)
@@ -156,6 +161,17 @@ uint64_t pma_check_data_access(const Hart& cpu, uint64_t vaddr,
                   || (macc == Mem_Access_TxLoadL2Scp);
     bool cacheop = (macc == Mem_Access_CacheOp);
     bool ts_tl_co = tensor || cacheop;
+
+    if (paddr_is_otp(addr)) {
+        // OTP: read-only, no AMO/TensorOp/CacheOp
+        if (amo
+            || ts_tl_co
+            || data_access_is_write(macc))
+        {
+            throw_access_fault(vaddr, macc);
+        }
+        return addr;
+    }
 
     if (paddr_is_mram(addr)) {
         uint16_t mprot = cpu.chip->neigh_esrs[neigh_index(cpu)].mprot;
