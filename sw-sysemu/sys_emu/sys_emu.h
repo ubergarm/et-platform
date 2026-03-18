@@ -162,6 +162,8 @@ struct sys_emu_cmd_options {
     std::string uart_rx_file;
     std::string uart_tx_file;
 #endif
+
+    std::string otp_load_file;
 };
 
 class api_communicate;

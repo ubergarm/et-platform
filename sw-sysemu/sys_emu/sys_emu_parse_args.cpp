@@ -73,6 +73,7 @@ static const char * help_msg =
 "     -uart_rx_file <path>     Path to the file from which to read UART RX input (default is stdin)\n"
 "     -uart_tx_file <path>     Path to the file to which to write UART TX output (default is stdout)\n"
 #endif // EMU_HAS_SHAKTI_UART
+"     -otp_load <path>         Path to a raw binary file to load into the OTP region\n"
 #endif // SDK_RELEASE
 "     -log_at_pc <PC>          Enables logging when minion reaches a given PC\n"
 "     -stop_log_at_pc <PC>     Disables logging when minion reaches a given PC\n"
@@ -211,6 +212,7 @@ sys_emu::parse_command_line_arguments(int argc, char* argv[])
         {"uart_rx_file",           required_argument, nullptr, 0},
         {"uart_tx_file",           required_argument, nullptr, 0},
 #endif // EMU_HAS_SHAKTI_UART
+        {"otp_load",               required_argument, nullptr, 0},
 #endif // !SDK_RELEASE
         {"log_at_pc",              required_argument, nullptr, 0},
         {"stop_log_at_pc",         required_argument, nullptr, 0},
@@ -490,6 +492,10 @@ sys_emu::parse_command_line_arguments(int argc, char* argv[])
             cmd_options.uart_tx_file = optarg;
         }
 #endif // EMU_HAS_SHAKTI_UART
+        else if (!strcmp(name, "otp_load"))
+        {
+            cmd_options.otp_load_file = optarg;
+        }
         else if (!strcmp(name, "log_at_pc"))
         {
             sscanf(optarg, "%" PRIx64, &cmd_options.log_at_pc);

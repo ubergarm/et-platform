@@ -311,6 +311,28 @@ sys_emu::sys_emu(const sys_emu_cmd_options &cmd_options, api_communicate *api_co
         }
     }
 
+    // Load OTP image (12KB max)
+    if (!cmd_options.otp_load_file.empty()) {
+        LOG_AGENT(INFO, agent, "Loading OTP: \"%s\"", cmd_options.otp_load_file.c_str());
+        std::ifstream otp_file(cmd_options.otp_load_file, std::ios::binary | std::ios::ate);
+        if (!otp_file) {
+            LOG_AGENT(FTL, agent, "Cannot open OTP file \"%s\"", cmd_options.otp_load_file.c_str());
+        } else {
+            auto otp_size = otp_file.tellg();
+            constexpr size_t OTP_MAX_SIZE = 12 * 1024;
+            if (otp_size > static_cast<std::streampos>(OTP_MAX_SIZE)) {
+                LOG_AGENT(FTL, agent, "OTP file too large (%ld bytes, max %zu)", (long)otp_size, OTP_MAX_SIZE);
+            } else {
+                try {
+                    chip.load_raw(cmd_options.otp_load_file.c_str(), 0x7FFFD000ull);
+                }
+                catch (...) {
+                    LOG_AGENT(FTL, agent, "Error loading OTP \"%s\"", cmd_options.otp_load_file.c_str());
+                }
+            }
+        }
+    }
+
     // Perform 32 bit writes
     for (const auto &info: cmd_options.mem_write32s) {
         LOG_AGENT(INFO, agent, "Writing 32-bit value 0x%" PRIx32 " to 0x%" PRIx64, info.value, info.addr);
