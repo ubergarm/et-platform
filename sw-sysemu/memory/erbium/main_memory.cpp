@@ -17,6 +17,7 @@ namespace bemu {
 void MainMemory::reset()
 {
     regions[erbreg_idx].reset(new SysregsEr<region_bases[erbreg_idx]>());
+    regions[mram_bridge_idx].reset(new DenseRegion<region_bases[mram_bridge_idx], region_sizes[mram_bridge_idx]>());
     regions[uart_idx].reset(new ShaktiUart<region_bases[uart_idx], region_sizes[uart_idx]>());
     regions[bootrom_idx].reset(new DenseRegion<region_bases[bootrom_idx], region_sizes[bootrom_idx], false>());
     regions[sram_idx].reset(new DenseRegion<region_bases[sram_idx], region_sizes[sram_idx]>());

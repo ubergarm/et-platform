@@ -46,6 +46,7 @@ struct MainMemory {
 private:
     enum : unsigned {
         erbreg_idx,
+        mram_bridge_idx,
         uart_idx,
         bootrom_idx,
         sram_idx,
@@ -59,6 +60,7 @@ private:
 
     constexpr static uint64_t region_bases[REGION_COUNT] = {
         /* erbreg  */ 0x0002000000ull,
+        /* mram_bridge */ 0x0002001000ull,
         /* uart    */ 0x0002004000ull,
         /* bootrom */ 0x0002008000ull,
         /* sram    */ 0x000200C000ull,
@@ -70,6 +72,7 @@ private:
 
     constexpr static size_t region_sizes[REGION_COUNT] = {
         /* erbreg  */ 4_KiB,
+        /* mram_bridge */ 4_KiB,
         /* uart    */ 4_KiB,
         /* bootrom */ 8_KiB,
         /* sram    */ 4_KiB,
