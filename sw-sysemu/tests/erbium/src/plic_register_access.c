@@ -8,7 +8,7 @@
 * Expected: PASS
 *
 * This test verifies that PLIC registers are accessible at the expected
-* address (0xC000_0000) and basic read/write operations work correctly.
+* address (0xA000_0000) and basic read/write operations work correctly.
 *
 * Test sequence:
 * 1. Write to priority register and read back
@@ -21,7 +21,7 @@
 #include <stdint.h>
 
 /* PLIC base address for Erbium */
-#define PLIC_BASE               0xC0000000UL
+#define PLIC_BASE               0xA0000000UL
 
 /* PLIC register offsets (from RISC-V PLIC 1.0.0 spec) */
 #define PLIC_PRIORITY_BASE      0x000000UL

@@ -24,8 +24,8 @@ namespace bemu {
 //   0x0200_8000 - 0x0200_9FFF: Bootrom (8K)
 //   0x0200_C000 - 0x0200_CFFF: Scratch SRAM (4K)
 //   0x4000_0000 - 0x7FFF_FFFF: MRAM (1G, but only 16MB installed)
-//   0x8000_0000 - 0xBFFF_FFFF: ESR/CPU registers (1G)
-//   0xC000_0000 - 0xC3FF_FFFF: PLIC (64M)
+//   0x8000_0000 - 0x9FFF_FFFF: ESR/CPU registers (512M)
+//   0xA000_0000 - 0xA3FF_FFFF: PLIC (64M)
 
 static inline bool paddr_is_sysreg(uint64_t addr)
 { return (addr >= 0x02000000ull) && (addr < 0x02001000ull); }
@@ -52,10 +52,10 @@ static inline bool paddr_is_mram(uint64_t addr)
 { return (addr >= 0x40000000ull) && (addr < 0x80000000ull); }
 
 static inline bool paddr_is_esr(uint64_t addr)
-{ return (addr >= 0x80000000ull) && (addr < 0xC0000000ull); }
+{ return (addr >= 0x80000000ull) && (addr < 0xA0000000ull); }
 
 static inline bool paddr_is_plic(uint64_t addr)
-{ return (addr >= 0xC0000000ull) && (addr < 0xC4000000ull); }
+{ return (addr >= 0xA0000000ull) && (addr < 0xA4000000ull); }
 
 
 static bool data_access_is_write(mem_access_type macc)

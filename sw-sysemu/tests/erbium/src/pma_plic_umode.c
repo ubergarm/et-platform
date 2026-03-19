@@ -12,7 +12,7 @@
 #include "trap.h"
 #include "priv.h"
 
-#define PLIC_BASE  0xC0000000ull
+#define PLIC_BASE  0xA0000000ull
 
 static void umode_test(void) {
     volatile uint32_t *plic = (volatile uint32_t *)PLIC_BASE;
