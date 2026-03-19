@@ -30,6 +30,7 @@ namespace bemu {
 // | 0x00_0200_A000 | 0x00_0200_BFFF |  8KiB    | Boot ROM          |
 // | 0x00_0200_E000 | 0x00_0200_EFFF |  4KiB    | Scratch SRAM      |
 // | 0x00_4000_0000 | 0x00_40FF_FFFF | 16MiB    | MRAM              |
+// | 0x00_7FFF_D000 | 0x00_7FFF_FFFF | 12KiB    | OTP (read-only)   |
 // | 0x00_8000_0000 | 0x00_80FF_FFFF | 16MiB    | ESR Registers     |
 // | 0x00_A000_0000 | 0x00_A3FF_FFFF | 64MiB    | PLIC              |
 // +----------------+----------------+----------+-------------------+
@@ -49,6 +50,7 @@ private:
         bootrom_idx,
         sram_idx,
         dram_idx,
+        otp_idx,
         sysreg_idx,
         plic_idx,
 
@@ -61,6 +63,7 @@ private:
         /* bootrom */ 0x0002008000ull,
         /* sram    */ 0x000200C000ull,
         /* dram    */ 0x0040000000ull,  /* Actually MRAM */
+        /* otp     */ 0x007FFFD000ull,
         /* sysreg  */ 0x0080000000ull,
         /* plic    */ 0x00A0000000ull,
     };
@@ -71,6 +74,7 @@ private:
         /* bootrom */ 8_KiB,
         /* sram    */ 4_KiB,
         /* dram    */ 16_MiB,
+        /* otp     */ 12_KiB,
         /* sysreg  */ 16_MiB,
         /* plic    */ 64_MiB,
     };
