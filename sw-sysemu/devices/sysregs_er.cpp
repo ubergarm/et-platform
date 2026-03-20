@@ -139,6 +139,14 @@ void SysregsEr<Base>::write_register(const Agent& agent, uint64_t offset, uint32
             }
             break;
 
+        case SOFT_RESET:
+            soft_reset = value;
+            break;
+
+        case POWER_DOMAIN_REQ:
+            power_domain_req = value;
+            break;
+
         case POWER_STATUS:
             // Simplified: writes accepted but ignored (no power sequencing).
             break;
