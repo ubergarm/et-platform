@@ -24,7 +24,7 @@ Conceptually the build phase can be divided in:
 export DEV_COMPILER=gcc8.2 #available options are gcc8.2 and clang11
 mkdir device/build
 cd device/build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/et/.builds/device/${DEV_COMPILER}/conan_toolchain.cmake -DADDRESS:STRING=0x8006335000  -DCMAKE_BUILD_TYPE=Release
 
 make all
 ```
@@ -32,7 +32,7 @@ make all
 
 ```
 cd host/build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/esperanto/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/usr/local/et/.builds/host/conan_toolchain.cmake -DCMAKE_BUILD_TYPE=Debug
 make all
 
 ``` 

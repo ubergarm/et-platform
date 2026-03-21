@@ -130,8 +130,6 @@ gdb.close()                                      # Close GDB session
 The SQA regression can be run from the software/system-qa repository.
 This will both build the GP-SDK artifacts, as well as run all silicon and sysemu tests.
 
-To launch the regression pipeline: https://gitlab.esperanto.ai/software/system-qa/-/pipelines/new
-
 Here select the following options:
 
 - `TARGET_MACHINE`: Select the machine this runs on. Make sure to reserve a slot in the queue first!
