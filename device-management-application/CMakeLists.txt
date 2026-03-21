@@ -117,6 +117,42 @@ install(TARGETS et-powertop
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
+add_executable(et-metrics
+    src/et-metrics.cc
+)
+target_compile_features(et-metrics PUBLIC cxx_std_17)
+target_include_directories(et-metrics
+    PRIVATE
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+)
+target_compile_definitions(et-metrics
+    PUBLIC
+        -DET_METRICS_VERSION="${CMAKE_PROJECT_VERSION}"
+)
+target_link_libraries(et-metrics
+    PRIVATE
+        glog::glog
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${CMAKE_DL_LIBS}
+        deviceManagement::DM
+        esperantoTrace::et_trace
+        hostUtils::logging
+        $<$<AND:$<CXX_COMPILER_ID:GNU>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,9.0.0>>:stdc++fs>
+        deviceLayer::deviceLayer
+)
+target_compile_options(et-metrics
+    PRIVATE
+        -Wall
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
+)
+install(TARGETS et-metrics
+    EXPORT deviceManagementApplicationTargets
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
 # Add package information
 include(CMakePackageConfigHelpers)
 
