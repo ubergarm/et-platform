@@ -1,0 +1,118 @@
+/*-------------------------------------------------------------------------
+ * Copyright (c) 2025 Ainekko, Co.
+ * SPDX-License-Identifier: Apache-2.0
+ *-------------------------------------------------------------------------
+ */
+
+
+MAX_HARTS = 2112;
+
+SECTIONS
+{
+  . = BASE_ADDRESS;
+  .text.init : 
+  {
+     *(.text.init)
+  }
+  _before_align = .;
+  . = ALIGN(64);
+  .text : { *(.text) *(.text.*) }
+  . = ALIGN(64);
+
+
+   /* init and fini array for global constructors and destructors */
+  .preinit_array : ALIGN(64) {
+        PROVIDE_HIDDEN (__preinit_array_start = .);
+        KEEP (*(.preinit_array))
+        PROVIDE_HIDDEN (__preinit_array_end = .);
+   } 
+
+  .init_array : ALIGN(64) {
+     PROVIDE_HIDDEN (__init_array_start = .);
+     KEEP (*(SORT_BY_INIT_PRIORITY(.init_array.*) SORT_BY_INIT_PRIORITY(.init_array)))
+     PROVIDE_HIDDEN (__init_array_end = .);
+  }
+
+  .fini_array : ALIGN(64) {
+     PROVIDE_HIDDEN (__fini_array_start = .);
+     KEEP (*(SORT_BY_INIT_PRIORITY(.fini_array.*) SORT_BY_INIT_PRIORITY(.fini_array)))
+     PROVIDE_HIDDEN (__fini_array_end = .);
+  }
+
+ 
+  .persistentData : ALIGN(64) {
+    *(.persistentData);
+  }
+  . = ALIGN(64);
+
+
+  .data :
+  {
+    /* This section must be restored every time a kernel is relaunched in the
+       device. We reserve a region of the same size as _data
+       labeled (_data_ro_copy*) where we will place a read-only copy of _data
+       the first time a kernel is launched. Subsequent launches will restore  
+      _data_ro_copy into _data */
+    _data_start = .;
+    . = ALIGN(64);
+    *(.sdata .sdata.*)
+     PROVIDE( __global_pointer$ = . + 0x800 );
+    *(.data .data.*)
+    . = ALIGN(64);
+    _data_end = .;
+    _data_ro_copy_start = .;
+    . +=(_data_end - _data_start);
+    _data_ro_copy_end = .;
+  }
+  . = ALIGN(64);
+
+
+  . = ALIGN(64);
+  .bss(NOLOAD) :
+  {
+    _bss_start = .;
+    *(.sbss*);
+    *(.bss*);
+    . = ALIGN(64);
+    _bss_end = .;
+  }
+
+  /***********************************************
+   * TLS (Per thread data)
+   * .tdata* holds initialized thread local data.
+   * .tbss*  holds non-initialized & zeroed thread local data.
+   *         this is a �"backup". upon initialization, each hart
+   *         will get its copy on TLS allocation.
+   *  [__tdata_start .. __tbss_end ]
+   *  (Note: tbss could be marked NOLOAD to save some load-time).
+   ***********************************************/
+   . = ALIGN(64);
+  .tdata :
+   {
+     *(.tdata*)
+     . = ALIGN(64);
+   }
+     __tdata_start = ADDR(.tdata);  
+  .tbss	  : { 
+      __tbss_start = .;
+      *(.tbss*)
+   }
+   . = . + SIZEOF(.tbss);
+   . = ALIGN(64);
+   __tbss_end = .;
+
+  /***********************************************
+   * TLS (per thread allocation area). 
+   * reserve 2112 times the ammount of memory required by (tdata + tbss)
+   * __tls_alloc_start[0] --> hart_0
+   * __tls_alloc_start[2111 *tls_size] --> hart_2111  
+  /***********************************************/
+  .tls-alloc ALIGN(64) (NOLOAD) : {
+     __tls_alloc_start = .;
+     . = . + (ABSOLUTE(__tbss_end) - ABSOLUTE(__tdata_start)) * MAX_HARTS;
+   } 
+  
+  
+
+  _end = .;
+}

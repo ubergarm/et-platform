@@ -1,0 +1,152 @@
+[
+  {
+    "name": "Execution Stack",
+    "tracks": [
+      {
+        "name": "Virtual Queue 0",
+        "type": "CMD_STATUS",
+        "queue_slot_id": 0
+      },
+      {
+        "name": "Virtual Queue 1",
+        "type": "CMD_STATUS",
+        "queue_slot_id": 1
+      }
+    ]
+  },
+
+  {
+    "name": "Power Status",
+    "tracks": [
+      {
+        "name": "Power",
+        "type": "POWER_STATUS"
+      }
+    ]
+  },
+
+  {
+    "name": "PMC/Compute",
+    "tracks": [
+      {
+        "name": "PMC",
+        "type": "PMC_COUNTERS_COMPUTE",
+        "counters": [
+          "Cycles",
+          "Retired_Inst0",
+          "Retired_Inst1",
+          "L2_Miss_Req",
+          "Minion_Icache_Req",
+          "Icache_Etlink_Req"
+        ]
+      }
+    ]
+  },
+
+  {
+    "name": "PMC/Memory",
+    "tracks": [
+      {
+        "name": "PMC",
+        "type": "PMC_COUNTERS_MEMORY",
+        "counters": [
+          "SC_L2_Reads",
+          "SC_Msg_Send",
+          "MS_Mesh_Reads",
+          "MS_Mesh_Writes"
+        ]
+      }
+    ]
+  },
+
+  {
+    "name": "Custom Event OP Stats",
+    "tracks": [
+      {
+        "name": "OP Stats",
+        "type": "CUSTOM_EVENT_OP_STATS",
+        "attribute_values": [
+          "minion_temperature_avg (C)",
+          "minion_temperature_min (C)",
+          "minion_temperature_max (C)",
+          "minion_power_avg (W)",
+          "minion_power_min (W)",
+          "minion_power_max (W)",
+          "sram_temperature_avg (C)",
+          "sram_temperature_min (C)",
+          "sram_temperature_max (C)",
+          "sram_power_avg (W)",
+          "sram_power_min (W)",
+          "sram_power_max (W)",
+          "noc_temperature_avg (C)",
+          "noc_temperature_min (C)",
+          "noc_temperature_max (C)",
+          "noc_power_avg (W)",
+          "noc_power_min (W)",
+          "noc_power_max (W)",
+          "system_temperature_avg (C)",
+          "system_temperature_min (C)",
+          "system_temperature_max (C)",
+          "system_power_avg (W)",
+          "system_power_min (W)",
+          "system_power_max (W)"
+        ]
+      }
+    ]
+  },
+
+  {
+    "name": "Custom Event Compute Resources",
+    "tracks": [
+      {
+        "name": "Compute Resources Sample",
+        "type": "CUSTOM_EVENT_COMPUTE_RESOURCES",
+        "attribute_values": [
+          "cm_utilization_avg (%)",
+          "cm_utilization_min (%)",
+          "cm_utilization_max (%)",
+          "cm_bw_avg (kernels/sec)",
+          "cm_bw_min (kernels/sec)",
+          "cm_bw_max (kernels/sec)",
+          "pcie_dma_read_bw_avg (MB/s)",
+          "pcie_dma_read_bw_min (MB/s)",
+          "pcie_dma_read_bw_max (MB/s)",
+          "pcie_dma_write_bw_avg (MB/s)",
+          "pcie_dma_write_bw_min (MB/s)",
+          "pcie_dma_write_bw_max (MB/s)",
+          "pcie_dma_read_utilization_avg (%)",
+          "pcie_dma_read_utilization_min (%)",
+          "pcie_dma_read_utilization_max (%)",
+          "pcie_dma_write_utilization_avg (%)",
+          "pcie_dma_write_utilization_min (%)",
+          "pcie_dma_write_utilization_max (%)",
+          "ddr_read_bw_avg (MB/s)",
+          "ddr_read_bw_min (MB/s)",
+          "ddr_read_bw_max (MB/s)",
+          "ddr_write_bw_avg (MB/s)",
+          "ddr_write_bw_min (MB/s)",
+          "ddr_write_bw_max (MB/s)",
+          "l2_l3_read_bw_avg (MB/s)",
+          "l2_l3_read_bw_min (MB/s)",
+          "l2_l3_read_bw_max (MB/s)",
+          "l2_l3_write_bw_avg (MB/s)",
+          "l2_l3_write_bw_min (MB/s)",
+          "l2_l3_write_bw_max (MB/s)"
+        ]
+      }
+    ]
+  },
+
+
+  {
+    "name": "User Profile Events",
+    "tracks": [
+       {	
+	       "name": "User events harts",
+         "type": "HARTS",
+         "attribute_values": [
+        ]
+      }
+    ]
+  }
+]
