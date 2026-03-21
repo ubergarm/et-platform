@@ -1,0 +1,23 @@
+.idea
+build
+*.tar.gz
+
+# traces
+*.bin
+# sysemu logs
+*.log
+*.log*
+
+# conan
+conan.lock
+conanbuildinfo.txt
+conaninfo.txt
+conanrun*.sh
+deactivate_conanrun*.sh
+graph_info.json
+deploy_manifest.txt
+*.lock
+CMakeUserPresets.json
+
+# vscode
+**/.vscode/**
