@@ -75,8 +75,9 @@ private:
     static constexpr uint64_t CHIP_MODE         = 0x60;
     static constexpr uint64_t MAILBOX0          = 0x68;
     static constexpr uint64_t MAILBOX1          = 0x70;
+    static constexpr uint64_t RING_OSC          = 0x98;
     // Must match the highest offset
-    static constexpr uint64_t LAST_OFFSET       = 0x70;
+    static constexpr uint64_t LAST_OFFSET       = 0x98;
 
     // Register Bit Masks
     static constexpr uint32_t SYSTEM_CONFIG_SYS_INTR_EN         = 1 << 0;
@@ -105,6 +106,7 @@ private:
     uint32_t mailbox0;
     uint32_t mailbox1;
     uint32_t power_good;
+    uint32_t ring_osc;
 
     // Watchdog device with 4-cycle divider (250MHz from 1GHz system clock)
     Watchdog<4> watchdog;
