@@ -32,6 +32,7 @@ void SysregsEr<Base>::reset(ResetCause cause)
     mailbox0           = 0;
     mailbox1           = 0;
     power_good         = 0xFFFFF;
+    ring_osc           = 0x7F; // en=1, divby2_sel=1, trm=0x1F
 
     // Initialize watchdog with default count and disabled state
     watchdog.set_count_from(0xFFFF);
@@ -109,6 +110,9 @@ uint32_t SysregsEr<Base>::read_register(const Agent& agent, uint64_t offset)
         case POWER_GOOD:
             return power_good;
 
+        case RING_OSC:
+            return ring_osc;
+
         default:
             WARN_AGENT(erbium_regs, agent, "Read unknown Erbium register 0x%" PRIx64, addr);
             throw memory_error(addr);
@@ -139,6 +143,14 @@ void SysregsEr<Base>::write_register(const Agent& agent, uint64_t offset, uint32
             }
             break;
 
+        case SOFT_RESET:
+            soft_reset = value;
+            break;
+
+        case POWER_DOMAIN_REQ:
+            power_domain_req = value;
+            break;
+
         case POWER_STATUS:
             // Simplified: writes accepted but ignored (no power sequencing).
             break;
@@ -154,6 +166,10 @@ void SysregsEr<Base>::write_register(const Agent& agent, uint64_t offset, uint32
         case SPIN_LOCK:
             // Only write bit 0 (lock bit), ignore all other bits
             spin_lock = (spin_lock & ~SPIN_LOCK_LOCK) | (value & SPIN_LOCK_LOCK);
+            break;
+
+        case RING_OSC:
+            ring_osc = value & 0x7FF; // bits [10:0]
             break;
 
         default:
