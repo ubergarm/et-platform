@@ -49,7 +49,7 @@ struct SysregsEr : public MemoryRegion {
     }
     
     addr_type first() const override { return Base; }
-    addr_type last() const override { return Base + LAST_OFFSET; }
+    addr_type last() const override { return Base + LAST_OFFSET + 7; }
 
     void dump_data(const Agent&, std::ostream&, size_type, size_type) const override { }
 
