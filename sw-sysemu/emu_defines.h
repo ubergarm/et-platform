@@ -159,6 +159,10 @@ namespace bemu {
 
 #define PA_SIZE        40
 
+// mtvec/stvec 4KB alignment masks
+#define XTVEC_DIRECT_MASK  0xFFEULL
+#define XTVEC_VECTOR_MASK  0xFFEULL
+
 #else
 #error "Architecture unspecified."
 #endif
