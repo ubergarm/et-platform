@@ -33,6 +33,9 @@ void SysregsEr<Base>::reset(ResetCause cause)
     mailbox1           = 0;
     power_good         = 0xFFFFF;
     ring_osc           = 0x7F; // en=1, divby2_sel=1, trm=0x1F
+    cpu_divider        = 0x1F; // count=0xF, div_enable=1
+    system_divider     = 0x1F; // count=0xF, div_enable=1
+    periph_divider     = 0x1F; // count=0xF, div_enable=1
 
     // Initialize watchdog with default count and disabled state
     watchdog.set_count_from(0xFFFF);
@@ -113,6 +116,15 @@ uint32_t SysregsEr<Base>::read_register(const Agent& agent, uint64_t offset)
         case RING_OSC:
             return ring_osc;
 
+        case CPU_DIVIDER:
+            return cpu_divider;
+
+        case SYSTEM_DIVIDER:
+            return system_divider;
+
+        case PERIPH_DIVIDER:
+            return periph_divider;
+
         default:
             WARN_AGENT(erbium_regs, agent, "Read unknown Erbium register 0x%" PRIx64, addr);
             throw memory_error(addr);
@@ -170,6 +182,18 @@ void SysregsEr<Base>::write_register(const Agent& agent, uint64_t offset, uint32
 
         case RING_OSC:
             ring_osc = value & 0x7FF; // bits [10:0]
+            break;
+
+        case CPU_DIVIDER:
+            cpu_divider = value & 0x1F; // bits [4:0]
+            break;
+
+        case SYSTEM_DIVIDER:
+            system_divider = value & 0x1F; // bits [4:0]
+            break;
+
+        case PERIPH_DIVIDER:
+            periph_divider = value & 0x1F; // bits [4:0]
             break;
 
         default:
