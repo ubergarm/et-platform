@@ -89,8 +89,6 @@ private:
 
     static constexpr uint32_t SPIN_LOCK_LOCK                    = 1 << 0;
 
-    static constexpr uint32_t POWER_DOMAIN_REQ_MRAM_DSLEEP_EN   = 1 << 16;
-
     static constexpr uint32_t SOFT_RESET_MRAM_RST_B             = 1 << 2;
 
     // Register Values
