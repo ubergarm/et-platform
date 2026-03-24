@@ -1,0 +1,214 @@
+/*-------------------------------------------------------------------------
+ * Copyright (c) 2025 Ainekko, Co.
+ * SPDX-License-Identifier: Apache-2.0
+ *-------------------------------------------------------------------------
+ */
+
+#ifndef _GATHER_RANGES_INST_H_
+#define _GATHER_RANGES_INST_H_
+
+#include "Addresser.h"
+#include "Float16.h"
+#include "LibTensor.h"
+#include "utils.h"
+#include <assert.h>
+#include <cmath>
+#include <fenv.h>
+#include <limits>
+#include <string.h>
+
+namespace dnn_lib {
+
+namespace inlining {
+
+
+// The range tensor has dimensions n x m x 2, where n is the number of examples and m is the number of
+// ranges per example. For any pair (i,j), the element ranges[i,j,0] is the source tensor batch number from
+// which the copy will start, and the element ranges[i,j,1] is the length of the copy, that is, the amount
+// of batches of the source tensor that will be copied.
+
+template <ElemKind srcElK, ElemKind indexElK>
+INLINE_ATTR void fwdLibGatherRangesInst(LibTensor* outT, LibTensor* out2T, LibTensor* in1T, LibTensor* in2T,
+                                        uint64_t flags, const uint32_t minionOffset = 0,
+                                        const uint32_t assignedMinions = 0) {
+
+  using srcType = typename elemKind2elemTy<srcElK>::type;
+  using indexType = typename elemKind2elemTy<indexElK>::type;
+
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
+  /* maintain compatibility through the new Iface Libtensor */
+  void* dstT = outT->getRawDataPointer();
+  void* dst2T = out2T->getRawDataPointer();
+  void* srcT = in1T->getRawDataPointer();
+  void* prangesT = in2T->getRawDataPointer();
+
+  // Addresser<srcElK> tOutput(dstT, scale[3], offset[3]);
+  Addresser<srcElK> tOutput(dstT, outT->getScale(), outT->getOffset());
+  // const Addresser<srcElK> tInput(srcT, scale[0], offset[0]);
+  const Addresser<srcElK> tInput(srcT, in1T->getScale(), in1T->getOffset());
+  // Addresser<indexElK> tRanges(prangesT, scale[1], offset[1]);
+  const Addresser<indexElK> tRanges(prangesT, in2T->getScale(), in2T->getOffset());
+  // Addresser<indexElK> tLengths(dst2T, scale[2], offset[2]);
+  Addresser<indexElK> tLengths(dst2T, out2T->getScale(), out2T->getOffset());
+
+  // unsigned int *srcIndex = (unsigned int *)srcDims;
+  const dim_t *srcIndex = in1T->dims().data();
+  // unsigned int *dstIndex = (unsigned int *)dstDims;
+  const dim_t *dstIndex = outT->dims().data();
+  // unsigned int *rangesIndex = (unsigned int *)prangesDims;
+  const dim_t *rangesIndex = in2T->dims().data();
+  // unsigned int *lenIndex = (unsigned int *)dst2Dims;
+  const dim_t *lenIndex = out2T->dims().data();
+  
+  // unsigned int *srcPitch = (unsigned int *)srcPitches;
+  const dim_t *srcPitch = in1T->strides().data();
+  // unsigned int *dstPitch = (unsigned int *)dstPitches;
+  const dim_t *dstPitch = outT->strides().data();
+  // unsigned int *rangesPitch = (unsigned int *)prangesPitches;
+  const dim_t *rangesPitch = in2T->strides().data();
+  // unsigned int *lenPitch = (unsigned int *)dst2Pitches;
+  const dim_t *lenPitch = out2T->strides().data();
+
+  auto last_minion = activeMinions - 1;
+
+  size_t typeSize = getsize<srcType>();
+  size_t initialAddr = 0, maxRead = 0;
+
+  if (minionId < last_minion) {
+
+    size_t numElemsDst = dstPitch[0] * dstIndex[0];
+
+    getCachelinePartition(typeSize, numElemsDst, initialAddr, maxRead, minionId, activeMinions - 1, dstT);
+    if (maxRead == 0)
+      return;
+
+    // Assumption: srcDimsNum = dstDimsNum.
+    dim_t srcDimsNum = in1T->ndims();
+
+    dim_array_t coordOut = {0};
+    dim_t last_non_zero_coord;
+    getNonPaddingCoordinates(coordOut, initialAddr, srcDimsNum, dstPitch,
+                             dstIndex, last_non_zero_coord);
+
+    uint64_t offsetOut = 0;
+    for (dim_t i = 0; i < last_non_zero_coord; i++) {
+      offsetOut += dstPitch[i]*coordOut[i];
+    }
+
+    uint64_t offsetRanges = rangesPitch[2];
+    indexType length = tRanges[offsetRanges];
+    size_t range = 0;
+    size_t accumLength = 0;
+    auto exampleSize = rangesIndex[1];
+    auto exampleMem = rangesIndex[1] * rangesPitch[1];
+    while ( static_cast<uint64_t> ((accumLength + length)*dstPitch[0]) < offsetOut) {
+      accumLength += length;
+      offsetRanges += rangesPitch[1];
+      length = tRanges[offsetRanges];
+      range++;
+      if (range == exampleSize) {
+        offsetRanges += rangesPitch[0] - exampleMem;
+        range = 0;
+      }
+    }
+    offsetRanges -= rangesPitch[2];
+
+    uint64_t offsetIn = tRanges[offsetRanges]*srcPitch[0]; // tRanges[offsetRanges] is the starting batch id.
+    indexType count = 1;
+    while (static_cast<uint64_t> ((accumLength + count)*dstPitch[0]) < offsetOut) {
+      offsetIn += srcPitch[0];
+      count++;
+    }
+    count--;
+    size_t positionInBatch = offsetOut - (accumLength + count) * dstPitch[0];
+    offsetIn += positionInBatch;
+    dim_array_t coordIn = {0};
+    getNonPaddingCoordinates(coordIn, offsetIn, srcDimsNum, srcPitch, srcIndex,
+                             last_non_zero_coord); // useless last parameter.
+
+    size_t batchElems = 1;
+    for (dim_t i = 1; i < srcDimsNum; ++i) {
+      batchElems *= srcIndex[i]; // avoiding padding elements.
+    }
+
+    auto posMax = maxRead + initialAddr;
+    bool done = false;
+    //TODO: SW-2650    bool doneIn = false; // useful for skipping padding positions in the source tensor.
+
+    while (!done && (offsetOut < posMax)) {
+      tOutput[offsetOut] = tInput[offsetIn];
+      done = getOffsets(srcDimsNum, coordOut, offsetOut, dstIndex, dstPitch);
+      positionInBatch++;
+      if (positionInBatch != batchElems) {
+        /*TODO: SW-2650 doneIn = */ getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+      }
+      else {
+        positionInBatch = 0;
+        count++;
+        if (count != length) {
+         /*TODO: SW-2650 doneIn = */getOffsets(srcDimsNum, coordIn, offsetIn, srcIndex, srcPitch);
+        }
+        else {
+          count = 0;
+          ++range;
+          if (range != exampleSize) offsetRanges += rangesPitch[1];
+          else {
+            range = 0;
+            offsetRanges += rangesPitch[0] - (exampleSize - 1)*rangesPitch[1];
+          }
+          offsetIn = tRanges[offsetRanges];
+          length = tRanges[offsetRanges + rangesPitch[2]];
+        }
+      }
+    }
+
+    if (!DO_EVICTS) return;
+    size_t clperminion = (maxRead * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    if (clperminion > 0) evict_va_multi(DO_EVICTS, (uintptr_t)dstT + typeSize*initialAddr, clperminion);
+  }
+
+// For coherence reasons only one minion should be able to write on the Length tensor, since in practice
+// it will just be a short vector (not more than a couple cl's). This implementation involves the last
+// active minion.
+
+  else if (minionId == last_minion) {
+    auto numExamples = rangesIndex[0];
+    auto exampleSize = rangesIndex[1];
+    auto offsetRanges = rangesPitch[2];
+    auto auxoffsetRanges = rangesPitch[2]; // this aux variable helps avoiding products.
+    size_t offsetLengths = 0;
+
+    //It isn't thought that tlength writes will have more than 16 cache_lines.
+    //So that, the initialAddr doesn't update.
+    initialAddr = 0;
+
+    for (size_t example = 0; example < numExamples; example++) { // size_t or indexType?
+      indexType totalLength = 0;
+      for (size_t range = 0; range < exampleSize; range++) {
+          totalLength += tRanges[offsetRanges];
+          offsetRanges += rangesPitch[1];
+      }
+      tLengths[offsetLengths] = totalLength;
+      offsetRanges = auxoffsetRanges + rangesPitch[0];
+      auxoffsetRanges = offsetRanges;
+      offsetLengths += lenPitch[0];
+    }
+
+    // Todo: initialAddr should be the virtual address of the Length tensor.
+    if (!DO_EVICTS) return;
+    size_t clperminion = (lenIndex[0] * lenPitch[0] * sizeof(srcType) + CACHE_LINE_BYTES - 1) / CACHE_LINE_BYTES;
+    if (clperminion > 0) {
+      evict_va_multi(DO_EVICTS, (uintptr_t)dst2T + typeSize*initialAddr, clperminion);
+    }
+  }
+}
+
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _GATHER_RANGES_INST_H_

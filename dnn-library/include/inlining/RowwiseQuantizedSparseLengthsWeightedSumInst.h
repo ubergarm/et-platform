@@ -1,0 +1,651 @@
+/*-------------------------------------------------------------------------
+ * Copyright (c) 2025 Ainekko, Co.
+ * SPDX-License-Identifier: Apache-2.0
+ *-------------------------------------------------------------------------
+ */
+
+#ifndef _ROWWISE_QUANTIZED_SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
+#define _ROWWISE_QUANTIZED_SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
+
+#include "Float16.h"
+#include "LibTensor.h"
+#include "utils.h"
+#include <assert.h>
+#include <cmath>
+#include <fenv.h>
+#include <limits>
+#include <string.h>
+
+namespace dnn_lib {
+
+namespace inlining {
+
+template <ElemKind dstElK, ElemKind indicesElK>
+INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInst(
+  LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, LibTensor* offsetsT, LibTensor* weightsT, LibTensor* indicesT,
+  LibTensor* lengthsT, [[maybe_unused]] uint64_t flags, const uint32_t minionOffset = 0,
+  [[maybe_unused]] const uint32_t assignedMinions = 0) {
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  using indxType = typename elemKind2elemTy<indicesElK>::type;
+
+  if (get_minion_id() != minionOffset) return;
+  
+  auto outH = outT->getHandle<dstType>();
+  auto dataH = dataT->getHandle<uint8_t>();
+  auto weightH = weightsT->getHandle<dstType>();
+  auto indicesH = indicesT->getHandle<indxType>();
+  auto lengthsH = lengthsT->getHandle<int32_t>();
+  auto scalesH = scalesT->getHandle<dstType>();
+  auto offsetsH = offsetsT->getHandle<dstType>();
+
+  size_t totalLength = 0;
+  for (size_t i = 0; i < lengthsT->dims()[0]; i++) {
+    totalLength += lengthsH.raw(i);
+  }
+  assert(totalLength <= indicesT->dims()[0] && 
+         "sum(lengths must be equal to len(Indices)");
+
+  size_t lineSize = dataT->size() / dataT->dims()[0];
+  
+  outH.zero();
+
+  size_t curIdx = 0;
+  for (size_t i = 0; i < lengthsT->dims()[0]; i++) {
+    for (int32_t j = 0; j < lengthsH.raw(i); j++) {
+      //@TODO in case indxType is int64 is cast to int32 due to conversion to int64 cause a trap
+      const size_t rowIdx = static_cast<uint32_t>(indicesH.raw(curIdx));
+      float weight;
+      float scale;
+      float offset;
+
+      if (dstElK == FloatTy) {
+        weight = weightH.raw(curIdx * weightsT->strides()[0]);
+        scale = scalesH.at(std::array<size_t,1>{rowIdx});
+        offset = offsetsH.at(std::array<size_t,1>{rowIdx});
+      }
+      else { //Float16Ty
+        convertFp16ToFp32(static_cast<uint16_t>(weightH.raw(curIdx * weightsT->strides()[0])), weight);
+        convertFp16ToFp32(static_cast<uint16_t>(scalesH.at(std::array<size_t,1>{rowIdx})), scale);
+        convertFp16ToFp32(static_cast<uint16_t>(offsetsH.at(std::array<size_t,1>{rowIdx})), offset);
+      }
+
+      size_t offsetIn = rowIdx * dataT->strides()[0];
+      size_t offsetOut = i * outT->strides()[0];
+      curIdx++;
+
+      for (size_t k = 0; k < lineSize; k++) {
+        float d = dequantizeWithFloatOffset(dataH.raw(offsetIn), scale, offset);
+
+        if constexpr (dstElK == FloatTy) {
+          outH.raw(offsetOut) += d * weight;
+        } else {
+          uint16_t dst = 0;
+          float accum = 0.0;
+          convertFp16ToFp32(static_cast<uint16_t>(outH.raw(offsetOut)), accum);  
+          accum += (d * weight);
+          convertFp32ToFp16(accum, dst);
+          outH.raw(offsetOut) = dst;
+        }
+
+        offsetOut++;
+        offsetIn++;
+      }
+    }
+  }
+}
+
+template <ElemKind dstElK, ElemKind indicesElK>
+inline void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstThreaded(
+             LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, LibTensor* offsetsT, 
+             LibTensor* weightsT, LibTensor* indicesT, LibTensor* lengthsT,
+             uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  using dstType = typename elemKind2elemTy<dstElK>::type;
+  //  using indxType = typename elemKind2elemTy<indicesElK>::type;
+
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id() - minionOffset;
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+  if (minionId >= activeMinions) return;
+
+  auto *tOutput = outT->getRawDataPointer<dstType>();
+  auto tAInput = dataT->getRawDataPointer<uint8_t>();
+  auto tScale = scalesT->getRawDataPointer<float>();
+  auto tOffset = offsetsT->getRawDataPointer<float>();
+  auto tWInput = weightsT->getRawDataPointer<float>();
+  auto indices = indicesT->getRawDataPointer<long long>();
+  auto lengths = lengthsT->getRawDataPointer<int32_t>();
+
+  const dim_t* dataIndex = dataT->dims().data();
+  const dim_t *dstPitch = outT->strides().data();
+  const dim_t *dataPitch = dataT->strides().data();
+  const dim_t* weightPitch = indicesT->strides().data();
+  const dim_t segments = lengthsT->ndims();
+
+  dim_t pdstDimNum = outT->ndims();
+
+  size_t ranges[segments];
+  size_t totalLength = 0;
+  for (dim_t i = 0; i < segments; i++) {
+    ranges[i] = totalLength;
+    totalLength += lengths[i];
+  }
+  // assert(totalLength == weightIndex[0] && "sum(Lengths) must be equal to
+  // len(Indices)");
+
+  size_t lineSize = 1;
+  for (size_t i = 1; i < pdstDimNum; i++)
+    lineSize *= dataIndex[i];
+
+  size_t cll = CACHE_LINE_BYTES / sizeof(float);
+  size_t rowsperminion = (cll - 1) / dstPitch[0] + 1;
+  size_t total_rows = rowsperminion * activeMinions;
+  for (dim_t i = total_rows; i < segments; i += activeMinions) {
+    rowsperminion++;
+  }
+  size_t row_begin = minionId * rowsperminion;
+  if (row_begin >= segments)
+    return;
+  size_t row_end = row_begin + rowsperminion;
+
+  size_t curIdx = ranges[row_begin];
+  for (size_t i = row_begin; i < row_end; i++) {
+    for (size_t j = 0, e = lengths[i]; j < e; j++) {
+      const float weight = tWInput[curIdx * weightPitch[0]];
+      const size_t rowIdx = indices[curIdx];
+      const float scale = tScale[rowIdx];
+      const float offset = tOffset[rowIdx];
+      size_t offsetIn = rowIdx * dataPitch[0];
+      size_t offsetOut = i * dstPitch[0];
+      curIdx++;
+      for (size_t k = 0; k < lineSize; k++) {
+
+        float d = dequantizeWithFloatOffset(tAInput[offsetIn], scale, offset);
+        tOutput[offsetOut] += d * weight;
+        offsetOut++;
+        offsetIn++;
+      }
+    }
+  }
+}
+
+template <ElemKind dstElK, ElemKind indicesElK>
+INLINE_ATTR void fwdLibRowwiseQuantizedSparseLengthsWeightedSumInstVectorized(
+  LibTensor* outT, LibTensor* dataT, LibTensor* scalesT, LibTensor* offsetsT, LibTensor* weightsT, LibTensor* indicesT,
+  LibTensor* lengthsT, uint64_t flags, const uint32_t minionOffset = 0, const uint32_t assignedMinions = 0) {
+
+  const bool Int8Src = true;
+  const bool Float16Dst = dstElK == Float16Ty;
+  
+  // Get offset of the Minion inside the group of Minions assigned to this Node.
+  assert(get_minion_id() >= minionOffset);
+  size_t minionId = get_minion_id();
+  if (minionId < minionOffset) return;   // If Minion is outside the group assigned to this Node get out.
+  minionId -= minionOffset;
+  
+  // Get number of Minions assigned to this Node.
+  size_t activeMinions = (assignedMinions == 0) ? (MIN_PER_SHIRE * activeShires(flags)) : assignedMinions;
+
+  // If Minion is outside the group assigned to this Node get out.
+  if (minionId >= activeMinions) return;
+
+  // Set real types for input pointers.
+  // For dst we used uint8_t because it can be accessed with different types.
+
+  auto tOutput = outT->getRawDataPointer<uint8_t>();
+  auto tAInput = dataT->getRawDataPointer<uint8_t>();
+  auto tWInput = weightsT->getRawDataPointer<float>();
+  auto indices = indicesT->getRawDataPointer<int64_t>();
+  auto lengths = lengthsT->getRawDataPointer<int32_t>();
+  auto scales = scalesT->getRawDataPointer<float>();
+  auto offsets = offsetsT->getRawDataPointer<float>();
+
+  const dim_t *dstDims = outT->dims().data();
+  const dim_t *dataDims = dataT->dims().data();
+  const dim_t *dstPitches = outT->strides().data();
+  const dim_t *dataPitches = dataT->strides().data();
+
+  dim_t pdstDimNum = outT->ndims();
+
+  // TODO : Add assert checking segments is equal to the number of output rows.
+  // TODO : Add assert checking that totalLength is smaller than the size of
+  // the indices tensor.
+  //
+  // Compute the total number of rows in data to be summed.
+  //uintptr_t segments = pLengthsSize;
+  //uintptr_t totalLength = 0;
+  //for (uintptr_t i = 0; i < segments; i++)
+  //  totalLength += lengths[i];
+  //
+
+  // Compute the number of elements per data row (first tensor dimension).
+  uintptr_t dataRowSize = 1;
+  for (uintptr_t i = 1; i < pdstDimNum; i++) dataRowSize *= dataDims[i];
+
+  // Compute the number of elements per output row (first tensor dimension).
+  uintptr_t dstRowSize = 1;
+  for (uintptr_t i = 1; i < pdstDimNum; i++) dstRowSize *= dstDims[i];
+
+  // Get size of the output element.
+  uintptr_t dstElemSize;
+  if (Float16Dst)  // For dual output use float32 blocking for the tail
+    dstElemSize = 2;
+  else
+    dstElemSize = 4;
+
+  // Compute the number of 8-element vectors per output cache line.
+  uintptr_t dstCacheLineVRegs = CACHE_LINE_BYTES / (dstElemSize * 8);
+
+  // Compute the number of Cache Line groups per output row (rounded up).
+  uintptr_t dstRowGroups = ((dstRowSize - 1) / CACHE_LINE_BYTES) + 1;
+
+  // Determine if row has a tail.
+  bool dstRowHasTail = ((dstRowSize % CACHE_LINE_BYTES) != 0);
+
+  // Compute the number of 8-element vectors in the tail of the row.
+  uintptr_t dstRowTailVRegs = (((dstRowSize - 1) / 8) + 1) % dstCacheLineVRegs;
+
+  // Compute the element mask for the tail of the row.
+  uint8_t dstRowTailVRegMask = static_cast<uint8_t>((1 << (((dstRowSize - 1) % 8) + 1)) - 1);
+
+  // Assign work to Minions :
+  //
+  // - Each Minion gets assigned at least one group of output cache lines
+  //
+
+  uintptr_t totalWorkUnits = dstRowGroups * dstDims[0];
+
+  //  Distribute the tail of groups.
+  uintptr_t minionWorkUnits = totalWorkUnits / activeMinions;
+  
+  if ((totalWorkUnits % activeMinions) != 0) {
+    uintptr_t remainingWorkUnits = totalWorkUnits % activeMinions;
+    if (minionId < remainingWorkUnits)
+      minionWorkUnits++;
+  }
+
+  // Compute the index into the first work unit.
+  uintptr_t minionFirstWorkUnit = minionId * minionWorkUnits;
+
+  // Compute the first output row (segment) assigned to the Minion.
+  uintptr_t minionFirstSegment = minionFirstWorkUnit / dstRowGroups;
+
+  // Compute current group in row assigned to the Minion.
+  uintptr_t minionFirstRowGroup = minionFirstWorkUnit % dstRowGroups;
+
+  // Get the first index assigned to the Minion.
+  uintptr_t minionFirstIndex = 0;
+  for (uintptr_t i = 0; i < minionFirstSegment; i++)
+    minionFirstIndex += lengths[i];
+
+  // Initialize indices.
+  uintptr_t minionCurrIndex = minionFirstIndex;
+  uintptr_t minionCurrSegment = minionFirstSegment;
+  uintptr_t minionCurrRowGroup = minionFirstRowGroup;
+  uintptr_t currSegmentLength = lengths[minionCurrSegment];
+
+  // Initilize output pointer.
+  uint8_t *dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
+
+  // For all minion assigned work units
+  for (uintptr_t i = 0; i < minionWorkUnits; i++) {
+
+    // Detect row tail
+    bool dstGroupNotInRowTail = !dstRowHasTail || (minionCurrRowGroup != (dstRowGroups - 1));
+
+    if (dstGroupNotInRowTail) {
+      // Not in tail
+
+      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+      // Initialize vector mask
+      // Clear vector registers that will be used for accumulation
+      // Initialize offsets for gather from input
+      // Initialize mask to clear upper bytes from input load
+      __asm__ __volatile__ (
+        "mov.m.x m0, zero, 0xff\n"
+        "fxor.pi f0, f0, f0\n"
+        "fxor.pi f1, f0, f0\n"
+        "fxor.pi f2, f0, f0\n"
+        "fxor.pi f3, f0, f0\n"
+        "fxor.pi f4, f0, f0\n"
+        "fxor.pi f5, f0, f0\n"
+        "fxor.pi f6, f0, f0\n"
+        "fxor.pi f7, f0, f0\n"
+        "li      t0, 0xff\n"
+        "fbcx.ps f30, t0\n"
+        "flw.ps  f31, %[gather_offsets]\n"
+        :
+        : [gather_offsets] "m" (* ( const int32_t(*)[8]) gather_offsets)
+        : "t0", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+          "f30", "f31"
+      );
+
+      if (Float16Dst) {
+        // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
+        __asm__ __volatile__ (
+          "fadd.pi f29, f31, f31\n"
+          :
+          :
+          : "f29"
+        );
+      }
+
+      // For all sparse input rows.
+      for (uintptr_t j = 0, currIndex = minionCurrIndex;
+           j < currSegmentLength; j++, currIndex++) {
+                int64_t            rowIndex   = indices[currIndex];
+        uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
+        float            * scale_ptr  = (float *) &scales[rowIndex];
+        float            * offset_ptr = (float *) &offsets[rowIndex];
+        float            * weight_ptr = (float *) &tWInput[currIndex];
+
+        __asm__ __volatile__("fbc.ps  f26, 0x0(%[weight_ptr])\n"
+                             "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+                             "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+
+                             // Load a full input cache line (64 elements, 8 vregs)
+                             "fgb.ps     f25, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f24, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f23, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f22, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f21, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f20, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f19, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             "fgb.ps     f18, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             : [ data_ptr ] "+&r"(data_ptr)
+                             : [ weight_ptr ] "r"(weight_ptr), [ offset_ptr ] "r"(offset_ptr),
+                               [ scale_ptr ] "r"(scale_ptr)
+                             : "f18", "f19", "f20", "f21", "f22", "f23", "f24", "f25", "f26", "f27", "f28");
+
+        if (Int8Src) {
+          // Convert to UInt8_t adding 128.
+                __asm__ __volatile__ (
+            "faddi.pi f25, f25, 0x80\n"
+            "faddi.pi f24, f24, 0x80\n"
+            "faddi.pi f23, f23, 0x80\n"
+            "faddi.pi f22, f22, 0x80\n"
+            "faddi.pi f21, f21, 0x80\n"
+            "faddi.pi f20, f20, 0x80\n"
+            "faddi.pi f19, f19, 0x80\n"
+            "faddi.pi f18, f18, 0x80\n"
+           :
+           : 
+           : "f18" , "f19", "f20", "f21", "f22", "f23", "f24",
+             "f25"
+          );
+        }
+
+        __asm__ __volatile__ (
+          "fand.pi    f25, f25, f30\n"
+          "fand.pi    f24, f24, f30\n"
+          "fand.pi    f23, f23, f30\n"
+          "fand.pi    f22, f22, f30\n"
+          "fand.pi    f21, f21, f30\n"
+          "fand.pi    f20, f20, f30\n"
+          "fand.pi    f19, f19, f30\n"
+          "fand.pi    f18, f18, f30\n"
+          "fcvt.ps.pw f25, f25\n"
+          "fcvt.ps.pw f24, f24\n"
+          "fcvt.ps.pw f23, f23\n"
+          "fcvt.ps.pw f22, f22\n"
+          "fcvt.ps.pw f21, f21\n"
+          "fcvt.ps.pw f20, f20\n"
+          "fcvt.ps.pw f19, f19\n"
+          "fcvt.ps.pw f18, f18\n"
+          "fmadd.ps   f25, f25, f28, f27\n"
+          "fmadd.ps   f24, f24, f28, f27\n"
+          "fmadd.ps   f23, f23, f28, f27\n"
+          "fmadd.ps   f22, f22, f28, f27\n"
+          "fmadd.ps   f21, f21, f28, f27\n"
+          "fmadd.ps   f20, f20, f28, f27\n"
+          "fmadd.ps   f19, f19, f28, f27\n"
+          "fmadd.ps   f18, f18, f28, f27\n"
+          "fmadd.ps   f0, f26, f25, f0\n"
+          "fmadd.ps   f1, f26, f24, f1\n"
+          "fmadd.ps   f2, f26, f23, f2\n"
+          "fmadd.ps   f3, f26, f22, f3\n"
+          "fmadd.ps   f4, f26, f21, f4\n"
+          "fmadd.ps   f5, f26, f20, f5\n"
+          "fmadd.ps   f6, f26, f19, f6\n"
+          "fmadd.ps   f7, f26, f18, f7\n"
+         : 
+         :
+         : "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7",
+           "f18" , "f19", "f20", "f21", "f22", "f23", "f24",
+           "f25"
+        );
+      }
+
+      if (not Float16Dst) {
+        // Store accumulated results.
+        __asm__ __volatile__("fsw.ps f0,   0(%[dst_ptr])\n"
+                             "fsw.ps f1,  32(%[dst_ptr])\n"
+                             "fsw.ps f2,  64(%[dst_ptr])\n"
+                             "fsw.ps f3,  96(%[dst_ptr])\n"
+                             "fsw.ps f4, 128(%[dst_ptr])\n"
+                             "fsw.ps f5, 160(%[dst_ptr])\n"
+                             "fsw.ps f6, 192(%[dst_ptr])\n"
+                             "fsw.ps f7, 224(%[dst_ptr])\n"
+                             :
+                             : [ dst_ptr ] "r"(dst_ptr)
+                             :);
+
+        dst_ptr += 64 * dstElemSize;
+      }
+
+      if (Float16Dst) {
+        // Convert and store accumulated results.
+        __asm__ __volatile__ (
+          "fcvt.f16.ps f0, f0\n"
+          "fcvt.f16.ps f1, f1\n"
+          "fcvt.f16.ps f2, f2\n"
+          "fcvt.f16.ps f3, f3\n"
+          "fcvt.f16.ps f4, f4\n"
+          "fcvt.f16.ps f5, f5\n"
+          "fcvt.f16.ps f6, f6\n"
+          "fcvt.f16.ps f7, f7\n"
+          "fsch.ps f0, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f1, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f2, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f3, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f4, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f5, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f6, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          "fsch.ps f7, f29(%[dst_ptr])\n"
+          "addi %[dst_ptr], %[dst_ptr], 16\n"
+          : [dst_ptr]   "+&r" (dst_ptr)
+          :
+          :
+        );
+      }
+
+      minionCurrRowGroup++;
+
+      minionCurrIndex += currSegmentLength;
+    }
+    else {
+      int32_t gather_offsets[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
+
+      // Initialize vector mask
+      // Clear vector registers that will be used for accumulation
+      // Initialize offsets for gather from input
+      // Initialize mask to clear upper bytes from input load
+      __asm__ __volatile__ (
+        "mov.m.x m0, zero, 0xff\n"
+        "fxor.pi f0, f0, f0\n"
+        "li      t0, 0xff\n"
+        "fbcx.ps f30, t0\n"
+        "flw.ps  f31, %[gather_offsets]\n"
+        :
+        : [gather_offsets] "m" (* ( const int32_t(*)[8]) gather_offsets)
+        : "t0", "f0", "f30", "f31"
+      );
+
+      if (Float16Dst) {
+        // Set offsets for storing float16 results (0, 2, 4, 6, 8, 10, 12, 14)
+        __asm__ __volatile__ (
+          "fadd.pi f29, f31, f31\n"
+          :
+          :
+          : "f29"
+        );
+      }
+
+      for (uintptr_t k = 0; k < (dstRowTailVRegs - 1); k++) {
+
+        // For all sparse input rows.
+        for (uintptr_t j = 0, currIndex = minionCurrIndex;
+             j < currSegmentLength; j++, currIndex++) {
+          int64_t            rowIndex   = indices[currIndex];
+          uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
+          float            * scale_ptr  = (float *) &scales[rowIndex];
+          float            * offset_ptr = (float *) &offsets[rowIndex];
+          float            * weight_ptr = (float *) &tWInput[currIndex];
+
+          __asm__ __volatile__("fbc.ps  f26, 0x0(%[weight_ptr])\n"
+                               "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+                               "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+
+                               // Load a full input cache line (64 elements, 8 vregs)
+                               "fgb.ps     f25, f31(%[data_ptr])\n"
+                               "addi       %[data_ptr], %[data_ptr], 8\n"
+                               : [ data_ptr ] "+&r"(data_ptr)
+                               : [ weight_ptr ] "r"(weight_ptr), [ offset_ptr ] "r"(offset_ptr),
+                                 [ scale_ptr ] "r"(scale_ptr)
+                               : "f25", "f26", "f27", "f28");
+
+          if (Int8Src) {
+            // Convert to UInt8_t adding 128.
+            __asm__ __volatile__ (
+              "faddi.pi f25, f25, 0x80\n"
+             :
+             : 
+             : "f25"
+            );
+          }
+
+          __asm__ __volatile__ (
+            "fand.pi    f25, f25, f30\n"
+            "fcvt.ps.pw f25, f25\n"
+            "fmadd.ps   f25, f25, f28, f27\n"
+            "fmadd.ps   f0, f26, f25, f0\n"
+           : 
+           :
+           : "f0", "f25"
+          );
+        }
+
+        if (not Float16Dst) {
+          // Store accumulated results.
+          __asm__ __volatile__("fsw.ps f0, 0(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) :);
+        }
+
+        if (Float16Dst) {
+          __asm__ __volatile__ (
+            "fcvt.f16.ps f0, f0\n"
+            "fsch.ps f0, f29(%[dst_ptr])\n"
+            :
+            : [dst_ptr] "r" (dst_ptr)
+            :
+          );
+        }
+      }
+
+      // Set mask for last VReg in group.
+      __asm__ __volatile__ (
+        "mov.m.x m0, %[tail_mask], 0x0\n"
+        :
+        : [tail_mask] "r" (dstRowTailVRegMask)
+      );
+
+      // For all sparse input rows.
+      for (uintptr_t j = 0, currIndex = minionCurrIndex;
+           j < currSegmentLength; j++, currIndex++) {
+        int64_t            rowIndex   = indices[currIndex];
+        uint8_t * data_ptr   = tAInput + rowIndex * dataPitches[0];
+        float            * scale_ptr  = (float *) &scales[rowIndex];
+        float            * offset_ptr = (float *) &offsets[rowIndex];
+        float            * weight_ptr = (float *) &tWInput[currIndex];
+
+        __asm__ __volatile__("fbc.ps  f26, 0x0(%[weight_ptr])\n"
+                             "fbc.ps  f27, 0x0(%[offset_ptr])\n"
+                             "fbc.ps  f28, 0x0(%[scale_ptr])\n"
+
+                             // Load a full input cache line (64 elements, 8 vregs)
+                             "fgb.ps     f25, f31(%[data_ptr])\n"
+                             "addi       %[data_ptr], %[data_ptr], 8\n"
+                             : [ data_ptr ] "+&r"(data_ptr)
+                             : [ weight_ptr ] "r"(weight_ptr), [ offset_ptr ] "r"(offset_ptr),
+                               [ scale_ptr ] "r"(scale_ptr)
+                             : "f25", "f26", "f27", "f28");
+
+        if (Int8Src) {
+          // Convert to UInt8_t adding 128.
+                __asm__ __volatile__ (
+            "faddi.pi f25, f25, 0x80\n"
+           :
+           : 
+           : "f25"
+          );
+        }
+
+        __asm__ __volatile__ (
+          "fand.pi    f25, f25, f30\n"
+          "fcvt.ps.pw f25, f25\n"
+          "fmadd.ps   f25, f25, f28, f27\n"
+          "fmadd.ps   f0, f26, f25, f0\n"
+         :
+         :
+         : "f0", "f25"
+        );
+      }
+
+      if (not Float16Dst) {
+        // Store accumulated results.
+        __asm__ __volatile__("fsw.ps f0, 0(%[dst_ptr])\n" : : [ dst_ptr ] "r"(dst_ptr) :);
+      }
+
+      if (Float16Dst) {
+        __asm__ __volatile__ (
+          "fcvt.f16.ps f0, f0\n"
+          "fsch.ps f0, f29(%[dst_ptr])\n"
+          :
+          : [dst_ptr] "r" (dst_ptr)
+          :
+        );
+      }
+
+      minionCurrIndex += currSegmentLength;
+
+      // Move from row tail to next row.
+      minionCurrSegment++;
+      minionCurrRowGroup = 0;
+      currSegmentLength = lengths[minionCurrSegment];
+
+      dst_ptr = tOutput + (minionCurrSegment * dstPitches[0] + minionCurrRowGroup * 64) * dstElemSize;
+    }
+  }
+}
+
+} // namespace inlining
+
+} // namespace dnn_lib
+
+#endif // _ROWWISE_QUANTIZED_SPARSE_LENGTHS_WEIGHTED_SUM_INST_H_
