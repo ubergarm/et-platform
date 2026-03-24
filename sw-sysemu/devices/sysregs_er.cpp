@@ -24,7 +24,7 @@ void SysregsEr<Base>::reset(ResetCause cause)
     system_config      = SYSTEM_CONFIG_WDOG_DISABLE;
     sys_interrupt      = 0;
     reset_cause        = static_cast<uint32_t>(cause);  // Set reset cause
-    power_domain_req   = POWER_DOMAIN_REQ_MRAM_DSLEEP_EN;
+    power_domain_req   = 0;
     power_domain_ack   = 0;
     spin_lock          = 0;
     chip_mode          = 0;
