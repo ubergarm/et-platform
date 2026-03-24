@@ -61,6 +61,13 @@ DeviceProject(device-minion-runtime
 )
 
 #
+# Compute kernels
+#
+DeviceProject(dnn-library "-DENABLE_WARNINGS_AS_ERRORS=OFF"
+       et-common-libs et-trace
+)
+
+#
 # Test kernels
 #
 DeviceProject(test-compute-kernels ""

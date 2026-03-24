@@ -1,0 +1,24 @@
+*~
+\#*\#
+# Ignore vim .swp files
+*.swp
+*.swo
+.*.sw?
+
+# build system
+build/
+cmake-build-*/
+
+# conan
+test_package/build
+*.lock
+CMakeUserPresets.json
+conanbuildinfo.txt
+conaninfo.txt
+graph_info.json
+activate_run.*
+deactivate_run.*
+environment_run.*.env
+
+# conan ci
+lockfiles_info.json
