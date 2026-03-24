@@ -7,6 +7,8 @@
 #ifndef DENOISE_MASKS_H_
 #define DENOISE_MASKS_H_
 
+#include "LibTypes.h"
+#include <array>
 #include "0_filterMask.h"
 #include "1_filterMask.h"
 #include "2_filterMask.h"
@@ -17,8 +19,6 @@
 #include "7_filterMask.h"
 #include "8_filterMask.h"
 #include "9_filterMask.h"
-#include "LibTypes.h"
-#include <array>
 
 namespace dnn_lib {
 namespace inlining {

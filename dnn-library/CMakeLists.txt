@@ -215,21 +215,19 @@ target_compile_options(dnnlibraryDummyExecutable
         -Wall
         -std=c++17
         $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror>
-        # Even w/o treating all warnings as arrors, there are some warnings we don't
-        # allow at this compilation stage. This list wil grow as categories are cleaned up.
-        -Werror=shadow 
-        -Werror=ignored-qualifiers 
-        -Werror=div-by-zero
-        -Werror=unused-but-set-parameter
-        -Werror=unused-but-set-variable
-        -Werror=unused-parameter
-        -Werror=unused-variable
-        -Werror=float-conversion
-        -Werror=double-promotion
-        -Werror=cast-align
-        -Werror=maybe-uninitialized
-        -Werror=parentheses
-        -Werror=unused-local-typedefs
-        -Werror=sign-compare
-        -Werror=narrowing
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=shadow>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=ignored-qualifiers>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=div-by-zero>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=unused-but-set-parameter>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=unused-but-set-variable>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=unused-parameter>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=unused-variable>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=float-conversion>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=double-promotion>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=cast-align>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=maybe-uninitialized>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=parentheses>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=unused-local-typedefs>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=sign-compare>
+        $<$<BOOL:${ENABLE_WARNINGS_AS_ERRORS}>:-Werror=narrowing>
       )

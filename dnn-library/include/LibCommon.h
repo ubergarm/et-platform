@@ -11,6 +11,7 @@
 #include "Float16.h"
 #include "LibTensor.h"
 #include "LibTypes.h"
+#include "LibUtils.h"
 #include <algorithm>
 #include <cmath>
 #include <etsoc/isa/hart.h>

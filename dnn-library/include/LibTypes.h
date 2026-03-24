@@ -9,6 +9,7 @@
 
 #include "Compiler.h"
 #include <array>
+#include <stddef.h>
 #include <stdint.h>
 
 #define INLINE_ATTR __attribute__((always_inline)) inline
