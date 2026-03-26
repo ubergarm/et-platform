@@ -21,14 +21,14 @@ void SysregsEr<Base>::reset(ResetCause cause)
     // TODO: use methods to write some of the registers (once implemented),
     // because that can have side effects
     version            = 0xEB680000;  // chipid=0xEB68, variation=0, respin=0
-    system_config      = SYSTEM_CONFIG_WDOG_DISABLE;
+    system_config      = SYSTEM_CONFIG_WDOG_DISABLE | SYSTEM_CONFIG_SPI_ENABLE;
     sys_interrupt      = 0;
     reset_cause        = static_cast<uint32_t>(cause);  // Set reset cause
     power_domain_req   = 0;
     power_domain_ack   = 0;
     spin_lock          = 0;
     chip_mode          = 0;
-    soft_reset         = 0;
+    soft_reset         = SOFT_RESET_MRAM_RST_B;
     mailbox0           = 0;
     mailbox1           = 0;
     power_good         = 0xFFFFF;
