@@ -86,6 +86,7 @@ private:
     static constexpr uint32_t SYSTEM_CONFIG_SYS_INTR_EN         = 1 << 0;
     static constexpr uint32_t SYSTEM_CONFIG_MRAM_STARTUP_BYPASS = 1 << 1;
     static constexpr uint32_t SYSTEM_CONFIG_WDOG_DISABLE        = 1 << 2;
+    static constexpr uint32_t SYSTEM_CONFIG_SPI_ENABLE          = 1 << 4;
     static constexpr uint32_t SYSTEM_CONFIG_UART_ENABLE         = 1 << 6;
 
     static constexpr uint32_t WATCHDOG_KICK                     = 1 << 7;
