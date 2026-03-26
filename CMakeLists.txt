@@ -92,6 +92,10 @@ HostProject(host "-DET_SDK_HOME=${ET_PLATFORM_PATH}" device-api devicelayer espe
 DeviceProject(device "-DET_SDK_HOME=${ET_PLATFORM_PATH} -DADDRESS:STRING=0x8006335000" dnn-library)
 set(PROJECT_BASE_DIR ".")
 
+HostProject(dnn-library-api "-DENABLE_WARNINGS_AS_ERRORS=OFF"
+       dnn-library
+)
+
 #
 # Device Management and Control
 #

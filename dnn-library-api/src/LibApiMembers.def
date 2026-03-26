@@ -1,0 +1,51 @@
+#ifndef SCALAR_MB_DEF
+#error The macro SCALAR_MB_DEF was not declared.
+#endif
+#ifndef VECTOR_MB_DEF
+#error The macro VECTOR_MB_DEF was not declared.
+#endif
+
+SCALAR_MB_DEF(HalfWindowSize, unsigned int)
+SCALAR_MB_DEF(Alpha, float)
+SCALAR_MB_DEF(Beta, float)
+SCALAR_MB_DEF(K, float)
+SCALAR_MB_DEF(TopK, uint32_t)
+SCALAR_MB_DEF(Divisor, uint64_t)
+SCALAR_MB_DEF(SignFollowDivisor, bool)
+SCALAR_MB_DEF(Axis, dim_t)
+SCALAR_MB_DEF(Depth, uint64_t)
+SCALAR_MB_DEF(KeepDims, bool)
+SCALAR_MB_DEF(Group, uint32_t)
+SCALAR_MB_DEF(BatchDims, uint32_t)
+SCALAR_MB_DEF(Count, uint32_t)
+SCALAR_MB_DEF(Value, float)
+SCALAR_MB_DEF(ValueBits, uint64_t)
+SCALAR_MB_DEF(SyncOffset, uint32_t)
+SCALAR_MB_DEF(Exclusive, bool)
+SCALAR_MB_DEF(Reverse, bool)
+SCALAR_MB_DEF(BlockSize, uint32_t)
+SCALAR_MB_DEF(HasEndOffset, bool)
+SCALAR_MB_DEF(CenterPointBox, uint64_t)
+SCALAR_MB_DEF(MaxOutputBoxesPerClass, uint64_t)
+SCALAR_MB_DEF(IouThreshold, float)
+SCALAR_MB_DEF(ScoreThreshold,float)
+SCALAR_MB_DEF(IsTFVersion4, bool)
+SCALAR_MB_DEF(Layout, uint32_t)
+SCALAR_MB_DEF(CountIncludePads, bool)
+SCALAR_MB_DEF(FusedActivation, size_t)
+SCALAR_MB_DEF(GenericOperation, uint32_t)
+SCALAR_MB_DEF(Upper, bool)
+
+VECTOR_MB_DEF(Kernels, uint32_t)
+VECTOR_MB_DEF(Strides, uint32_t)
+VECTOR_MB_DEF(Pads, uint32_t)
+VECTOR_MB_DEF(Offsets, size_t)
+VECTOR_MB_DEF(Shuffle, uint32_t)
+VECTOR_MB_DEF(Mask, uint64_t)
+VECTOR_MB_DEF(Axes, uint32_t)
+VECTOR_MB_DEF(RszScale, float)
+VECTOR_MB_DEF(Dilation, uint32_t)
+VECTOR_MB_DEF(FusedActivationArgs, float)
+
+#undef SCALAR_MB_DEF
+#undef VECTOR_MB_DEF
